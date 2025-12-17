@@ -38,7 +38,7 @@ services:
     working_dir: /app
     volumes:
       - ./webhook:/app
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /root/VPS:/vps
     ports:
       - "9000:9000"
     command: node server.js

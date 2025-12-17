@@ -1,7 +1,7 @@
 const http = require('http');
 const { exec } = require('child_process');
+const fs = require('fs');
 
-const SECRET = process.env.WEBHOOK_SECRET || 'tu-secreto-seguro';
 const PORT = 9000;
 
 const server = http.createServer((req, res) => {
@@ -9,19 +9,13 @@ const server = http.createServer((req, res) => {
         let body = '';
         req.on('data', chunk => body += chunk);
         req.on('end', () => {
-            console.log('Webhook recibido, desplegando...');
+            console.log('Webhook recibido, creando señal de deploy...');
             
-            exec('cd /app/.. && git pull && docker-compose up -d --build', (err, stdout, stderr) => {
-                if (err) {
-                    console.error('Error:', stderr);
-                    res.writeHead(500);
-                    res.end('Error en deploy');
-                    return;
-                }
-                console.log('Deploy exitoso:', stdout);
-                res.writeHead(200);
-                res.end('Deploy completado');
-            });
+            // Crear archivo de señal para que el host lo detecte
+            fs.writeFileSync('/vps/deploy.trigger', Date.now().toString());
+            
+            res.writeHead(200);
+            res.end('Deploy señalizado');
         });
     } else {
         res.writeHead(200);
