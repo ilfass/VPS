@@ -6,8 +6,8 @@ while true; do
         echo "Deploy trigger detectado..."
         rm deploy.trigger
         git pull origin main
-        docker-compose down
-        docker-compose up -d --build
+        docker compose down
+        docker compose up -d --build
         echo "Deploy completado!"
     fi
     sleep 2
