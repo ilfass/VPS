@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  nginx-proxy:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx-proxy/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - descuentosen
+      - habilispro
+      - expodiario
+    restart: always
+
+  descuentosen:
+    build: ./descuentosen
+    expose:
+      - "80"
+    restart: always
+
+  habilispro:
+    build: ./habilispro
+    expose:
+      - "80"
+    restart: always
+
+  expodiario:
+    build: ./expodiario
+    expose:
+      - "80"
+    restart: always
+
+  webhook:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./webhook:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "9000:9000"
+    command: node server.js
+    restart: always
+
