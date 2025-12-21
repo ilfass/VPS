@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Admin - Descuentos En</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .tab {
+            padding: 1rem 2rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            color: #3498db;
+            border-bottom-color: #3498db;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .scraper-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .status {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .status.running {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.stopped {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .badge.active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge.inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔧 Panel de Administración - Descuentos En</h1>
+    </div>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('scraper')">Scraper</button>
+            <button class="tab" onclick="showTab('offers')">Ofertas</button>
+            <button class="tab" onclick="showTab('configs')">Configuraciones</button>
+        </div>
+
+        <!-- Tab Scraper -->
+        <div id="scraper" class="tab-content active">
+            <div class="card">
+                <h2>Control del Scraper</h2>
+                <div id="scraper-status" class="status stopped">Estado: Detenido</div>
+                <div class="scraper-controls">
+                    <button class="btn btn-success" onclick="startScraper()">▶️ Iniciar Scraping</button>
+                    <button class="btn btn-danger" onclick="stopScraper()">⏹️ Detener Scraping</button>
+                    <button class="btn btn-secondary" onclick="checkStatus()">🔄 Actualizar Estado</button>
+                </div>
+                <div id="scraper-result"></div>
+            </div>
+        </div>
+
+        <!-- Tab Ofertas -->
+        <div id="offers" class="tab-content">
+            <div class="card">
+                <h2>Gestión de Ofertas</h2>
+                <button class="btn btn-primary" onclick="loadOffers()">🔄 Actualizar Lista</button>
+                <div id="offers-list" class="loading">Cargando ofertas...</div>
+            </div>
+        </div>
+
+        <!-- Tab Configuraciones -->
+        <div id="configs" class="tab-content">
+            <div class="card">
+                <h2>Configuraciones de Scraping</h2>
+                <button class="btn btn-primary" onclick="showAddConfigModal()">➕ Agregar Nueva URL</button>
+                <div id="configs-list" class="loading">Cargando configuraciones...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para agregar/editar configuración -->
+    <div id="config-modal" class="modal">
+        <div class="modal-content">
+            <h2 id="modal-title">Agregar Nueva URL</h2>
+            <form id="config-form" onsubmit="saveConfig(event)">
+                <div class="form-group">
+                    <label>URL *</label>
+                    <input type="url" id="config-url" required>
+                </div>
+                <div class="form-group">
+                    <label>Tienda *</label>
+                    <input type="text" id="config-store" required>
+                </div>
+                <div class="form-group">
+                    <label>Categoría</label>
+                    <select id="config-category">
+                        <option value="otros">Otros</option>
+                        <option value="supermercado">Supermercado</option>
+                        <option value="combustible">Combustible</option>
+                        <option value="tecnologia">Tecnología</option>
+                        <option value="indumentaria">Indumentaria</option>
+                        <option value="hogar">Hogar</option>
+                        <option value="salud">Salud</option>
+                        <option value="entretenimiento">Entretenimiento</option>
+                        <option value="restaurantes">Restaurantes</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Ubicación</label>
+                    <input type="text" id="config-location" value="Nacional">
+                </div>
+                <div class="form-group">
+                    <label>Frecuencia</label>
+                    <select id="config-frequency">
+                        <option value="daily">Diaria</option>
+                        <option value="hourly">Cada hora</option>
+                        <option value="weekly">Semanal</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Guardar</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeConfigModal()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api';
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            
+            if (tabName === 'offers') loadOffers();
+            if (tabName === 'configs') loadConfigs();
+        }
+
+        async function checkStatus() {
+            try {
+                const response = await fetch(`${API_URL}/scraper/status`);
+                const status = await response.json();
+                const statusDiv = document.getElementById('scraper-status');
+                
+                if (status.isRunning) {
+                    statusDiv.className = 'status running';
+                    statusDiv.textContent = `Estado: Ejecutándose${status.isScraping ? ' (Scrapeando ahora...)' : ''}`;
+                } else {
+                    statusDiv.className = 'status stopped';
+                    statusDiv.textContent = 'Estado: Detenido';
+                }
+                
+                if (status.lastResult) {
+                    const resultDiv = document.getElementById('scraper-result');
+                    resultDiv.innerHTML = `
+                        <div class="status info" style="margin-top: 1rem;">
+                            <strong>Último resultado:</strong><br>
+                            Fecha: ${new Date(status.lastResult.timestamp).toLocaleString('es-AR')}<br>
+                            Total: ${status.lastResult.total} | Exitosos: ${status.lastResult.successful} | Fallidos: ${status.lastResult.failed}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error checking status:', error);
+            }
+        }
+
+        async function startScraper() {
+            try {
+                const response = await fetch(`${API_URL}/scraper/start`, { method: 'POST' });
+                const data = await response.json();
+                alert('Scraping iniciado');
+                checkStatus();
+            } catch (error) {
+                alert('Error al iniciar el scraper: ' + error.message);
+            }
+        }
+
+        async function stopScraper() {
+            try {
+                const response = await fetch(`${API_URL}/scraper/stop`, { method: 'POST' });
+                const data = await response.json();
+                alert('Scraping detenido');
+                checkStatus();
+            } catch (error) {
+                alert('Error al detener el scraper: ' + error.message);
+            }
+        }
+
+        async function loadOffers() {
+            const listDiv = document.getElementById('offers-list');
+            listDiv.innerHTML = '<div class="loading">Cargando ofertas...</div>';
+            
+            try {
+                const response = await fetch(`${API_URL}/admin/offers`);
+                const offers = await response.json();
+                
+                if (offers.length === 0) {
+                    listDiv.innerHTML = '<p>No hay ofertas disponibles</p>';
+                    return;
+                }
+                
+                listDiv.innerHTML = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Título</th>
+                                <th>Tienda</th>
+                                <th>Descuento</th>
+                                <th>Categoría</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${offers.map(offer => `
+                                <tr>
+                                    <td>${offer.title}</td>
+                                    <td>${offer.store}</td>
+                                    <td>${offer.discount}</td>
+                                    <td>${offer.category}</td>
+                                    <td><span class="badge ${offer.isActive ? 'active' : 'inactive'}">${offer.isActive ? 'Activa' : 'Inactiva'}</span></td>
+                                    <td class="actions">
+                                        <button class="btn btn-secondary" onclick="toggleOffer('${offer._id}', ${!offer.isActive})">
+                                            ${offer.isActive ? 'Desactivar' : 'Activar'}
+                                        </button>
+                                        <button class="btn btn-danger" onclick="deleteOffer('${offer._id}')">Eliminar</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (error) {
+                listDiv.innerHTML = `<div class="error">Error al cargar ofertas: ${error.message}</div>`;
+            }
+        }
+
+        async function toggleOffer(id, isActive) {
+            try {
+                const response = await fetch(`${API_URL}/admin/offers/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isActive })
+                });
+                loadOffers();
+            } catch (error) {
+                alert('Error al actualizar la oferta: ' + error.message);
+            }
+        }
+
+        async function deleteOffer(id) {
+            if (!confirm('¿Estás seguro de eliminar esta oferta?')) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/admin/offers/${id}`, { method: 'DELETE' });
+                loadOffers();
+            } catch (error) {
+                alert('Error al eliminar la oferta: ' + error.message);
+            }
+        }
+
+        async function loadConfigs() {
+            const listDiv = document.getElementById('configs-list');
+            listDiv.innerHTML = '<div class="loading">Cargando configuraciones...</div>';
+            
+            try {
+                const response = await fetch(`${API_URL}/admin/configs`);
+                const configs = await response.json();
+                
+                if (configs.length === 0) {
+                    listDiv.innerHTML = '<p>No hay configuraciones disponibles</p>';
+                    return;
+                }
+                
+                listDiv.innerHTML = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>URL</th>
+                                <th>Tienda</th>
+                                <th>Categoría</th>
+                                <th>Frecuencia</th>
+                                <th>Estado</th>
+                                <th>Último Scrapeo</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${configs.map(config => `
+                                <tr>
+                                    <td><a href="${config.url}" target="_blank">${config.url}</a></td>
+                                    <td>${config.store}</td>
+                                    <td>${config.category}</td>
+                                    <td>${config.frequency}</td>
+                                    <td><span class="badge ${config.isActive ? 'active' : 'inactive'}">${config.isActive ? 'Activa' : 'Inactiva'}</span></td>
+                                    <td>${config.lastScraped ? new Date(config.lastScraped).toLocaleString('es-AR') : 'Nunca'}</td>
+                                    <td class="actions">
+                                        <button class="btn btn-secondary" onclick="editConfig('${config._id}')">Editar</button>
+                                        <button class="btn btn-danger" onclick="deleteConfig('${config._id}')">Eliminar</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (error) {
+                listDiv.innerHTML = `<div class="error">Error al cargar configuraciones: ${error.message}</div>`;
+            }
+        }
+
+        function showAddConfigModal() {
+            document.getElementById('modal-title').textContent = 'Agregar Nueva URL';
+            document.getElementById('config-form').reset();
+            document.getElementById('config-form').dataset.configId = '';
+            document.getElementById('config-modal').classList.add('active');
+        }
+
+        function closeConfigModal() {
+            document.getElementById('config-modal').classList.remove('active');
+        }
+
+        async function saveConfig(event) {
+            event.preventDefault();
+            const form = event.target;
+            const configId = form.dataset.configId;
+            
+            const data = {
+                url: document.getElementById('config-url').value,
+                store: document.getElementById('config-store').value,
+                category: document.getElementById('config-category').value,
+                location: document.getElementById('config-location').value,
+                frequency: document.getElementById('config-frequency').value
+            };
+            
+            try {
+                const url = configId 
+                    ? `${API_URL}/admin/configs/${configId}`
+                    : `${API_URL}/admin/configs`;
+                const method = configId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) throw new Error('Error al guardar');
+                
+                closeConfigModal();
+                loadConfigs();
+            } catch (error) {
+                alert('Error al guardar la configuración: ' + error.message);
+            }
+        }
+
+        async function editConfig(id) {
+            try {
+                const response = await fetch(`${API_URL}/admin/configs`);
+                const configs = await response.json();
+                const config = configs.find(c => c._id === id);
+                
+                if (!config) {
+                    alert('Configuración no encontrada');
+                    return;
+                }
+                
+                document.getElementById('modal-title').textContent = 'Editar Configuración';
+                document.getElementById('config-url').value = config.url;
+                document.getElementById('config-store').value = config.store;
+                document.getElementById('config-category').value = config.category;
+                document.getElementById('config-location').value = config.location;
+                document.getElementById('config-frequency').value = config.frequency;
+                document.getElementById('config-form').dataset.configId = id;
+                document.getElementById('config-modal').classList.add('active');
+            } catch (error) {
+                alert('Error al cargar la configuración: ' + error.message);
+            }
+        }
+
+        async function deleteConfig(id) {
+            if (!confirm('¿Estás seguro de eliminar esta configuración?')) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/admin/configs/${id}`, { method: 'DELETE' });
+                loadConfigs();
+            } catch (error) {
+                alert('Error al eliminar la configuración: ' + error.message);
+            }
+        }
+
+        // Inicializar
+        checkStatus();
+        setInterval(checkStatus, 30000); // Actualizar cada 30 segundos
+    </script>
+</body>
+</html>

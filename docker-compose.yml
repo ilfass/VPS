@@ -11,6 +11,7 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - descuentosen
+      - descuentosen-admin
       - habilispro
       - expodiario
     restart: always
@@ -18,7 +19,41 @@ services:
   descuentosen:
     build: ./descuentosen
     expose:
+      - "3000"
+    environment:
+      - BACKEND_URL=http://descuentosen-backend:3001
+    depends_on:
+      - descuentosen-backend
+    restart: always
+
+  descuentosen-backend:
+    build: ./descuentosen/backend
+    expose:
+      - "3001"
+    environment:
+      - PORT=3001
+      - MONGODB_URI=mongodb://descuentosen-mongo:27017/descuentosen
+      - NODE_ENV=production
+    depends_on:
+      - descuentosen-mongo
+    restart: always
+
+  descuentosen-mongo:
+    image: mongo:7
+    volumes:
+      - descuentosen-data:/data/db
+    restart: always
+
+  descuentosen-admin:
+    build:
+      context: ./descuentosen
+      dockerfile: Dockerfile.admin
+    expose:
       - "80"
+    environment:
+      - BACKEND_URL=http://descuentosen-backend:3001
+    depends_on:
+      - descuentosen-backend
     restart: always
 
   habilispro:
@@ -43,4 +78,7 @@ services:
       - "9000:9000"
     command: node server.js
     restart: always
+
+volumes:
+  descuentosen-data:
 
