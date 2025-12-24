@@ -1967,9 +1967,10 @@ function requestUserName() {
     return null;
 }
 
-// Lista de ciudades de habla hispana (prioridad: Argentina, Chile, México, otros)
+// Lista de ciudades de habla hispana (prioridad: Argentina, Chile, México, España)
+// Ordenadas por prioridad: más ciudades de Argentina, Chile, México, España
 const SPANISH_SPEAKING_CITIES = [
-    // Argentina
+    // ARGENTINA (prioridad máxima - más ciudades)
     { name: 'Buenos Aires, Argentina', lat: -34.6037, lng: -58.3816 },
     { name: 'Córdoba, Argentina', lat: -31.4201, lng: -64.1888 },
     { name: 'Rosario, Argentina', lat: -32.9442, lng: -60.6505 },
@@ -1980,7 +1981,12 @@ const SPANISH_SPEAKING_CITIES = [
     { name: 'Salta, Argentina', lat: -24.7859, lng: -65.4117 },
     { name: 'Santa Fe, Argentina', lat: -31.6333, lng: -60.7 },
     { name: 'San Juan, Argentina', lat: -31.5375, lng: -68.5364 },
-    // Chile
+    { name: 'Bahía Blanca, Argentina', lat: -38.7183, lng: -62.2663 },
+    { name: 'Resistencia, Argentina', lat: -27.4514, lng: -58.9867 },
+    { name: 'Neuquén, Argentina', lat: -38.9516, lng: -68.0591 },
+    { name: 'Santiago del Estero, Argentina', lat: -27.7951, lng: -64.2615 },
+    { name: 'Corrientes, Argentina', lat: -27.4692, lng: -58.8306 },
+    // CHILE (alta prioridad)
     { name: 'Santiago, Chile', lat: -33.4489, lng: -70.6693 },
     { name: 'Valparaíso, Chile', lat: -33.0472, lng: -71.6127 },
     { name: 'Concepción, Chile', lat: -36.8201, lng: -73.0444 },
@@ -1988,7 +1994,10 @@ const SPANISH_SPEAKING_CITIES = [
     { name: 'Antofagasta, Chile', lat: -23.6509, lng: -70.3975 },
     { name: 'Temuco, Chile', lat: -38.7359, lng: -72.5904 },
     { name: 'Viña del Mar, Chile', lat: -33.0246, lng: -71.5518 },
-    // México
+    { name: 'Rancagua, Chile', lat: -34.1708, lng: -70.7444 },
+    { name: 'Talca, Chile', lat: -35.4264, lng: -71.6554 },
+    { name: 'Arica, Chile', lat: -18.4783, lng: -70.3126 },
+    // MÉXICO (alta prioridad)
     { name: 'Ciudad de México, México', lat: 19.4326, lng: -99.1332 },
     { name: 'Guadalajara, México', lat: 20.6597, lng: -103.3496 },
     { name: 'Monterrey, México', lat: 25.6866, lng: -100.3161 },
@@ -1996,48 +2005,27 @@ const SPANISH_SPEAKING_CITIES = [
     { name: 'Tijuana, México', lat: 32.5149, lng: -117.0382 },
     { name: 'León, México', lat: 21.1250, lng: -101.6860 },
     { name: 'Querétaro, México', lat: 20.5888, lng: -100.3899 },
-    // España
+    { name: 'Mérida, México', lat: 20.9674, lng: -89.5926 },
+    { name: 'Cancún, México', lat: 21.1619, lng: -86.8515 },
+    { name: 'Toluca, México', lat: 19.2926, lng: -99.6569 },
+    // ESPAÑA (alta prioridad)
     { name: 'Madrid, España', lat: 40.4168, lng: -3.7038 },
     { name: 'Barcelona, España', lat: 41.3851, lng: 2.1734 },
     { name: 'Valencia, España', lat: 39.4699, lng: -0.3763 },
     { name: 'Sevilla, España', lat: 37.3891, lng: -5.9845 },
-    // Colombia
+    { name: 'Zaragoza, España', lat: 41.6488, lng: -0.8891 },
+    { name: 'Málaga, España', lat: 36.7213, lng: -4.4214 },
+    { name: 'Murcia, España', lat: 37.9922, lng: -1.1307 },
+    { name: 'Palma, España', lat: 39.5696, lng: 2.6502 },
+    // Otros países sudamericanos (menor prioridad)
     { name: 'Bogotá, Colombia', lat: 4.7110, lng: -74.0721 },
     { name: 'Medellín, Colombia', lat: 6.2476, lng: -75.5658 },
-    { name: 'Cali, Colombia', lat: 3.4516, lng: -76.5320 },
-    // Perú
     { name: 'Lima, Perú', lat: -12.0464, lng: -77.0428 },
-    { name: 'Arequipa, Perú', lat: -16.4090, lng: -71.5375 },
-    // Venezuela
-    { name: 'Caracas, Venezuela', lat: 10.4806, lng: -66.9036 },
-    // Ecuador
     { name: 'Quito, Ecuador', lat: -0.1807, lng: -78.4678 },
-    { name: 'Guayaquil, Ecuador', lat: -2.1709, lng: -79.9224 },
-    // Uruguay
     { name: 'Montevideo, Uruguay', lat: -34.9011, lng: -56.1645 },
-    // Paraguay
     { name: 'Asunción, Paraguay', lat: -25.2637, lng: -57.5759 },
-    // Bolivia
     { name: 'La Paz, Bolivia', lat: -16.5000, lng: -68.1500 },
-    { name: 'Santa Cruz, Bolivia', lat: -17.8146, lng: -63.1561 },
-    // República Dominicana
-    { name: 'Santo Domingo, República Dominicana', lat: 18.4861, lng: -69.9312 },
-    // Guatemala
-    { name: 'Ciudad de Guatemala, Guatemala', lat: 14.6349, lng: -90.5069 },
-    // Costa Rica
-    { name: 'San José, Costa Rica', lat: 9.9281, lng: -84.0907 },
-    // Panamá
-    { name: 'Ciudad de Panamá, Panamá', lat: 8.9824, lng: -79.5199 },
-    // El Salvador
-    { name: 'San Salvador, El Salvador', lat: 13.6929, lng: -89.2182 },
-    // Honduras
-    { name: 'Tegucigalpa, Honduras', lat: 14.0723, lng: -87.1921 },
-    // Nicaragua
-    { name: 'Managua, Nicaragua', lat: 12.1364, lng: -86.2514 },
-    // Cuba
-    { name: 'La Habana, Cuba', lat: 23.1136, lng: -82.3666 },
-    // Puerto Rico
-    { name: 'San Juan, Puerto Rico', lat: 18.4655, lng: -66.1057 }
+    { name: 'Caracas, Venezuela', lat: 10.4806, lng: -66.9036 }
 ];
 
 let currentCityIndex = 0;
@@ -2056,9 +2044,10 @@ function getNextSpanishCity() {
 
 /**
  * Obtiene la ubicación del usuario mediante geolocalización (DESHABILITADO PARA VIVO)
+ * En la versión live, siempre usa ciudades rotativas automáticamente
  */
 function getUserLocation() {
-    // Para la versión live, no usar geolocalización, usar ciudades rotativas
+    // Para la versión live, siempre usar ciudades rotativas (no preguntar al usuario)
     const city = getNextSpanishCity();
     if (city) {
         state.userCity = city.name;
@@ -2067,7 +2056,7 @@ function getUserLocation() {
             lng: city.lng
         };
         updateUserCityPanel();
-        console.log('🌎 Ciudad seleccionada:', state.userCity);
+        console.log('🌎 Ciudad seleccionada automáticamente:', state.userCity);
     }
 }
 
@@ -2642,21 +2631,21 @@ function unmuteTracker() {
 
 
 /**
- * Inicializa la personalización del usuario
+ * Inicializa la personalización del usuario (VERSIÓN LIVE - sin preguntar al usuario)
  */
 function initUserPersonalization() {
-    // Solicitar nombre
-    const userName = requestUserName();
-    
-    // Actualizar nombre del operador
-    if (userName) {
-        updateOperatorName();
+    // En la versión live, NO solicitar nombre ni ciudad al usuario
+    // Usar un nombre genérico para el operador si no hay uno guardado
+    if (!state.userName) {
+        state.userName = 'Operador';
+        localStorage.setItem('santaTracker_userName', state.userName);
     }
+    updateOperatorName();
     
-    // Para la versión live, inicializar con primera ciudad
+    // Inicializar con primera ciudad automáticamente (sin preguntar)
     getUserLocation();
     
-    // Rotar ciudades cada 2 minutos
+    // Rotar ciudades cada 2 minutos automáticamente
     setInterval(() => {
         const city = getNextSpanishCity();
         if (city) {
@@ -2666,7 +2655,7 @@ function initUserPersonalization() {
                 lng: city.lng
             };
             updateUserCityPanel();
-            console.log('🌎 Ciudad rotada a:', state.userCity);
+            console.log('🌎 Ciudad rotada automáticamente a:', state.userCity);
         }
     }, 2 * 60 * 1000); // 2 minutos
     
