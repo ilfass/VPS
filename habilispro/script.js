@@ -1313,19 +1313,20 @@ function updateParticipantsCount() {
 function addPublicMessage(text, author = null) {
     if (!text || text.trim() === '') return;
     
-    const userId = author || getUserId();
+    const messageAuthor = author || getUserId();
     const message = {
         id: Date.now(),
-        author: userId,
+        author: messageAuthor,
         text: text.trim(),
         time: new Date()
     };
     
-    state.publicMessages.unshift(message);
+    // Agregar al final (push en lugar de unshift para chat normal)
+    state.publicMessages.push(message);
     
-    // Mantener máximo 50 mensajes
+    // Mantener máximo 50 mensajes (eliminar los más viejos)
     if (state.publicMessages.length > 50) {
-        state.publicMessages.pop();
+        state.publicMessages.shift();
     }
     
     // Agregar a la UI
@@ -1345,7 +1346,8 @@ function addPublicMessage(text, author = null) {
  */
 function displayMessage(message) {
     const messagesList = document.getElementById('messagesList');
-    if (!messagesList) return;
+    const messagesContainer = document.getElementById('messagesContainer');
+    if (!messagesList || !messagesContainer) return;
     
     const messageItem = document.createElement('div');
     
@@ -1372,16 +1374,16 @@ function displayMessage(message) {
         <span class="message-time">${time}</span>
     `;
     
-    // Insertar al inicio
-    messagesList.insertBefore(messageItem, messagesList.firstChild);
+    // Agregar al final (como un chat normal - mensajes nuevos abajo)
+    messagesList.appendChild(messageItem);
     
-    // Mantener máximo 15 mensajes visibles
-    while (messagesList.children.length > 15) {
-        messagesList.removeChild(messagesList.lastChild);
+    // Mantener máximo 50 mensajes (eliminar los más viejos del inicio)
+    while (messagesList.children.length > 50) {
+        messagesList.removeChild(messagesList.firstChild);
     }
     
-    // Auto-scroll suave al nuevo mensaje
-    messagesList.scrollTo({ top: 0, behavior: 'smooth' });
+    // Auto-scroll hacia abajo para ver el nuevo mensaje
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
 /**
