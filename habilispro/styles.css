@@ -889,8 +889,12 @@ body.shaking {
         inset 0 0 20px rgba(0, 0, 0, 0.2);
     overflow: hidden;
     z-index: 100;
-    /* Calcular altura máxima basada en el espacio disponible desde el bottom hasta el top */
-    max-height: calc(100vh - 70px - 250px - 20px - 20px); /* Footer (70px) + control panel (~250px) + margen (20px) + padding superior (20px) */
+    /* Usar flexbox para distribuir el espacio correctamente */
+    display: flex;
+    flex-direction: column;
+    /* Calcular altura máxima: espacio disponible menos espacio para header y form */
+    max-height: calc(100vh - 70px - 250px - 20px); /* Footer + control panel + margen */
+    min-height: 400px; /* Altura mínima para que se vea bien */
 }
 
 .public-interaction-panel::before {
@@ -997,7 +1001,10 @@ body.shaking {
 }
 
 .messages-container {
-    max-height: 350px;
+    /* Usar flex: 1 para que ocupe el espacio disponible, pero con max-height para limitar */
+    flex: 1;
+    min-height: 0; /* Importante para que funcione el overflow */
+    max-height: 300px; /* Reducido para dejar espacio al form */
     overflow-y: auto;
     margin-bottom: 15px;
     background: linear-gradient(135deg, rgba(0, 50, 0, 0.9) 0%, rgba(0, 100, 0, 0.85) 50%, rgba(0, 50, 0, 0.9) 100%);
@@ -1169,6 +1176,8 @@ body.shaking {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    flex-shrink: 0; /* No se encoge, siempre visible */
+    margin-top: auto; /* Se empuja hacia abajo */
 }
 
 .message-input {
@@ -1447,8 +1456,12 @@ body.shaking {
         bottom: calc(60px + 220px + 15px); /* Alineado con panel de ciudad */
         right: 15px;
         max-width: 350px;
-        /* Calcular altura máxima basada en el espacio disponible */
-        max-height: calc(100vh - 60px - 220px - 15px - 15px - 20px); /* Footer + control panel + márgenes + padding */
+        max-height: calc(100vh - 60px - 220px - 15px); /* Footer + control panel + margen */
+        min-height: 350px; /* Altura mínima */
+    }
+    
+    .messages-container {
+        max-height: 250px; /* Reducido para pantallas intermedias */
     }
 }
 
@@ -1489,8 +1502,13 @@ body.shaking {
         bottom: calc(60px + 200px + 10px);
         right: 10px;
         max-width: 320px;
-        max-height: calc(100vh - 60px - 200px - 10px - 10px - 15px); /* Footer + control panel + márgenes + padding */
+        max-height: calc(100vh - 60px - 200px - 10px); /* Footer + control panel + margen */
+        min-height: 320px; /* Altura mínima para 1366x768 */
         padding: 12px;
+    }
+    
+    .messages-container {
+        max-height: 200px; /* Reducido para 1366x768 */
     }
     
     .control-panel {
@@ -1532,7 +1550,12 @@ body.shaking {
         bottom: calc(70px + 280px + 30px);
         right: 30px;
         max-width: 450px;
-        max-height: calc(100vh - 70px - 280px - 30px - 30px - 20px); /* Footer + control panel + márgenes + padding */
+        max-height: calc(100vh - 70px - 280px - 30px); /* Footer + control panel + margen */
+        min-height: 450px; /* Altura mínima para 1920x1080 */
+    }
+    
+    .messages-container {
+        max-height: 350px; /* Más espacio en pantallas grandes */
     }
     
     .control-panel {
