@@ -83,25 +83,29 @@ body {
     border-bottom: 2px solid rgba(220, 53, 69, 0.4);
 }
 
+.header-title-section {
+    flex: 1;
+}
+
 .panel-header h1 {
     font-size: 28px;
     font-weight: 600;
     color: #ffffff;
     text-shadow: 0 2px 10px rgba(220, 53, 69, 0.5);
-    margin-bottom: 8px;
+    margin: 0;
+    display: inline;
 }
 
 .control-operator {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.8);
-    font-style: italic;
-    margin-top: 5px;
+    font-size: 28px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    font-style: normal;
 }
 
 .control-operator span {
     color: #28a745;
     font-weight: 600;
-    font-style: normal;
 }
 
 /* Indicador de Estado */
@@ -577,6 +581,7 @@ body {
     border: 3px solid rgba(40, 167, 69, 0.8);
     border-radius: 12px;
     padding: 20px;
+    padding-top: 35px;
     backdrop-filter: blur(5px);
     pointer-events: auto;
     box-shadow: 
@@ -584,6 +589,38 @@ body {
         0 4px 20px rgba(0, 0, 0, 0.5);
     animation: cityPanelPulse 3s infinite;
     max-width: 300px;
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 50;
+    user-select: none;
+}
+
+.user-city-panel.dragging {
+    cursor: grabbing !important;
+    opacity: 0.9;
+    animation: none;
+}
+
+.drag-handle {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    cursor: grab;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 18px;
+    padding: 5px 8px;
+    user-select: none;
+    z-index: 10;
+    transition: color 0.2s ease;
+}
+
+.drag-handle:hover {
+    color: rgba(255, 255, 255, 1);
+}
+
+.drag-handle:active {
+    cursor: grabbing;
 }
 
 .user-city-header h2 {
@@ -685,6 +722,35 @@ body {
     max-width: 400px;
     margin-left: auto;
     margin-top: auto;
+    transition: all 0.3s ease;
+}
+
+.mobile-interaction-toggle {
+    display: none;
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    z-index: 100;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(220, 53, 69, 0.9);
+    border: 2px solid rgba(220, 53, 69, 1);
+    color: #ffffff;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+    transition: all 0.3s ease;
+}
+
+.mobile-interaction-toggle:hover {
+    background: rgba(220, 53, 69, 1);
+    transform: scale(1.1);
+}
+
+.mobile-interaction-toggle:active {
+    transform: scale(0.95);
 }
 
 .interaction-header {
@@ -943,21 +1009,7 @@ body {
 }
 
 .donation-text {
-    margin-right: 8px;
-}
-
-.donation-link {
-    color: #ffc107;
-    font-weight: 700;
-    text-decoration: none;
-    text-shadow: 0 0 10px rgba(255, 193, 7, 0.8);
-    transition: all 0.3s ease;
-}
-
-.donation-link:hover {
-    color: #ffd700;
-    text-shadow: 0 0 15px rgba(255, 215, 0, 1);
-    text-decoration: underline;
+    color: #ffffff;
 }
 
 /* ============================================
@@ -1016,9 +1068,43 @@ body {
         font-size: 12px;
     }
 
+    .mobile-interaction-toggle {
+        display: block;
+    }
+
     .public-interaction-panel {
+        position: fixed;
+        bottom: 0;
+        right: 0;
+        left: 0;
         max-width: 100%;
-        margin: 10px;
+        margin: 0;
+        border-radius: 20px 20px 0 0;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+        z-index: 99;
+    }
+
+    .public-interaction-panel.mobile-open {
+        max-height: 80vh;
+        padding: 15px;
+    }
+
+    .user-city-panel {
+        max-width: calc(100% - 40px);
+        width: auto;
+        top: 100px;
+        right: 20px;
+        left: auto;
+    }
+
+    .panel-header h1 {
+        font-size: 20px;
+    }
+
+    .control-operator {
+        font-size: 20px;
     }
     .overlay-container {
         padding: 15px;

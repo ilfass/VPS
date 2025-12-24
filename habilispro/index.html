@@ -15,7 +15,8 @@
             frameborder="0"
             allowfullscreen
             allow="geolocation; microphone; camera; autoplay; encrypted-media"
-            title="Google Santa Tracker">
+            title="Google Santa Tracker"
+            volume="1">
         </iframe>
     </div>
 
@@ -31,9 +32,8 @@
 
         <div class="control-panel" id="controlPanel">
             <div class="panel-header">
-                <h1>🎅 Centro de Control</h1>
-                <div class="control-operator" id="controlOperator" style="display: none;">
-                    A cargo de <span id="operatorName">-</span>
+                <div class="header-title-section">
+                    <h1>🎅 Centro de Control<span class="control-operator" id="controlOperator" style="display: none;"> a cargo de <span id="operatorName">-</span></span></h1>
                 </div>
                 <div class="status-indicator" id="statusIndicator">
                     <span class="status-dot" id="statusDot"></span>
@@ -68,8 +68,9 @@
             </div>
         </div>
 
-        <!-- Panel de Distancia a Tu Ciudad -->
-        <div class="user-city-panel" id="userCityPanel" style="display: none;">
+        <!-- Panel de Distancia a Tu Ciudad (Movible) -->
+        <div class="user-city-panel draggable" id="userCityPanel" style="display: none;">
+            <div class="drag-handle">☰</div>
             <div class="user-city-header">
                 <h2>🏠 Tu Ciudad</h2>
             </div>
@@ -83,12 +84,16 @@
 
         <!-- Footer de Donación -->
         <div class="donation-footer">
-            <div class="donation-content">
-                <span class="donation-text">¡Gracias por tu visita! Si te gustó, puedes hacer una donación a</span>
-                <a href="https://www.instagram.com/ilfass" target="_blank" class="donation-link">@ilfass</a>
+                <div class="donation-content">
+                <span class="donation-text">¡Gracias por tu visita! Si te gustó, puedes hacer una donación al alias ilfass (Fabian de Haro)</span>
             </div>
         </div>
 
+
+        <!-- Botón Flotante para Panel de Interacción (Móvil) -->
+        <button class="mobile-interaction-toggle" id="mobileInteractionToggle">
+            💬
+        </button>
 
         <!-- Panel de Interacción con el Público -->
         <div class="public-interaction-panel" id="publicInteractionPanel">

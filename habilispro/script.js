@@ -1619,6 +1619,161 @@ function initMobileMenu() {
 }
 
 /**
+ * Inicializa el panel de interacción tipo acordeón para móviles
+ */
+function initMobileInteractionPanel() {
+    const interactionToggle = document.getElementById('mobileInteractionToggle');
+    const interactionPanel = document.getElementById('publicInteractionPanel');
+    
+    if (interactionToggle && interactionPanel) {
+        interactionToggle.addEventListener('click', () => {
+            interactionPanel.classList.toggle('mobile-open');
+        });
+        
+        // Cerrar al hacer clic fuera
+        document.addEventListener('click', (e) => {
+            if (interactionPanel.classList.contains('mobile-open') && 
+                !interactionPanel.contains(e.target) && 
+                !interactionToggle.contains(e.target)) {
+                interactionPanel.classList.remove('mobile-open');
+            }
+        });
+    }
+}
+
+/**
+ * Hace el panel "Tu ciudad" arrastrable
+ */
+function initDraggableCityPanel() {
+    const cityPanel = document.getElementById('userCityPanel');
+    const dragHandle = cityPanel?.querySelector('.drag-handle');
+    
+    if (!cityPanel || !dragHandle) return;
+    
+    let isDragging = false;
+    let currentX;
+    let currentY;
+    let initialX;
+    let initialY;
+    let xOffset = 0;
+    let yOffset = 0;
+    
+    // Guardar posición inicial desde localStorage
+    const savedPosition = localStorage.getItem('cityPanelPosition');
+    if (savedPosition) {
+        const pos = JSON.parse(savedPosition);
+        cityPanel.style.left = pos.x + 'px';
+        cityPanel.style.top = pos.y + 'px';
+        cityPanel.style.right = 'auto';
+        xOffset = pos.x;
+        yOffset = pos.y;
+    }
+    
+    dragHandle.addEventListener('mousedown', dragStart);
+    dragHandle.addEventListener('touchstart', dragStart);
+    
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('touchmove', drag);
+    
+    document.addEventListener('mouseup', dragEnd);
+    document.addEventListener('touchend', dragEnd);
+    
+    function dragStart(e) {
+        if (e.type === 'touchstart') {
+            initialX = e.touches[0].clientX - xOffset;
+            initialY = e.touches[0].clientY - yOffset;
+        } else {
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
+        }
+        
+        if (e.target === dragHandle || dragHandle.contains(e.target)) {
+            isDragging = true;
+            cityPanel.classList.add('dragging');
+        }
+    }
+    
+    function drag(e) {
+        if (!isDragging) return;
+        
+        e.preventDefault();
+        
+        if (e.type === 'touchmove') {
+            currentX = e.touches[0].clientX - initialX;
+            currentY = e.touches[0].clientY - initialY;
+        } else {
+            currentX = e.clientX - initialX;
+            currentY = e.clientY - initialY;
+        }
+        
+        xOffset = currentX;
+        yOffset = currentY;
+        
+        setTranslate(currentX, currentY, cityPanel);
+    }
+    
+    function dragEnd() {
+        if (isDragging) {
+            initialX = currentX;
+            initialY = currentY;
+            isDragging = false;
+            cityPanel.classList.remove('dragging');
+            
+            // Guardar posición
+            const rect = cityPanel.getBoundingClientRect();
+            localStorage.setItem('cityPanelPosition', JSON.stringify({
+                x: rect.left,
+                y: rect.top
+            }));
+        }
+    }
+    
+    function setTranslate(xPos, yPos, el) {
+        el.style.transform = `translate(${xPos}px, ${yPos}px)`;
+    }
+}
+
+/**
+ * Intenta desmutear el iframe del tracker
+ */
+function unmuteTracker() {
+    const iframe = document.getElementById('santaTracker');
+    if (!iframe) return;
+    
+    // Intentar desmutear después de que el iframe cargue
+    iframe.addEventListener('load', () => {
+        try {
+            // Nota: Los iframes tienen restricciones de seguridad, esto puede no funcionar
+            // pero intentamos acceder al contenido si es posible
+            const iframeWindow = iframe.contentWindow;
+            if (iframeWindow) {
+                // Intentar encontrar y hacer clic en el botón de mute si existe
+                setTimeout(() => {
+                    try {
+                        const iframeDoc = iframe.contentDocument || iframeWindow.document;
+                        if (iframeDoc) {
+                            // Buscar botones de mute/unmute
+                            const muteButtons = iframeDoc.querySelectorAll('[aria-label*="mute"], [aria-label*="Mute"], button[title*="mute"], button[title*="Mute"]');
+                            muteButtons.forEach(btn => {
+                                if (btn.getAttribute('aria-label')?.toLowerCase().includes('mute') ||
+                                    btn.getAttribute('title')?.toLowerCase().includes('mute')) {
+                                    btn.click();
+                                }
+                            });
+                        }
+                    } catch (e) {
+                        // Cross-origin restriction - no se puede acceder
+                        console.log('No se puede acceder al contenido del iframe (restricción de seguridad)');
+                    }
+                }, 2000);
+            }
+        } catch (e) {
+            console.log('No se puede desmutear el iframe automáticamente debido a restricciones de seguridad');
+        }
+    });
+}
+
+/**
  * Inicializa la personalización del usuario
  */
 function initUserPersonalization() {
@@ -1902,6 +2057,17 @@ function init() {
     
     // Inicializar menú hamburguesa para móviles
     initMobileMenu();
+    
+    // Inicializar panel de interacción tipo acordeón para móviles
+    initMobileInteractionPanel();
+    
+    // Inicializar panel arrastrable "Tu ciudad"
+    setTimeout(() => {
+        initDraggableCityPanel();
+    }, 1000);
+    
+    // Intentar desmutear el tracker
+    unmuteTracker();
     
     // Actualizar panel de ciudad cada vez que cambie la ubicación
     setInterval(() => {
