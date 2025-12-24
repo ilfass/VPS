@@ -1673,6 +1673,141 @@ function updateVisitsDisplay() {
 }
 
 /**
+ * Registra una visita con información de geolocalización
+ */
+function registerVisitWithLocation() {
+    const today = new Date().toISOString().split('T')[0];
+    const visitKey = `visit_${today}`;
+    const visitsDataKey = `visitsData_${today}`;
+    
+    // Obtener datos de visitas del día
+    let visitsData = JSON.parse(localStorage.getItem(visitsDataKey) || '{"total": 0, "countries": {}}');
+    
+    // Incrementar total
+    visitsData.total = (visitsData.total || 0) + 1;
+    
+    // Intentar obtener país del visitante
+    const country = getVisitorCountry();
+    if (country) {
+        visitsData.countries[country] = (visitsData.countries[country] || 0) + 1;
+    }
+    
+    // Guardar datos
+    localStorage.setItem(visitsDataKey, JSON.stringify(visitsData));
+    localStorage.setItem(visitKey, visitsData.total.toString());
+    
+    // Actualizar display
+    updateVisitsDisplay();
+    
+    return visitsData;
+}
+
+/**
+ * Intenta obtener el país del visitante
+ */
+function getVisitorCountry() {
+    // Intentar obtener desde timezone
+    try {
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        // Mapear timezones comunes a países
+        const timezoneToCountry = {
+            'America/Argentina': 'Argentina',
+            'America/Santiago': 'Chile',
+            'America/Mexico_City': 'México',
+            'America/Bogota': 'Colombia',
+            'America/Lima': 'Perú',
+            'America/Caracas': 'Venezuela',
+            'America/Montevideo': 'Uruguay',
+            'America/Asuncion': 'Paraguay',
+            'America/La_Paz': 'Bolivia',
+            'America/Guayaquil': 'Ecuador',
+            'Europe/Madrid': 'España',
+            'America/New_York': 'Estados Unidos',
+            'America/Los_Angeles': 'Estados Unidos',
+            'Europe/London': 'Reino Unido',
+            'Europe/Paris': 'Francia',
+            'Europe/Berlin': 'Alemania',
+            'Asia/Tokyo': 'Japón',
+            'Asia/Shanghai': 'China',
+            'America/Sao_Paulo': 'Brasil',
+        };
+        
+        for (const [tz, country] of Object.entries(timezoneToCountry)) {
+            if (timezone.includes(tz.split('/')[1])) {
+                return country;
+            }
+        }
+        
+        // Fallback: usar idioma del navegador
+        const lang = navigator.language || navigator.userLanguage;
+        if (lang.includes('es')) return 'España/Hispanohablante';
+        if (lang.includes('en')) return 'País de habla inglesa';
+        if (lang.includes('pt')) return 'Brasil/Portugal';
+        if (lang.includes('fr')) return 'Francia';
+        if (lang.includes('de')) return 'Alemania';
+        
+        return 'Desconocido';
+    } catch (e) {
+        return 'Desconocido';
+    }
+}
+
+/**
+ * Muestra el informe de visitas
+ */
+function showVisitsReport() {
+    const report = document.getElementById('visitsReport');
+    if (!report) return;
+    
+    const today = new Date().toISOString().split('T')[0];
+    const visitsDataKey = `visitsData_${today}`;
+    const visitsData = JSON.parse(localStorage.getItem(visitsDataKey) || '{"total": 0, "countries": {}}');
+    
+    // Actualizar total
+    document.getElementById('totalVisitsToday').textContent = formatNumber(visitsData.total || 0);
+    
+    // Contar países únicos
+    const uniqueCountries = Object.keys(visitsData.countries || {}).length;
+    document.getElementById('uniqueCountries').textContent = uniqueCountries;
+    
+    // Mostrar visitas por país
+    const countryContainer = document.getElementById('visitsByCountry');
+    if (countryContainer) {
+        countryContainer.innerHTML = '';
+        
+        const countries = Object.entries(visitsData.countries || {})
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10); // Top 10 países
+        
+        if (countries.length === 0) {
+            countryContainer.innerHTML = '<p style="color: rgba(255,255,255,0.7); padding: 10px;">No hay datos de países aún</p>';
+        } else {
+            countries.forEach(([country, count]) => {
+                const countryItem = document.createElement('div');
+                countryItem.className = 'country-visit-item';
+                countryItem.innerHTML = `
+                    <span class="country-name">${country}</span>
+                    <span class="country-count">${formatNumber(count)}</span>
+                `;
+                countryContainer.appendChild(countryItem);
+            });
+        }
+    }
+    
+    report.style.display = 'block';
+}
+
+/**
+ * Oculta el informe de visitas
+ */
+function hideVisitsReport() {
+    const report = document.getElementById('visitsReport');
+    if (report) {
+        report.style.display = 'none';
+    }
+}
+
+/**
  * Actualiza el estado del trineo
  */
 function updateStatus() {
@@ -3462,6 +3597,21 @@ function generateSantaMessage() {
         subtitle += ` ¡Desde ${state.userCity}!`;
     }
     
+    // Hacer que el subtítulo de Instagram solo aparezca en algunos mensajes (30% de probabilidad)
+    if (subtitle.includes('@ilfass') || subtitle.includes('Sígueme en IG') || subtitle.includes('Instagram')) {
+        if (Math.random() > 0.3) {
+            // 70% de probabilidad de quitar el subtítulo de Instagram
+            subtitle = subtitle.replace(/¡Sígueme en IG @ilfass! 📸/g, '');
+            subtitle = subtitle.replace(/¡Sígueme en Instagram.*?📸/g, '');
+            subtitle = subtitle.replace(/Sígueme en IG @ilfass.*?📸/g, '');
+            subtitle = subtitle.trim();
+            // Si quedó vacío, usar un subtítulo genérico
+            if (!subtitle) {
+                subtitle = '¡Feliz Navidad! 🎄';
+            }
+        }
+    }
+    
     return {
         message: message,
         subtitle: subtitle
@@ -3492,6 +3642,16 @@ function playSound(type = 'notification') {
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
             oscillator.start(audioContext.currentTime);
             oscillator.stop(audioContext.currentTime + 0.5);
+        } else if (type === 'bell') {
+            // Sonido de campanita navideña
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // Do
+            oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // Mi
+            oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // Sol
+            gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 1);
         } else if (type === 'expand') {
             // Sonido de expansión
             oscillator.frequency.setValueAtTime(220, audioContext.currentTime);
@@ -3612,9 +3772,28 @@ function init() {
     updateGifts();
     updateStatus();
     
-    // Registrar visita y mostrar contador
-    registerVisit();
+    // Registrar visita con geolocalización y mostrar contador
+    registerVisitWithLocation();
     updateVisitsDisplay();
+    
+    // Configurar botón de informe de visitas
+    const showVisitsBtn = document.getElementById('showVisitsBtn');
+    const closeVisitsReport = document.getElementById('closeVisitsReport');
+    if (showVisitsBtn) {
+        showVisitsBtn.addEventListener('click', showVisitsReport);
+    }
+    if (closeVisitsReport) {
+        closeVisitsReport.addEventListener('click', hideVisitsReport);
+    }
+    
+    // Inicializar botón de YouTube intermitente
+    initIntermittentYouTubeButton();
+    
+    // Inicializar narración navideña
+    initChristmasNarration();
+    
+    // Inicializar celebración horaria
+    initHourlyCelebration();
     
     // Actualizar hora cada segundo
     setInterval(updateTime, 1000);
@@ -3758,3 +3937,236 @@ window.stopAutoEvents = stopAutoEvents;
 window.triggerSantaAppearance = triggerSantaAppearance;
 window.startSantaAppearances = startSantaAppearances;
 window.stopSantaAppearances = stopSantaAppearances;
+
+// ============================================
+// BOTÓN DE YOUTUBE INTERMITENTE
+// ============================================
+
+/**
+ * Inicializa el botón de YouTube que aparece intermitentemente
+ */
+function initIntermittentYouTubeButton() {
+    const button = document.getElementById('youtubeButtonFloating');
+    if (!button) return;
+    
+    let isVisible = false;
+    
+    const showButton = () => {
+        if (Math.random() < 0.4) { // 40% de probabilidad de mostrarse
+            button.style.display = 'block';
+            isVisible = true;
+            
+            // Ocultar después de 5-10 segundos
+            const hideDelay = 5000 + Math.random() * 5000;
+            setTimeout(() => {
+                button.style.display = 'none';
+                isVisible = false;
+            }, hideDelay);
+        }
+    };
+    
+    // Mostrar intermitentemente cada 30-60 segundos
+    setInterval(() => {
+        if (!isVisible) {
+            showButton();
+        }
+    }, 30000 + Math.random() * 30000);
+    
+    // Mostrar inicialmente después de 10 segundos
+    setTimeout(showButton, 10000);
+}
+
+// ============================================
+// NARRACIÓN NAVIDEÑA CON TEXT-TO-SPEECH
+// ============================================
+
+const CHRISTMAS_NARRATION_TEXT = `
+La Navidad es una época mágica que une a las familias alrededor del mundo. 
+Es el momento en que Papá Noel, con su trineo mágico tirado por renos, 
+recorre el planeta entregando regalos y alegría a millones de niños. 
+Esta noche especial, llena de tradiciones, luces, música y amor, 
+nos recuerda la importancia de compartir, de estar juntos, 
+y de mantener viva la magia de la infancia. 
+Desde el Polo Norte hasta el último rincón del mundo, 
+la Navidad trae consigo esperanza, felicidad y la promesa de un nuevo año lleno de posibilidades.
+`;
+
+/**
+ * Inicializa la narración navideña con text-to-speech
+ */
+function initChristmasNarration() {
+    const narration = document.getElementById('christmasNarration');
+    const narrationContent = document.getElementById('narrationContent');
+    if (!narration || !narrationContent) return;
+    
+    // Mostrar narración después de 30 segundos de carga
+    setTimeout(() => {
+        narrationContent.textContent = CHRISTMAS_NARRATION_TEXT;
+        narration.style.display = 'block';
+        
+        // Reproducir con text-to-speech
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(CHRISTMAS_NARRATION_TEXT);
+            utterance.lang = 'es-ES';
+            utterance.rate = 0.9; // Velocidad ligeramente más lenta
+            utterance.pitch = 1;
+            utterance.volume = 0.8;
+            
+            // Intentar usar voz en español
+            const voices = speechSynthesis.getVoices();
+            const spanishVoice = voices.find(v => v.lang.includes('es')) || voices[0];
+            if (spanishVoice) {
+                utterance.voice = spanishVoice;
+            }
+            
+            speechSynthesis.speak(utterance);
+            
+            // Ocultar cuando termine
+            utterance.onend = () => {
+                setTimeout(() => {
+                    narration.style.display = 'none';
+                }, 2000);
+            };
+        }
+        
+        // Ocultar después de 30 segundos si no hay TTS
+        setTimeout(() => {
+            narration.style.display = 'none';
+        }, 30000);
+    }, 30000);
+}
+
+// Cargar voces cuando estén disponibles
+if ('speechSynthesis' in window) {
+    speechSynthesis.onvoiceschanged = () => {
+        // Voces cargadas
+    };
+}
+
+// ============================================
+// CELEBRACIÓN HORARIA
+// ============================================
+
+/**
+ * Inicializa la celebración cada hora
+ */
+function initHourlyCelebration() {
+    const checkHourlyCelebration = () => {
+        const now = new Date();
+        const minutes = now.getMinutes();
+        const seconds = now.getSeconds();
+        
+        // Verificar si es el minuto 00 (inicio de hora)
+        if (minutes === 0 && seconds < 5) {
+            // Solo ejecutar una vez por hora
+            const lastCelebrationKey = 'lastHourlyCelebration';
+            const lastCelebration = localStorage.getItem(lastCelebrationKey);
+            const currentHour = now.getHours();
+            
+            if (lastCelebration !== currentHour.toString()) {
+                localStorage.setItem(lastCelebrationKey, currentHour.toString());
+                triggerHourlyCelebration();
+            }
+        }
+    };
+    
+    // Verificar cada segundo
+    setInterval(checkHourlyCelebration, 1000);
+    
+    // Verificar inmediatamente
+    checkHourlyCelebration();
+}
+
+/**
+ * Dispara la celebración horaria
+ */
+function triggerHourlyCelebration() {
+    const celebration = document.getElementById('hourlyCelebration');
+    const celebrationMessage = document.getElementById('celebrationMessage');
+    const celebrationLocation = document.getElementById('celebrationLocation');
+    const fireworksContainer = document.getElementById('fireworksContainer');
+    
+    if (!celebration || !celebrationMessage || !celebrationLocation) return;
+    
+    // Obtener una ciudad aleatoria de las que pasaron las 00:00
+    const citiesWithTimezones = Object.entries(LOCATIONS_DATABASE);
+    const now = new Date();
+    
+    const passedCities = citiesWithTimezones
+        .map(([cityName, timezone]) => {
+            try {
+                const formatter = new Intl.DateTimeFormat('en-US', {
+                    timeZone: timezone,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+                const parts = formatter.formatToParts(now);
+                const cityHour = parseInt(parts.find(p => p.type === 'hour').value);
+                const cityMinute = parseInt(parts.find(p => p.type === 'minute').value);
+                
+                // Ciudades que están en el minuto 00 de una hora
+                if (cityMinute === 0) {
+                    return cityName;
+                }
+            } catch (e) {
+                return null;
+            }
+        })
+        .filter(city => city !== null);
+    
+    const selectedCity = passedCities.length > 0 
+        ? passedCities[Math.floor(Math.random() * passedCities.length)]
+        : 'alrededor del mundo';
+    
+    // Configurar mensaje
+    celebrationMessage.textContent = '🎅 ¡Papá Noel acaba de llegar!';
+    celebrationLocation.textContent = `📍 ${selectedCity}`;
+    
+    // Crear fuegos artificiales
+    createFireworks(fireworksContainer);
+    
+    // Reproducir sonido de campanita
+    playSound('bell');
+    
+    // Mostrar celebración
+    celebration.style.display = 'flex';
+    celebration.classList.add('show');
+    
+    // Ocultar después de 8 segundos
+    setTimeout(() => {
+        celebration.classList.remove('show');
+        setTimeout(() => {
+            celebration.style.display = 'none';
+            if (fireworksContainer) {
+                fireworksContainer.innerHTML = '';
+            }
+        }, 1000);
+    }, 8000);
+}
+
+/**
+ * Crea efectos de fuegos artificiales
+ */
+function createFireworks(container) {
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    // Crear múltiples fuegos artificiales
+    for (let i = 0; i < 20; i++) {
+        setTimeout(() => {
+            const firework = document.createElement('div');
+            firework.className = 'firework';
+            firework.style.left = Math.random() * 100 + '%';
+            firework.style.top = Math.random() * 100 + '%';
+            firework.style.animationDelay = Math.random() * 0.5 + 's';
+            container.appendChild(firework);
+            
+            // Remover después de la animación
+            setTimeout(() => {
+                firework.remove();
+            }, 2000);
+        }, i * 100);
+    }
+}

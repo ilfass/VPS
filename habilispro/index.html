@@ -120,6 +120,21 @@
 
     <!-- Overlay Principal -->
     <div class="overlay-container">
+        <!-- Texto Navideño con Voz en Off -->
+        <div class="christmas-narration" id="christmasNarration" style="display: none;">
+            <div class="narration-content" id="narrationContent"></div>
+        </div>
+        
+        <!-- Celebración Horaria -->
+        <div class="hourly-celebration" id="hourlyCelebration" style="display: none;">
+            <div class="celebration-content">
+                <div class="celebration-icon">🎆</div>
+                <div class="celebration-message" id="celebrationMessage"></div>
+                <div class="celebration-location" id="celebrationLocation"></div>
+            </div>
+            <div class="fireworks-container" id="fireworksContainer"></div>
+        </div>
+        
         <!-- Panel de Información Principal -->
         <!-- Botón Hamburguesa para Móviles -->
         <button class="mobile-menu-toggle" id="mobileMenuToggle">
@@ -170,6 +185,31 @@
                     <div class="info-value" id="visitsToday">0</div>
                 </div>
             </div>
+            
+            <!-- Informe de Visitas -->
+            <div class="visits-report" id="visitsReport" style="display: none;">
+                <div class="visits-report-header">
+                    <h3>📊 Informe de Visitas</h3>
+                    <button class="close-report" id="closeVisitsReport">✕</button>
+                </div>
+                <div class="visits-report-content">
+                    <div class="visits-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Total Hoy:</span>
+                            <span class="stat-value" id="totalVisitsToday">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Países:</span>
+                            <span class="stat-value" id="uniqueCountries">0</span>
+                        </div>
+                    </div>
+                    <div class="visits-by-country" id="visitsByCountry">
+                        <!-- Se llenará dinámicamente -->
+                    </div>
+                </div>
+            </div>
+            
+            <button class="show-visits-btn" id="showVisitsBtn" title="Ver informe de visitas">📊</button>
         </section>
 
         <!-- Panel de Distancia a Tu Ciudad (Movible) - PREDETERMINADO -->
@@ -265,11 +305,10 @@
                 <div class="santa-icon">🎅</div>
                 <div class="santa-message" id="santaMessage"></div>
                 <div class="santa-subtitle" id="santaSubtitle"></div>
-                <div class="santa-youtube-link">
-                    <a href="https://www.youtube.com/@fabiandeharo" target="_blank" class="youtube-button">
-                        📺 Suscríbete a @fabiandeharo en YouTube
-                    </a>
-                </div>
+                <!-- Botón de YouTube intermitente (arriba a la izquierda) -->
+                <a href="https://www.youtube.com/@fabiandeharo" target="_blank" class="youtube-button-floating" id="youtubeButtonFloating" style="display: none;">
+                    📺 Suscríbete
+                </a>
             </div>
             <div class="santa-background-effect"></div>
         </div>

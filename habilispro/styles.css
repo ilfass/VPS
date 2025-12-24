@@ -1987,3 +1987,356 @@ body.shaking {
 .overlay-container {
     animation: fadeIn 0.5s ease;
 }
+
+/* ============================================
+   BOTÓN DE YOUTUBE FLOTANTE (PEQUEÑO, INTERMITENTE)
+   ============================================ */
+
+.youtube-button-floating {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 200;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #ff0000, #cc0000);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    border-radius: 8px;
+    box-shadow: 
+        0 0 15px rgba(255, 0, 0, 0.6),
+        0 4px 10px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    animation: youtubeFloatPulse 2s infinite;
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+}
+
+.youtube-button-floating[style*="display: block"] {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+    animation: youtubeFloatPulse 2s infinite, youtubeFloatFadeIn 0.5s ease;
+}
+
+@keyframes youtubeFloatPulse {
+    0%, 100% {
+        box-shadow: 
+            0 0 15px rgba(255, 0, 0, 0.6),
+            0 4px 10px rgba(0, 0, 0, 0.4);
+    }
+    50% {
+        box-shadow: 
+            0 0 25px rgba(255, 0, 0, 0.9),
+            0 6px 15px rgba(0, 0, 0, 0.5);
+    }
+}
+
+@keyframes youtubeFloatFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.youtube-button-floating:hover {
+    transform: scale(1.1);
+    box-shadow: 
+        0 0 30px rgba(255, 0, 0, 0.9),
+        0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================
+   INFORME DE VISITAS
+   ============================================ */
+
+.show-visits-btn {
+    position: fixed;
+    bottom: 140px;
+    right: 20px;
+    z-index: 100;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(40, 167, 69, 0.9);
+    border: 2px solid rgba(40, 167, 69, 1);
+    color: #ffffff;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.show-visits-btn:hover {
+    background: rgba(40, 167, 69, 1);
+    transform: scale(1.1);
+}
+
+.visits-report {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(10, 25, 40, 0.98);
+    border: 3px solid rgba(220, 53, 69, 0.8);
+    border-radius: 15px;
+    padding: 20px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    z-index: 10000;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.8);
+}
+
+.visits-report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(220, 53, 69, 0.6);
+}
+
+.visits-report-header h3 {
+    color: #ffffff;
+    margin: 0;
+    font-size: 24px;
+}
+
+.close-report {
+    background: rgba(220, 53, 69, 0.8);
+    border: none;
+    color: #ffffff;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.3s ease;
+}
+
+.close-report:hover {
+    background: rgba(220, 53, 69, 1);
+    transform: scale(1.1);
+}
+
+.visits-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.stat-item {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid rgba(220, 53, 69, 0.4);
+}
+
+.stat-label {
+    display: block;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    display: block;
+    color: #ffffff;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.visits-by-country {
+    margin-top: 20px;
+}
+
+.country-visit-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    margin-bottom: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    border-left: 3px solid rgba(40, 167, 69, 0.8);
+}
+
+.country-name {
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.country-count {
+    color: #28a745;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+/* ============================================
+   NARRACIÓN NAVIDEÑA
+   ============================================ */
+
+.christmas-narration {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10, 25, 40, 0.95);
+    border: 2px solid rgba(220, 53, 69, 0.6);
+    border-radius: 15px;
+    padding: 20px 30px;
+    max-width: 600px;
+    width: 90%;
+    z-index: 500;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+    animation: narrationFadeIn 0.5s ease;
+}
+
+@keyframes narrationFadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.narration-content {
+    color: #ffffff;
+    font-size: 16px;
+    line-height: 1.6;
+    text-align: center;
+}
+
+/* ============================================
+   CELEBRACIÓN HORARIA
+   ============================================ */
+
+.hourly-celebration {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.7);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+}
+
+.hourly-celebration.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.celebration-content {
+    text-align: center;
+    z-index: 10001;
+    position: relative;
+}
+
+.celebration-icon {
+    font-size: 120px;
+    animation: celebrationBounce 1s infinite;
+    filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.8));
+    margin-bottom: 20px;
+}
+
+@keyframes celebrationBounce {
+    0%, 100% {
+        transform: translateY(0) scale(1);
+    }
+    50% {
+        transform: translateY(-20px) scale(1.1);
+    }
+}
+
+.celebration-message {
+    font-size: 48px;
+    font-weight: 700;
+    color: #ffc107;
+    text-shadow: 
+        0 0 20px rgba(255, 193, 7, 0.8),
+        0 0 40px rgba(255, 193, 7, 0.6),
+        0 4px 10px rgba(0, 0, 0, 0.8);
+    margin-bottom: 15px;
+    animation: celebrationGlow 1s infinite;
+}
+
+@keyframes celebrationGlow {
+    0%, 100% {
+        text-shadow: 
+            0 0 20px rgba(255, 193, 7, 0.8),
+            0 0 40px rgba(255, 193, 7, 0.6),
+            0 4px 10px rgba(0, 0, 0, 0.8);
+    }
+    50% {
+        text-shadow: 
+            0 0 30px rgba(255, 193, 7, 1),
+            0 0 60px rgba(255, 193, 7, 0.8),
+            0 6px 15px rgba(0, 0, 0, 0.8);
+    }
+}
+
+.celebration-location {
+    font-size: 32px;
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 
+        0 0 15px rgba(40, 167, 69, 0.8),
+        0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+.fireworks-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.firework {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: #ffc107;
+    border-radius: 50%;
+    animation: fireworkExplode 2s ease-out forwards;
+    box-shadow: 
+        0 0 10px #ffc107,
+        0 0 20px #ff0000,
+        0 0 30px #00ff00;
+}
+
+@keyframes fireworkExplode {
+    0% {
+        transform: scale(0);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(20);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(40);
+        opacity: 0;
+    }
+}
