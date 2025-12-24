@@ -672,7 +672,89 @@ const SANTA_MESSAGES = [
         includeUserName: true,
         includeCity: true
     },
+    // ============================================
+    // MENSAJES LARGOS Y GRACIOSOS
+    // ============================================
+    {
+        type: 'humor',
+        message: '¡Rudolph está haciendo acrobacias en el aire! 🦌',
+        subtitle: 'Los otros renos están celosos porque él tiene la nariz más brillante. ¡Sígueme en IG @ilfass para más aventuras navideñas! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Los elfos están trabajando a toda velocidad! 🧝',
+        subtitle: 'Parece que alguien les dio demasiado café esta noche. ¡Están empaquetando regalos como si no hubiera mañana! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Acabo de pasar por una zona de mucho tráfico aéreo! ✈️',
+        subtitle: 'Los aviones comerciales me saludaron con las luces. ¡Qué buena onda tienen los pilotos! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Rudolph casi choca con un satélite! 🛰️',
+        subtitle: 'Pero no se preocupen, lo esquivó como un profesional. Estos renos tienen más experiencia que un piloto de Fórmula 1. ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Los regalos están perfectamente organizados! 🎁',
+        subtitle: 'Los elfos usaron un sistema de códigos QR para no confundirse. ¡La tecnología moderna llega hasta el Polo Norte! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Acabo de recibir un mensaje de los renos! 📱',
+        subtitle: 'Dicen que quieren una pausa para tomar chocolate caliente. ¡Pero no hay tiempo! ¡Millones de niños nos esperan! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡El GPS del trineo está funcionando perfecto! 🗺️',
+        subtitle: 'Aunque a veces me pregunto si Google Maps tiene una opción para "vuelo mágico navideño". ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Los niños están dejando galletas y leche! 🍪🥛',
+        subtitle: 'Espero que no se molesten si me como todas. ¡Tengo que mantener mis energías para esta larga noche! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Rudolph está de excelente humor hoy! 🦌',
+        subtitle: 'Creo que es porque le dije que después de esto tiene vacaciones hasta el próximo año. ¡Los renos también necesitan descansar! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡El trineo tiene modo turbo activado! ⚡',
+        subtitle: 'Los elfos le instalaron un sistema de propulsión mejorado. ¡Ahora volamos más rápido que un cohete! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Acabo de ver un cometa pasar! ☄️',
+        subtitle: 'Rudolph quiso seguirlo, pero le dije que tenemos trabajo que hacer. ¡Los renos siempre quieren explorar el espacio! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Los elfos están haciendo una apuesta! 🎲',
+        subtitle: 'Adivinen cuántos regalos entregaremos esta noche. El ganador se lleva un mes extra de vacaciones. ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
 ];
+
+// ============================================
+// CONFIGURACIÓN DE GEMINI API
+// ============================================
+
+const GEMINI_API_KEY = 'AIzaSyD-NDbMygTSZUiaHWC426Q5PJ7vhUoHkko';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
 
 // ============================================
 // ESTADO GLOBAL
@@ -1223,20 +1305,86 @@ function displayMessage(message) {
 }
 
 /**
+ * Obtiene respuesta de Papá Noel usando Gemini API
+ */
+async function getSantaResponse(userMessage) {
+    try {
+        const prompt = `Eres Papá Noel (Santa Claus) en un vivo de YouTube. Un usuario escribió: "${userMessage}". 
+Responde de forma navideña, graciosa y amigable, como si fueras Papá Noel real. 
+Mantén la respuesta corta (máximo 2-3 oraciones) y divertida. 
+Incluye emojis navideños. 
+Si mencionan algo sobre el viaje, regalos, renos o Navidad, haz referencia a eso.
+Responde en español.`;
+
+        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: prompt
+                    }]
+                }]
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+            return data.candidates[0].content.parts[0].text.trim();
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('Error al obtener respuesta de Gemini:', error);
+        return null;
+    }
+}
+
+/**
  * Maneja el envío de mensaje
  */
-function handleSendMessage() {
+async function handleSendMessage() {
     const input = document.getElementById('userMessageInput');
     if (!input) return;
     
     const text = input.value.trim();
     if (text === '') return;
     
+    // Agregar mensaje del usuario
     addPublicMessage(text);
     input.value = '';
     
     // Agregar participante
     addParticipant();
+    
+    // Mostrar indicador de que Papá Noel está escribiendo
+    addPublicMessage('🎅 Papá Noel está escribiendo...', 'Sistema');
+    
+    // Obtener respuesta de Gemini
+    try {
+        const santaResponse = await getSantaResponse(text);
+        
+        // Remover el mensaje de "escribiendo" y agregar la respuesta
+        setTimeout(() => {
+            if (santaResponse) {
+                addPublicMessage(santaResponse, '🎅 Papá Noel');
+            } else {
+                addPublicMessage('¡Hola! Estoy muy ocupado entregando regalos, pero gracias por tu mensaje. ¡Feliz Navidad! 🎅', '🎅 Papá Noel');
+            }
+        }, 1500);
+    } catch (error) {
+        console.error('Error al obtener respuesta de Papá Noel:', error);
+        setTimeout(() => {
+            addPublicMessage('¡Hola! Estoy muy ocupado entregando regalos, pero gracias por tu mensaje. ¡Feliz Navidad! 🎅', '🎅 Papá Noel');
+        }, 1000);
+    }
 }
 
 /**
@@ -1493,25 +1641,69 @@ function getSantaCurrentCoordinates() {
     return { lat: 66.5039, lng: 25.7294 };
 }
 
+// Estado de la cuenta regresiva
+let countdownState = {
+    targetTime: null,
+    intervalId: null
+};
+
 /**
- * Calcula y actualiza la cuenta regresiva
+ * Inicia la cuenta regresiva
  */
-function updateCountdown(distance, speed) {
+function startCountdown(distance, speed) {
     const countdownEl = document.getElementById('userCityCountdown');
     if (!countdownEl) return;
     
-    if (!distance || distance <= 0) {
+    if (!distance || distance <= 0 || !speed || speed <= 0) {
         countdownEl.textContent = '--:--:--';
         return;
     }
     
-    // Calcular tiempo en segundos
+    // Calcular tiempo total en segundos
     const totalSeconds = Math.floor((distance / speed) * 3600);
     
+    // Establecer tiempo objetivo
+    countdownState.targetTime = Date.now() + (totalSeconds * 1000);
+    
+    // Limpiar intervalo anterior si existe
+    if (countdownState.intervalId) {
+        clearInterval(countdownState.intervalId);
+    }
+    
+    // Actualizar inmediatamente
+    updateCountdownDisplay();
+    
+    // Actualizar cada segundo
+    countdownState.intervalId = setInterval(() => {
+        updateCountdownDisplay();
+    }, 1000);
+}
+
+/**
+ * Actualiza la visualización de la cuenta regresiva
+ */
+function updateCountdownDisplay() {
+    const countdownEl = document.getElementById('userCityCountdown');
+    if (!countdownEl || !countdownState.targetTime) {
+        return;
+    }
+    
+    const now = Date.now();
+    const remaining = Math.max(0, Math.floor((countdownState.targetTime - now) / 1000));
+    
+    if (remaining <= 0) {
+        countdownEl.textContent = '00:00:00';
+        if (countdownState.intervalId) {
+            clearInterval(countdownState.intervalId);
+            countdownState.intervalId = null;
+        }
+        return;
+    }
+    
     // Calcular horas, minutos y segundos
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
+    const hours = Math.floor(remaining / 3600);
+    const minutes = Math.floor((remaining % 3600) / 60);
+    const seconds = remaining % 60;
     
     // Formatear con ceros a la izquierda
     const formatted = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
@@ -1567,15 +1759,20 @@ function updateUserCityPanel() {
         
         etaEl.textContent = `⏱️ Llegada estimada: ${etaText}`;
         
-        // Actualizar cuenta regresiva
+        // Iniciar cuenta regresiva
         if (countdownEl) {
-            updateCountdown(distance, avgSpeed);
+            startCountdown(distance, avgSpeed);
         }
     } else {
         distanceEl.textContent = 'Calculando...';
         etaEl.textContent = 'Estimando tiempo...';
         if (countdownEl) {
             countdownEl.textContent = '--:--:--';
+            // Limpiar cuenta regresiva
+            if (countdownState.intervalId) {
+                clearInterval(countdownState.intervalId);
+                countdownState.intervalId = null;
+            }
         }
     }
 }
@@ -1894,75 +2091,6 @@ function unmuteTracker() {
     }, 10000);
 }
 
-/**
- * Inicializa el botón de sonido
- */
-function initSoundButton() {
-    const soundButton = document.getElementById('soundToggleButton');
-    if (!soundButton) return;
-    
-    let isMuted = true; // Asumimos que está muteado inicialmente
-    
-    soundButton.addEventListener('click', () => {
-        const iframe = document.getElementById('santaTracker');
-        if (!iframe) return;
-        
-        isMuted = !isMuted;
-        
-        // Actualizar apariencia del botón
-        if (isMuted) {
-            soundButton.classList.add('muted');
-            soundButton.setAttribute('aria-label', 'Activar sonido');
-            soundButton.setAttribute('title', 'Activar sonido');
-        } else {
-            soundButton.classList.remove('muted');
-            soundButton.setAttribute('aria-label', 'Desactivar sonido');
-            soundButton.setAttribute('title', 'Desactivar sonido');
-        }
-        
-        // Intentar desmutear/mutear el iframe
-        try {
-            const iframeWindow = iframe.contentWindow;
-            const iframeDoc = iframe.contentDocument || iframeWindow?.document;
-            
-            if (iframeDoc) {
-                // Buscar y hacer clic en el botón de mute del tracker
-                const muteButtons = iframeDoc.querySelectorAll(
-                    'button[aria-label*="mute" i], ' +
-                    'button[aria-label*="sonido" i], ' +
-                    'button[aria-label*="sound" i], ' +
-                    'button[title*="mute" i], ' +
-                    'button[title*="sonido" i], ' +
-                    'button[title*="sound" i], ' +
-                    '[class*="mute" i], ' +
-                    '[class*="sound" i]'
-                );
-                
-                if (muteButtons.length > 0) {
-                    // Hacer clic en el primer botón encontrado
-                    muteButtons[0].click();
-                } else {
-                    // Si no hay botón, intentar con elementos de audio/video
-                    const audioElements = iframeDoc.querySelectorAll('audio, video');
-                    audioElements.forEach(el => {
-                        el.muted = isMuted;
-                        if (!isMuted) {
-                            el.volume = 1;
-                        }
-                    });
-                }
-            } else {
-                // Si no podemos acceder, mostrar mensaje
-                console.log('No se puede acceder al contenido del iframe para controlar el sonido');
-            }
-        } catch (e) {
-            console.log('Error al controlar el sonido:', e.message);
-        }
-    });
-    
-    // Marcar como muteado inicialmente
-    soundButton.classList.add('muted');
-}
 
 /**
  * Inicializa la personalización del usuario
@@ -1984,20 +2112,8 @@ function initUserPersonalization() {
         updateUserCityPanel();
     }, 10000);
     
-    // Actualizar cuenta regresiva cada segundo
-    setInterval(() => {
-        if (state.userCoordinates) {
-            const santaCoords = getSantaCurrentCoordinates();
-            const distance = calculateDistance(
-                state.userCoordinates.lat,
-                state.userCoordinates.lng,
-                santaCoords.lat,
-                santaCoords.lng
-            );
-            const avgSpeed = state.speed || CONFIG.initialSpeed;
-            updateCountdown(distance, avgSpeed);
-        }
-    }, 1000);
+    // La cuenta regresiva se actualiza automáticamente cada segundo
+    // No necesitamos recalcularla aquí, solo se reinicia cuando cambia la distancia
 }
 
 // ============================================
@@ -2252,8 +2368,6 @@ function init() {
     // Inicializar panel de interacción tipo acordeón para móviles
     initMobileInteractionPanel();
     
-    // Inicializar botón de sonido
-    initSoundButton();
     
     // Inicializar panel arrastrable "Tu ciudad"
     setTimeout(() => {
