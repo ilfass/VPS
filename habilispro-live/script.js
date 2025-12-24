@@ -2233,7 +2233,8 @@ function updateUserCityPanel() {
     
     if (!panel || !cityNameEl || !distanceEl || !etaEl) return;
     
-    // Para la versión live, siempre mostrar el panel con una ciudad
+    // Para la versión live, SIEMPRE mostrar el panel con una ciudad (sin preguntar al usuario)
+    // Si no hay ciudad asignada, obtener una automáticamente
     if (!state.userCity) {
         const city = getNextSpanishCity();
         if (city) {
@@ -2243,13 +2244,15 @@ function updateUserCityPanel() {
                 lng: city.lng
             };
         } else {
+            // Si no hay ciudades disponibles, ocultar panel
             panel.style.display = 'none';
             return;
         }
     }
     
-    // Mostrar panel
+    // FORZAR que el panel esté visible siempre en la versión live
     panel.style.display = 'flex';
+    panel.style.visibility = 'visible';
     cityNameEl.textContent = state.userCity;
     
     // Calcular distancia si tenemos coordenadas

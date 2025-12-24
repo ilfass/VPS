@@ -627,6 +627,8 @@ body {
     z-index: 50;
     user-select: none;
     transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    display: flex !important; /* Forzar visibilidad en versión live */
+    visibility: visible !important;
 }
 
 .user-city-panel.expanded {
