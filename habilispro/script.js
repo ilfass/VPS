@@ -48,6 +48,85 @@ const CONFIG = {
 };
 
 // ============================================
+// CIUDADES DE HABLA HISPANA (prioridad: Argentina, Chile, México, España)
+// ============================================
+
+const SPANISH_SPEAKING_CITIES = [
+    // ARGENTINA (prioridad máxima - más ciudades)
+    { name: 'Buenos Aires, Argentina', lat: -34.6037, lng: -58.3816, weight: 5 },
+    { name: 'Córdoba, Argentina', lat: -31.4201, lng: -64.1888, weight: 4 },
+    { name: 'Rosario, Argentina', lat: -32.9442, lng: -60.6505, weight: 4 },
+    { name: 'Mendoza, Argentina', lat: -32.8895, lng: -68.8458, weight: 3 },
+    { name: 'Tucumán, Argentina', lat: -26.8083, lng: -65.2176, weight: 3 },
+    { name: 'La Plata, Argentina', lat: -34.9215, lng: -57.9545, weight: 2 },
+    { name: 'Mar del Plata, Argentina', lat: -38.0055, lng: -57.5426, weight: 2 },
+    { name: 'Salta, Argentina', lat: -24.7859, lng: -65.4117, weight: 2 },
+    { name: 'Santa Fe, Argentina', lat: -31.6333, lng: -60.7, weight: 2 },
+    { name: 'San Juan, Argentina', lat: -31.5375, lng: -68.5364, weight: 1 },
+    { name: 'Bahía Blanca, Argentina', lat: -38.7183, lng: -62.2663, weight: 1 },
+    { name: 'Resistencia, Argentina', lat: -27.4514, lng: -58.9867, weight: 1 },
+    { name: 'Neuquén, Argentina', lat: -38.9516, lng: -68.0591, weight: 1 },
+    { name: 'Santiago del Estero, Argentina', lat: -27.7951, lng: -64.2615, weight: 1 },
+    { name: 'Corrientes, Argentina', lat: -27.4692, lng: -58.8306, weight: 1 },
+    // CHILE (alta prioridad)
+    { name: 'Santiago, Chile', lat: -33.4489, lng: -70.6693, weight: 5 },
+    { name: 'Valparaíso, Chile', lat: -33.0472, lng: -71.6127, weight: 4 },
+    { name: 'Concepción, Chile', lat: -36.8201, lng: -73.0444, weight: 3 },
+    { name: 'La Serena, Chile', lat: -29.9027, lng: -71.2519, weight: 2 },
+    { name: 'Antofagasta, Chile', lat: -23.6509, lng: -70.3975, weight: 2 },
+    { name: 'Temuco, Chile', lat: -38.7359, lng: -72.5904, weight: 2 },
+    { name: 'Viña del Mar, Chile', lat: -33.0246, lng: -71.5518, weight: 2 },
+    { name: 'Rancagua, Chile', lat: -34.1708, lng: -70.7444, weight: 1 },
+    { name: 'Talca, Chile', lat: -35.4264, lng: -71.6554, weight: 1 },
+    { name: 'Arica, Chile', lat: -18.4783, lng: -70.3126, weight: 1 },
+    // MÉXICO (alta prioridad)
+    { name: 'Ciudad de México, México', lat: 19.4326, lng: -99.1332, weight: 5 },
+    { name: 'Guadalajara, México', lat: 20.6597, lng: -103.3496, weight: 4 },
+    { name: 'Monterrey, México', lat: 25.6866, lng: -100.3161, weight: 4 },
+    { name: 'Puebla, México', lat: 19.0414, lng: -98.2063, weight: 3 },
+    { name: 'Tijuana, México', lat: 32.5149, lng: -117.0382, weight: 2 },
+    { name: 'León, México', lat: 21.1250, lng: -101.6860, weight: 2 },
+    { name: 'Querétaro, México', lat: 20.5888, lng: -100.3899, weight: 2 },
+    { name: 'Mérida, México', lat: 20.9674, lng: -89.5926, weight: 1 },
+    { name: 'Cancún, México', lat: 21.1619, lng: -86.8515, weight: 1 },
+    { name: 'Toluca, México', lat: 19.2926, lng: -99.6569, weight: 1 },
+    // ESPAÑA (alta prioridad)
+    { name: 'Madrid, España', lat: 40.4168, lng: -3.7038, weight: 5 },
+    { name: 'Barcelona, España', lat: 41.3851, lng: 2.1734, weight: 4 },
+    { name: 'Valencia, España', lat: 39.4699, lng: -0.3763, weight: 3 },
+    { name: 'Sevilla, España', lat: 37.3891, lng: -5.9845, weight: 3 },
+    { name: 'Zaragoza, España', lat: 41.6488, lng: -0.8891, weight: 2 },
+    { name: 'Málaga, España', lat: 36.7213, lng: -4.4214, weight: 2 },
+    { name: 'Murcia, España', lat: 37.9922, lng: -1.1307, weight: 1 },
+    { name: 'Palma, España', lat: 39.5696, lng: 2.6502, weight: 1 },
+    // Otros países sudamericanos (menor prioridad)
+    { name: 'Bogotá, Colombia', lat: 4.7110, lng: -74.0721, weight: 1 },
+    { name: 'Medellín, Colombia', lat: 6.2476, lng: -75.5658, weight: 1 },
+    { name: 'Lima, Perú', lat: -12.0464, lng: -77.0428, weight: 1 },
+    { name: 'Quito, Ecuador', lat: -0.1807, lng: -78.4678, weight: 1 },
+    { name: 'Montevideo, Uruguay', lat: -34.9011, lng: -56.1645, weight: 1 },
+    { name: 'Asunción, Paraguay', lat: -25.2637, lng: -57.5759, weight: 1 },
+    { name: 'La Paz, Bolivia', lat: -16.5000, lng: -68.1500, weight: 1 },
+    { name: 'Caracas, Venezuela', lat: 10.4806, lng: -66.9036, weight: 1 }
+];
+
+let currentRandomCity = null;
+let randomCityInterval = null;
+
+/**
+ * Obtiene una ciudad aleatoria con pesos (mayor probabilidad para Argentina, Chile, México, España)
+ */
+function getRandomWeightedCity() {
+    const weightedArray = [];
+    SPANISH_SPEAKING_CITIES.forEach(city => {
+        for (let i = 0; i < city.weight; i++) {
+            weightedArray.push(city);
+        }
+    });
+    return weightedArray[Math.floor(Math.random() * weightedArray.length)];
+}
+
+// ============================================
 // BASE DE DATOS DE UBICACIONES COMUNES
 // Para sincronización rápida con Google Santa Tracker
 // ============================================
@@ -1812,11 +1891,15 @@ async function handleSendMessage() {
         setTimeout(() => {
             if (santaResponse) {
                 addPublicMessage(santaResponse, '🎅 Papá Noel');
+                // Reproducir sonido cuando Papá Noel responde
+                playSound('santa');
             } else {
                 // Usar respuesta predefinida contextual cuando Gemini falla
                 const userName = state.userName || 'Usuario';
                 const predefinedResponse = getPredefinedResponse(text, userName);
                 addPublicMessage(predefinedResponse, '🎅 Papá Noel');
+                // Reproducir sonido cuando Papá Noel responde
+                playSound('santa');
             }
         }, typingDelay);
     } catch (error) {
@@ -2250,6 +2333,165 @@ function updateUserCityPanel() {
 }
 
 /**
+ * Actualiza el panel de ciudades aleatorias
+ */
+function updateRandomCityPanel() {
+    const panel = document.getElementById('randomCityPanel');
+    const cityNameEl = document.getElementById('randomCityName');
+    const distanceEl = document.getElementById('randomCityDistance');
+    const etaEl = document.getElementById('randomCityETA');
+    const countdownEl = document.getElementById('randomCityCountdown');
+    
+    if (!panel || !cityNameEl || !distanceEl || !etaEl) return;
+    
+    // Obtener ciudad aleatoria si no hay una actual
+    if (!currentRandomCity) {
+        currentRandomCity = getRandomWeightedCity();
+    }
+    
+    if (!currentRandomCity) {
+        panel.style.display = 'none';
+        return;
+    }
+    
+    // Mostrar panel
+    panel.style.display = 'block';
+    cityNameEl.textContent = currentRandomCity.name;
+    
+    // Calcular distancia
+    const santaCoords = getSantaCurrentCoordinates();
+    const distance = calculateDistance(
+        currentRandomCity.lat,
+        currentRandomCity.lng,
+        santaCoords.lat,
+        santaCoords.lng
+    );
+    
+    // Mostrar distancia
+    distanceEl.textContent = `${distance.toFixed(0)} km`;
+    
+    // Calcular tiempo estimado
+    const avgSpeed = state.speed || CONFIG.initialSpeed; // km/h
+    const hours = distance / avgSpeed;
+    const minutes = Math.floor((hours % 1) * 60);
+    const hoursInt = Math.floor(hours);
+    
+    let etaText = '';
+    if (hoursInt > 0) {
+        etaText = `${hoursInt}h ${minutes}m`;
+    } else {
+        etaText = `${minutes}m`;
+    }
+    
+    etaEl.textContent = `⏱️ Llegada estimada: ${etaText}`;
+    
+    // Iniciar cuenta regresiva
+    if (countdownEl) {
+        startCountdownForPanel(distance, avgSpeed, countdownEl);
+    }
+}
+
+/**
+ * Inicia cuenta regresiva para un panel específico
+ */
+function startCountdownForPanel(distance, speed, countdownEl) {
+    // Limpiar cuenta regresiva anterior si existe
+    if (countdownEl.dataset.intervalId) {
+        clearInterval(parseInt(countdownEl.dataset.intervalId));
+    }
+    
+    const hours = distance / speed;
+    const totalSeconds = Math.floor(hours * 3600);
+    let remainingSeconds = totalSeconds;
+    
+    const updateCountdown = () => {
+        if (remainingSeconds <= 0) {
+            countdownEl.textContent = '00:00:00';
+            if (countdownEl.dataset.intervalId) {
+                clearInterval(parseInt(countdownEl.dataset.intervalId));
+            }
+            return;
+        }
+        
+        const hours = Math.floor(remainingSeconds / 3600);
+        const minutes = Math.floor((remainingSeconds % 3600) / 60);
+        const seconds = remainingSeconds % 60;
+        
+        countdownEl.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        remainingSeconds--;
+    };
+    
+    updateCountdown();
+    const intervalId = setInterval(updateCountdown, 1000);
+    countdownEl.dataset.intervalId = intervalId.toString();
+}
+
+/**
+ * Cambia entre panel de "Tu Ciudad" y panel de ciudades aleatorias
+ */
+function toggleCityPanels(showRandom = null) {
+    const userPanel = document.getElementById('userCityPanel');
+    const randomPanel = document.getElementById('randomCityPanel');
+    
+    if (!userPanel || !randomPanel) return;
+    
+    // Determinar qué panel mostrar
+    const shouldShowRandom = showRandom !== null ? showRandom : 
+                             (userPanel.style.display !== 'none' ? false : true);
+    
+    if (shouldShowRandom) {
+        userPanel.style.display = 'none';
+        randomPanel.style.display = 'block';
+        localStorage.setItem('cityPanelMode', 'random');
+        // Inicializar ciudad aleatoria si no hay
+        if (!currentRandomCity) {
+            currentRandomCity = getRandomWeightedCity();
+        }
+        updateRandomCityPanel();
+        // Rotar ciudad cada 2 minutos
+        if (randomCityInterval) clearInterval(randomCityInterval);
+        randomCityInterval = setInterval(() => {
+            currentRandomCity = getRandomWeightedCity();
+            updateRandomCityPanel();
+        }, 2 * 60 * 1000);
+    } else {
+        randomPanel.style.display = 'none';
+        userPanel.style.display = state.userCity ? 'block' : 'none';
+        localStorage.setItem('cityPanelMode', 'user');
+        if (randomCityInterval) {
+            clearInterval(randomCityInterval);
+            randomCityInterval = null;
+        }
+    }
+}
+
+/**
+ * Inicializa los botones de toggle entre paneles
+ */
+function initCityPanelToggle() {
+    const toggleToRandom = document.getElementById('toggleToRandom');
+    const toggleToUser = document.getElementById('toggleToUser');
+    
+    if (toggleToRandom) {
+        toggleToRandom.addEventListener('click', () => {
+            toggleCityPanels(true);
+        });
+    }
+    
+    if (toggleToUser) {
+        toggleToUser.addEventListener('click', () => {
+            toggleCityPanels(false);
+        });
+    }
+    
+    // Restaurar modo guardado
+    const savedMode = localStorage.getItem('cityPanelMode');
+    if (savedMode === 'random') {
+        toggleCityPanels(true);
+    }
+}
+
+/**
  * Actualiza el nombre del operador en el centro de control
  */
 function updateOperatorName() {
@@ -2316,13 +2558,13 @@ function initMobileInteractionPanel() {
 }
 
 /**
- * Hace el panel "Tu ciudad" arrastrable
+ * Hace un panel arrastrable (función genérica)
  */
-function initDraggableCityPanel() {
-    const cityPanel = document.getElementById('userCityPanel');
-    const dragHandle = cityPanel?.querySelector('.drag-handle');
+function makePanelDraggable(panelId) {
+    const panel = document.getElementById(panelId);
+    const dragHandle = panel?.querySelector('.drag-handle');
     
-    if (!cityPanel || !dragHandle) return;
+    if (!panel || !dragHandle) return;
     
     let isDragging = false;
     let currentX;
@@ -2333,12 +2575,13 @@ function initDraggableCityPanel() {
     let yOffset = 0;
     
     // Guardar posición inicial desde localStorage
-    const savedPosition = localStorage.getItem('cityPanelPosition');
+    const storageKey = panelId === 'userCityPanel' ? 'cityPanelPosition' : 'randomCityPanelPosition';
+    const savedPosition = localStorage.getItem(storageKey);
     if (savedPosition) {
         const pos = JSON.parse(savedPosition);
-        cityPanel.style.left = pos.x + 'px';
-        cityPanel.style.top = pos.y + 'px';
-        cityPanel.style.right = 'auto';
+        panel.style.left = pos.x + 'px';
+        panel.style.top = pos.y + 'px';
+        panel.style.right = 'auto';
         xOffset = pos.x;
         yOffset = pos.y;
     }
@@ -2363,7 +2606,7 @@ function initDraggableCityPanel() {
         
         if (e.target === dragHandle || dragHandle.contains(e.target)) {
             isDragging = true;
-            cityPanel.classList.add('dragging');
+            panel.classList.add('dragging');
         }
     }
     
@@ -2383,7 +2626,7 @@ function initDraggableCityPanel() {
         xOffset = currentX;
         yOffset = currentY;
         
-        setTranslate(currentX, currentY, cityPanel);
+        setTranslate(currentX, currentY, panel);
     }
     
     function dragEnd() {
@@ -2391,11 +2634,11 @@ function initDraggableCityPanel() {
             initialX = currentX;
             initialY = currentY;
             isDragging = false;
-            cityPanel.classList.remove('dragging');
+            panel.classList.remove('dragging');
             
             // Guardar posición
-            const rect = cityPanel.getBoundingClientRect();
-            localStorage.setItem('cityPanelPosition', JSON.stringify({
+            const rect = panel.getBoundingClientRect();
+            localStorage.setItem(storageKey, JSON.stringify({
                 x: rect.left,
                 y: rect.top
             }));
@@ -2408,17 +2651,38 @@ function initDraggableCityPanel() {
 }
 
 /**
+ * Hace el panel "Tu ciudad" arrastrable
+ */
+function initDraggableCityPanel() {
+    makePanelDraggable('userCityPanel');
+}
+
+/**
+ * Hace el panel de ciudades aleatorias arrastrable
+ */
+function initDraggableRandomCityPanel() {
+    makePanelDraggable('randomCityPanel');
+}
+
+/**
  * Expande el panel "Tu ciudad" a pantalla completa
  */
 function expandCityPanel() {
     const cityPanel = document.getElementById('userCityPanel');
-    if (!cityPanel || cityPanel.style.display === 'none') return;
+    const randomCityPanel = document.getElementById('randomCityPanel');
+    const activePanel = cityPanel?.style.display !== 'none' ? cityPanel : 
+                       (randomCityPanel?.style.display !== 'none' ? randomCityPanel : null);
     
-    cityPanel.classList.add('expanded');
+    if (!activePanel) return;
+    
+    // Reproducir sonido de expansión
+    playSound('expand');
+    
+    activePanel.classList.add('expanded');
     
     // Volver a tamaño normal después de 8 segundos
     setTimeout(() => {
-        cityPanel.classList.remove('expanded');
+        activePanel.classList.remove('expanded');
     }, 8000);
 }
 
@@ -2755,6 +3019,48 @@ function generateSantaMessage() {
 /**
  * Muestra la aparición grande de Papá Noel
  */
+/**
+ * Reproduce un sonido navideño
+ */
+function playSound(type = 'notification') {
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        if (type === 'santa') {
+            // Sonido más alegre para apariciones de Santa
+            oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(554, audioContext.currentTime + 0.1);
+            oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.2);
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        } else if (type === 'expand') {
+            // Sonido de expansión
+            oscillator.frequency.setValueAtTime(220, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(440, audioContext.currentTime + 0.3);
+            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        } else {
+            // Sonido de notificación simple
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.2);
+        }
+    } catch (e) {
+        console.log('No se pudo reproducir sonido:', e);
+    }
+}
+
 function showSantaAppearance() {
     const santaAppearance = document.getElementById('santaAppearance');
     const santaMessage = document.getElementById('santaMessage');
@@ -2768,6 +3074,9 @@ function showSantaAppearance() {
     // Configurar mensajes
     santaMessage.textContent = santaData.message;
     santaSubtitle.textContent = santaData.subtitle;
+    
+    // Reproducir sonido
+    playSound('santa');
     
     // Mostrar aparición
     santaAppearance.classList.add('show');
@@ -2891,7 +3200,11 @@ function init() {
     // Actualizar panel de ciudad cada vez que cambie la ubicación
     setInterval(() => {
         updateUserCityPanel();
+        updateRandomCityPanel();
     }, 10000); // Cada 10 segundos
+    
+    // Intentar extraer ubicación del tracker de Google
+    tryExtractTrackerLocation();
     
     // Inicializar interacción del público
     initPublicInteraction();
