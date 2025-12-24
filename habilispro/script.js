@@ -1838,17 +1838,11 @@ async function listAvailableModels() {
  * Obtiene respuesta de Papá Noel usando Gemini API con historial de conversación
  */
 async function getSantaResponse(userMessage) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Iniciando getSantaResponse',data:{userMessage,messageCount:state.publicMessages.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     
     try {
         // Obtener los últimos mensajes del historial (últimos 15 mensajes para contexto)
         const recentMessages = state.publicMessages.slice(-15);
         
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Mensajes recientes obtenidos',data:{recentCount:recentMessages.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
         
         // Construir el prompt con historial
         const systemPrompt = `Eres Papá Noel (Santa Claus) en un vivo de YouTube interactuando con los espectadores. 
@@ -1890,9 +1884,6 @@ HISTORIAL DE LA CONVERSACIÓN:`;
         const userName = state.userName || 'Usuario';
         historyText += `\n${userName}: ${userMessage}\n\nPapá Noel:`;
         
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Prompt construido',data:{promptLength:historyText.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
 
         const requestBody = {
             contents: [{
@@ -1926,9 +1917,6 @@ HISTORIAL DE LA CONVERSACIÓN:`;
         for (const model of modelsToTry) {
             const url = `${GEMINI_BASE_URL}/${model}:generateContent?key=${GEMINI_API_KEY}`;
             
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Intentando modelo',data:{url,model},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'K'})}).catch(()=>{});
-            // #endregion
 
             try {
                 const response = await fetch(url, {
@@ -1939,50 +1927,32 @@ HISTORIAL DE LA CONVERSACIÓN:`;
                     body: JSON.stringify(requestBody)
                 });
                 
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Respuesta recibida',data:{model,status:response.status,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'L'})}).catch(()=>{});
-                // #endregion
                 
                 if (response.ok) {
                     const data = await response.json();
                     
                     if (data.candidates && data.candidates[0] && data.candidates[0].content) {
                         const responseText = data.candidates[0].content.parts[0].text.trim();
-                        // #region agent log
-                        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Modelo exitoso',data:{model,responseLength:responseText.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'M'})}).catch(()=>{});
-                        // #endregion
                         console.log(`✅ Modelo ${model} funcionó correctamente`);
                         return responseText;
                     }
                 } else {
                     const errorText = await response.text();
                     lastError = { model, status: response.status, error: errorText };
-                    // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Modelo falló',data:{model,status:response.status,error:errorText.substring(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'N'})}).catch(()=>{});
-                    // #endregion
                     console.warn(`⚠️ Modelo ${model} falló con status ${response.status}`);
                     continue; // Intentar siguiente modelo
                 }
             } catch (error) {
                 lastError = { model, error: error.message };
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Excepción con modelo',data:{model,error:error.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'O'})}).catch(()=>{});
-                // #endregion
                 console.warn(`⚠️ Error con modelo ${model}:`, error.message);
                 continue; // Intentar siguiente modelo
             }
         }
         
         // Si llegamos aquí, ningún modelo funcionó
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Todos los modelos fallaron',data:{lastError},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'P'})}).catch(()=>{});
-        // #endregion
         console.error('❌ Todos los modelos fallaron. Último error:', lastError);
         return null;
     } catch (error) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Excepción capturada',data:{errorMessage:error.message,errorName:error.name,errorStack:error.stack?.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-        // #endregion
         console.error('Error al obtener respuesta de Gemini:', error);
         return null;
     }
@@ -2396,9 +2366,6 @@ function updateCountdownDisplay() {
  * Actualiza el panel de ciudad del usuario
  */
 function updateUserCityPanel() {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateUserCityPanel',message:'Iniciando updateUserCityPanel',data:{hasUserCity:!!state.userCity,userCity:state.userCity},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     
     const panel = document.getElementById('userCityPanel');
     const cityNameEl = document.getElementById('userCityName');
@@ -2406,27 +2373,15 @@ function updateUserCityPanel() {
     const etaEl = document.getElementById('userCityETA');
     const countdownEl = document.getElementById('userCityCountdown');
     
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateUserCityPanel',message:'Elementos encontrados',data:{panel:!!panel,cityNameEl:!!cityNameEl,distanceEl:!!distanceEl,etaEl:!!etaEl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     
     if (!panel || !cityNameEl || !distanceEl || !etaEl) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateUserCityPanel',message:'Elementos faltantes, saliendo',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
         return;
     }
     
     // Verificar si estamos en modo "random" - si es así, NO actualizar ni cambiar visibilidad
     const savedMode = localStorage.getItem('cityPanelMode');
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateUserCityPanel',message:'Modo guardado',data:{savedMode:savedMode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     
     if (savedMode === 'random') {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateUserCityPanel',message:'Modo random, no actualizar',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
         // No hacer nada si estamos en modo random - solo actualizar cuando el usuario cambie
         return;
     }
@@ -2434,9 +2389,6 @@ function updateUserCityPanel() {
     // Solo actualizar contenido, NO cambiar visibilidad automáticamente
     // La visibilidad solo cambia cuando el usuario presiona el botón
     if (!state.userCity) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateUserCityPanel',message:'No hay ciudad del usuario',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
         // Si no hay ciudad, ocultar solo si no está en modo random
         if (panel.style.display !== 'none') {
             panel.style.display = 'none';
@@ -2444,18 +2396,12 @@ function updateUserCityPanel() {
         return;
     }
     
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateUserCityPanel',message:'Actualizando contenido del panel',data:{userCity:state.userCity,currentDisplay:panel.style.display},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
     
     // Actualizar contenido del panel (no cambiar visibilidad automáticamente)
     // PERO asegurar que esté visible si hay ciudad
     if (panel.style.display === 'none') {
         panel.style.display = 'block';
         panel.classList.add('visible');
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateUserCityPanel',message:'Panel estaba oculto, mostrándolo',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-        // #endregion
     }
     cityNameEl.textContent = state.userCity;
     
@@ -2976,21 +2922,12 @@ function initCityPanelTimers() {
  * Intenta desmutear el iframe del tracker
  */
 function unmuteTracker() {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:unmuteTracker',message:'Iniciando desmutear tracker',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     
     const iframe = document.getElementById('santaTracker');
     if (!iframe) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:unmuteTracker',message:'Iframe no encontrado',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
         return;
     }
     
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:unmuteTracker',message:'Iframe encontrado, agregando listener',data:{iframeSrc:iframe.src,iframeLoaded:iframe.contentWindow?true:false},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     
     // Intentar múltiples métodos para desmutear
     const tryUnmute = () => {
@@ -2999,32 +2936,20 @@ function unmuteTracker() {
             const iframeWindow = iframe.contentWindow;
             const iframeDoc = iframe.contentDocument || iframeWindow?.document;
             
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:unmuteTracker',message:'Intentando acceder al contenido',data:{hasWindow:!!iframeWindow,hasDoc:!!iframeDoc},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-            // #endregion
             
             if (iframeDoc) {
                 // Buscar elementos de audio/video
                 const audioElements = iframeDoc.querySelectorAll('audio, video');
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:unmuteTracker',message:'Elementos de audio encontrados',data:{count:audioElements.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-                // #endregion
                 
                 audioElements.forEach(el => {
                     if (el.muted) {
                         el.muted = false;
                         el.volume = 1;
-                        // #region agent log
-                        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:unmuteTracker',message:'Elemento desmuteado',data:{tagName:el.tagName,muted:el.muted,volume:el.volume},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-                        // #endregion
                     }
                 });
                 
                 // Buscar botones de mute
                 const muteButtons = iframeDoc.querySelectorAll('[aria-label*="mute" i], [aria-label*="unmute" i], button[title*="mute" i], [data-muted], .mute-button, [class*="mute" i]');
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:unmuteTracker',message:'Botones de mute encontrados',data:{count:muteButtons.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-                // #endregion
                 
                 muteButtons.forEach(btn => {
                     const ariaLabel = btn.getAttribute('aria-label')?.toLowerCase() || '';
@@ -3035,20 +2960,11 @@ function unmuteTracker() {
                     
                     if (isMuted) {
                         btn.click();
-                        // #region agent log
-                        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:unmuteTracker',message:'Botón de mute clickeado',data:{ariaLabel,title,isMuted},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-                        // #endregion
                     }
                 });
             } else {
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:unmuteTracker',message:'No se puede acceder al documento (cross-origin)',data:{error:'Cross-origin restriction'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-                // #endregion
             }
         } catch (e) {
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:unmuteTracker',message:'Error al desmutear',data:{error:e.message,errorName:e.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-            // #endregion
             console.log('Error al desmutear:', e.message);
         }
     };
