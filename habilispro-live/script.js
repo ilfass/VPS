@@ -2077,8 +2077,11 @@ async function getCityNameFromCoordinates(lat, lng) {
  * Solicita la ciudad del usuario manualmente (DESHABILITADO PARA VIVO)
  */
 function requestUserCity() {
+    console.log('⚠️ requestUserCity llamada (VERSIÓN LIVE - NO debe usar prompt)');
     // En la versión live, NO solicitar ciudad al usuario, usar rotación automática
     // Ignorar cualquier ciudad guardada en localStorage para la versión live
+    localStorage.removeItem('santaTracker_userCity'); // Limpiar cualquier ciudad guardada
+    
     const city = getNextSpanishCity();
     if (city) {
         state.userCity = city.name;
@@ -2089,7 +2092,7 @@ function requestUserCity() {
         updateUserCityPanel();
         console.log('🌎 Ciudad asignada automáticamente (versión live):', state.userCity);
     }
-    // NO usar prompt ni alert en la versión live
+    // NO usar prompt ni alert en la versión live - ESTO ES CRÍTICO
     return;
 }
 
@@ -2620,6 +2623,8 @@ function unmuteTracker() {
  * Inicializa la personalización del usuario (VERSIÓN LIVE - sin preguntar al usuario)
  */
 function initUserPersonalization() {
+    console.log('🎯 Inicializando personalización (VERSIÓN LIVE - sin prompts)');
+    
     // En la versión live, NO solicitar nombre ni ciudad al usuario
     // Usar un nombre genérico para el operador si no hay uno guardado
     if (!state.userName) {
@@ -2628,13 +2633,19 @@ function initUserPersonalization() {
     }
     updateOperatorName();
     
+    // Limpiar cualquier ciudad guardada en localStorage para forzar rotación automática
+    localStorage.removeItem('santaTracker_userCity');
+    
     // Inicializar con primera ciudad automáticamente (sin preguntar)
     // Asegurar que el panel esté visible inmediatamente
     const panel = document.getElementById('userCityPanel');
     if (panel) {
         panel.style.display = 'flex';
+        panel.style.visibility = 'visible';
+        console.log('✅ Panel de ciudades forzado a visible');
     }
     
+    // Obtener primera ciudad automáticamente
     getUserLocation();
     
     // Asegurar que el panel se muestre después de obtener la ciudad
@@ -2643,6 +2654,8 @@ function initUserPersonalization() {
         const panel = document.getElementById('userCityPanel');
         if (panel) {
             panel.style.display = 'flex';
+            panel.style.visibility = 'visible';
+            console.log('✅ Panel de ciudades verificado después de obtener ciudad');
         }
     }, 500);
     
