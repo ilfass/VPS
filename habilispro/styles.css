@@ -93,7 +93,8 @@ body {
     color: #ffffff;
     text-shadow: 0 2px 10px rgba(220, 53, 69, 0.5);
     margin: 0;
-    display: inline;
+    display: inline-block;
+    white-space: nowrap;
 }
 
 .control-operator {
@@ -101,6 +102,7 @@ body {
     font-weight: 600;
     color: rgba(255, 255, 255, 0.9);
     font-style: normal;
+    display: inline;
 }
 
 .control-operator span {
@@ -590,10 +592,75 @@ body {
     animation: cityPanelPulse 3s infinite;
     max-width: 300px;
     position: fixed;
-    top: 80px;
+    bottom: 100px;
     right: 20px;
+    top: auto;
     z-index: 50;
     user-select: none;
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.user-city-panel.expanded {
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0;
+    padding: 60px;
+    padding-top: 80px;
+    z-index: 2000;
+    animation: cityPanelExpanded 0.5s ease;
+}
+
+.user-city-panel.expanded .user-city-name {
+    font-size: 48px !important;
+}
+
+.user-city-panel.expanded .user-city-distance {
+    font-size: 72px !important;
+}
+
+.user-city-panel.expanded .user-city-eta {
+    font-size: 36px !important;
+}
+
+.user-city-panel.expanded .user-city-countdown {
+    font-size: 96px !important;
+    padding: 40px !important;
+}
+
+.user-city-panel.shaking {
+    animation: screenShake 0.5s infinite;
+}
+
+@keyframes cityPanelExpanded {
+    0% {
+        transform: scale(0.8);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes screenShake {
+    0%, 100% {
+        transform: translate(0, 0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translate(-20px, -20px) rotate(-2deg);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translate(20px, 20px) rotate(2deg);
+    }
+}
+
+body.shaking {
+    animation: screenShake 0.1s infinite;
 }
 
 .user-city-panel.dragging {

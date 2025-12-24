@@ -1734,43 +1734,164 @@ function initDraggableCityPanel() {
 }
 
 /**
+ * Expande el panel "Tu ciudad" a pantalla completa
+ */
+function expandCityPanel() {
+    const cityPanel = document.getElementById('userCityPanel');
+    if (!cityPanel || cityPanel.style.display === 'none') return;
+    
+    cityPanel.classList.add('expanded');
+    
+    // Volver a tamaño normal después de 8 segundos
+    setTimeout(() => {
+        cityPanel.classList.remove('expanded');
+    }, 8000);
+}
+
+/**
+ * Efecto de "zumbar" toda la pantalla
+ */
+function shakeScreen() {
+    const cityPanel = document.getElementById('userCityPanel');
+    const body = document.body;
+    
+    if (cityPanel && cityPanel.style.display !== 'none') {
+        cityPanel.classList.add('shaking');
+        cityPanel.classList.add('expanded');
+    }
+    
+    // Agregar efecto de shake a toda la pantalla
+    body.style.animation = 'screenShake 0.5s infinite';
+    
+    // Remover después de 3 segundos
+    setTimeout(() => {
+        if (cityPanel) {
+            cityPanel.classList.remove('shaking');
+            cityPanel.classList.remove('expanded');
+        }
+        body.classList.remove('shaking');
+    }, 3000);
+}
+
+/**
+ * Inicializa los timers para expandir el panel
+ */
+function initCityPanelTimers() {
+    // Expandir cada 5 minutos
+    setInterval(() => {
+        expandCityPanel();
+    }, 5 * 60 * 1000); // 5 minutos
+    
+    // Verificar cada minuto si es el minuto 00 de cada hora
+    setInterval(() => {
+        const now = new Date();
+        if (now.getMinutes() === 0 && now.getSeconds() < 5) {
+            shakeScreen();
+        }
+    }, 1000); // Verificar cada segundo
+}
+
+/**
  * Intenta desmutear el iframe del tracker
  */
 function unmuteTracker() {
-    const iframe = document.getElementById('santaTracker');
-    if (!iframe) return;
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:unmuteTracker',message:'Iniciando desmutear tracker',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     
-    // Intentar desmutear después de que el iframe cargue
-    iframe.addEventListener('load', () => {
+    const iframe = document.getElementById('santaTracker');
+    if (!iframe) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:unmuteTracker',message:'Iframe no encontrado',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        return;
+    }
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:unmuteTracker',message:'Iframe encontrado, agregando listener',data:{iframeSrc:iframe.src,iframeLoaded:iframe.contentWindow?true:false},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    
+    // Intentar múltiples métodos para desmutear
+    const tryUnmute = () => {
         try {
-            // Nota: Los iframes tienen restricciones de seguridad, esto puede no funcionar
-            // pero intentamos acceder al contenido si es posible
+            // Método 1: Intentar acceder directamente al contenido
             const iframeWindow = iframe.contentWindow;
-            if (iframeWindow) {
-                // Intentar encontrar y hacer clic en el botón de mute si existe
-                setTimeout(() => {
-                    try {
-                        const iframeDoc = iframe.contentDocument || iframeWindow.document;
-                        if (iframeDoc) {
-                            // Buscar botones de mute/unmute
-                            const muteButtons = iframeDoc.querySelectorAll('[aria-label*="mute"], [aria-label*="Mute"], button[title*="mute"], button[title*="Mute"]');
-                            muteButtons.forEach(btn => {
-                                if (btn.getAttribute('aria-label')?.toLowerCase().includes('mute') ||
-                                    btn.getAttribute('title')?.toLowerCase().includes('mute')) {
-                                    btn.click();
-                                }
-                            });
-                        }
-                    } catch (e) {
-                        // Cross-origin restriction - no se puede acceder
-                        console.log('No se puede acceder al contenido del iframe (restricción de seguridad)');
+            const iframeDoc = iframe.contentDocument || iframeWindow?.document;
+            
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:unmuteTracker',message:'Intentando acceder al contenido',data:{hasWindow:!!iframeWindow,hasDoc:!!iframeDoc},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
+            
+            if (iframeDoc) {
+                // Buscar elementos de audio/video
+                const audioElements = iframeDoc.querySelectorAll('audio, video');
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:unmuteTracker',message:'Elementos de audio encontrados',data:{count:audioElements.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                // #endregion
+                
+                audioElements.forEach(el => {
+                    if (el.muted) {
+                        el.muted = false;
+                        el.volume = 1;
+                        // #region agent log
+                        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:unmuteTracker',message:'Elemento desmuteado',data:{tagName:el.tagName,muted:el.muted,volume:el.volume},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                        // #endregion
                     }
-                }, 2000);
+                });
+                
+                // Buscar botones de mute
+                const muteButtons = iframeDoc.querySelectorAll('[aria-label*="mute" i], [aria-label*="unmute" i], button[title*="mute" i], [data-muted], .mute-button, [class*="mute" i]');
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:unmuteTracker',message:'Botones de mute encontrados',data:{count:muteButtons.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+                // #endregion
+                
+                muteButtons.forEach(btn => {
+                    const ariaLabel = btn.getAttribute('aria-label')?.toLowerCase() || '';
+                    const title = btn.getAttribute('title')?.toLowerCase() || '';
+                    const isMuted = btn.getAttribute('data-muted') === 'true' || 
+                                   ariaLabel.includes('unmute') || 
+                                   title.includes('unmute');
+                    
+                    if (isMuted) {
+                        btn.click();
+                        // #region agent log
+                        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:unmuteTracker',message:'Botón de mute clickeado',data:{ariaLabel,title,isMuted},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+                        // #endregion
+                    }
+                });
+            } else {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:unmuteTracker',message:'No se puede acceder al documento (cross-origin)',data:{error:'Cross-origin restriction'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                // #endregion
             }
         } catch (e) {
-            console.log('No se puede desmutear el iframe automáticamente debido a restricciones de seguridad');
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:unmuteTracker',message:'Error al desmutear',data:{error:e.message,errorName:e.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            // #endregion
+            console.log('Error al desmutear:', e.message);
         }
+    };
+    
+    // Intentar inmediatamente si ya está cargado
+    if (iframe.contentWindow) {
+        setTimeout(tryUnmute, 1000);
+    }
+    
+    // Intentar cuando el iframe cargue
+    iframe.addEventListener('load', () => {
+        setTimeout(tryUnmute, 2000);
+        setTimeout(tryUnmute, 5000); // Segundo intento después de 5 segundos
     });
+    
+    // Intentar periódicamente (cada 10 segundos durante el primer minuto)
+    let attempts = 0;
+    const periodicAttempt = setInterval(() => {
+        attempts++;
+        if (attempts > 6) { // 6 intentos = 60 segundos
+            clearInterval(periodicAttempt);
+        }
+        tryUnmute();
+    }, 10000);
 }
 
 /**
@@ -2064,6 +2185,7 @@ function init() {
     // Inicializar panel arrastrable "Tu ciudad"
     setTimeout(() => {
         initDraggableCityPanel();
+        initCityPanelTimers(); // Inicializar timers de expansión
     }, 1000);
     
     // Intentar desmutear el tracker
