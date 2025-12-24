@@ -32,7 +32,7 @@ const CONFIG = {
     initialStatus: 'ok',
     
     // Intervalo para mostrar eventos automáticamente (en minutos)
-    autoEventInterval: 1.5, // Reducido para más frecuencia
+    autoEventInterval: 0.75, // Reducido aún más para más frecuencia
     
     // Velocidad de incremento de regalos (por segundo)
     giftsPerSecond: 0.5,
@@ -41,7 +41,7 @@ const CONFIG = {
     speedVariation: 0.05, // 5% de variación
     
     // Intervalo para aparición de Papá Noel (en minutos)
-    santaAppearanceInterval: 2.5, // Reducido para más frecuencia
+    santaAppearanceInterval: 1.5, // Reducido aún más para más frecuencia
     
     // Duración de la aparición (en segundos)
     santaAppearanceDuration: 8,
@@ -585,6 +585,93 @@ const SANTA_MESSAGES = [
         minNames: 1,
         maxNames: 3
     },
+    // ============================================
+    // MENSAJES PERSONALIZADOS CON NOMBRE DEL USUARIO
+    // ============================================
+    {
+        type: 'personal',
+        message: '¡Hola {userName}! 🎅',
+        subtitle: '¡Espero que estés disfrutando esta Navidad! Suscríbete a @fabiandeharo',
+        includeUserName: true,
+        includeCity: false
+    },
+    {
+        type: 'personal',
+        message: '¡{userName}, Feliz Navidad! 🎄',
+        subtitle: 'Que esta temporada esté llena de alegría para ti. @fabiandeharo',
+        includeUserName: true,
+        includeCity: false
+    },
+    {
+        type: 'personal',
+        message: '¡{userName}, tengo un regalo especial para ti! 🎁',
+        subtitle: '¡Gracias por seguir el viaje! Suscríbete a @fabiandeharo',
+        includeUserName: true,
+        includeCity: false
+    },
+    {
+        type: 'personal',
+        message: '¡{userName}, estoy en camino a {userCity}! 🎅',
+        subtitle: '¡Prepárate, que ya llego! @fabiandeharo en YouTube',
+        includeUserName: true,
+        includeCity: true
+    },
+    {
+        type: 'personal',
+        message: '¡Hola {userName} desde {userCity}! 🌍',
+        subtitle: '¡Feliz Navidad desde tu ciudad! Suscríbete a @fabiandeharo',
+        includeUserName: true,
+        includeCity: true
+    },
+    {
+        type: 'personal',
+        message: '¡{userName}, saludos desde el trineo! 🦌',
+        subtitle: '¡Estoy volando hacia {userCity}! @fabiandeharo',
+        includeUserName: true,
+        includeCity: true
+    },
+    {
+        type: 'personal',
+        message: '¡{userName}, qué bueno verte aquí! ❤️',
+        subtitle: '¡Gracias por acompañarme en este viaje! Suscríbete a @fabiandeharo',
+        includeUserName: true,
+        includeCity: false
+    },
+    {
+        type: 'personal',
+        message: '¡{userName}, espero que estés listo! 🎅',
+        subtitle: '¡Los regalos para {userCity} están en camino! @fabiandeharo',
+        includeUserName: true,
+        includeCity: true
+    },
+    {
+        type: 'personal',
+        message: '¡{userName}, Feliz Navidad desde {userCity}! 🎄',
+        subtitle: '¡Que disfrutes de las tradiciones navideñas! Suscríbete a @fabiandeharo',
+        includeUserName: true,
+        includeCity: true
+    },
+    {
+        type: 'personal',
+        message: '¡{userName}, estoy cerca de {userCity}! 🎁',
+        subtitle: '¡Prepárate para una Navidad mágica! @fabiandeharo',
+        includeUserName: true,
+        includeCity: true
+    },
+    {
+        type: 'personal',
+        message: '¡{userName}, los renos están emocionados! 🦌',
+        subtitle: '¡Especialmente por visitar {userCity}! Suscríbete a @fabiandeharo',
+        includeUserName: true,
+        includeCity: true
+    },
+    {
+        type: 'personal',
+        message: '¡{userName}, qué noche tan especial! ✨',
+        subtitle: '¡Espero que disfrutes la Navidad en {userCity}! @fabiandeharo',
+        includeUserName: true,
+        includeCity: true
+    },
 ];
 
 // ============================================
@@ -611,6 +698,11 @@ const state = {
     // Aparición de Papá Noel
     santaAppearanceTimer: null,
     lastSantaAppearance: 0,
+    // Información del usuario
+    userName: null,
+    userCity: null,
+    userCoordinates: null,
+    santaCoordinates: null, // Coordenadas actuales de Papá Noel (simuladas)
 };
 
 // ============================================
@@ -679,6 +771,8 @@ function updateLocation() {
     if (element) {
         element.textContent = state.location;
     }
+    // Actualizar panel de ciudad del usuario cuando cambie la ubicación de Papá Noel
+    updateUserCityPanel();
 }
 
 /**
@@ -1247,6 +1341,228 @@ function initPublicInteraction() {
 }
 
 // ============================================
+// FUNCIONES DE GEOLOCALIZACIÓN Y PERSONALIZACIÓN
+// ============================================
+
+/**
+ * Solicita el nombre del usuario
+ */
+function requestUserName() {
+    const savedName = localStorage.getItem('santaTracker_userName');
+    if (savedName) {
+        state.userName = savedName;
+        return savedName;
+    }
+    
+    // Solicitar nombre con un prompt amigable
+    const name = prompt('🎅 ¡Hola! ¿Cuál es tu nombre?\n\n(Puedes dejarlo en blanco si prefieres mantenerte anónimo)');
+    
+    if (name && name.trim() !== '') {
+        state.userName = name.trim();
+        localStorage.setItem('santaTracker_userName', state.userName);
+        console.log(`👋 Nombre guardado: ${state.userName}`);
+        return state.userName;
+    }
+    
+    return null;
+}
+
+/**
+ * Obtiene la ubicación del usuario mediante geolocalización
+ */
+function getUserLocation() {
+    if (!navigator.geolocation) {
+        console.warn('⚠️ Geolocalización no disponible en este navegador');
+        return;
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            state.userCoordinates = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            };
+            
+            // Obtener nombre de la ciudad mediante geocodificación inversa
+            getCityNameFromCoordinates(state.userCoordinates.lat, state.userCoordinates.lng);
+            
+            console.log('📍 Ubicación detectada:', state.userCoordinates);
+        },
+        (error) => {
+            console.warn('⚠️ No se pudo obtener la ubicación:', error.message);
+            // Permitir entrada manual de ciudad
+            requestUserCity();
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
+    );
+}
+
+/**
+ * Obtiene el nombre de la ciudad desde coordenadas (usando API de geocodificación)
+ */
+async function getCityNameFromCoordinates(lat, lng) {
+    try {
+        // Usar API de geocodificación inversa (sin API key requerida)
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`);
+        const data = await response.json();
+        
+        if (data && data.address) {
+            const city = data.address.city || 
+                        data.address.town || 
+                        data.address.village || 
+                        data.address.municipality ||
+                        data.address.county ||
+                        'Tu ciudad';
+            
+            const country = data.address.country || '';
+            state.userCity = country ? `${city}, ${country}` : city;
+            
+            updateUserCityPanel();
+            console.log('🏙️ Ciudad detectada:', state.userCity);
+        }
+    } catch (error) {
+        console.warn('⚠️ Error al obtener nombre de ciudad:', error);
+        requestUserCity();
+    }
+}
+
+/**
+ * Solicita la ciudad del usuario manualmente
+ */
+function requestUserCity() {
+    const savedCity = localStorage.getItem('santaTracker_userCity');
+    if (savedCity) {
+        state.userCity = savedCity;
+        updateUserCityPanel();
+        return;
+    }
+    
+    const city = prompt('🏙️ ¿En qué ciudad vives?\n\n(Ejemplo: Madrid, España o Buenos Aires, Argentina)');
+    
+    if (city && city.trim() !== '') {
+        state.userCity = city.trim();
+        localStorage.setItem('santaTracker_userCity', state.userCity);
+        updateUserCityPanel();
+        console.log('🏙️ Ciudad guardada:', state.userCity);
+    }
+}
+
+/**
+ * Calcula la distancia entre dos coordenadas (fórmula de Haversine)
+ */
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Radio de la Tierra en km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distancia en km
+}
+
+/**
+ * Simula las coordenadas actuales de Papá Noel (basado en ubicación actual)
+ */
+function getSantaCurrentCoordinates() {
+    // Por ahora, usar coordenadas aproximadas basadas en la ubicación actual
+    // En producción, esto podría venir de una API del tracker
+    const locationCoords = {
+        'Rovaniemi, Finlandia': { lat: 66.5039, lng: 25.7294 },
+        'Nueva York, USA': { lat: 40.7128, lng: -74.0060 },
+        'Madrid, España': { lat: 40.4168, lng: -3.7038 },
+        'Buenos Aires, Argentina': { lat: -34.6037, lng: -58.3816 },
+        'México DF, México': { lat: 19.4326, lng: -99.1332 },
+        'Bogotá, Colombia': { lat: 4.7110, lng: -74.0721 },
+        'Santiago, Chile': { lat: -33.4489, lng: -70.6693 },
+        'Lima, Perú': { lat: -12.0464, lng: -77.0428 },
+    };
+    
+    // Intentar obtener coordenadas de la ubicación actual
+    const currentLoc = state.location;
+    if (locationCoords[currentLoc]) {
+        return locationCoords[currentLoc];
+    }
+    
+    // Coordenadas por defecto (Rovaniemi)
+    return { lat: 66.5039, lng: 25.7294 };
+}
+
+/**
+ * Actualiza el panel de ciudad del usuario
+ */
+function updateUserCityPanel() {
+    const panel = document.getElementById('userCityPanel');
+    const cityNameEl = document.getElementById('userCityName');
+    const distanceEl = document.getElementById('userCityDistance');
+    const etaEl = document.getElementById('userCityETA');
+    
+    if (!panel || !cityNameEl || !distanceEl || !etaEl) return;
+    
+    if (!state.userCity) {
+        panel.style.display = 'none';
+        return;
+    }
+    
+    // Mostrar panel
+    panel.style.display = 'block';
+    cityNameEl.textContent = state.userCity;
+    
+    // Calcular distancia si tenemos coordenadas
+    if (state.userCoordinates) {
+        const santaCoords = getSantaCurrentCoordinates();
+        const distance = calculateDistance(
+            state.userCoordinates.lat,
+            state.userCoordinates.lng,
+            santaCoords.lat,
+            santaCoords.lng
+        );
+        
+        // Mostrar distancia
+        distanceEl.textContent = `${distance.toFixed(0)} km`;
+        
+        // Calcular tiempo estimado (asumiendo velocidad promedio)
+        const avgSpeed = CONFIG.initialSpeed; // km/h
+        const hours = distance / avgSpeed;
+        const minutes = Math.floor((hours % 1) * 60);
+        const hoursInt = Math.floor(hours);
+        
+        let etaText = '';
+        if (hoursInt > 0) {
+            etaText = `${hoursInt}h ${minutes}m`;
+        } else {
+            etaText = `${minutes}m`;
+        }
+        
+        etaEl.textContent = `⏱️ Llegada estimada: ${etaText}`;
+    } else {
+        distanceEl.textContent = 'Calculando...';
+        etaEl.textContent = 'Estimando tiempo...';
+    }
+}
+
+/**
+ * Inicializa la personalización del usuario
+ */
+function initUserPersonalization() {
+    // Solicitar nombre
+    requestUserName();
+    
+    // Intentar obtener ubicación
+    getUserLocation();
+    
+    // Actualizar panel cada 30 segundos
+    setInterval(() => {
+        updateUserCityPanel();
+    }, 30000);
+}
+
+// ============================================
 // FUNCIONES DE APARICIÓN DE PAPÁ NOEL
 // ============================================
 
@@ -1301,16 +1617,33 @@ function formatNames(names) {
  * Genera un mensaje personalizado de Papá Noel
  */
 function generateSantaMessage() {
-    // Filtrar mensajes según si hay nombres disponibles
+    // Filtrar mensajes según disponibilidad
     const availableNames = getRandomChatNames(5);
     const hasNames = availableNames.length > 0;
+    const hasUserName = state.userName && state.userName.trim() !== '';
+    const hasUserCity = state.userCity && state.userCity.trim() !== '';
     
     // Filtrar mensajes disponibles
     let availableMessages = SANTA_MESSAGES;
     
-    if (!hasNames) {
-        // Si no hay nombres, solo usar mensajes que no requieren nombres
-        availableMessages = SANTA_MESSAGES.filter(msg => !msg.includeNames);
+    // Priorizar mensajes personalizados si tenemos nombre de usuario
+    if (hasUserName) {
+        const personalMessages = SANTA_MESSAGES.filter(msg => 
+            msg.type === 'personal' && 
+            (!msg.includeCity || hasUserCity)
+        );
+        
+        // 60% de probabilidad de usar mensaje personalizado si está disponible
+        if (personalMessages.length > 0 && Math.random() < 0.6) {
+            availableMessages = personalMessages;
+        }
+    }
+    
+    // Si no hay nombres del chat, filtrar mensajes que no los requieren
+    if (!hasNames && !hasUserName) {
+        availableMessages = availableMessages.filter(msg => 
+            !msg.includeNames && !msg.includeUserName
+        );
     }
     
     // Seleccionar mensaje aleatorio
@@ -1321,7 +1654,19 @@ function generateSantaMessage() {
     let message = messageTemplate.message;
     let subtitle = messageTemplate.subtitle;
     
-    // Si el mensaje requiere nombres y tenemos disponibles
+    // Reemplazar nombre del usuario si está disponible
+    if (hasUserName && messageTemplate.includeUserName) {
+        message = message.replace(/{userName}/g, state.userName);
+        subtitle = subtitle.replace(/{userName}/g, state.userName);
+    }
+    
+    // Reemplazar ciudad del usuario si está disponible
+    if (hasUserCity && messageTemplate.includeCity) {
+        message = message.replace(/{userCity}/g, state.userCity);
+        subtitle = subtitle.replace(/{userCity}/g, state.userCity);
+    }
+    
+    // Si el mensaje requiere nombres del chat y tenemos disponibles
     if (messageTemplate.includeNames && hasNames) {
         const nameCount = Math.min(
             Math.max(messageTemplate.minNames || 1, 1),
@@ -1330,6 +1675,11 @@ function generateSantaMessage() {
         const selectedNames = availableNames.slice(0, nameCount);
         const formattedNames = formatNames(selectedNames);
         message = message.replace('{names}', formattedNames);
+    }
+    
+    // Agregar ciudad a mensajes que no la tienen pero podrían tenerla
+    if (hasUserCity && !messageTemplate.includeCity && Math.random() < 0.3) {
+        subtitle += ` ¡Desde ${state.userCity}!`;
     }
     
     return {
@@ -1450,10 +1800,18 @@ function init() {
     // Iniciar apariciones automáticas de Papá Noel
     startSantaAppearances();
     
-    // Primera aparición después de 30 segundos (para dar tiempo a que haya usuarios)
+    // Primera aparición después de 20 segundos (reducido)
     setTimeout(() => {
         showSantaAppearance();
-    }, 30000);
+    }, 20000);
+    
+    // Inicializar personalización del usuario
+    initUserPersonalization();
+    
+    // Actualizar panel de ciudad cada vez que cambie la ubicación
+    setInterval(() => {
+        updateUserCityPanel();
+    }, 10000); // Cada 10 segundos
     
     // Inicializar interacción del público
     initPublicInteraction();
