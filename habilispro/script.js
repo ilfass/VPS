@@ -2699,7 +2699,7 @@ function startCountdown(distance, speed) {
 }
 
 /**
- * Actualiza la visualización de la cuenta regresiva
+ * Actualiza la visualización de la cuenta regresiva (mejorada)
  */
 function updateCountdownDisplay() {
     const countdownEl = document.getElementById('userCityCountdown');
@@ -2707,21 +2707,39 @@ function updateCountdownDisplay() {
         return;
     }
     
-    // Recalcular dinámicamente basándose en distancia y velocidad actuales
-    // Esto hace el countdown más preciso
-    if (!countdownState.lastDistance || !countdownState.lastSpeed || 
-        countdownState.lastDistance <= 0 || countdownState.lastSpeed <= 0) {
+    // Recalcular distancia y velocidad en tiempo real
+    if (!state.userCoordinates) {
         countdownEl.textContent = '--:--:--';
         return;
     }
     
-    // Recalcular tiempo restante basándose en distancia y velocidad actuales
-    const currentDistance = countdownState.lastDistance;
-    const currentSpeed = countdownState.lastSpeed;
+    // Obtener coordenadas actuales de Santa
+    const santaCoords = getSantaCurrentCoordinates();
     
-    // Calcular tiempo en horas
+    // Recalcular distancia actual
+    const currentDistance = calculateDistance(
+        state.userCoordinates.lat,
+        state.userCoordinates.lng,
+        santaCoords.lat,
+        santaCoords.lng
+    );
+    
+    // Obtener velocidad actual
+    const currentSpeed = state.speed || CONFIG.initialSpeed;
+    
+    // Validar valores
+    if (!currentDistance || currentDistance <= 0 || !currentSpeed || currentSpeed <= 0) {
+        countdownEl.textContent = '--:--:--';
+        return;
+    }
+    
+    // Actualizar valores guardados
+    countdownState.lastDistance = currentDistance;
+    countdownState.lastSpeed = currentSpeed;
+    
+    // Calcular tiempo restante en horas
     const hoursRemaining = currentDistance / currentSpeed;
-    const totalSeconds = Math.floor(hoursRemaining * 3600);
+    const totalSeconds = Math.max(0, Math.floor(hoursRemaining * 3600));
     
     if (totalSeconds <= 0) {
         countdownEl.textContent = '00:00:00';
@@ -3917,35 +3935,70 @@ function initIntermittentYouTubeButton() {
 // NARRACIÓN NAVIDEÑA CON TEXT-TO-SPEECH
 // ============================================
 
-const CHRISTMAS_NARRATION_TEXT = `
-La Navidad es una época mágica que une a las familias alrededor del mundo. 
-Es el momento en que Papá Noel, con su trineo mágico tirado por renos, 
-recorre el planeta entregando regalos y alegría a millones de niños. 
-Esta noche especial, llena de tradiciones, luces, música y amor, 
-nos recuerda la importancia de compartir, de estar juntos, 
-y de mantener viva la magia de la infancia. 
-Desde el Polo Norte hasta el último rincón del mundo, 
-la Navidad trae consigo esperanza, felicidad y la promesa de un nuevo año lleno de posibilidades.
-`;
+const CHRISTMAS_NARRATIONS = [
+    `La Navidad es una época mágica que une a las familias alrededor del mundo. Es el momento en que Papá Noel, con su trineo mágico tirado por renos, recorre el planeta entregando regalos y alegría a millones de niños. Esta noche especial, llena de tradiciones, luces, música y amor, nos recuerda la importancia de compartir, de estar juntos, y de mantener viva la magia de la infancia. Desde el Polo Norte hasta el último rincón del mundo, la Navidad trae consigo esperanza, felicidad y la promesa de un nuevo año lleno de posibilidades.`,
+    
+    `Érase una vez, en una pequeña aldea cubierta de nieve, vivía un niño llamado Lucas. Cada Nochebuena, Lucas dejaba galletas y leche para Papá Noel junto a la chimenea. Una noche, mientras esperaba despierto, escuchó un sonido mágico en el techo. Al asomarse por la ventana, vio el trineo de Papá Noel volando por el cielo estrellado. Los renos relinchaban con alegría mientras Papá Noel repartía regalos. Desde ese día, Lucas supo que la magia de la Navidad era real, y cada año compartía esta historia con su familia, manteniendo viva la ilusión y el espíritu navideño.`,
+    
+    `En el corazón del invierno, cuando las noches son más largas y el frío más intenso, las familias se reúnen alrededor del fuego para compartir historias y tradiciones. La Navidad es mucho más que una fecha en el calendario: es un sentimiento que llena el corazón de calidez y esperanza. Los niños escriben cartas a Papá Noel con sus deseos más sinceros, las casas se iluminan con luces de colores, y el aroma de galletas y chocolate caliente invade cada rincón. Es el momento de perdonar, de agradecer, y de recordar que la verdadera riqueza está en el amor que compartimos con quienes nos rodean.`,
+    
+    `Había una vez un árbol de Navidad muy especial que crecía en el bosque. Este árbol no era como los demás: tenía la capacidad de escuchar los deseos de los niños. Cada año, cuando llegaba la Navidad, el árbol brillaba con una luz dorada y sus ramas se llenaban de regalos mágicos. Los animales del bosque se reunían alrededor de él, y juntos celebraban la magia de la temporada. El árbol enseñó a todos que la Navidad no se trata solo de recibir, sino de dar amor, compartir alegría y crear recuerdos que durarán para siempre.`,
+    
+    `La Navidad es un tiempo de reflexión y gratitud. Es el momento perfecto para recordar todas las bendiciones que hemos recibido durante el año y para compartir nuestra felicidad con quienes más lo necesitan. Las tradiciones navideñas varían alrededor del mundo: en algunos lugares se celebra con fuegos artificiales, en otros con villancicos, y en muchos con deliciosas comidas familiares. Pero sin importar dónde estemos, el espíritu navideño nos une a todos: el deseo de paz, amor y felicidad para todos los seres humanos.`,
+    
+    `Cuenta la leyenda que hace muchos años, en una noche muy fría de diciembre, un anciano llamado Nicolás caminaba por las calles de su pueblo ayudando a los más necesitados. Repartía comida, ropa y pequeños regalos a los niños que no tenían nada. Su bondad y generosidad se extendieron por todo el mundo, y con el tiempo se convirtió en la figura que hoy conocemos como Papá Noel. Su espíritu de dar sin esperar nada a cambio es el verdadero significado de la Navidad: ayudar a otros, compartir lo que tenemos y llenar el mundo de amor y esperanza.`,
+    
+    `En una pequeña ciudad nevada, cada casa tenía su propia tradición navideña. La familia Martínez decoraba su hogar con luces de colores y preparaba tamales. Los García organizaban una gran cena con toda la familia. Los niños de la escuela escribían cartas a Papá Noel y las colgaban en un árbol especial. Pero lo más hermoso era ver cómo toda la comunidad se unía para ayudar a quienes más lo necesitaban. La Navidad transformaba la ciudad en un lugar mágico donde el amor y la generosidad brillaban más que cualquier estrella en el cielo.`,
+    
+    `La Navidad es como un faro de luz en la oscuridad del invierno. Nos recuerda que incluso en los momentos más difíciles, hay esperanza y alegría. Es el tiempo en que los corazones se abren, las sonrisas se multiplican y el mundo parece un lugar mejor. Los villancicos llenan el aire con melodías alegres, las casas se decoran con guirnaldas y esferas brillantes, y las familias se reúnen para crear recuerdos inolvidables. Cada regalo envuelto, cada galleta horneada, cada abrazo compartido, es una expresión del amor que define esta temporada tan especial.`,
+    
+    `Había una vez un reno llamado Rodolfo que era diferente a los demás. Su nariz brillaba con una luz roja intensa, lo que lo hacía sentir avergonzado. Pero una Nochebuena muy especial, cuando la niebla era tan espesa que Papá Noel no podía ver su camino, Rodolfo usó su nariz brillante para guiar el trineo a través de la oscuridad. Desde ese día, Rodolfo se convirtió en el reno más querido y su nariz brillante se convirtió en un símbolo de esperanza. Esta historia nos enseña que nuestras diferencias pueden ser nuestras mayores fortalezas, y que la Navidad es el momento perfecto para celebrar lo que nos hace únicos.`,
+    
+    `La Navidad es una sinfonía de emociones y tradiciones que se entrelazan para crear momentos inolvidables. Es el olor a canela y especias en el aire, el sonido de las risas de los niños, el calor de un abrazo familiar, y la paz que llena el corazón cuando miramos las estrellas en una noche clara. Es el momento de perdonar viejas rencillas, de agradecer por lo que tenemos, y de soñar con un futuro mejor. La Navidad nos recuerda que somos parte de algo más grande, una comunidad global unida por el deseo de paz, amor y felicidad para todos.`,
+    
+    `En un pequeño pueblo de montaña, vivía una abuela que cada Navidad contaba la historia de cómo su abuela había conocido a Papá Noel. Según la leyenda familiar, una noche de Navidad, cuando era niña, había dejado una carta especial junto a la chimenea. En la carta, no pedía regalos para sí misma, sino que pedía que todos los niños del mundo tuvieran algo especial en Navidad. Al día siguiente, encontró una nota de Papá Noel agradeciéndole su bondad y prometiendo que haría todo lo posible por cumplir su deseo. Esta historia se transmitió de generación en generación, recordando a todos que el verdadero espíritu navideño está en pensar en los demás.`,
+    
+    `La Navidad es un tiempo de milagros y maravillas. Es cuando los corazones se abren más, cuando la generosidad fluye naturalmente, y cuando la magia parece estar en cada rincón. Los niños esperan con ilusión la llegada de Papá Noel, escriben listas de deseos, decoran árboles y cantan villancicos. Los adultos preparan comidas especiales, comparten regalos y crean momentos que quedarán grabados en la memoria para siempre. La Navidad nos conecta con nuestra infancia, nos recuerda la importancia de la familia y los amigos, y nos llena de esperanza para el año que viene.`,
+    
+    `Cuenta la historia que en el Polo Norte existe un taller mágico donde los elfos trabajan todo el año preparando regalos para los niños del mundo. Estos pequeños trabajadores, llenos de alegría y dedicación, crean juguetes con amor y cuidado especial. Cada regalo está hecho con la intención de traer felicidad y sonrisas. El taller está lleno de risas, música navideña y el aroma de galletas recién horneadas. Los elfos saben que su trabajo es importante porque cada regalo representa el amor y la magia de la Navidad, y están orgullosos de ser parte de esta tradición tan especial que une a las familias alrededor del mundo.`
+];
 
 /**
- * Inicializa la narración navideña con text-to-speech
+ * Inicializa la narración navideña con text-to-speech (cada 15 minutos)
  */
 function initChristmasNarration() {
     const narration = document.getElementById('christmasNarration');
     const narrationContent = document.getElementById('narrationContent');
     if (!narration || !narrationContent) return;
     
-    // Mostrar narración después de 30 segundos de carga
-    setTimeout(() => {
-        narrationContent.textContent = CHRISTMAS_NARRATION_TEXT;
+    let narrationIndex = 0;
+    let lastNarrationTime = 0;
+    
+    const playNarration = () => {
+        const now = Date.now();
+        const fifteenMinutes = 15 * 60 * 1000; // 15 minutos en milisegundos
+        
+        // Verificar si han pasado 15 minutos desde la última narración
+        if (now - lastNarrationTime < fifteenMinutes) {
+            return;
+        }
+        
+        // Seleccionar narración (rotar entre todas)
+        const narrationText = CHRISTMAS_NARRATIONS[narrationIndex % CHRISTMAS_NARRATIONS.length];
+        narrationIndex++;
+        
+        // Actualizar contenido
+        narrationContent.textContent = narrationText;
         narration.style.display = 'block';
         
         // Reproducir con text-to-speech
         if ('speechSynthesis' in window) {
-            const utterance = new SpeechSynthesisUtterance(CHRISTMAS_NARRATION_TEXT);
+            // Cancelar cualquier narración anterior
+            speechSynthesis.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(narrationText);
             utterance.lang = 'es-ES';
-            utterance.rate = 0.9; // Velocidad ligeramente más lenta
+            utterance.rate = 0.85; // Velocidad cómoda para escuchar
             utterance.pitch = 1;
             utterance.volume = 0.8;
             
@@ -3958,19 +4011,40 @@ function initChristmasNarration() {
             
             speechSynthesis.speak(utterance);
             
+            // Actualizar tiempo de última narración
+            lastNarrationTime = now;
+            
             // Ocultar cuando termine
             utterance.onend = () => {
                 setTimeout(() => {
                     narration.style.display = 'none';
                 }, 2000);
             };
+            
+            utterance.onerror = () => {
+                // Si hay error, ocultar después de un tiempo
+                setTimeout(() => {
+                    narration.style.display = 'none';
+                }, 5000);
+            };
+        } else {
+            // Si no hay TTS, mostrar por 30 segundos
+            setTimeout(() => {
+                narration.style.display = 'none';
+            }, 30000);
+            lastNarrationTime = now;
         }
-        
-        // Ocultar después de 30 segundos si no hay TTS
-        setTimeout(() => {
-            narration.style.display = 'none';
-        }, 30000);
+    };
+    
+    // Reproducir primera narración después de 30 segundos
+    setTimeout(() => {
+        playNarration();
     }, 30000);
+    
+    // Verificar cada minuto si es hora de reproducir otra narración
+    setInterval(() => {
+        playNarration();
+    }, 60000); // Verificar cada minuto
 }
 
 // Cargar voces cuando estén disponibles
