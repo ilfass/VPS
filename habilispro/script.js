@@ -824,8 +824,10 @@ const GEMINI_API_KEY = 'AIzaSyD-NDbMygTSZUiaHWC426Q5PJ7vhUoHkko';
 // Formato correcto según documentación: v1beta/models/{model}:generateContent
 // Modelos a probar: gemini-1.5-pro, gemini-1.5-flash, gemini-pro
 const GEMINI_MODELS = [
+    'gemini-1.5-flash-latest',
+    'gemini-1.5-pro-latest',
+    'gemini-1.5-flash',
     'gemini-1.5-pro',
-    'gemini-1.5-flash', 
     'gemini-pro'
 ];
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
@@ -1483,9 +1485,28 @@ HISTORIAL DE LA CONVERSACIÓN:`;
             }]
         };
         
+        // Primero intentar obtener la lista de modelos disponibles
+        let modelsToTry = GEMINI_MODELS;
+        try {
+            const availableModels = await listAvailableModels();
+            if (availableModels && availableModels.length > 0) {
+                // Usar solo los modelos que están disponibles
+                modelsToTry = GEMINI_MODELS.filter(m => availableModels.includes(m));
+                if (modelsToTry.length === 0) {
+                    // Si ninguno de nuestros modelos está disponible, usar los disponibles
+                    modelsToTry = availableModels.slice(0, 3);
+                }
+                console.log('✅ Modelos disponibles encontrados:', modelsToTry);
+            } else {
+                console.warn('⚠️ No se pudieron obtener modelos disponibles, usando lista por defecto');
+            }
+        } catch (error) {
+            console.warn('⚠️ Error al obtener lista de modelos, usando lista por defecto:', error);
+        }
+        
         // Intentar con cada modelo hasta encontrar uno que funcione
         let lastError = null;
-        for (const model of GEMINI_MODELS) {
+        for (const model of modelsToTry) {
             const url = `${GEMINI_BASE_URL}/${model}:generateContent?key=${GEMINI_API_KEY}`;
             
             // #region agent log
