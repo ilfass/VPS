@@ -160,6 +160,15 @@ const state = {
     events: [],
     lastEventTime: Date.now(),
     autoEventTimer: null,
+    // Interacción del público
+    publicMessages: [],
+    participants: new Set(),
+    reactions: {
+        likes: 0,
+        cheers: 0,
+        santa: 0
+    },
+    userCounter: 0,
 };
 
 // ============================================
@@ -572,6 +581,230 @@ function setSpeed(kmh) {
 }
 
 // ============================================
+// FUNCIONES DE INTERACCIÓN CON EL PÚBLICO
+// ============================================
+
+/**
+ * Genera un ID único para el usuario
+ */
+function generateUserId() {
+    state.userCounter++;
+    return `Usuario${state.userCounter}`;
+}
+
+/**
+ * Obtiene o crea un ID de usuario (almacenado en localStorage)
+ */
+function getUserId() {
+    let userId = localStorage.getItem('santaTracker_userId');
+    if (!userId) {
+        userId = generateUserId();
+        localStorage.setItem('santaTracker_userId', userId);
+    }
+    return userId;
+}
+
+/**
+ * Agrega un participante único
+ */
+function addParticipant() {
+    const userId = getUserId();
+    state.participants.add(userId);
+    updateParticipantsCount();
+}
+
+/**
+ * Actualiza el contador de participantes
+ */
+function updateParticipantsCount() {
+    const element = document.getElementById('participantsCount');
+    if (element) {
+        element.textContent = state.participants.size;
+    }
+}
+
+/**
+ * Agrega un mensaje del público
+ */
+function addPublicMessage(text, author = null) {
+    if (!text || text.trim() === '') return;
+    
+    const userId = author || getUserId();
+    const message = {
+        id: Date.now(),
+        author: userId,
+        text: text.trim(),
+        time: new Date()
+    };
+    
+    state.publicMessages.unshift(message);
+    
+    // Mantener máximo 50 mensajes
+    if (state.publicMessages.length > 50) {
+        state.publicMessages.pop();
+    }
+    
+    // Agregar a la UI
+    displayMessage(message);
+    
+    // Scroll al inicio
+    const messagesContainer = document.getElementById('messagesContainer');
+    if (messagesContainer) {
+        messagesContainer.scrollTop = 0;
+    }
+    
+    console.log(`💬 Mensaje de ${userId}: ${text}`);
+}
+
+/**
+ * Muestra un mensaje en la lista
+ */
+function displayMessage(message) {
+    const messagesList = document.getElementById('messagesList');
+    if (!messagesList) return;
+    
+    const messageItem = document.createElement('div');
+    messageItem.className = 'message-item';
+    
+    const time = message.time.toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    
+    messageItem.innerHTML = `
+        <span class="message-author">${message.author}:</span>
+        <span class="message-text">${message.text}</span>
+        <span class="message-time">${time}</span>
+    `;
+    
+    // Insertar al inicio
+    messagesList.insertBefore(messageItem, messagesList.firstChild);
+    
+    // Mantener máximo 10 mensajes visibles
+    while (messagesList.children.length > 10) {
+        messagesList.removeChild(messagesList.lastChild);
+    }
+}
+
+/**
+ * Maneja el envío de mensaje
+ */
+function handleSendMessage() {
+    const input = document.getElementById('userMessageInput');
+    if (!input) return;
+    
+    const text = input.value.trim();
+    if (text === '') return;
+    
+    addPublicMessage(text);
+    input.value = '';
+    
+    // Agregar participante
+    addParticipant();
+}
+
+/**
+ * Maneja las reacciones
+ */
+function handleReaction(type) {
+    const userId = getUserId();
+    const reactionKey = `${userId}_${type}`;
+    
+    // Verificar si ya reaccionó (usando sessionStorage para esta sesión)
+    if (sessionStorage.getItem(reactionKey)) {
+        console.log(`⚠️ Ya has reaccionado con ${type}`);
+        return;
+    }
+    
+    // Registrar reacción
+    sessionStorage.setItem(reactionKey, 'true');
+    state.reactions[type]++;
+    
+    // Actualizar UI
+    updateReactionCount(type);
+    
+    // Efecto visual
+    const btn = document.getElementById(`${type}Btn`);
+    if (btn) {
+        btn.classList.add('active');
+        setTimeout(() => {
+            btn.classList.remove('active');
+        }, 500);
+    }
+    
+    // Agregar participante
+    addParticipant();
+    
+    // Mensaje automático según tipo
+    const messages = {
+        likes: '❤️ ¡Me encanta!',
+        cheers: '👏 ¡Aplausos para Papá Noel!',
+        santa: '🎅 ¡Vamos Papá Noel!'
+    };
+    
+    if (messages[type]) {
+        addPublicMessage(messages[type], 'Sistema');
+    }
+    
+    console.log(`👍 Reacción ${type}: ${state.reactions[type]}`);
+}
+
+/**
+ * Actualiza el contador de reacciones
+ */
+function updateReactionCount(type) {
+    const element = document.getElementById(`${type}Count`);
+    if (element) {
+        element.textContent = state.reactions[type];
+    }
+}
+
+/**
+ * Inicializa los event listeners de interacción
+ */
+function initPublicInteraction() {
+    // Botón enviar mensaje
+    const sendBtn = document.getElementById('sendMessageBtn');
+    if (sendBtn) {
+        sendBtn.addEventListener('click', handleSendMessage);
+    }
+    
+    // Input de mensaje (Enter para enviar)
+    const messageInput = document.getElementById('userMessageInput');
+    if (messageInput) {
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleSendMessage();
+            }
+        });
+    }
+    
+    // Botones de reacción
+    const likeBtn = document.getElementById('likeBtn');
+    if (likeBtn) {
+        likeBtn.addEventListener('click', () => handleReaction('likes'));
+    }
+    
+    const cheerBtn = document.getElementById('cheerBtn');
+    if (cheerBtn) {
+        cheerBtn.addEventListener('click', () => handleReaction('cheers'));
+    }
+    
+    const santaBtn = document.getElementById('santaBtn');
+    if (santaBtn) {
+        santaBtn.addEventListener('click', () => handleReaction('santa'));
+    }
+    
+    // Agregar participante inicial
+    addParticipant();
+    
+    // Mensaje de bienvenida
+    setTimeout(() => {
+        addPublicMessage('¡Bienvenido al Centro de Control de Papá Noel!', 'Sistema');
+    }, 2000);
+}
+
+// ============================================
 // INICIALIZACIÓN
 // ============================================
 
@@ -604,6 +837,14 @@ function init() {
     setTimeout(() => {
         triggerEvent();
     }, 5000);
+    
+    // Inicializar interacción del público
+    initPublicInteraction();
+    
+    // Actualizar contadores de reacciones
+    updateReactionCount('likes');
+    updateReactionCount('cheers');
+    updateReactionCount('santa');
     
     console.log('✅ Sistema iniciado correctamente');
     console.log('');

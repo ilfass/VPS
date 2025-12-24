@@ -68,6 +68,48 @@
             </div>
         </div>
 
+        <!-- Panel de Interacción con el Público -->
+        <div class="public-interaction-panel" id="publicInteractionPanel">
+            <div class="interaction-header">
+                <h2>💬 Interacción del Público</h2>
+                <div class="participants-count">
+                    <span id="participantsCount">0</span> participantes
+                </div>
+            </div>
+            
+            <!-- Área de Mensajes del Público -->
+            <div class="messages-container" id="messagesContainer">
+                <div class="messages-list" id="messagesList">
+                    <!-- Los mensajes del público aparecerán aquí -->
+                </div>
+            </div>
+
+            <!-- Formulario de Interacción -->
+            <div class="interaction-form">
+                <input 
+                    type="text" 
+                    id="userMessageInput" 
+                    placeholder="Escribe tu mensaje o sugerencia..."
+                    maxlength="100"
+                    class="message-input"
+                >
+                <div class="interaction-buttons">
+                    <button class="interaction-btn" id="sendMessageBtn" title="Enviar mensaje">
+                        📤 Enviar
+                    </button>
+                    <button class="interaction-btn reaction-btn" id="likeBtn" title="Me gusta">
+                        ❤️ <span id="likeCount">0</span>
+                    </button>
+                    <button class="interaction-btn reaction-btn" id="cheerBtn" title="Aplaudir">
+                        👏 <span id="cheerCount">0</span>
+                    </button>
+                    <button class="interaction-btn reaction-btn" id="santaBtn" title="¡Vamos Papá Noel!">
+                        🎅 <span id="santaCount">0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Efecto de Flash de Pantalla Completa -->
         <div class="screen-flash" id="screenFlash"></div>
 
