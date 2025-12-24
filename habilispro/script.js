@@ -4150,7 +4150,7 @@ function initChristmasNarration() {
                 };
                 
                 utterance.onend = () => {
-                    console.log('✅ Narración completada');
+                    console.log('✅ Narración completada exitosamente');
                     setTimeout(() => {
                         narration.style.display = 'none';
                     }, 2000);
@@ -4172,20 +4172,19 @@ function initChristmasNarration() {
                     }
                 };
                 
-                // Actualizar tiempo de última narración
-                lastNarrationTime = Date.now();
-                
-                // Reproducir
+                // Reproducir ANTES de actualizar el tiempo (para evitar problemas de timing)
                 try {
                     speechSynthesis.speak(utterance);
                     console.log('🎤 Comando de reproducción enviado');
+                    // Actualizar tiempo de última narración solo si se envió correctamente
+                    lastNarrationTime = Date.now();
                 } catch (error) {
                     console.error('❌ Error al reproducir:', error);
-                    // Si hay error, mostrar por 30 segundos
+                    // Si hay error, mostrar por 30 segundos pero no actualizar tiempo
                     setTimeout(() => {
                         narration.style.display = 'none';
                     }, 30000);
-                    lastNarrationTime = Date.now();
+                    // No actualizar lastNarrationTime para que intente de nuevo
                 }
             }, 100);
         } else {
