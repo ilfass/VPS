@@ -190,38 +190,38 @@ const SANTA_MESSAGES = [
     {
         type: 'youtube',
         message: '¡Hola a todos! 🎅',
-        subtitle: '¡Sígueme en Instagram para más contenido navideño! 📸',
+        subtitle: '¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'youtube',
         message: '¡Feliz Navidad! 🎄',
-        subtitle: '¡Sígueme en Instagram ¡Sígueme en Instagram! 📸 para más sorpresas! 📸',
+        subtitle: '¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'youtube',
         message: '¡Gracias por acompañarme! 🎁',
-        subtitle: '¡No te pierdas nada, sígueme en Instagram! 📸',
+        subtitle: '¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'youtube',
         message: '¡Estoy entregando regalos! 🎅',
-        subtitle: '¡Sígueme en Instagram para más aventuras! 📸',
+        subtitle: '¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'youtube',
         message: '¡Qué gran comunidad! ❤️',
-        subtitle: '¡Sígueme en Instagram ¡Sígueme en Instagram! 📸! 📸',
+        subtitle: '¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     // Mensajes con saludos a usuarios del chat
     {
         type: 'greeting',
         message: '¡Hola {names}! 🎅',
-        subtitle: '¡Gracias por estar aquí! ¡Sígueme en Instagram! 📸',
+        subtitle: '¡Gracias por estar aquí! ¡Sígueme en IG @ilfass! 📸',
         includeNames: true,
         minNames: 1,
         maxNames: 3
@@ -229,7 +229,7 @@ const SANTA_MESSAGES = [
     {
         type: 'greeting',
         message: '¡Saludos especiales a {names}! 🎄',
-        subtitle: '¡Feliz Navidad! ¡Sígueme en Instagram ¡Sígueme en Instagram! 📸! 📸',
+        subtitle: '¡Feliz Navidad! ¡Sígueme en Instagram ¡Sígueme en IG @ilfass! 📸! 📸',
         includeNames: true,
         minNames: 2,
         maxNames: 4
@@ -237,7 +237,7 @@ const SANTA_MESSAGES = [
     {
         type: 'greeting',
         message: '¡Un abrazo navideño para {names}! 🎁',
-        subtitle: '¡Gracias por seguir el viaje! ¡Sígueme en Instagram! 📸',
+        subtitle: '¡Gracias por seguir el viaje! ¡Sígueme en IG @ilfass! 📸',
         includeNames: true,
         minNames: 1,
         maxNames: 2
@@ -245,7 +245,7 @@ const SANTA_MESSAGES = [
     {
         type: 'greeting',
         message: '¡{names}, ustedes son increíbles! ❤️',
-        subtitle: '¡Sígueme en Instagram ¡Sígueme en Instagram! 📸 para más contenido! 📸',
+        subtitle: '¡Sígueme en Instagram ¡Sígueme en IG @ilfass! 📸 para más contenido! 📸',
         includeNames: true,
         minNames: 1,
         maxNames: 3
@@ -260,13 +260,13 @@ const SANTA_MESSAGES = [
     {
         type: 'general',
         message: '¡Millones de regalos por entregar! 🎅',
-        subtitle: '¡Qué noche tan especial! ¡Sígueme en Instagram! 📸',
+        subtitle: '¡Qué noche tan especial! ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'general',
         message: '¡Los renos están volando perfecto! 🦌',
-        subtitle: '¡Gracias por seguir el viaje! ¡Sígueme en Instagram! 📸',
+        subtitle: '¡Gracias por seguir el viaje! ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     // ============================================
@@ -275,25 +275,25 @@ const SANTA_MESSAGES = [
     {
         type: 'country',
         message: '¡Feliz Navidad desde España! 🇪🇸',
-        subtitle: 'Aquí celebramos con turrones y cava. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Aquí celebramos con turrones y cava. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Nochebuena en España! 🎄',
-        subtitle: 'Las familias se reúnen para la cena. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Las familias se reúnen para la cena. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Los Reyes Magos están llegando! 👑',
-        subtitle: 'En España celebramos el 6 de enero. ¡Sígueme en Instagram! 📸',
+        subtitle: 'En España celebramos el 6 de enero. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Madrid! 🏛️',
-        subtitle: 'Luces navideñas iluminan las calles. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Luces navideñas iluminan las calles. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     // ============================================
@@ -302,61 +302,61 @@ const SANTA_MESSAGES = [
     {
         type: 'country',
         message: '¡Navidad en Argentina! 🇦🇷',
-        subtitle: 'Celebramos con asado y pan dulce. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Celebramos con asado y pan dulce. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Feliz Navidad desde Brasil! 🇧🇷',
-        subtitle: 'Aquí es verano, pero el espíritu navideño está presente. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Aquí es verano, pero el espíritu navideño está presente. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Chile! 🇨🇱',
-        subtitle: 'Las familias se reúnen para la cena de Nochebuena. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Las familias se reúnen para la cena de Nochebuena. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Colombia! 🇨🇴',
-        subtitle: 'Celebramos con natilla y buñuelos. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Celebramos con natilla y buñuelos. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Feliz Navidad desde Perú! 🇵🇪',
-        subtitle: 'Panetón y chocolate caliente. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Panetón y chocolate caliente. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Venezuela! 🇻🇪',
-        subtitle: 'Hallacas y pan de jamón en cada mesa. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Hallacas y pan de jamón en cada mesa. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Uruguay! 🇺🇾',
-        subtitle: 'Celebramos con fuegos artificiales. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Celebramos con fuegos artificiales. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Paraguay! 🇵🇾',
-        subtitle: 'Chipa y sopa paraguaya. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Chipa y sopa paraguaya. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Feliz Navidad desde Ecuador! 🇪🇨',
-        subtitle: 'Pristiños y buñuelos navideños. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Pristiños y buñuelos navideños. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Bolivia! 🇧🇴',
-        subtitle: 'Picana y panetón en cada hogar. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Picana y panetón en cada hogar. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     // ============================================
@@ -365,49 +365,49 @@ const SANTA_MESSAGES = [
     {
         type: 'country',
         message: '¡Navidad en México! 🇲🇽',
-        subtitle: 'Posadas, piñatas y tamales. ¡¡Sígueme en Instagram! 📸!',
+        subtitle: 'Posadas, piñatas y tamales. ¡¡Sígueme en IG @ilfass! 📸!',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Feliz Navidad desde Guatemala! 🇬🇹',
-        subtitle: 'Celebramos con tamales y ponche. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Celebramos con tamales y ponche. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Costa Rica! 🇨🇷',
-        subtitle: 'Tamales y rompope en cada mesa. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Tamales y rompope en cada mesa. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Panamá! 🇵🇦',
-        subtitle: 'Celebramos con arroz con guandú. ¡¡Sígueme en Instagram! 📸!',
+        subtitle: 'Celebramos con arroz con guandú. ¡¡Sígueme en IG @ilfass! 📸!',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Feliz Navidad desde Honduras! 🇭🇳',
-        subtitle: 'Torrejas y ponche navideño. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Torrejas y ponche navideño. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en El Salvador! 🇸🇻',
-        subtitle: 'Tamales y panes con pollo. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Tamales y panes con pollo. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Nicaragua! 🇳🇮',
-        subtitle: 'Nacatamales y cajeta de coco. ¡¡Sígueme en Instagram! 📸!',
+        subtitle: 'Nacatamales y cajeta de coco. ¡¡Sígueme en IG @ilfass! 📸!',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en República Dominicana! 🇩🇴',
-        subtitle: 'Cerdo asado y pasteles en hoja. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Cerdo asado y pasteles en hoja. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     // ============================================
@@ -416,43 +416,43 @@ const SANTA_MESSAGES = [
     {
         type: 'country',
         message: '¡Navidad en Estados Unidos! 🇺🇸',
-        subtitle: 'Cookies para Santa y decoraciones. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Cookies para Santa y decoraciones. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Feliz Navidad desde Italia! 🇮🇹',
-        subtitle: 'Panettone y cena de Nochebuena. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Panettone y cena de Nochebuena. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Francia! 🇫🇷',
-        subtitle: 'Bûche de Noël y foie gras. ¡¡Sígueme en Instagram! 📸!',
+        subtitle: 'Bûche de Noël y foie gras. ¡¡Sígueme en IG @ilfass! 📸!',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Alemania! 🇩🇪',
-        subtitle: 'Mercados navideños y stollen. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Mercados navideños y stollen. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Feliz Navidad desde Japón! 🇯🇵',
-        subtitle: 'KFC y pasteles de Navidad. ¡Sígueme en Instagram! 📸',
+        subtitle: 'KFC y pasteles de Navidad. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Australia! 🇦🇺',
-        subtitle: 'Navidad en verano con barbacoas. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Navidad en verano con barbacoas. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Finlandia! 🇫🇮',
-        subtitle: 'La casa de Papá Noel está aquí. ¡¡Sígueme en Instagram! 📸!',
+        subtitle: 'La casa de Papá Noel está aquí. ¡¡Sígueme en IG @ilfass! 📸!',
         includeNames: false
     },
     // ============================================
@@ -461,85 +461,85 @@ const SANTA_MESSAGES = [
     {
         type: 'greeting',
         message: '¡Feliz Navidad! 🎄',
-        subtitle: 'Que esta temporada esté llena de alegría. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Que esta temporada esté llena de alegría. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Feliz Navidad y Próspero Año Nuevo! 🎅',
-        subtitle: 'Deseos de paz y felicidad. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Deseos de paz y felicidad. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Felices Fiestas! 🎁',
-        subtitle: 'Que la magia de la Navidad te acompañe. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Que la magia de la Navidad te acompañe. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Noche de Paz! ✨',
-        subtitle: 'Que todos tengan una Navidad llena de amor. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Que todos tengan una Navidad llena de amor. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Joyeux Noël! 🇫🇷',
-        subtitle: 'Feliz Navidad desde Francia. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Feliz Navidad desde Francia. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Buon Natale! 🇮🇹',
-        subtitle: 'Feliz Navidad desde Italia. ¡¡Sígueme en Instagram! 📸!',
+        subtitle: 'Feliz Navidad desde Italia. ¡¡Sígueme en IG @ilfass! 📸!',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Frohe Weihnachten! 🇩🇪',
-        subtitle: 'Feliz Navidad desde Alemania. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Feliz Navidad desde Alemania. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Feliz Natal! 🇧🇷',
-        subtitle: 'Feliz Navidad desde Brasil. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Feliz Navidad desde Brasil. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Merry Christmas! 🇺🇸',
-        subtitle: 'Feliz Navidad desde Estados Unidos. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Feliz Navidad desde Estados Unidos. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡God Jul! 🇸🇪',
-        subtitle: 'Feliz Navidad desde Suecia. ¡¡Sígueme en Instagram! 📸!',
+        subtitle: 'Feliz Navidad desde Suecia. ¡¡Sígueme en IG @ilfass! 📸!',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Hyvää Joulua! 🇫🇮',
-        subtitle: 'Feliz Navidad desde Finlandia. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Feliz Navidad desde Finlandia. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡¡Feliz Navidad a todos!! 🎅🎄',
-        subtitle: 'Que esta sea una temporada especial. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Que esta sea una temporada especial. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Que la paz y el amor reinen! ❤️',
-        subtitle: 'Feliz Navidad para todos. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Feliz Navidad para todos. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Brindemos por la Navidad! 🥂',
-        subtitle: 'Que todos tengan una noche mágica. ¡¡Sígueme en Instagram! 📸!',
+        subtitle: 'Que todos tengan una noche mágica. ¡¡Sígueme en IG @ilfass! 📸!',
         includeNames: false
     },
     // ============================================
@@ -548,7 +548,7 @@ const SANTA_MESSAGES = [
     {
         type: 'greeting',
         message: '¡{names}, Feliz Navidad desde España! 🇪🇸',
-        subtitle: 'Que disfruten de las tradiciones navideñas. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Que disfruten de las tradiciones navideñas. ¡Sígueme en IG @ilfass! 📸',
         includeNames: true,
         minNames: 1,
         maxNames: 2
@@ -556,7 +556,7 @@ const SANTA_MESSAGES = [
     {
         type: 'greeting',
         message: '¡{names}, saludos desde Argentina! 🇦🇷',
-        subtitle: '¡Feliz Navidad! ¡Sígueme en Instagram! 📸',
+        subtitle: '¡Feliz Navidad! ¡Sígueme en IG @ilfass! 📸',
         includeNames: true,
         minNames: 1,
         maxNames: 3
@@ -564,7 +564,7 @@ const SANTA_MESSAGES = [
     {
         type: 'greeting',
         message: '¡{names}, Feliz Navidad desde México! 🇲🇽',
-        subtitle: 'Que disfruten de las posadas. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Que disfruten de las posadas. ¡Sígueme en IG @ilfass! 📸',
         includeNames: true,
         minNames: 2,
         maxNames: 4
@@ -572,7 +572,7 @@ const SANTA_MESSAGES = [
     {
         type: 'greeting',
         message: '¡{names}, saludos navideños desde Colombia! 🇨🇴',
-        subtitle: '¡Que tengan una Navidad llena de alegría! ¡Sígueme en Instagram! 📸',
+        subtitle: '¡Que tengan una Navidad llena de alegría! ¡Sígueme en IG @ilfass! 📸',
         includeNames: true,
         minNames: 1,
         maxNames: 2
@@ -580,7 +580,7 @@ const SANTA_MESSAGES = [
     {
         type: 'greeting',
         message: '¡{names}, Feliz Navidad desde Chile! 🇨🇱',
-        subtitle: 'Que disfruten de la cena navideña. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Que disfruten de la cena navideña. ¡Sígueme en IG @ilfass! 📸',
         includeNames: true,
         minNames: 1,
         maxNames: 3
@@ -591,84 +591,84 @@ const SANTA_MESSAGES = [
     {
         type: 'personal',
         message: '¡Hola {userName}! 🎅',
-        subtitle: '¡Espero que estés disfrutando esta Navidad! ¡Sígueme en Instagram! 📸',
+        subtitle: '¡Espero que estés disfrutando esta Navidad! ¡Sígueme en IG @ilfass! 📸',
         includeUserName: true,
         includeCity: false
     },
     {
         type: 'personal',
         message: '¡{userName}, Feliz Navidad! 🎄',
-        subtitle: 'Que esta temporada esté llena de alegría para ti. ¡Sígueme en Instagram! 📸',
+        subtitle: 'Que esta temporada esté llena de alegría para ti. ¡Sígueme en IG @ilfass! 📸',
         includeUserName: true,
         includeCity: false
     },
     {
         type: 'personal',
         message: '¡{userName}, tengo un regalo especial para ti! 🎁',
-        subtitle: '¡Gracias por seguir el viaje! ¡Sígueme en Instagram! 📸',
+        subtitle: '¡Gracias por seguir el viaje! ¡Sígueme en IG @ilfass! 📸',
         includeUserName: true,
         includeCity: false
     },
     {
         type: 'personal',
         message: '¡{userName}, estoy en camino a {userCity}! 🎅',
-        subtitle: '¡Prepárate, que ya llego! ¡Sígueme en Instagram! 📸',
+        subtitle: '¡Prepárate, que ya llego! ¡Sígueme en IG @ilfass! 📸',
         includeUserName: true,
         includeCity: true
     },
     {
         type: 'personal',
         message: '¡Hola {userName} desde {userCity}! 🌍',
-        subtitle: '¡Feliz Navidad desde tu ciudad! ¡Sígueme en Instagram! 📸',
+        subtitle: '¡Feliz Navidad desde tu ciudad! ¡Sígueme en IG @ilfass! 📸',
         includeUserName: true,
         includeCity: true
     },
     {
         type: 'personal',
         message: '¡{userName}, saludos desde el trineo! 🦌',
-        subtitle: '¡Estoy volando hacia {userCity}! ¡Sígueme en Instagram! 📸',
+        subtitle: '¡Estoy volando hacia {userCity}! ¡Sígueme en IG @ilfass! 📸',
         includeUserName: true,
         includeCity: true
     },
     {
         type: 'personal',
         message: '¡{userName}, qué bueno verte aquí! ❤️',
-        subtitle: '¡Gracias por acompañarme en este viaje! ¡Sígueme en Instagram! 📸',
+        subtitle: '¡Gracias por acompañarme en este viaje! ¡Sígueme en IG @ilfass! 📸',
         includeUserName: true,
         includeCity: false
     },
     {
         type: 'personal',
         message: '¡{userName}, espero que estés listo! 🎅',
-        subtitle: '¡Los regalos para {userCity} están en camino! ¡Sígueme en Instagram! 📸',
+        subtitle: '¡Los regalos para {userCity} están en camino! ¡Sígueme en IG @ilfass! 📸',
         includeUserName: true,
         includeCity: true
     },
     {
         type: 'personal',
         message: '¡{userName}, Feliz Navidad desde {userCity}! 🎄',
-        subtitle: '¡Que disfrutes de las tradiciones navideñas! ¡Sígueme en Instagram! 📸',
+        subtitle: '¡Que disfrutes de las tradiciones navideñas! ¡Sígueme en IG @ilfass! 📸',
         includeUserName: true,
         includeCity: true
     },
     {
         type: 'personal',
         message: '¡{userName}, estoy cerca de {userCity}! 🎁',
-        subtitle: '¡Prepárate para una Navidad mágica! ¡Sígueme en Instagram! 📸',
+        subtitle: '¡Prepárate para una Navidad mágica! ¡Sígueme en IG @ilfass! 📸',
         includeUserName: true,
         includeCity: true
     },
     {
         type: 'personal',
         message: '¡{userName}, los renos están emocionados! 🦌',
-        subtitle: '¡Especialmente por visitar {userCity}! ¡Sígueme en Instagram! 📸',
+        subtitle: '¡Especialmente por visitar {userCity}! ¡Sígueme en IG @ilfass! 📸',
         includeUserName: true,
         includeCity: true
     },
     {
         type: 'personal',
         message: '¡{userName}, qué noche tan especial! ✨',
-        subtitle: '¡Espero que disfrutes la Navidad en {userCity}! ¡Sígueme en Instagram! 📸',
+        subtitle: '¡Espero que disfrutes la Navidad en {userCity}! ¡Sígueme en IG @ilfass! 📸',
         includeUserName: true,
         includeCity: true
     },
@@ -835,11 +835,11 @@ function updateStatus() {
 }
 
 /**
- * Agrega un evento a la lista
+ * Agrega un evento a la lista (deshabilitado - panel removido)
  */
 function addEventToHistory(event) {
-    const eventsList = document.getElementById('eventsList');
-    if (!eventsList) return;
+    // Panel de eventos removido - función deshabilitada
+    return;
     
     const eventItem = document.createElement('div');
     eventItem.className = `event-item ${event.type}`;
@@ -1494,6 +1494,31 @@ function getSantaCurrentCoordinates() {
 }
 
 /**
+ * Calcula y actualiza la cuenta regresiva
+ */
+function updateCountdown(distance, speed) {
+    const countdownEl = document.getElementById('userCityCountdown');
+    if (!countdownEl) return;
+    
+    if (!distance || distance <= 0) {
+        countdownEl.textContent = '--:--:--';
+        return;
+    }
+    
+    // Calcular tiempo en segundos
+    const totalSeconds = Math.floor((distance / speed) * 3600);
+    
+    // Calcular horas, minutos y segundos
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    
+    // Formatear con ceros a la izquierda
+    const formatted = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    countdownEl.textContent = formatted;
+}
+
+/**
  * Actualiza el panel de ciudad del usuario
  */
 function updateUserCityPanel() {
@@ -1501,6 +1526,7 @@ function updateUserCityPanel() {
     const cityNameEl = document.getElementById('userCityName');
     const distanceEl = document.getElementById('userCityDistance');
     const etaEl = document.getElementById('userCityETA');
+    const countdownEl = document.getElementById('userCityCountdown');
     
     if (!panel || !cityNameEl || !distanceEl || !etaEl) return;
     
@@ -1527,7 +1553,7 @@ function updateUserCityPanel() {
         distanceEl.textContent = `${distance.toFixed(0)} km`;
         
         // Calcular tiempo estimado (asumiendo velocidad promedio)
-        const avgSpeed = CONFIG.initialSpeed; // km/h
+        const avgSpeed = state.speed || CONFIG.initialSpeed; // km/h
         const hours = distance / avgSpeed;
         const minutes = Math.floor((hours % 1) * 60);
         const hoursInt = Math.floor(hours);
@@ -1540,9 +1566,55 @@ function updateUserCityPanel() {
         }
         
         etaEl.textContent = `⏱️ Llegada estimada: ${etaText}`;
+        
+        // Actualizar cuenta regresiva
+        if (countdownEl) {
+            updateCountdown(distance, avgSpeed);
+        }
     } else {
         distanceEl.textContent = 'Calculando...';
         etaEl.textContent = 'Estimando tiempo...';
+        if (countdownEl) {
+            countdownEl.textContent = '--:--:--';
+        }
+    }
+}
+
+/**
+ * Actualiza el nombre del operador en el centro de control
+ */
+function updateOperatorName() {
+    const operatorEl = document.getElementById('controlOperator');
+    const operatorNameEl = document.getElementById('operatorName');
+    
+    if (operatorEl && operatorNameEl && state.userName) {
+        operatorNameEl.textContent = state.userName;
+        operatorEl.style.display = 'block';
+    }
+}
+
+/**
+ * Inicializa el menú hamburguesa para móviles
+ */
+function initMobileMenu() {
+    const menuToggle = document.getElementById('mobileMenuToggle');
+    const controlPanel = document.getElementById('controlPanel');
+    
+    if (menuToggle && controlPanel) {
+        menuToggle.addEventListener('click', () => {
+            menuToggle.classList.toggle('active');
+            controlPanel.classList.toggle('mobile-open');
+        });
+        
+        // Cerrar menú al hacer clic fuera
+        document.addEventListener('click', (e) => {
+            if (controlPanel.classList.contains('mobile-open') && 
+                !controlPanel.contains(e.target) && 
+                !menuToggle.contains(e.target)) {
+                menuToggle.classList.remove('active');
+                controlPanel.classList.remove('mobile-open');
+            }
+        });
     }
 }
 
@@ -1551,15 +1623,35 @@ function updateUserCityPanel() {
  */
 function initUserPersonalization() {
     // Solicitar nombre
-    requestUserName();
+    const userName = requestUserName();
+    
+    // Actualizar nombre del operador
+    if (userName) {
+        updateOperatorName();
+    }
     
     // Intentar obtener ubicación
     getUserLocation();
     
-    // Actualizar panel cada 30 segundos
+    // Actualizar panel cada 10 segundos (más frecuente para cuenta regresiva)
     setInterval(() => {
         updateUserCityPanel();
-    }, 30000);
+    }, 10000);
+    
+    // Actualizar cuenta regresiva cada segundo
+    setInterval(() => {
+        if (state.userCoordinates) {
+            const santaCoords = getSantaCurrentCoordinates();
+            const distance = calculateDistance(
+                state.userCoordinates.lat,
+                state.userCoordinates.lng,
+                santaCoords.lat,
+                santaCoords.lng
+            );
+            const avgSpeed = state.speed || CONFIG.initialSpeed;
+            updateCountdown(distance, avgSpeed);
+        }
+    }, 1000);
 }
 
 // ============================================
@@ -1807,6 +1899,9 @@ function init() {
     
     // Inicializar personalización del usuario
     initUserPersonalization();
+    
+    // Inicializar menú hamburguesa para móviles
+    initMobileMenu();
     
     // Actualizar panel de ciudad cada vez que cambie la ubicación
     setInterval(() => {

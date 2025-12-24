@@ -88,6 +88,20 @@ body {
     font-weight: 600;
     color: #ffffff;
     text-shadow: 0 2px 10px rgba(220, 53, 69, 0.5);
+    margin-bottom: 8px;
+}
+
+.control-operator {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+    font-style: italic;
+    margin-top: 5px;
+}
+
+.control-operator span {
+    color: #28a745;
+    font-weight: 600;
+    font-style: normal;
 }
 
 /* Indicador de Estado */
@@ -614,6 +628,32 @@ body {
     padding: 10px;
     border-radius: 8px;
     border: 1px solid rgba(40, 167, 69, 0.4);
+    margin-bottom: 10px;
+}
+
+.user-city-countdown {
+    font-size: 32px;
+    font-weight: 700;
+    color: #ffc107;
+    text-shadow: 
+        0 0 15px rgba(255, 193, 7, 0.8),
+        0 2px 10px rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.4);
+    padding: 15px;
+    border-radius: 8px;
+    border: 2px solid rgba(255, 193, 7, 0.6);
+    animation: countdownPulse 1s infinite;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
+}
+
+@keyframes countdownPulse {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(255, 193, 7, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(255, 193, 7, 0.8);
+    }
 }
 
 @keyframes cityPanelPulse {
@@ -829,10 +869,157 @@ body {
 }
 
 /* ============================================
+   MENÚ HAMBURGUESA PARA MÓVILES
+   ============================================ */
+
+.mobile-menu-toggle {
+    display: none;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+    background: rgba(220, 53, 69, 0.9);
+    border: 2px solid rgba(220, 53, 69, 1);
+    border-radius: 8px;
+    width: 50px;
+    height: 50px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+    transition: all 0.3s ease;
+}
+
+.mobile-menu-toggle:hover {
+    background: rgba(220, 53, 69, 1);
+    transform: scale(1.05);
+}
+
+.mobile-menu-toggle span {
+    width: 25px;
+    height: 3px;
+    background: #ffffff;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+.mobile-menu-toggle.active span:nth-child(1) {
+    transform: rotate(45deg) translate(8px, 8px);
+}
+
+.mobile-menu-toggle.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.mobile-menu-toggle.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(8px, -8px);
+}
+
+/* ============================================
+   FOOTER DE DONACIÓN
+   ============================================ */
+
+.donation-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(10, 25, 40, 0.95);
+    border-top: 2px solid rgba(220, 53, 69, 0.6);
+    padding: 12px 20px;
+    z-index: 100;
+    pointer-events: auto;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.donation-content {
+    text-align: center;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.donation-text {
+    margin-right: 8px;
+}
+
+.donation-link {
+    color: #ffc107;
+    font-weight: 700;
+    text-decoration: none;
+    text-shadow: 0 0 10px rgba(255, 193, 7, 0.8);
+    transition: all 0.3s ease;
+}
+
+.donation-link:hover {
+    color: #ffd700;
+    text-shadow: 0 0 15px rgba(255, 215, 0, 1);
+    text-decoration: underline;
+}
+
+/* ============================================
    RESPONSIVE
    ============================================ */
 
 @media (max-width: 768px) {
+    .mobile-menu-toggle {
+        display: flex;
+    }
+
+    .control-panel {
+        position: fixed;
+        top: 0;
+        left: -100%;
+        width: 80%;
+        max-width: 350px;
+        height: 100vh;
+        z-index: 999;
+        transition: left 0.3s ease;
+        overflow-y: auto;
+        border-radius: 0;
+        border-left: none;
+        border-right: 3px solid rgba(220, 53, 69, 0.8);
+    }
+
+    .control-panel.mobile-open {
+        left: 0;
+    }
+
+    .user-city-panel {
+        max-width: 100%;
+        margin: 10px;
+        padding: 15px;
+    }
+
+    .user-city-name {
+        font-size: 18px;
+    }
+
+    .user-city-distance {
+        font-size: 24px;
+    }
+
+    .user-city-eta {
+        font-size: 14px;
+    }
+
+    .user-city-countdown {
+        font-size: 24px;
+        padding: 12px;
+    }
+
+    .donation-footer {
+        padding: 10px 15px;
+        font-size: 12px;
+    }
+
+    .public-interaction-panel {
+        max-width: 100%;
+        margin: 10px;
+    }
     .overlay-container {
         padding: 15px;
         gap: 15px;

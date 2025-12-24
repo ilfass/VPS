@@ -9,12 +9,12 @@
 <body>
     <!-- Google Santa Tracker - Fondo -->
     <div class="tracker-container">
-        <iframe 
+            <iframe 
             id="santaTracker"
             src="https://santatracker.google.com/" 
             frameborder="0"
             allowfullscreen
-            allow="geolocation; microphone; camera; autoplay"
+            allow="geolocation; microphone; camera; autoplay; encrypted-media"
             title="Google Santa Tracker">
         </iframe>
     </div>
@@ -22,9 +22,19 @@
     <!-- Overlay Principal -->
     <div class="overlay-container">
         <!-- Panel de Información Principal -->
-        <div class="control-panel">
+        <!-- Botón Hamburguesa para Móviles -->
+        <button class="mobile-menu-toggle" id="mobileMenuToggle">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
+        <div class="control-panel" id="controlPanel">
             <div class="panel-header">
                 <h1>🎅 Centro de Control</h1>
+                <div class="control-operator" id="controlOperator" style="display: none;">
+                    A cargo de <span id="operatorName">-</span>
+                </div>
                 <div class="status-indicator" id="statusIndicator">
                     <span class="status-dot" id="statusDot"></span>
                     <span class="status-text" id="statusText">OK</span>
@@ -67,18 +77,18 @@
                 <div class="user-city-name" id="userCityName">Cargando...</div>
                 <div class="user-city-distance" id="userCityDistance">Calculando...</div>
                 <div class="user-city-eta" id="userCityETA">Estimando tiempo...</div>
+                <div class="user-city-countdown" id="userCityCountdown">--:--:--</div>
             </div>
         </div>
 
-        <!-- Panel de Eventos -->
-        <div class="events-panel" id="eventsPanel">
-            <div class="events-header">
-                <h2>📡 Eventos del Sistema</h2>
-            </div>
-            <div class="events-list" id="eventsList">
-                <!-- Los eventos se insertarán aquí dinámicamente -->
+        <!-- Footer de Donación -->
+        <div class="donation-footer">
+            <div class="donation-content">
+                <span class="donation-text">¡Gracias por tu visita! Si te gustó, puedes hacer una donación a</span>
+                <a href="https://www.instagram.com/ilfass" target="_blank" class="donation-link">@ilfass</a>
             </div>
         </div>
+
 
         <!-- Panel de Interacción con el Público -->
         <div class="public-interaction-panel" id="publicInteractionPanel">
@@ -141,7 +151,7 @@
                 <div class="santa-subtitle" id="santaSubtitle"></div>
                 <div class="santa-youtube-link">
                     <a href="https://www.youtube.com/@fabiandeharo" target="_blank" class="youtube-button">
-                        📺 Suscríbete a @fabiandeharo
+                        📺 Suscríbete a @fabiandeharo en YouTube
                     </a>
                 </div>
             </div>
