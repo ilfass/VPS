@@ -2506,15 +2506,7 @@ function initPublicInteraction() {
 function requestUserName() {
     console.log('🔍 requestUserName() llamado');
     
-    // Verificar si ya hay un nombre guardado
-    const savedName = localStorage.getItem('santaTracker_userName');
-    if (savedName && savedName.trim() !== '') {
-        state.userName = savedName;
-        console.log(`👋 Nombre recuperado de localStorage: ${state.userName}`);
-        return state.userName;
-    }
-    
-    // Si no hay nombre guardado, preguntar
+    // Siempre preguntar el nombre (no verificar localStorage para forzar pregunta)
     console.log('📝 Solicitando nombre al usuario...');
     const name = prompt('🎅 ¡Hola! ¿Cuál es tu nombre?\n\n(Puedes dejarlo en blanco si prefieres mantenerte anónimo)');
     
@@ -2537,32 +2529,6 @@ function requestUserName() {
  */
 function getUserLocation() {
     console.log('🔍 getUserLocation() llamado');
-    
-    // Verificar si ya hay una ciudad guardada
-    const savedCity = localStorage.getItem('santaTracker_userCity');
-    if (savedCity && savedCity.trim() !== '') {
-        state.userCity = savedCity;
-        console.log(`🏙️ Ciudad recuperada de localStorage: ${state.userCity}`);
-        // Intentar obtener coordenadas si no las tenemos
-        if (!state.userCoordinates && navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    state.userCoordinates = {
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude
-                    };
-                    console.log('📍 Coordenadas obtenidas:', state.userCoordinates);
-                    updateUserCityPanel();
-                },
-                (error) => {
-                    console.warn('⚠️ No se pudieron obtener coordenadas:', error.message);
-                },
-                { enableHighAccuracy: true, timeout: 5000 }
-            );
-        }
-        updateUserCityPanel();
-        return;
-    }
     
     if (!navigator.geolocation) {
         console.warn('⚠️ Geolocalización no disponible en este navegador');
@@ -4243,33 +4209,7 @@ function initChristmasNarration() {
         }
     };
     
-    // Reproducir primera narración después de que el usuario interactúe
-    // O después de 3 segundos si ya interactuó
-    const tryPlayWelcome = () => {
-        if (userInteracted) {
-            console.log('🎅 Iniciando narración de bienvenida...');
-            playNarration();
-        } else {
-            // Si no ha interactuado, esperar un poco más
-            setTimeout(tryPlayWelcome, 1000);
-        }
-    };
-    
-    // Intentar después de 3 segundos
-    setTimeout(tryPlayWelcome, 3000);
-    
-    // También intentar cuando el usuario interactúe
-    const originalMarkInteraction = markUserInteraction;
-    markUserInteraction = () => {
-        originalMarkInteraction();
-        // Si es la primera interacción y no hemos reproducido la bienvenida
-        if (lastNarrationTime === 0) {
-            setTimeout(() => {
-                console.log('🎅 Usuario interactuó, iniciando narración de bienvenida...');
-                playNarration();
-            }, 500);
-        }
-    };
+    // NO reproducir mensaje de bienvenida, solo cada 15 minutos
     
     // Verificar cada minuto si es hora de reproducir otra narración
     setInterval(() => {
