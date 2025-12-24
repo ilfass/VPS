@@ -6,12 +6,19 @@
 // ============================================
 // CONFIGURACIÓN - MODIFICAR AQUÍ DURANTE EL VIVO
 // ============================================
+// 
+// NOTA: Este overlay está diseñado para superponerse sobre
+// el Google Santa Tracker (https://santatracker.google.com/)
+// en OBS. Sincroniza manualmente la ubicación viendo el tracker.
+//
 
 const CONFIG = {
     // Ubicación actual (editar manualmente durante el stream)
+    // Sincronizar con lo que muestra el Google Santa Tracker
     currentLocation: 'Rovaniemi, Finlandia',
     
     // Zona horaria de la ubicación actual (formato: 'Europe/Helsinki')
+    // Se actualiza automáticamente con syncLocation() o manualmente aquí
     // Lista completa: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
     timezone: 'Europe/Helsinki',
     
@@ -32,6 +39,72 @@ const CONFIG = {
     
     // Variación de velocidad (porcentaje de cambio aleatorio)
     speedVariation: 0.05, // 5% de variación
+};
+
+// ============================================
+// BASE DE DATOS DE UBICACIONES COMUNES
+// Para sincronización rápida con Google Santa Tracker
+// ============================================
+
+const LOCATIONS_DATABASE = {
+    // Europa
+    'Rovaniemi, Finlandia': 'Europe/Helsinki',
+    'Moscú, Rusia': 'Europe/Moscow',
+    'Londres, Reino Unido': 'Europe/London',
+    'París, Francia': 'Europe/Paris',
+    'Madrid, España': 'Europe/Madrid',
+    'Roma, Italia': 'Europe/Rome',
+    'Berlín, Alemania': 'Europe/Berlin',
+    'Ámsterdam, Países Bajos': 'Europe/Amsterdam',
+    'Estocolmo, Suecia': 'Europe/Stockholm',
+    'Oslo, Noruega': 'Europe/Oslo',
+    'Copenhague, Dinamarca': 'Europe/Copenhagen',
+    'Viena, Austria': 'Europe/Vienna',
+    'Atenas, Grecia': 'Europe/Athens',
+    'Varsovia, Polonia': 'Europe/Warsaw',
+    'Praga, República Checa': 'Europe/Prague',
+    
+    // América del Norte
+    'Nueva York, USA': 'America/New_York',
+    'Los Ángeles, USA': 'America/Los_Angeles',
+    'Chicago, USA': 'America/Chicago',
+    'México DF, México': 'America/Mexico_City',
+    'Toronto, Canadá': 'America/Toronto',
+    'Vancouver, Canadá': 'America/Vancouver',
+    'Miami, USA': 'America/New_York',
+    'Boston, USA': 'America/New_York',
+    'Seattle, USA': 'America/Los_Angeles',
+    'Denver, USA': 'America/Denver',
+    
+    // América del Sur
+    'Buenos Aires, Argentina': 'America/Argentina/Buenos_Aires',
+    'São Paulo, Brasil': 'America/Sao_Paulo',
+    'Río de Janeiro, Brasil': 'America/Sao_Paulo',
+    'Santiago, Chile': 'America/Santiago',
+    'Lima, Perú': 'America/Lima',
+    'Bogotá, Colombia': 'America/Bogota',
+    'Caracas, Venezuela': 'America/Caracas',
+    
+    // Asia
+    'Tokio, Japón': 'Asia/Tokyo',
+    'Pekín, China': 'Asia/Shanghai',
+    'Hong Kong': 'Asia/Hong_Kong',
+    'Singapur': 'Asia/Singapore',
+    'Bangkok, Tailandia': 'Asia/Bangkok',
+    'Nueva Delhi, India': 'Asia/Kolkata',
+    'Dubái, Emiratos Árabes': 'Asia/Dubai',
+    'Seúl, Corea del Sur': 'Asia/Seoul',
+    'Mumbai, India': 'Asia/Kolkata',
+    
+    // Oceanía
+    'Sídney, Australia': 'Australia/Sydney',
+    'Melbourne, Australia': 'Australia/Melbourne',
+    'Auckland, Nueva Zelanda': 'Pacific/Auckland',
+    
+    // África
+    'El Cairo, Egipto': 'Africa/Cairo',
+    'Johannesburgo, Sudáfrica': 'Africa/Johannesburg',
+    'Nairobi, Kenia': 'Africa/Nairobi',
 };
 
 // ============================================
@@ -353,6 +426,88 @@ function changeLocation(newLocation) {
 }
 
 /**
+ * Sincroniza ubicación y zona horaria automáticamente
+ * Busca en la base de datos de ubicaciones comunes
+ * Uso: syncLocation('Nueva York, USA')
+ */
+function syncLocation(locationName) {
+    if (typeof locationName !== 'string' || locationName.trim() === '') {
+        console.error('❌ Debe proporcionar un nombre de ciudad válido');
+        console.log('💡 Ubicaciones disponibles:');
+        console.log(Object.keys(LOCATIONS_DATABASE).join(', '));
+        return;
+    }
+    
+    const location = locationName.trim();
+    const timezone = LOCATIONS_DATABASE[location];
+    
+    if (timezone) {
+        // Actualizar ubicación y zona horaria
+        state.location = location;
+        CONFIG.timezone = timezone;
+        CONFIG.currentLocation = location;
+        
+        // Actualizar UI
+        updateLocation();
+        updateTime();
+        
+        console.log(`✅ Sincronizado: ${location} (${timezone})`);
+        console.log(`🕐 Hora local actualizada automáticamente`);
+    } else {
+        console.warn(`⚠️ Ubicación "${location}" no encontrada en la base de datos`);
+        console.log('💡 Usando solo changeLocation() y setTimezone() manualmente');
+        console.log('💡 Ubicaciones disponibles:');
+        console.log(Object.keys(LOCATIONS_DATABASE).slice(0, 10).join(', '), '...');
+        
+        // Cambiar solo la ubicación sin zona horaria
+        changeLocation(location);
+    }
+}
+
+/**
+ * Establece la zona horaria manualmente
+ * Uso: setTimezone('America/New_York')
+ */
+function setTimezone(timezone) {
+    if (typeof timezone !== 'string' || timezone.trim() === '') {
+        console.error('❌ Debe proporcionar una zona horaria válida');
+        console.log('💡 Ejemplo: setTimezone("America/New_York")');
+        return;
+    }
+    
+    CONFIG.timezone = timezone.trim();
+    updateTime();
+    console.log(`🕐 Zona horaria cambiada a: ${CONFIG.timezone}`);
+}
+
+/**
+ * Busca ubicaciones en la base de datos (útil para encontrar nombres exactos)
+ * Uso: searchLocations('york')
+ */
+function searchLocations(query) {
+    if (typeof query !== 'string' || query.trim() === '') {
+        console.log('💡 Use: searchLocations("texto") para buscar ubicaciones');
+        return;
+    }
+    
+    const searchTerm = query.toLowerCase();
+    const matches = Object.keys(LOCATIONS_DATABASE).filter(loc => 
+        loc.toLowerCase().includes(searchTerm)
+    );
+    
+    if (matches.length > 0) {
+        console.log(`🔍 Encontradas ${matches.length} ubicación(es):`);
+        matches.forEach(loc => {
+            console.log(`  - ${loc} (${LOCATIONS_DATABASE[loc]})`);
+        });
+    } else {
+        console.log(`❌ No se encontraron ubicaciones con "${query}"`);
+    }
+    
+    return matches;
+}
+
+/**
  * Cambia el estado del trineo (llamar desde consola: changeStatus('warning'))
  */
 function changeStatus(newStatus) {
@@ -432,14 +587,23 @@ function init() {
     
     console.log('✅ Sistema iniciado correctamente');
     console.log('');
+    console.log('🎯 SINCRONIZACIÓN CON GOOGLE SANTA TRACKER:');
+    console.log('  - syncLocation("Nueva York, USA") - Sincroniza ubicación y zona horaria');
+    console.log('  - searchLocations("york") - Busca ubicaciones disponibles');
+    console.log('');
     console.log('📝 FUNCIONES DISPONIBLES EN CONSOLA:');
     console.log('  - triggerEvent() - Dispara un evento aleatorio');
-    console.log('  - changeLocation("Ciudad") - Cambia la ubicación');
+    console.log('  - changeLocation("Ciudad") - Cambia solo la ubicación');
+    console.log('  - syncLocation("Ciudad, País") - Cambia ubicación + zona horaria automáticamente');
+    console.log('  - setTimezone("America/New_York") - Cambia zona horaria manualmente');
     console.log('  - changeStatus("ok"|"warning"|"error") - Cambia el estado');
     console.log('  - setGifts(15000) - Establece regalos entregados');
     console.log('  - setSpeed(900) - Establece velocidad base');
     console.log('  - startAutoEvents() - Inicia eventos automáticos');
     console.log('  - stopAutoEvents() - Detiene eventos automáticos');
+    console.log('');
+    console.log('💡 TIP: Mientras ves el Google Santa Tracker, usa syncLocation()');
+    console.log('   para actualizar la ubicación y hora automáticamente.');
     console.log('');
 }
 
@@ -461,6 +625,9 @@ if (document.readyState === 'loading') {
 // Hacer funciones disponibles globalmente para uso en consola del navegador
 window.triggerEvent = triggerEvent;
 window.changeLocation = changeLocation;
+window.syncLocation = syncLocation;
+window.setTimezone = setTimezone;
+window.searchLocations = searchLocations;
 window.changeStatus = changeStatus;
 window.setGifts = setGifts;
 window.setSpeed = setSpeed;
