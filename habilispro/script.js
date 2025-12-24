@@ -4018,6 +4018,18 @@ function initChristmasNarration() {
     let narrationIndex = 0;
     let lastNarrationTime = 0;
     let voicesLoaded = false;
+    let userInteracted = false;
+    
+    // Marcar que el usuario ha interactuado
+    const markUserInteraction = () => {
+        userInteracted = true;
+        console.log('✅ Usuario ha interactuado, narración habilitada');
+    };
+    
+    // Escuchar cualquier interacción del usuario
+    document.addEventListener('click', markUserInteraction, { once: true });
+    document.addEventListener('touchstart', markUserInteraction, { once: true });
+    document.addEventListener('keydown', markUserInteraction, { once: true });
     
     // Función para cargar voces
     const loadVoices = () => {
@@ -4068,6 +4080,17 @@ function initChristmasNarration() {
         
         // Reproducir con text-to-speech
         if ('speechSynthesis' in window) {
+            // Verificar si el usuario ha interactuado (requerido por el navegador)
+            if (!userInteracted) {
+                console.warn('⚠️ Esperando interacción del usuario para reproducir narración...');
+                // Mostrar el texto aunque no se pueda reproducir
+                setTimeout(() => {
+                    narration.style.display = 'none';
+                }, 30000);
+                lastNarrationTime = Date.now();
+                return;
+            }
+            
             // Asegurar que las voces estén cargadas
             if (!voicesLoaded) {
                 loadVoices();
@@ -4109,10 +4132,19 @@ function initChristmasNarration() {
                 };
                 
                 utterance.onerror = (event) => {
-                    console.error('❌ Error en narración:', event.error);
-                    setTimeout(() => {
-                        narration.style.display = 'none';
-                    }, 5000);
+                    console.error('❌ Error en narración:', event.error, event);
+                    // Si el error es "not-allowed", intentar de nuevo después de un momento
+                    if (event.error === 'not-allowed') {
+                        console.warn('⚠️ Error not-allowed: el navegador requiere interacción del usuario');
+                        // Mostrar el texto aunque no se pueda reproducir
+                        setTimeout(() => {
+                            narration.style.display = 'none';
+                        }, 30000);
+                    } else {
+                        setTimeout(() => {
+                            narration.style.display = 'none';
+                        }, 5000);
+                    }
                 };
                 
                 // Actualizar tiempo de última narración
@@ -4141,11 +4173,33 @@ function initChristmasNarration() {
         }
     };
     
-    // Reproducir primera narración después de 3 segundos (mensaje de bienvenida)
-    setTimeout(() => {
-        console.log('🎅 Iniciando narración de bienvenida...');
-        playNarration();
-    }, 3000);
+    // Reproducir primera narración después de que el usuario interactúe
+    // O después de 3 segundos si ya interactuó
+    const tryPlayWelcome = () => {
+        if (userInteracted) {
+            console.log('🎅 Iniciando narración de bienvenida...');
+            playNarration();
+        } else {
+            // Si no ha interactuado, esperar un poco más
+            setTimeout(tryPlayWelcome, 1000);
+        }
+    };
+    
+    // Intentar después de 3 segundos
+    setTimeout(tryPlayWelcome, 3000);
+    
+    // También intentar cuando el usuario interactúe
+    const originalMarkInteraction = markUserInteraction;
+    markUserInteraction = () => {
+        originalMarkInteraction();
+        // Si es la primera interacción y no hemos reproducido la bienvenida
+        if (lastNarrationTime === 0) {
+            setTimeout(() => {
+                console.log('🎅 Usuario interactuó, iniciando narración de bienvenida...');
+                playNarration();
+            }, 500);
+        }
+    };
     
     // Verificar cada minuto si es hora de reproducir otra narración
     setInterval(() => {
