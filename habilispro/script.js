@@ -1313,7 +1313,14 @@ function updateParticipantsCount() {
 function addPublicMessage(text, author = null) {
     if (!text || text.trim() === '') return;
     
-    const messageAuthor = author || getUserId();
+    // Si no se especifica autor, usar el nombre del usuario o "Usuario"
+    let messageAuthor;
+    if (author) {
+        messageAuthor = author;
+    } else {
+        // Usar el nombre del usuario si está disponible, sino usar "Usuario"
+        messageAuthor = state.userName || 'Usuario';
+    }
     const message = {
         id: Date.now(),
         author: messageAuthor,
