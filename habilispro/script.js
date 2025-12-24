@@ -3230,6 +3230,8 @@ function init() {
     // Inicializar panel arrastrable "Tu ciudad"
     setTimeout(() => {
         initDraggableCityPanel();
+        initDraggableRandomCityPanel();
+        initCityPanelToggle();
         initCityPanelTimers(); // Inicializar timers de expansión
     }, 1000);
     
@@ -3242,8 +3244,10 @@ function init() {
         updateRandomCityPanel();
     }, 10000); // Cada 10 segundos
     
-    // Intentar extraer ubicación del tracker de Google
-    tryExtractTrackerLocation();
+    // Intentar extraer ubicación del tracker de Google periódicamente
+    setInterval(() => {
+        tryExtractTrackerLocation();
+    }, 5000); // Cada 5 segundos
     
     // Inicializar interacción del público
     initPublicInteraction();
