@@ -2508,13 +2508,13 @@ function requestUserName() {
     
     // Verificar si ya hay un nombre guardado
     const savedName = localStorage.getItem('santaTracker_userName');
-    if (savedName) {
+    if (savedName && savedName.trim() !== '') {
         state.userName = savedName;
         console.log(`👋 Nombre recuperado de localStorage: ${state.userName}`);
         return state.userName;
     }
     
-    // Siempre preguntar el nombre al ingresar (no usar localStorage para forzar pregunta)
+    // Si no hay nombre guardado, preguntar
     console.log('📝 Solicitando nombre al usuario...');
     const name = prompt('🎅 ¡Hola! ¿Cuál es tu nombre?\n\n(Puedes dejarlo en blanco si prefieres mantenerte anónimo)');
     
