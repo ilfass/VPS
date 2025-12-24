@@ -747,6 +747,72 @@ const SANTA_MESSAGES = [
         subtitle: 'Adivinen cuántos regalos entregaremos esta noche. El ganador se lleva un mes extra de vacaciones. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
+    {
+        type: 'humor',
+        message: '¡Rudolph está quejándose de que su nariz necesita mantenimiento! 🦌',
+        subtitle: 'Le dije que espere hasta después de Navidad. ¡Tiene que brillar toda la noche! Los otros renos están celosos porque él siempre recibe toda la atención. ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Acabo de pasar por el Ártico y hace un frío que pela! ❄️',
+        subtitle: 'Los renos están usando bufandas y los elfos se quejan de que el GPS se congeló. Pero no hay problema, yo conozco el camino de memoria después de tantos años. ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Los elfos instalaron Wi-Fi en el trineo! 📶',
+        subtitle: 'Ahora puedo ver memes mientras vuelo. Aunque a veces la conexión se corta cuando pasamos por zonas remotas. ¡Al menos puedo responder mensajes en tiempo real! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Rudolph casi se choca con un dron de Amazon! 📦',
+        subtitle: 'Parece que también están haciendo entregas esta noche. Le tuve que explicar que tenemos prioridad porque llevamos regalos mágicos, no paquetes normales. ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Los elfos están en huelga porque quieren más tiempo de descanso! 🧝',
+        subtitle: 'Les dije que después de Navidad pueden tomarse una semana libre. Pero primero tenemos que terminar de entregar todos estos regalos. ¡Millones de niños nos esperan! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡El GPS del trineo dice que llegaremos en 2 horas! ⏰',
+        subtitle: 'Pero yo sé que en realidad serán 5 minutos porque volamos a velocidad mágica. Los sistemas modernos no entienden la física navideña. ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Rudolph está haciendo streaming en vivo de nuestro viaje! 📹',
+        subtitle: 'Los otros renos están celosos porque él tiene más seguidores. Le dije que se concentre en volar y deje el contenido para después. ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Los elfos están probando nuevos sabores de galletas! 🍪',
+        subtitle: 'Hoy tenemos galletas de jengibre con chispas de chocolate mágico. Son tan buenas que casi me olvido de entregar los regalos. ¡Pero primero lo primero! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Acabo de recibir un mensaje de los renos! 📱',
+        subtitle: 'Dicen que quieren hacer una parada en Starbucks para tomar un café. Les dije que no hay tiempo, pero prometí que después de la entrega les compro uno grande. ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡El trineo tiene modo eco-friendly activado! 🌱',
+        subtitle: 'Los elfos instalaron un sistema que recicla la energía de la magia navideña. Ahora volamos más rápido y ayudamos al medio ambiente. ¡La tecnología moderna es increíble! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Rudolph está haciendo acrobacias para impresionar a los niños! 🦌',
+        subtitle: 'Hace loopings y piruetas en el aire. Los otros renos están celosos porque él siempre roba el show. Pero todos trabajamos en equipo para hacer esta noche especial. ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
 ];
 
 // ============================================
