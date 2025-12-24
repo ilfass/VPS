@@ -2077,7 +2077,8 @@ async function getCityNameFromCoordinates(lat, lng) {
  * Solicita la ciudad del usuario manualmente (DESHABILITADO PARA VIVO)
  */
 function requestUserCity() {
-    // En la versión live, no solicitar ciudad al usuario, usar rotación automática
+    // En la versión live, NO solicitar ciudad al usuario, usar rotación automática
+    // Ignorar cualquier ciudad guardada en localStorage para la versión live
     const city = getNextSpanishCity();
     if (city) {
         state.userCity = city.name;
@@ -2086,8 +2087,10 @@ function requestUserCity() {
             lng: city.lng
         };
         updateUserCityPanel();
-        console.log('🌎 Ciudad asignada automáticamente:', state.userCity);
+        console.log('🌎 Ciudad asignada automáticamente (versión live):', state.userCity);
     }
+    // NO usar prompt ni alert en la versión live
+    return;
 }
 
 /**
