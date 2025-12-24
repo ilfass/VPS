@@ -2653,8 +2653,22 @@ function initUserPersonalization() {
         updateOperatorName();
     }
     
-    // Intentar obtener ubicación
+    // Para la versión live, inicializar con primera ciudad
     getUserLocation();
+    
+    // Rotar ciudades cada 2 minutos
+    setInterval(() => {
+        const city = getNextSpanishCity();
+        if (city) {
+            state.userCity = city.name;
+            state.userCoordinates = {
+                lat: city.lat,
+                lng: city.lng
+            };
+            updateUserCityPanel();
+            console.log('🌎 Ciudad rotada a:', state.userCity);
+        }
+    }, 2 * 60 * 1000); // 2 minutos
     
     // Actualizar panel cada 10 segundos (más frecuente para cuenta regresiva)
     setInterval(() => {
