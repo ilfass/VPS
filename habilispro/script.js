@@ -4198,12 +4198,7 @@ function initChristmasNarration() {
         }
     };
     
-    // Reproducir primera narración después de 30 segundos
-    setTimeout(() => {
-        console.log('🎅 Iniciando primera narración automática...');
-        playNarration();
-    }, 30000);
-    
+    // NO reproducir primera narración automática, solo cada 15 minutos
     // Verificar cada minuto si es hora de reproducir otra narración
     setInterval(() => {
         playNarration();
