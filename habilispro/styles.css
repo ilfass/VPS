@@ -94,9 +94,10 @@ body {
     color: #ffffff;
     text-shadow: 0 2px 10px rgba(220, 53, 69, 0.5);
     margin: 0;
-    display: inline;
+    display: inline-block;
     white-space: nowrap;
-    line-height: 1.2;
+    line-height: 1.4;
+    word-spacing: normal;
 }
 
 .control-operator {
@@ -106,6 +107,7 @@ body {
     font-style: normal;
     display: inline;
     white-space: nowrap;
+    margin-left: 0;
 }
 
 .control-operator span {
