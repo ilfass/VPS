@@ -2777,7 +2777,7 @@ function updateRandomCityPanel() {
 }
 
 /**
- * Inicia cuenta regresiva para un panel específico
+ * Inicia cuenta regresiva para un panel específico (versión mejorada con recálculo dinámico)
  */
 function startCountdownForPanel(distance, speed, countdownEl) {
     // Limpiar cuenta regresiva anterior si existe
@@ -2785,12 +2785,25 @@ function startCountdownForPanel(distance, speed, countdownEl) {
         clearInterval(parseInt(countdownEl.dataset.intervalId));
     }
     
-    const hours = distance / speed;
-    const totalSeconds = Math.floor(hours * 3600);
-    let remainingSeconds = totalSeconds;
+    // Guardar distancia y velocidad actuales para recálculo dinámico
+    countdownEl.dataset.lastDistance = distance.toString();
+    countdownEl.dataset.lastSpeed = speed.toString();
     
     const updateCountdown = () => {
-        if (remainingSeconds <= 0) {
+        // Recalcular dinámicamente basándose en distancia y velocidad actuales
+        const currentDistance = parseFloat(countdownEl.dataset.lastDistance || distance);
+        const currentSpeed = parseFloat(countdownEl.dataset.lastSpeed || speed);
+        
+        if (!currentDistance || currentDistance <= 0 || !currentSpeed || currentSpeed <= 0) {
+            countdownEl.textContent = '--:--:--';
+            return;
+        }
+        
+        // Calcular tiempo en horas
+        const hoursRemaining = currentDistance / currentSpeed;
+        const totalSeconds = Math.floor(hoursRemaining * 3600);
+        
+        if (totalSeconds <= 0) {
             countdownEl.textContent = '00:00:00';
             if (countdownEl.dataset.intervalId) {
                 clearInterval(parseInt(countdownEl.dataset.intervalId));
@@ -2798,13 +2811,21 @@ function startCountdownForPanel(distance, speed, countdownEl) {
             return;
         }
         
-        const hours = Math.floor(remainingSeconds / 3600);
-        const minutes = Math.floor((remainingSeconds % 3600) / 60);
-        const seconds = remainingSeconds % 60;
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
         
         countdownEl.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        remainingSeconds--;
     };
+    
+    // Actualizar distancia y velocidad cuando cambien
+    const updateDistanceAndSpeed = (newDistance, newSpeed) => {
+        if (newDistance && newDistance > 0) countdownEl.dataset.lastDistance = newDistance.toString();
+        if (newSpeed && newSpeed > 0) countdownEl.dataset.lastSpeed = newSpeed.toString();
+    };
+    
+    // Exponer función de actualización
+    countdownEl.updateCountdownData = updateDistanceAndSpeed;
     
     updateCountdown();
     const intervalId = setInterval(updateCountdown, 1000);
