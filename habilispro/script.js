@@ -1282,7 +1282,18 @@ function displayMessage(message) {
     if (!messagesList) return;
     
     const messageItem = document.createElement('div');
+    
+    // Determinar si es mensaje de Papá Noel o del usuario
+    const isSantaMessage = message.author === '🎅 Papá Noel' || message.author.includes('Papá Noel');
+    const isUserMessage = !isSantaMessage && message.author !== 'Sistema';
+    
+    // Aplicar clases según el tipo de mensaje
     messageItem.className = 'message-item';
+    if (isSantaMessage) {
+        messageItem.classList.add('santa-message');
+    } else if (isUserMessage) {
+        messageItem.classList.add('user-message');
+    }
     
     const time = message.time.toLocaleTimeString('es-ES', {
         hour: '2-digit',
@@ -1298,10 +1309,13 @@ function displayMessage(message) {
     // Insertar al inicio
     messagesList.insertBefore(messageItem, messagesList.firstChild);
     
-    // Mantener máximo 10 mensajes visibles
-    while (messagesList.children.length > 10) {
+    // Mantener máximo 15 mensajes visibles
+    while (messagesList.children.length > 15) {
         messagesList.removeChild(messagesList.lastChild);
     }
+    
+    // Auto-scroll suave al nuevo mensaje
+    messagesList.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 /**
@@ -1309,12 +1323,22 @@ function displayMessage(message) {
  */
 async function getSantaResponse(userMessage) {
     try {
-        const prompt = `Eres Papá Noel (Santa Claus) en un vivo de YouTube. Un usuario escribió: "${userMessage}". 
-Responde de forma navideña, graciosa y amigable, como si fueras Papá Noel real. 
-Mantén la respuesta corta (máximo 2-3 oraciones) y divertida. 
-Incluye emojis navideños. 
-Si mencionan algo sobre el viaje, regalos, renos o Navidad, haz referencia a eso.
-Responde en español.`;
+        const prompt = `Eres Papá Noel (Santa Claus) en un vivo de YouTube interactuando con los espectadores. Un usuario escribió: "${userMessage}".
+
+INSTRUCCIONES:
+- Responde como si fueras Papá Noel real, muy amigable, cálido y cercano
+- Habla como si estuvieras conversando directamente con esa persona
+- Usa un tono conversacional y natural, como si estuvieras charlando
+- Mantén la respuesta corta (máximo 2-3 oraciones)
+- Sé gracioso y divertido cuando sea apropiado
+- Incluye emojis navideños (🎅🎄🎁🦌✨)
+- Si mencionan el viaje, regalos, renos, Navidad o su ciudad, haz referencia a eso
+- Muestra interés genuino en lo que dicen
+- Responde en español
+- Usa expresiones como "¡Hola!", "¡Qué bueno!", "¡Me encanta!", "¡Claro que sí!"
+
+Ejemplo de tono: "¡Hola! ¡Qué alegría verte aquí! 🎅 Me encanta que estés siguiendo mi viaje. ¡Feliz Navidad! 🎄"
+`;
 
         const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
             method: 'POST',
@@ -1371,19 +1395,21 @@ async function handleSendMessage() {
     try {
         const santaResponse = await getSantaResponse(text);
         
-        // Remover el mensaje de "escribiendo" y agregar la respuesta
+        // Simular tiempo de escritura (más realista)
+        const typingDelay = Math.min(2000 + Math.random() * 1500, 4000); // Entre 2 y 3.5 segundos
+        
         setTimeout(() => {
             if (santaResponse) {
                 addPublicMessage(santaResponse, '🎅 Papá Noel');
             } else {
-                addPublicMessage('¡Hola! Estoy muy ocupado entregando regalos, pero gracias por tu mensaje. ¡Feliz Navidad! 🎅', '🎅 Papá Noel');
+                addPublicMessage('¡Hola! ¡Qué bueno verte aquí! 🎅 Estoy muy ocupado entregando regalos alrededor del mundo, pero me encanta charlar contigo. ¡Feliz Navidad! 🎄✨', '🎅 Papá Noel');
             }
-        }, 1500);
+        }, typingDelay);
     } catch (error) {
         console.error('Error al obtener respuesta de Papá Noel:', error);
         setTimeout(() => {
-            addPublicMessage('¡Hola! Estoy muy ocupado entregando regalos, pero gracias por tu mensaje. ¡Feliz Navidad! 🎅', '🎅 Papá Noel');
-        }, 1000);
+            addPublicMessage('¡Hola! ¡Qué alegría verte aquí! 🎅 Estoy muy ocupado entregando regalos, pero gracias por tu mensaje. ¡Feliz Navidad! 🎄✨', '🎅 Papá Noel');
+        }, 1500);
     }
 }
 
@@ -1482,9 +1508,14 @@ function initPublicInteraction() {
     // Agregar participante inicial
     addParticipant();
     
-    // Mensaje de bienvenida
+    // Mensaje de bienvenida del sistema
     setTimeout(() => {
-        addPublicMessage('¡Bienvenido al Centro de Control de Papá Noel!', 'Sistema');
+        addPublicMessage('¡Bienvenido al chat con Papá Noel! 🎅 Escribe tu mensaje abajo 👇', 'Sistema');
+        
+        // Mensaje inicial de Papá Noel después de 1 segundo
+        setTimeout(() => {
+            addPublicMessage('¡Hola! ¡Qué alegría verte aquí! 🎅 Estoy muy ocupado entregando regalos alrededor del mundo, pero me encanta charlar contigo. ¡Escribe lo que quieras! 🎄✨', '🎅 Papá Noel');
+        }, 1500);
     }, 2000);
 }
 
