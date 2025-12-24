@@ -2510,6 +2510,8 @@ function toggleCityPanels(showRandom = null) {
 function initCityPanelToggle() {
     const toggleToRandom = document.getElementById('toggleToRandom');
     const toggleToUser = document.getElementById('toggleToUser');
+    const userPanel = document.getElementById('userCityPanel');
+    const randomPanel = document.getElementById('randomCityPanel');
     
     if (toggleToRandom) {
         toggleToRandom.addEventListener('click', () => {
@@ -2523,10 +2525,20 @@ function initCityPanelToggle() {
         });
     }
     
-    // Restaurar modo guardado
+    // Por defecto mostrar "Tu Ciudad", solo cambiar si hay modo guardado explícitamente como 'random'
     const savedMode = localStorage.getItem('cityPanelMode');
     if (savedMode === 'random') {
         toggleCityPanels(true);
+    } else {
+        // Por defecto: mostrar "Tu Ciudad"
+        if (userPanel && randomPanel) {
+            randomPanel.style.display = 'none';
+            // Mostrar "Tu Ciudad" si hay ciudad del usuario
+            if (state.userCity) {
+                userPanel.style.display = 'block';
+            }
+            localStorage.setItem('cityPanelMode', 'user');
+        }
     }
 }
 
