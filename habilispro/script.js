@@ -2386,20 +2386,24 @@ function updateUserCityPanel() {
     
     if (!panel || !cityNameEl || !distanceEl || !etaEl) return;
     
-    // Verificar si estamos en modo "random" - si es así, no mostrar este panel
+    // Verificar si estamos en modo "random" - si es así, NO actualizar ni cambiar visibilidad
     const savedMode = localStorage.getItem('cityPanelMode');
     if (savedMode === 'random') {
-        panel.style.display = 'none';
+        // No hacer nada si estamos en modo random - solo actualizar cuando el usuario cambie
         return;
     }
     
+    // Solo actualizar contenido, NO cambiar visibilidad automáticamente
+    // La visibilidad solo cambia cuando el usuario presiona el botón
     if (!state.userCity) {
-        panel.style.display = 'none';
+        // Si no hay ciudad, ocultar solo si no está en modo random
+        if (panel.style.display !== 'none') {
+            panel.style.display = 'none';
+        }
         return;
     }
     
-    // Mostrar panel (modo predeterminado: "Tu Ciudad")
-    panel.style.display = 'block';
+    // Actualizar contenido del panel (no cambiar visibilidad)
     cityNameEl.textContent = state.userCity;
     
     // Calcular distancia si tenemos coordenadas
@@ -2460,18 +2464,27 @@ function updateRandomCityPanel() {
     
     if (!panel || !cityNameEl || !distanceEl || !etaEl) return;
     
+    // Verificar si estamos en modo "user" - si es así, NO actualizar ni cambiar visibilidad
+    const savedMode = localStorage.getItem('cityPanelMode');
+    if (savedMode !== 'random') {
+        // No hacer nada si estamos en modo user - solo actualizar cuando el usuario cambie
+        return;
+    }
+    
     // Obtener ciudad aleatoria si no hay una actual
     if (!currentRandomCity) {
         currentRandomCity = getRandomWeightedCity();
     }
     
     if (!currentRandomCity) {
-        panel.style.display = 'none';
+        // Solo ocultar si estamos en modo random
+        if (panel.style.display !== 'none') {
+            panel.style.display = 'none';
+        }
         return;
     }
     
-    // Mostrar panel
-    panel.style.display = 'block';
+    // Actualizar contenido del panel (no cambiar visibilidad automáticamente)
     cityNameEl.textContent = currentRandomCity.name;
     
     // Calcular distancia
@@ -2605,15 +2618,19 @@ function initCityPanelToggle() {
     // Por defecto mostrar "Tu Ciudad", solo cambiar si hay modo guardado explícitamente como 'random'
     const savedMode = localStorage.getItem('cityPanelMode');
     if (savedMode === 'random') {
+        // Solo cambiar si el usuario explícitamente guardó modo random
         toggleCityPanels(true);
     } else {
-        // Por defecto: mostrar "Tu Ciudad"
+        // Por defecto: mostrar "Tu Ciudad" y asegurar que random esté oculto
         if (userPanel && randomPanel) {
             randomPanel.style.display = 'none';
             // Mostrar "Tu Ciudad" si hay ciudad del usuario
             if (state.userCity) {
                 userPanel.style.display = 'block';
+            } else {
+                userPanel.style.display = 'none';
             }
+            // Establecer modo user como predeterminado
             localStorage.setItem('cityPanelMode', 'user');
         }
     }
@@ -3328,6 +3345,7 @@ function init() {
     unmuteTracker();
     
     // Actualizar panel de ciudad cada vez que cambie la ubicación
+    // Solo actualiza el contenido, NO cambia la visibilidad (solo el botón puede cambiar paneles)
     setInterval(() => {
         updateUserCityPanel();
         updateRandomCityPanel();
