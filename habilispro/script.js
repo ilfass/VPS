@@ -1330,11 +1330,36 @@ function updateLocationBasedOnChristmasMidnight() {
     if (passedCities.length > 0) {
         // Ordenar por horas desde medianoche (más reciente primero)
         passedCities.sort((a, b) => b.hoursSinceMidnight - a.hoursSinceMidnight);
-        targetCity = passedCities[0];
+        
+        // Rotar entre las ciudades que pasaron, no solo seleccionar siempre la primera
+        let rotationIndex = parseInt(localStorage.getItem('passedCitiesRotationIndex') || '0');
+        rotationIndex = (rotationIndex + 1) % passedCities.length;
+        localStorage.setItem('passedCitiesRotationIndex', rotationIndex.toString());
+        
+        targetCity = passedCities[rotationIndex];
+        
+        // Si la ciudad seleccionada es la misma que la actual, avanzar a la siguiente
+        if (targetCity.name === state.location && passedCities.length > 1) {
+            rotationIndex = (rotationIndex + 1) % passedCities.length;
+            localStorage.setItem('passedCitiesRotationIndex', rotationIndex.toString());
+            targetCity = passedCities[rotationIndex];
+        }
     } else if (nearbyCities.length > 0) {
-        // Si hay ciudades cercanas (dentro de 3 horas), usar la más cercana
+        // Si hay ciudades cercanas (dentro de 3 horas), rotar entre ellas
         nearbyCities.sort((a, b) => Math.abs(a.hoursSinceMidnight) - Math.abs(b.hoursSinceMidnight));
-        targetCity = nearbyCities[0];
+        
+        let rotationIndex = parseInt(localStorage.getItem('nearbyCitiesRotationIndex') || '0');
+        rotationIndex = (rotationIndex + 1) % nearbyCities.length;
+        localStorage.setItem('nearbyCitiesRotationIndex', rotationIndex.toString());
+        
+        targetCity = nearbyCities[rotationIndex];
+        
+        // Si la ciudad seleccionada es la misma que la actual, avanzar a la siguiente
+        if (targetCity.name === state.location && nearbyCities.length > 1) {
+            rotationIndex = (rotationIndex + 1) % nearbyCities.length;
+            localStorage.setItem('nearbyCitiesRotationIndex', rotationIndex.toString());
+            targetCity = nearbyCities[rotationIndex];
+        }
     } else {
         // Si no hay ciudades cercanas, rotar entre todas las ciudades
         // Usar un índice de rotación almacenado para mantener secuencia
