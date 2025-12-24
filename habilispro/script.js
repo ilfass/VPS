@@ -2672,26 +2672,33 @@ function initCityPanelToggle() {
         // #endregion
         toggleCityPanels(true);
     } else {
-        // Por defecto: mostrar "Tu Ciudad" y asegurar que random esté oculto
+        // Por defecto: mostrar "Tu Ciudad" si hay ciudad, o "Próximas Ciudades" si no hay
         if (userPanel && randomPanel) {
-            randomPanel.style.display = 'none';
-            randomPanel.classList.remove('visible');
             // Mostrar "Tu Ciudad" si hay ciudad del usuario
             if (state.userCity) {
                 userPanel.style.display = 'block';
                 userPanel.classList.add('visible');
+                randomPanel.style.display = 'none';
+                randomPanel.classList.remove('visible');
                 // #region agent log
                 fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:initCityPanelToggle',message:'Mostrando panel Tu Ciudad',data:{userCity:state.userCity},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
                 // #endregion
+                localStorage.setItem('cityPanelMode', 'user');
             } else {
+                // Si no hay ciudad, mostrar panel de ciudades aleatorias por defecto
                 userPanel.style.display = 'none';
                 userPanel.classList.remove('visible');
+                randomPanel.style.display = 'block';
+                randomPanel.classList.add('visible');
+                if (!currentRandomCity) {
+                    currentRandomCity = getRandomWeightedCity();
+                }
+                updateRandomCityPanel();
                 // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:initCityPanelToggle',message:'No hay ciudad, ocultando panel',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:initCityPanelToggle',message:'No hay ciudad, mostrando panel Próximas Ciudades',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
                 // #endregion
+                localStorage.setItem('cityPanelMode', 'random');
             }
-            // Establecer modo user como predeterminado
-            localStorage.setItem('cityPanelMode', 'user');
         } else {
             // #region agent log
             fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:initCityPanelToggle',message:'Paneles no encontrados',data:{hasUserPanel:!!userPanel,hasRandomPanel:!!randomPanel},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
