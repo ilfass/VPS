@@ -621,15 +621,16 @@ body {
     background: rgba(10, 25, 40, 0.9);
     border: 3px solid rgba(40, 167, 69, 0.8);
     border-radius: 12px;
-    padding: 20px;
-    padding-top: 35px;
+    padding: 15px;
+    padding-top: 30px;
     backdrop-filter: blur(5px);
     pointer-events: auto;
     box-shadow: 
         0 0 20px rgba(40, 167, 69, 0.5),
         0 4px 20px rgba(0, 0, 0, 0.5);
     animation: cityPanelPulse 3s infinite;
-    max-width: 300px;
+    max-width: 280px;
+    width: auto;
     position: fixed;
     bottom: 100px;
     left: 20px;
@@ -638,6 +639,12 @@ body {
     z-index: 50;
     user-select: none;
     transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    min-width: 200px;
+}
+
+.user-city-panel.visible {
+    display: block !important;
+    visibility: visible !important;
 }
 
 .user-city-panel.expanded {
@@ -1363,13 +1370,57 @@ body.shaking {
    ============================================ */
 
 /* Media query para pantallas intermedias (tablets) */
-@media (min-width: 769px) and (max-width: 1024px) {
+/* Resoluciones intermedias (tablets y pantallas pequeñas) */
+@media (min-width: 769px) and (max-width: 1400px) {
     .user-city-panel {
-        display: block !important;
-        max-width: 280px;
-        bottom: 120px;
-        left: 20px;
-        right: auto;
+        max-width: 240px;
+        padding: 12px;
+        padding-top: 28px;
+        bottom: 80px;
+        left: 15px;
+    }
+    
+    .user-city-header h2 {
+        font-size: 16px;
+    }
+    
+    .user-city-name {
+        font-size: 16px;
+    }
+    
+    .user-city-distance {
+        font-size: 24px;
+    }
+    
+    .user-city-eta {
+        font-size: 14px;
+    }
+    
+    .user-city-countdown {
+        font-size: 20px;
+        padding: 8px;
+    }
+    
+    .panel-toggle-btn {
+        font-size: 16px;
+        padding: 4px 8px;
+    }
+    
+    .control-panel {
+        padding: 15px;
+        margin-top: 20px;
+    }
+    
+    .panel-header h1 {
+        font-size: 20px;
+    }
+    
+    .info-value {
+        font-size: 20px;
+    }
+    
+    .info-label {
+        font-size: 12px;
     }
 }
 

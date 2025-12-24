@@ -2627,8 +2627,11 @@ function initCityPanelToggle() {
             // Mostrar "Tu Ciudad" si hay ciudad del usuario
             if (state.userCity) {
                 userPanel.style.display = 'block';
+                // Forzar visibilidad con !important a través de clase
+                userPanel.classList.add('visible');
             } else {
                 userPanel.style.display = 'none';
+                userPanel.classList.remove('visible');
             }
             // Establecer modo user como predeterminado
             localStorage.setItem('cityPanelMode', 'user');
