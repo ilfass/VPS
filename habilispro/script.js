@@ -2570,7 +2570,9 @@ function toggleCityPanels(showRandom = null) {
     
     if (shouldShowRandom) {
         userPanel.style.display = 'none';
+        userPanel.classList.remove('visible');
         randomPanel.style.display = 'block';
+        randomPanel.classList.add('visible');
         localStorage.setItem('cityPanelMode', 'random');
         // Inicializar ciudad aleatoria si no hay
         if (!currentRandomCity) {
@@ -2585,7 +2587,14 @@ function toggleCityPanels(showRandom = null) {
         }, 2 * 60 * 1000);
     } else {
         randomPanel.style.display = 'none';
-        userPanel.style.display = state.userCity ? 'block' : 'none';
+        randomPanel.classList.remove('visible');
+        if (state.userCity) {
+            userPanel.style.display = 'block';
+            userPanel.classList.add('visible');
+        } else {
+            userPanel.style.display = 'none';
+            userPanel.classList.remove('visible');
+        }
         localStorage.setItem('cityPanelMode', 'user');
         if (randomCityInterval) {
             clearInterval(randomCityInterval);
