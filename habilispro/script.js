@@ -1761,7 +1761,7 @@ function shakeScreen() {
     }
     
     // Agregar efecto de shake a toda la pantalla
-    body.style.animation = 'screenShake 0.5s infinite';
+    body.classList.add('shaking');
     
     // Remover después de 3 segundos
     setTimeout(() => {
