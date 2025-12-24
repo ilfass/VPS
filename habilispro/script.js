@@ -2316,12 +2316,19 @@ function updateUserCityPanel() {
     
     if (!panel || !cityNameEl || !distanceEl || !etaEl) return;
     
+    // Verificar si estamos en modo "random" - si es así, no mostrar este panel
+    const savedMode = localStorage.getItem('cityPanelMode');
+    if (savedMode === 'random') {
+        panel.style.display = 'none';
+        return;
+    }
+    
     if (!state.userCity) {
         panel.style.display = 'none';
         return;
     }
     
-    // Mostrar panel
+    // Mostrar panel (modo predeterminado: "Tu Ciudad")
     panel.style.display = 'block';
     cityNameEl.textContent = state.userCity;
     
