@@ -3,22 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Centro de Control - Papá Noel</title>
+    
+    <!-- SEO Meta Tags -->
+    <title>🎅 Rastreador de Papá Noel en Vivo 2024 | Centro de Control de Santa Claus</title>
+    <meta name="description" content="Sigue a Papá Noel en tiempo real este 2024. Rastreador de Santa Claus en vivo con ubicación actual, velocidad, regalos entregados y chat interactivo. ¡Habla con Santa Claus en español!">
+    <meta name="keywords" content="papá noel, santa claus, rastreador santa, navidad 2024, santa tracker, seguimiento santa, papá noel en vivo, santa claus en vivo, navidad, regalos navideños, chat con santa">
+    <meta name="author" content="Fabian de Haro - @ilfass">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="googlebot" content="index, follow">
+    <link rel="canonical" href="https://habilispro.com/">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://habilispro.com/">
+    <meta property="og:title" content="🎅 Rastreador de Papá Noel en Vivo 2024 | Centro de Control de Santa Claus">
+    <meta property="og:description" content="Sigue a Papá Noel en tiempo real este 2024. Rastreador de Santa Claus en vivo con ubicación actual, velocidad, regalos entregados y chat interactivo.">
+    <meta property="og:image" content="https://habilispro.com/og-image.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:locale" content="es_ES">
+    <meta property="og:site_name" content="HabilisPro - Rastreador de Papá Noel">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://habilispro.com/">
+    <meta name="twitter:title" content="🎅 Rastreador de Papá Noel en Vivo 2024">
+    <meta name="twitter:description" content="Sigue a Papá Noel en tiempo real este 2024. Rastreador de Santa Claus en vivo con ubicación actual y chat interactivo.">
+    <meta name="twitter:image" content="https://habilispro.com/og-image.jpg">
+    <meta name="twitter:creator" content="@ilfass">
+    
+    <!-- Additional SEO -->
+    <meta name="theme-color" content="#DC3545">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Papá Noel Tracker">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    
+    <!-- Schema.org JSON-LD -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Rastreador de Papá Noel en Vivo",
+        "alternateName": "Santa Tracker",
+        "url": "https://habilispro.com",
+        "description": "Sigue a Papá Noel en tiempo real este 2024. Rastreador de Santa Claus en vivo con ubicación actual, velocidad, regalos entregados y chat interactivo.",
+        "applicationCategory": "EntertainmentApplication",
+        "operatingSystem": "Web",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "author": {
+            "@type": "Person",
+            "name": "Fabian de Haro",
+            "alternateName": "@ilfass",
+            "url": "https://www.youtube.com/@fabiandeharo"
+        },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "5",
+            "ratingCount": "1"
+        }
+    }
+    </script>
+    
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [{
+            "@type": "Question",
+            "name": "¿Cómo funciona el rastreador de Papá Noel?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "El rastreador muestra la ubicación actual de Papá Noel en tiempo real, su velocidad, los regalos entregados y permite chatear con Santa Claus usando inteligencia artificial."
+            }
+        }, {
+            "@type": "Question",
+            "name": "¿Puedo hablar con Papá Noel?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Sí, puedes usar el chat interactivo para hablar con Papá Noel. Santa Claus responderá usando inteligencia artificial de Google Gemini."
+            }
+        }, {
+            "@type": "Question",
+            "name": "¿Cuándo llega Papá Noel a mi ciudad?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Puedes ver la distancia a tu ciudad, el tiempo estimado de llegada y una cuenta regresiva en tiempo real en el panel 'Tu Ciudad'."
+            }
+        }]
+    }
+    </script>
+    
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <!-- Google Santa Tracker - Fondo -->
-    <div class="tracker-container">
+    <main class="tracker-container" role="main" aria-label="Rastreador de Papá Noel en tiempo real">
             <iframe 
             id="santaTracker"
             src="https://santatracker.google.com/" 
             frameborder="0"
             allowfullscreen
             allow="geolocation; microphone; camera; autoplay; encrypted-media"
-            title="Google Santa Tracker"
+            title="Google Santa Tracker - Rastreador de Papá Noel en tiempo real"
+            aria-label="Mapa interactivo del rastreador de Santa Claus de Google"
             volume="1">
         </iframe>
-    </div>
+    </main>
 
     <!-- Overlay Principal -->
     <div class="overlay-container">
@@ -30,8 +128,8 @@
             <span></span>
         </button>
 
-        <div class="control-panel" id="controlPanel">
-            <div class="panel-header">
+        <section class="control-panel" id="controlPanel" aria-label="Panel de control de Papá Noel">
+            <header class="panel-header">
                 <div class="header-title-section">
                     <h1>🎅 Control Panel <span class="control-operator" id="controlOperator">a cargo de <span id="operatorName">-</span></span></h1>
                 </div>
@@ -39,9 +137,9 @@
                     <span class="status-dot" id="statusDot"></span>
                     <span class="status-text" id="statusText">OK</span>
                 </div>
-            </div>
+            </header>
 
-            <div class="info-grid">
+            <div class="info-grid" role="region" aria-label="Información de Papá Noel">
                 <!-- Ubicación Actual -->
                 <div class="info-card">
                     <div class="info-label">📍 Ubicación Actual</div>
@@ -99,11 +197,11 @@
         </div>
 
         <!-- Footer de Donación -->
-        <div class="donation-footer">
+        <footer class="donation-footer" role="contentinfo">
                 <div class="donation-content">
                 <span class="donation-text">¡Gracias por tu visita! Si te gustó, puedes hacer una donación al alias ilfass (Fabian de Haro)</span>
             </div>
-        </div>
+        </footer>
 
 
         <!-- Botón Flotante para Panel de Interacción (Móvil) -->
