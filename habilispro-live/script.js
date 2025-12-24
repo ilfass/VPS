@@ -2061,52 +2061,37 @@ function getUserLocation() {
 }
 
 /**
- * Obtiene el nombre de la ciudad desde coordenadas (usando API de geocodificación)
+ * Obtiene el nombre de la ciudad desde coordenadas (DESHABILITADO PARA VIVO)
+ * En la versión live, siempre se usan ciudades rotativas automáticamente
  */
 async function getCityNameFromCoordinates(lat, lng) {
-    try {
-        // Usar API de geocodificación inversa (sin API key requerida)
-        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`);
-        const data = await response.json();
-        
-        if (data && data.address) {
-            const city = data.address.city || 
-                        data.address.town || 
-                        data.address.village || 
-                        data.address.municipality ||
-                        data.address.county ||
-                        'Tu ciudad';
-            
-            const country = data.address.country || '';
-            state.userCity = country ? `${city}, ${country}` : city;
-            
-            updateUserCityPanel();
-            console.log('🏙️ Ciudad detectada:', state.userCity);
-        }
-    } catch (error) {
-        console.warn('⚠️ Error al obtener nombre de ciudad:', error);
-        requestUserCity();
+    // En la versión live, no usar geocodificación, usar ciudades rotativas
+    const city = getNextSpanishCity();
+    if (city) {
+        state.userCity = city.name;
+        state.userCoordinates = {
+            lat: city.lat,
+            lng: city.lng
+        };
+        updateUserCityPanel();
+        console.log('🌎 Ciudad asignada automáticamente:', state.userCity);
     }
 }
 
 /**
- * Solicita la ciudad del usuario manualmente
+ * Solicita la ciudad del usuario manualmente (DESHABILITADO PARA VIVO)
  */
 function requestUserCity() {
-    const savedCity = localStorage.getItem('santaTracker_userCity');
-    if (savedCity) {
-        state.userCity = savedCity;
+    // En la versión live, no solicitar ciudad al usuario, usar rotación automática
+    const city = getNextSpanishCity();
+    if (city) {
+        state.userCity = city.name;
+        state.userCoordinates = {
+            lat: city.lat,
+            lng: city.lng
+        };
         updateUserCityPanel();
-        return;
-    }
-    
-    const city = prompt('🏙️ ¿En qué ciudad vives?\n\n(Ejemplo: Madrid, España o Buenos Aires, Argentina)');
-    
-    if (city && city.trim() !== '') {
-        state.userCity = city.trim();
-        localStorage.setItem('santaTracker_userCity', state.userCity);
-        updateUserCityPanel();
-        console.log('🏙️ Ciudad guardada:', state.userCity);
+        console.log('🌎 Ciudad asignada automáticamente:', state.userCity);
     }
 }
 
