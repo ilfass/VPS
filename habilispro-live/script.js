@@ -2370,9 +2370,17 @@ function initMobileInteractionPanel() {
  */
 function initDraggableCityPanel() {
     const cityPanel = document.getElementById('userCityPanel');
-    const dragHandle = cityPanel?.querySelector('.drag-handle');
+    if (!cityPanel) {
+        console.warn('⚠️ Panel de ciudades no encontrado, reintentando...');
+        setTimeout(initDraggableCityPanel, 500);
+        return;
+    }
     
-    if (!cityPanel || !dragHandle) return;
+    const dragHandle = cityPanel.querySelector('.drag-handle');
+    if (!dragHandle) {
+        console.warn('⚠️ Drag handle no encontrado en panel de ciudades');
+        return;
+    }
     
     let isDragging = false;
     let currentX;
@@ -2462,7 +2470,11 @@ function initDraggableCityPanel() {
  */
 function expandCityPanel() {
     const cityPanel = document.getElementById('userCityPanel');
-    if (!cityPanel || cityPanel.style.display === 'none') return;
+    if (!cityPanel) {
+        console.warn('⚠️ Panel de ciudades no encontrado en expandCityPanel');
+        return;
+    }
+    if (cityPanel.style.display === 'none') return;
     
     cityPanel.classList.add('expanded');
     
@@ -2479,7 +2491,12 @@ function shakeScreen() {
     const cityPanel = document.getElementById('userCityPanel');
     const body = document.body;
     
-    if (cityPanel && cityPanel.style.display !== 'none') {
+    if (!cityPanel) {
+        console.warn('⚠️ Panel de ciudades no encontrado en shakeScreen');
+        return;
+    }
+    
+    if (cityPanel.style.display !== 'none') {
         cityPanel.classList.add('shaking');
         cityPanel.classList.add('expanded');
     }
@@ -2935,11 +2952,18 @@ function init() {
     initMobileInteractionPanel();
     
     
-    // Inicializar panel arrastrable "Tu ciudad"
-    setTimeout(() => {
-        initDraggableCityPanel();
-        initCityPanelTimers(); // Inicializar timers de expansión
-    }, 1000);
+    // Inicializar panel arrastrable "Tu ciudad" - esperar a que el DOM esté completamente cargado
+    const initCityPanel = () => {
+        const cityPanel = document.getElementById('userCityPanel');
+        if (cityPanel) {
+            initDraggableCityPanel();
+            initCityPanelTimers(); // Inicializar timers de expansión
+        } else {
+            // Reintentar si el panel aún no está disponible
+            setTimeout(initCityPanel, 200);
+        }
+    };
+    setTimeout(initCityPanel, 1000);
     
     // Intentar desmutear el tracker
     unmuteTracker();
