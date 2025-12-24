@@ -1212,40 +1212,110 @@ function getEventIcon(type) {
 // ============================================
 
 /**
+ * Determina la ubicación actual basándose en ciudades que ya pasaron las 00:00 del 25 de diciembre
+ */
+function updateLocationBasedOnChristmasMidnight() {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const christmasDate = new Date(currentYear, 11, 25); // 25 de diciembre (mes 11 = diciembre)
+    
+    // Obtener todas las ciudades con sus zonas horarias
+    const citiesWithTimezones = Object.entries(LOCATIONS_DATABASE);
+    
+    // Calcular para cada ciudad si ya pasó las 00:00 del 25
+    const citiesStatus = citiesWithTimezones.map(([cityName, timezone]) => {
+        try {
+            // Obtener hora local de la ciudad
+            const cityTime = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+            const cityDate = new Date(cityTime);
+            
+            // Crear fecha de medianoche del 25 de diciembre en esa zona horaria
+            const christmasMidnight = new Date(Date.UTC(currentYear, 11, 25, 0, 0, 0));
+            const localChristmasMidnight = new Date(christmasMidnight.toLocaleString('en-US', { timeZone: timezone }));
+            
+            // Calcular diferencia en horas desde las 00:00 del 25
+            const hoursSinceMidnight = (cityDate - localChristmasMidnight) / (1000 * 60 * 60);
+            
+            return {
+                name: cityName,
+                timezone: timezone,
+                hoursSinceMidnight: hoursSinceMidnight,
+                hasPassed: hoursSinceMidnight >= 0,
+                cityTime: cityDate
+            };
+        } catch (e) {
+            return null;
+        }
+    }).filter(city => city !== null);
+    
+    // Filtrar ciudades que ya pasaron las 00:00 (o están muy cerca, dentro de 1 hora antes)
+    const passedCities = citiesStatus.filter(city => city.hoursSinceMidnight >= -1);
+    
+    if (passedCities.length > 0) {
+        // Ordenar por horas desde medianoche (más reciente primero)
+        passedCities.sort((a, b) => b.hoursSinceMidnight - a.hoursSinceMidnight);
+        
+        // Tomar la ciudad más reciente que pasó las 00:00
+        const currentCity = passedCities[0];
+        
+        // Actualizar ubicación si es diferente
+        if (currentCity.name !== state.location) {
+            console.log(`📍 Actualizando ubicación a: ${currentCity.name} (pasó las 00:00 hace ${currentCity.hoursSinceMidnight.toFixed(1)} horas)`);
+            syncLocation(currentCity.name);
+        }
+    } else {
+        // Si ninguna ciudad ha pasado las 00:00, usar la que está más cerca
+        citiesStatus.sort((a, b) => a.hoursSinceMidnight - b.hoursSinceMidnight);
+        const nextCity = citiesStatus[0];
+        
+        if (nextCity && nextCity.name !== state.location) {
+            console.log(`📍 Próxima ciudad: ${nextCity.name} (faltan ${Math.abs(nextCity.hoursSinceMidnight).toFixed(1)} horas)`);
+            // No actualizar aún, solo mostrar en consola
+        }
+    }
+}
+
+/**
  * Intenta extraer la ubicación del tracker de Google (cross-origin limitado)
+ * Si falla, usa la lógica basada en medianoche del 25 de diciembre
  */
 function tryExtractTrackerLocation() {
     const iframe = document.getElementById('santaTracker');
-    if (!iframe) return;
+    let extracted = false;
     
-    // Intentar acceder al contenido del iframe (puede fallar por cross-origin)
-    try {
-        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-        if (!iframeDoc) {
-            // Fallar silenciosamente - es normal por cross-origin
-            return;
-        }
-        
-        // Buscar elementos que contengan "Próxima parada" o "Llegará en"
-        const nextStopElements = iframeDoc.querySelectorAll('h1, h2, .sides, [class*="next"], [class*="stop"]');
-        nextStopElements.forEach(el => {
-            const text = el.textContent || '';
-            if (text.includes('Próxima parada') || text.includes('Next stop')) {
-                const cityElement = el.nextElementSibling || el.parentElement?.querySelector('h2');
-                if (cityElement) {
-                    const cityName = cityElement.textContent?.trim();
-                    if (cityName && cityName.length > 0 && cityName.length < 50) {
-                        // Actualizar ubicación si encontramos una ciudad válida
-                        if (cityName !== state.location) {
-                            console.log('📍 Ubicación detectada del tracker:', cityName);
-                            changeLocation(cityName);
+    if (iframe) {
+        // Intentar acceder al contenido del iframe (puede fallar por cross-origin)
+        try {
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+            if (iframeDoc) {
+                // Buscar elementos que contengan "Próxima parada" o "Llegará en"
+                const nextStopElements = iframeDoc.querySelectorAll('h1, h2, .sides, [class*="next"], [class*="stop"]');
+                nextStopElements.forEach(el => {
+                    const text = el.textContent || '';
+                    if (text.includes('Próxima parada') || text.includes('Next stop')) {
+                        const cityElement = el.nextElementSibling || el.parentElement?.querySelector('h2');
+                        if (cityElement) {
+                            const cityName = cityElement.textContent?.trim();
+                            if (cityName && cityName.length > 0 && cityName.length < 50) {
+                                // Actualizar ubicación si encontramos una ciudad válida
+                                if (cityName !== state.location) {
+                                    console.log('📍 Ubicación detectada del tracker:', cityName);
+                                    syncLocation(cityName);
+                                    extracted = true;
+                                }
+                            }
                         }
                     }
-                }
+                });
             }
-        });
-    } catch (e) {
-        // Cross-origin error es esperado - no hacer nada
+        } catch (e) {
+            // Cross-origin error es esperado - usar lógica alternativa
+        }
+    }
+    
+    // Si no se pudo extraer del tracker, usar lógica basada en medianoche del 25
+    if (!extracted) {
+        updateLocationBasedOnChristmasMidnight();
     }
 }
 
