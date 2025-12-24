@@ -1,0 +1,321 @@
+/* ============================================
+   OVERLAY CENTRO DE CONTROL - PAPÁ NOEL
+   Diseño navideño sobrio para streaming OBS
+   ============================================ */
+
+/* Reset y configuración base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: transparent; /* CRÍTICO: Fondo transparente para OBS */
+    color: #ffffff;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+}
+
+/* Contenedor principal del overlay */
+.overlay-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    gap: 20px;
+    position: relative;
+}
+
+/* ============================================
+   PANEL DE CONTROL PRINCIPAL
+   ============================================ */
+
+.control-panel {
+    background: rgba(10, 25, 40, 0.85); /* Azul oscuro semi-transparente */
+    border: 2px solid rgba(220, 53, 69, 0.6); /* Borde rojo navideño */
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5),
+                0 0 30px rgba(220, 53, 69, 0.2);
+    backdrop-filter: blur(5px);
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid rgba(220, 53, 69, 0.4);
+}
+
+.panel-header h1 {
+    font-size: 28px;
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 0 2px 10px rgba(220, 53, 69, 0.5);
+}
+
+/* Indicador de Estado */
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #28a745; /* Verde por defecto (OK) */
+    box-shadow: 0 0 10px rgba(40, 167, 69, 0.8);
+    animation: pulse 2s infinite;
+}
+
+.status-dot.warning {
+    background: #ffc107; /* Amarillo (Atención) */
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.8);
+}
+
+.status-dot.error {
+    background: #dc3545; /* Rojo (En reparación) */
+    box-shadow: 0 0 10px rgba(220, 53, 69, 0.8);
+}
+
+.status-text {
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* Grid de Información */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.info-card {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 15px;
+    transition: all 0.3s ease;
+}
+
+.info-card:hover {
+    background: rgba(0, 0, 0, 0.4);
+    border-color: rgba(220, 53, 69, 0.4);
+    transform: translateY(-2px);
+}
+
+.info-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+.info-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================
+   PANEL DE EVENTOS
+   ============================================ */
+
+.events-panel {
+    background: rgba(10, 25, 40, 0.75);
+    border: 2px solid rgba(220, 53, 69, 0.4);
+    border-radius: 12px;
+    padding: 15px;
+    max-height: 200px;
+    overflow-y: auto;
+    backdrop-filter: blur(5px);
+}
+
+.events-header h2 {
+    font-size: 18px;
+    margin-bottom: 12px;
+    color: #ffffff;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.events-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.event-item {
+    background: rgba(0, 0, 0, 0.3);
+    border-left: 4px solid;
+    padding: 10px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    animation: slideIn 0.3s ease;
+    opacity: 0;
+    animation-fill-mode: forwards;
+}
+
+/* Colores según tipo de evento */
+.event-item.technical {
+    border-left-color: #17a2b8; /* Azul claro */
+}
+
+.event-item.weather {
+    border-left-color: #6c757d; /* Gris */
+}
+
+.event-item.narrative {
+    border-left-color: #28a745; /* Verde */
+}
+
+.event-item.humor {
+    border-left-color: #ffc107; /* Amarillo */
+}
+
+.event-item .event-time {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 11px;
+    margin-right: 8px;
+}
+
+.event-item .event-text {
+    color: #ffffff;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* ============================================
+   NOTIFICACIÓN DE EVENTO
+   ============================================ */
+
+.event-notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: rgba(10, 25, 40, 0.95);
+    border: 3px solid rgba(220, 53, 69, 0.8);
+    border-radius: 12px;
+    padding: 25px 35px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7),
+                0 0 40px rgba(220, 53, 69, 0.4);
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    pointer-events: none;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.event-notification.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.notification-icon {
+    font-size: 32px;
+}
+
+.notification-text {
+    font-size: 20px;
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================
+   SCROLLBAR PERSONALIZADO
+   ============================================ */
+
+.events-panel::-webkit-scrollbar {
+    width: 8px;
+}
+
+.events-panel::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.events-panel::-webkit-scrollbar-thumb {
+    background: rgba(220, 53, 69, 0.5);
+    border-radius: 4px;
+}
+
+.events-panel::-webkit-scrollbar-thumb:hover {
+    background: rgba(220, 53, 69, 0.7);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+    .overlay-container {
+        padding: 15px;
+        gap: 15px;
+    }
+
+    .panel-header h1 {
+        font-size: 22px;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .info-value {
+        font-size: 20px;
+    }
+
+    .events-panel {
+        max-height: 150px;
+    }
+}
+
+/* ============================================
+   ANIMACIONES ADICIONALES
+   ============================================ */
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.overlay-container {
+    animation: fadeIn 0.5s ease;
+}

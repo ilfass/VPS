@@ -3,14 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Habilis Pro</title>
-    <style>
-        body { background-color: #f97316; color: white; font-family: sans-serif; }
-    </style>
+    <title>Centro de Control - Papá Noel</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>habilispro.com</h1>
-    <p>Auto-deploy funcionando! ✅</p>
+    <!-- Overlay Principal -->
+    <div class="overlay-container">
+        <!-- Panel de Información Principal -->
+        <div class="control-panel">
+            <div class="panel-header">
+                <h1>🎅 Centro de Control</h1>
+                <div class="status-indicator" id="statusIndicator">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span class="status-text" id="statusText">OK</span>
+                </div>
+            </div>
+
+            <div class="info-grid">
+                <!-- Ubicación Actual -->
+                <div class="info-card">
+                    <div class="info-label">📍 Ubicación Actual</div>
+                    <div class="info-value" id="currentLocation">Rovaniemi, Finlandia</div>
+                </div>
+
+                <!-- Hora Local -->
+                <div class="info-card">
+                    <div class="info-label">🕐 Hora Local</div>
+                    <div class="info-value" id="localTime">00:00:00</div>
+                </div>
+
+                <!-- Velocidad del Trineo -->
+                <div class="info-card">
+                    <div class="info-label">⚡ Velocidad</div>
+                    <div class="info-value" id="sleighSpeed">0 km/h</div>
+                </div>
+
+                <!-- Regalos Entregados -->
+                <div class="info-card">
+                    <div class="info-label">🎁 Regalos Entregados</div>
+                    <div class="info-value" id="giftsDelivered">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel de Eventos -->
+        <div class="events-panel" id="eventsPanel">
+            <div class="events-header">
+                <h2>📡 Eventos del Sistema</h2>
+            </div>
+            <div class="events-list" id="eventsList">
+                <!-- Los eventos se insertarán aquí dinámicamente -->
+            </div>
+        </div>
+
+        <!-- Notificación de Evento (aparece y desaparece) -->
+        <div class="event-notification" id="eventNotification">
+            <div class="notification-content">
+                <span class="notification-icon" id="notificationIcon">📡</span>
+                <span class="notification-text" id="notificationText"></span>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
-
