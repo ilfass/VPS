@@ -1752,60 +1752,6 @@ function getVisitorCountry() {
     }
 }
 
-/**
- * Muestra el informe de visitas
- */
-function showVisitsReport() {
-    const report = document.getElementById('visitsReport');
-    if (!report) return;
-    
-    const today = new Date().toISOString().split('T')[0];
-    const visitsDataKey = `visitsData_${today}`;
-    const visitsData = JSON.parse(localStorage.getItem(visitsDataKey) || '{"total": 0, "countries": {}}');
-    
-    // Actualizar total
-    document.getElementById('totalVisitsToday').textContent = formatNumber(visitsData.total || 0);
-    
-    // Contar países únicos
-    const uniqueCountries = Object.keys(visitsData.countries || {}).length;
-    document.getElementById('uniqueCountries').textContent = uniqueCountries;
-    
-    // Mostrar visitas por país
-    const countryContainer = document.getElementById('visitsByCountry');
-    if (countryContainer) {
-        countryContainer.innerHTML = '';
-        
-        const countries = Object.entries(visitsData.countries || {})
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 10); // Top 10 países
-        
-        if (countries.length === 0) {
-            countryContainer.innerHTML = '<p style="color: rgba(255,255,255,0.7); padding: 10px;">No hay datos de países aún</p>';
-        } else {
-            countries.forEach(([country, count]) => {
-                const countryItem = document.createElement('div');
-                countryItem.className = 'country-visit-item';
-                countryItem.innerHTML = `
-                    <span class="country-name">${country}</span>
-                    <span class="country-count">${formatNumber(count)}</span>
-                `;
-                countryContainer.appendChild(countryItem);
-            });
-        }
-    }
-    
-    report.style.display = 'block';
-}
-
-/**
- * Oculta el informe de visitas
- */
-function hideVisitsReport() {
-    const report = document.getElementById('visitsReport');
-    if (report) {
-        report.style.display = 'none';
-    }
-}
 
 /**
  * Actualiza el estado del trineo
@@ -3776,15 +3722,6 @@ function init() {
     registerVisitWithLocation();
     updateVisitsDisplay();
     
-    // Configurar botón de informe de visitas
-    const showVisitsBtn = document.getElementById('showVisitsBtn');
-    const closeVisitsReport = document.getElementById('closeVisitsReport');
-    if (showVisitsBtn) {
-        showVisitsBtn.addEventListener('click', showVisitsReport);
-    }
-    if (closeVisitsReport) {
-        closeVisitsReport.addEventListener('click', hideVisitsReport);
-    }
     
     // Inicializar botón de YouTube intermitente
     initIntermittentYouTubeButton();
