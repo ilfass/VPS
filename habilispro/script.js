@@ -1212,6 +1212,44 @@ function getEventIcon(type) {
 // ============================================
 
 /**
+ * Intenta extraer la ubicación del tracker de Google (cross-origin limitado)
+ */
+function tryExtractTrackerLocation() {
+    const iframe = document.getElementById('santaTracker');
+    if (!iframe) return;
+    
+    // Intentar acceder al contenido del iframe (puede fallar por cross-origin)
+    try {
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (!iframeDoc) {
+            // Fallar silenciosamente - es normal por cross-origin
+            return;
+        }
+        
+        // Buscar elementos que contengan "Próxima parada" o "Llegará en"
+        const nextStopElements = iframeDoc.querySelectorAll('h1, h2, .sides, [class*="next"], [class*="stop"]');
+        nextStopElements.forEach(el => {
+            const text = el.textContent || '';
+            if (text.includes('Próxima parada') || text.includes('Next stop')) {
+                const cityElement = el.nextElementSibling || el.parentElement?.querySelector('h2');
+                if (cityElement) {
+                    const cityName = cityElement.textContent?.trim();
+                    if (cityName && cityName.length > 0 && cityName.length < 50) {
+                        // Actualizar ubicación si encontramos una ciudad válida
+                        if (cityName !== state.location) {
+                            console.log('📍 Ubicación detectada del tracker:', cityName);
+                            changeLocation(cityName);
+                        }
+                    }
+                }
+            }
+        });
+    } catch (e) {
+        // Cross-origin error es esperado - no hacer nada
+    }
+}
+
+/**
  * Actualiza la ubicación mostrada
  */
 function updateLocation() {
@@ -1221,6 +1259,7 @@ function updateLocation() {
     }
     // Actualizar panel de ciudad del usuario cuando cambie la ubicación de Papá Noel
     updateUserCityPanel();
+    updateRandomCityPanel();
 }
 
 /**
