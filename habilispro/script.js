@@ -2772,7 +2772,13 @@ function updateRandomCityPanel() {
     
     // Iniciar cuenta regresiva
     if (countdownEl) {
-        startCountdownForPanel(distance, avgSpeed, countdownEl);
+        // Si ya hay un countdown activo, solo actualizar los datos
+        if (countdownEl.dataset.intervalId && countdownEl.updateCountdownData) {
+            countdownEl.updateCountdownData(distance, avgSpeed);
+        } else {
+            // Si no hay countdown activo, iniciarlo
+            startCountdownForPanel(distance, avgSpeed, countdownEl);
+        }
     }
 }
 
