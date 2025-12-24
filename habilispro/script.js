@@ -3391,6 +3391,13 @@ function triggerSantaAppearance() {
 function init() {
     console.log('🎅 Iniciando Centro de Control de Papá Noel...');
     
+    // Limpiar localStorage de panel si no fue establecido explícitamente por el usuario
+    // Esto asegura que "Tu Ciudad" sea siempre el predeterminado
+    if (!localStorage.getItem('userExplicitlyChangedPanel')) {
+        localStorage.removeItem('cityPanelMode');
+        localStorage.setItem('cityPanelMode', 'user');
+    }
+    
     // Actualizar UI inicial
     updateLocation();
     updateTime();
