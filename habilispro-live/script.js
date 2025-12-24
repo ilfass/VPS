@@ -2623,7 +2623,22 @@ function initUserPersonalization() {
     updateOperatorName();
     
     // Inicializar con primera ciudad automáticamente (sin preguntar)
+    // Asegurar que el panel esté visible inmediatamente
+    const panel = document.getElementById('userCityPanel');
+    if (panel) {
+        panel.style.display = 'flex';
+    }
+    
     getUserLocation();
+    
+    // Asegurar que el panel se muestre después de obtener la ciudad
+    setTimeout(() => {
+        updateUserCityPanel();
+        const panel = document.getElementById('userCityPanel');
+        if (panel) {
+            panel.style.display = 'flex';
+        }
+    }, 500);
     
     // Rotar ciudades cada 2 minutos automáticamente
     setInterval(() => {
