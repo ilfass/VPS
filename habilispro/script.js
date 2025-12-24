@@ -1388,6 +1388,21 @@ function displayMessage(message) {
 }
 
 /**
+ * Lista los modelos disponibles en Gemini API (para debug)
+ */
+async function listAvailableModels() {
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`);
+        const data = await response.json();
+        console.log('Modelos disponibles:', data);
+        return data;
+    } catch (error) {
+        console.error('Error al listar modelos:', error);
+        return null;
+    }
+}
+
+/**
  * Obtiene respuesta de Papá Noel usando Gemini API con historial de conversación
  */
 async function getSantaResponse(userMessage) {
@@ -1455,49 +1470,63 @@ HISTORIAL DE LA CONVERSACIÓN:`;
             }]
         };
         
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Enviando petición a Gemini',data:{url:GEMINI_API_URL,hasKey:!!GEMINI_API_KEY,bodyLength:JSON.stringify(requestBody).length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
-
-        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody)
-        });
-
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Respuesta recibida',data:{status:response.status,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-        // #endregion
-
-        if (!response.ok) {
-            const errorText = await response.text();
+        // Intentar con cada modelo hasta encontrar uno que funcione
+        let lastError = null;
+        for (const model of GEMINI_MODELS) {
+            const url = `${GEMINI_BASE_URL}/${model}:generateContent?key=${GEMINI_API_KEY}`;
+            
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Error en respuesta',data:{status:response.status,errorText},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Intentando modelo',data:{url,model},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'K'})}).catch(()=>{});
             // #endregion
-            console.error('Error de Gemini API:', errorText);
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
 
-        const data = await response.json();
-        
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Datos parseados',data:{hasCandidates:!!data.candidates,candidatesLength:data.candidates?.length,hasContent:!!(data.candidates?.[0]?.content)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-        // #endregion
-        
-        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-            const responseText = data.candidates[0].content.parts[0].text.trim();
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Respuesta exitosa',data:{responseLength:responseText.length,responsePreview:responseText.substring(0,50)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-            // #endregion
-            return responseText;
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Respuesta recibida',data:{model,status:response.status,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'L'})}).catch(()=>{});
+                // #endregion
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                        const responseText = data.candidates[0].content.parts[0].text.trim();
+                        // #region agent log
+                        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Modelo exitoso',data:{model,responseLength:responseText.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'M'})}).catch(()=>{});
+                        // #endregion
+                        console.log(`✅ Modelo ${model} funcionó correctamente`);
+                        return responseText;
+                    }
+                } else {
+                    const errorText = await response.text();
+                    lastError = { model, status: response.status, error: errorText };
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Modelo falló',data:{model,status:response.status,error:errorText.substring(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'N'})}).catch(()=>{});
+                    // #endregion
+                    console.warn(`⚠️ Modelo ${model} falló con status ${response.status}`);
+                    continue; // Intentar siguiente modelo
+                }
+            } catch (error) {
+                lastError = { model, error: error.message };
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Excepción con modelo',data:{model,error:error.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'O'})}).catch(()=>{});
+                // #endregion
+                console.warn(`⚠️ Error con modelo ${model}:`, error.message);
+                continue; // Intentar siguiente modelo
+            }
         }
         
+        // Si llegamos aquí, ningún modelo funcionó
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'No se encontró respuesta en datos',data:{dataKeys:Object.keys(data),fullData:JSON.stringify(data).substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Todos los modelos fallaron',data:{lastError},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'P'})}).catch(()=>{});
         // #endregion
-        
+        console.error('❌ Todos los modelos fallaron. Último error:', lastError);
         return null;
     } catch (error) {
         // #region agent log
