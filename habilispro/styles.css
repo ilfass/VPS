@@ -31,6 +31,7 @@ body {
     height: 100%;
     z-index: 1;
     background: #000000;
+    pointer-events: auto; /* Permite interacción completa con el tracker */
 }
 
 .tracker-container iframe {
@@ -38,9 +39,12 @@ body {
     height: 100%;
     border: none;
     display: block;
+    pointer-events: auto; /* Asegura que el iframe sea interactivo */
 }
 
 /* Contenedor principal del overlay - Superpuesto sobre el tracker */
+/* IMPORTANTE: pointer-events: none permite que los clicks pasen al tracker */
+/* Los paneles individuales tienen pointer-events: auto para ser interactivos */
 .overlay-container {
     position: fixed;
     top: 0;
@@ -52,7 +56,7 @@ body {
     padding: 20px;
     gap: 20px;
     z-index: 10; /* Por encima del tracker */
-    pointer-events: none; /* Permite interactuar con el tracker debajo */
+    pointer-events: none; /* Permite interactuar con el tracker debajo en áreas vacías */
 }
 
 /* ============================================
