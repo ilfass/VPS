@@ -820,9 +820,15 @@ const SANTA_MESSAGES = [
 // ============================================
 
 const GEMINI_API_KEY = 'AIzaSyD-NDbMygTSZUiaHWC426Q5PJ7vhUoHkko';
-// Usar el endpoint correcto según la documentación de Gemini
-// Formato: https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+// Intentar con diferentes modelos hasta encontrar uno que funcione
+// Formato correcto según documentación: v1beta/models/{model}:generateContent
+// Modelos a probar: gemini-1.5-pro, gemini-1.5-flash, gemini-pro
+const GEMINI_MODELS = [
+    'gemini-1.5-pro',
+    'gemini-1.5-flash', 
+    'gemini-pro'
+];
+const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 // ============================================
 // ESTADO GLOBAL
