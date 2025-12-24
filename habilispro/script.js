@@ -138,6 +138,15 @@ const LOCATIONS_DATABASE = {
     'Londres, Reino Unido': 'Europe/London',
     'París, Francia': 'Europe/Paris',
     'Madrid, España': 'Europe/Madrid',
+    'Barcelona, España': 'Europe/Madrid',
+    'Valencia, España': 'Europe/Madrid',
+    'Sevilla, España': 'Europe/Madrid',
+    'Zaragoza, España': 'Europe/Madrid',
+    'Málaga, España': 'Europe/Madrid',
+    'Murcia, España': 'Europe/Madrid',
+    'Palma, España': 'Europe/Madrid',
+    'Bilbao, España': 'Europe/Madrid',
+    'Las Palmas, España': 'Atlantic/Canary',
     'Roma, Italia': 'Europe/Rome',
     'Berlín, Alemania': 'Europe/Berlin',
     'Ámsterdam, Países Bajos': 'Europe/Amsterdam',
@@ -154,6 +163,18 @@ const LOCATIONS_DATABASE = {
     'Los Ángeles, USA': 'America/Los_Angeles',
     'Chicago, USA': 'America/Chicago',
     'México DF, México': 'America/Mexico_City',
+    'Ciudad de México, México': 'America/Mexico_City',
+    'Guadalajara, México': 'America/Mexico_City',
+    'Monterrey, México': 'America/Monterrey',
+    'Puebla, México': 'America/Mexico_City',
+    'Tijuana, México': 'America/Tijuana',
+    'León, México': 'America/Mexico_City',
+    'Querétaro, México': 'America/Mexico_City',
+    'Mérida, México': 'America/Merida',
+    'Cancún, México': 'America/Cancun',
+    'Toluca, México': 'America/Mexico_City',
+    'Chihuahua, México': 'America/Chihuahua',
+    'Mazatlán, México': 'America/Mazatlan',
     'Toronto, Canadá': 'America/Toronto',
     'Vancouver, Canadá': 'America/Vancouver',
     'Miami, USA': 'America/New_York',
@@ -161,14 +182,50 @@ const LOCATIONS_DATABASE = {
     'Seattle, USA': 'America/Los_Angeles',
     'Denver, USA': 'America/Denver',
     
-    // América del Sur
+    // América del Sur - Argentina (prioridad máxima)
     'Buenos Aires, Argentina': 'America/Argentina/Buenos_Aires',
+    'Córdoba, Argentina': 'America/Argentina/Cordoba',
+    'Rosario, Argentina': 'America/Argentina/Buenos_Aires',
+    'Mendoza, Argentina': 'America/Argentina/Mendoza',
+    'Tucumán, Argentina': 'America/Argentina/Tucuman',
+    'La Plata, Argentina': 'America/Argentina/Buenos_Aires',
+    'Mar del Plata, Argentina': 'America/Argentina/Buenos_Aires',
+    'Salta, Argentina': 'America/Argentina/Salta',
+    'Santa Fe, Argentina': 'America/Argentina/Cordoba',
+    'San Juan, Argentina': 'America/Argentina/San_Juan',
+    'Bahía Blanca, Argentina': 'America/Argentina/Buenos_Aires',
+    'Resistencia, Argentina': 'America/Argentina/Cordoba',
+    'Neuquén, Argentina': 'America/Argentina/Salta',
+    'Santiago del Estero, Argentina': 'America/Argentina/Tucuman',
+    'Corrientes, Argentina': 'America/Argentina/Cordoba',
+    // Chile (alta prioridad)
+    'Santiago, Chile': 'America/Santiago',
+    'Valparaíso, Chile': 'America/Santiago',
+    'Concepción, Chile': 'America/Santiago',
+    'La Serena, Chile': 'America/Santiago',
+    'Antofagasta, Chile': 'America/Santiago',
+    'Temuco, Chile': 'America/Santiago',
+    'Viña del Mar, Chile': 'America/Santiago',
+    'Rancagua, Chile': 'America/Santiago',
+    'Talca, Chile': 'America/Santiago',
+    'Arica, Chile': 'America/Santiago',
+    'Iquique, Chile': 'America/Santiago',
+    'Puerto Montt, Chile': 'America/Santiago',
+    // Otros países sudamericanos
     'São Paulo, Brasil': 'America/Sao_Paulo',
     'Río de Janeiro, Brasil': 'America/Sao_Paulo',
-    'Santiago, Chile': 'America/Santiago',
     'Lima, Perú': 'America/Lima',
     'Bogotá, Colombia': 'America/Bogota',
+    'Medellín, Colombia': 'America/Bogota',
+    'Cali, Colombia': 'America/Bogota',
+    'Barranquilla, Colombia': 'America/Bogota',
     'Caracas, Venezuela': 'America/Caracas',
+    'Quito, Ecuador': 'America/Guayaquil',
+    'Guayaquil, Ecuador': 'America/Guayaquil',
+    'Montevideo, Uruguay': 'America/Montevideo',
+    'Asunción, Paraguay': 'America/Asuncion',
+    'La Paz, Bolivia': 'America/La_Paz',
+    'Santa Cruz, Bolivia': 'America/La_Paz',
     
     // Asia
     'Tokio, Japón': 'Asia/Tokyo',
@@ -1262,34 +1319,41 @@ function updateLocationBasedOnChristmasMidnight() {
         }
     }).filter(city => city !== null);
     
-    // Filtrar ciudades que ya pasaron las 00:00 (o están muy cerca, dentro de 1 hora antes)
-    const passedCities = citiesStatus.filter(city => city.hoursSinceMidnight >= -1);
+    // Filtrar ciudades que ya pasaron las 00:00 (o están muy cerca, dentro de 3 horas antes)
+    const passedCities = citiesStatus.filter(city => city.hoursSinceMidnight >= -3);
+    
+    // También considerar ciudades que están cerca (dentro de 3 horas antes o después)
+    const nearbyCities = citiesStatus.filter(city => Math.abs(city.hoursSinceMidnight) <= 3);
+    
+    let targetCity = null;
     
     if (passedCities.length > 0) {
         // Ordenar por horas desde medianoche (más reciente primero)
         passedCities.sort((a, b) => b.hoursSinceMidnight - a.hoursSinceMidnight);
-        
-        // Tomar la ciudad más reciente que pasó las 00:00
-        const currentCity = passedCities[0];
-        
-        // Actualizar ubicación si es diferente
-        if (currentCity.name !== state.location) {
-            console.log(`📍 Actualizando ubicación a: ${currentCity.name} (pasó las 00:00 hace ${currentCity.hoursSinceMidnight.toFixed(1)} horas)`);
-            syncLocation(currentCity.name);
-        }
+        targetCity = passedCities[0];
+    } else if (nearbyCities.length > 0) {
+        // Si hay ciudades cercanas (dentro de 3 horas), usar la más cercana
+        nearbyCities.sort((a, b) => Math.abs(a.hoursSinceMidnight) - Math.abs(b.hoursSinceMidnight));
+        targetCity = nearbyCities[0];
     } else {
-        // Si ninguna ciudad ha pasado las 00:00, usar la que está más cerca
-        citiesStatus.sort((a, b) => a.hoursSinceMidnight - b.hoursSinceMidnight);
-        const nextCity = citiesStatus[0];
+        // Si no hay ciudades cercanas, rotar entre todas las ciudades
+        // Usar un índice de rotación almacenado para mantener secuencia
+        let rotationIndex = parseInt(localStorage.getItem('locationRotationIndex') || '0');
         
-        if (nextCity) {
-            console.log(`📍 Próxima ciudad: ${nextCity.name} (faltan ${Math.abs(nextCity.hoursSinceMidnight).toFixed(1)} horas)`);
-            // Actualizar a la próxima ciudad si está muy cerca (menos de 2 horas)
-            if (Math.abs(nextCity.hoursSinceMidnight) < 2 && nextCity.name !== state.location) {
-                console.log(`📍 Actualizando a próxima ciudad cercana: ${nextCity.name}`);
-                syncLocation(nextCity.name);
-            }
-        }
+        // Ordenar ciudades por proximidad a medianoche (más cercanas primero)
+        citiesStatus.sort((a, b) => Math.abs(a.hoursSinceMidnight) - Math.abs(b.hoursSinceMidnight));
+        
+        // Rotar al siguiente índice cada vez
+        rotationIndex = (rotationIndex + 1) % citiesStatus.length;
+        localStorage.setItem('locationRotationIndex', rotationIndex.toString());
+        
+        targetCity = citiesStatus[rotationIndex];
+    }
+    
+    // Actualizar ubicación si es diferente
+    if (targetCity && targetCity.name !== state.location) {
+        console.log(`📍 Actualizando ubicación a: ${targetCity.name} (${targetCity.hoursSinceMidnight >= 0 ? 'pasó' : 'faltan'} ${Math.abs(targetCity.hoursSinceMidnight).toFixed(1)} horas)`);
+        syncLocation(targetCity.name);
     }
 }
 
@@ -3343,12 +3407,17 @@ function init() {
     // Si falla, usar lógica basada en medianoche del 25 de diciembre
     setInterval(() => {
         tryExtractTrackerLocation();
-    }, 30000); // Cada 30 segundos (más frecuente para detectar cambios)
+    }, 300000); // Cada 5 minutos para rotación más visible
     
     // También actualizar inmediatamente al iniciar
     setTimeout(() => {
         tryExtractTrackerLocation();
     }, 2000);
+    
+    // Actualizar ubicación cada 5 minutos para rotación constante
+    setInterval(() => {
+        updateLocationBasedOnChristmasMidnight();
+    }, 300000); // Cada 5 minutos
     
     // Inicializar interacción del público
     initPublicInteraction();

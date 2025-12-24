@@ -87,7 +87,7 @@ body {
                 0 0 30px rgba(220, 53, 69, 0.2);
     backdrop-filter: blur(5px);
     pointer-events: auto; /* Permite interacción con el panel */
-    z-index: 99; /* Justo debajo del footer (z-index: 100) */
+    z-index: 40; /* Debajo del chat (z-index: 100) y panel de ciudad (z-index: 50) */
 }
 
 .panel-header {
