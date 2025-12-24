@@ -1333,7 +1333,8 @@ body.shaking {
         display: block !important;
         max-width: 280px;
         bottom: 120px;
-        right: 20px;
+        left: 20px;
+        right: auto;
     }
 }
 
@@ -1419,8 +1420,8 @@ body.shaking {
         max-width: calc(100% - 40px);
         width: auto;
         top: 100px;
-        right: 20px;
-        left: auto;
+        left: 20px;
+        right: auto;
     }
 
     .panel-header h1 {
