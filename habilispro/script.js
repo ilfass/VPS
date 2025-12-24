@@ -1644,11 +1644,13 @@ function getSantaCurrentCoordinates() {
 // Estado de la cuenta regresiva
 let countdownState = {
     targetTime: null,
-    intervalId: null
+    intervalId: null,
+    lastDistance: null,
+    lastSpeed: null
 };
 
 /**
- * Inicia la cuenta regresiva
+ * Inicia o actualiza la cuenta regresiva
  */
 function startCountdown(distance, speed) {
     const countdownEl = document.getElementById('userCityCountdown');
@@ -1656,27 +1658,42 @@ function startCountdown(distance, speed) {
     
     if (!distance || distance <= 0 || !speed || speed <= 0) {
         countdownEl.textContent = '--:--:--';
+        if (countdownState.intervalId) {
+            clearInterval(countdownState.intervalId);
+            countdownState.intervalId = null;
+        }
         return;
     }
     
-    // Calcular tiempo total en segundos
-    const totalSeconds = Math.floor((distance / speed) * 3600);
+    // Solo reiniciar si la distancia cambió significativamente (más del 5%)
+    const distanceChanged = !countdownState.lastDistance || 
+                           Math.abs(distance - countdownState.lastDistance) > (countdownState.lastDistance * 0.05);
+    const speedChanged = !countdownState.lastSpeed || 
+                        Math.abs(speed - countdownState.lastSpeed) > (countdownState.lastSpeed * 0.1);
     
-    // Establecer tiempo objetivo
-    countdownState.targetTime = Date.now() + (totalSeconds * 1000);
-    
-    // Limpiar intervalo anterior si existe
-    if (countdownState.intervalId) {
-        clearInterval(countdownState.intervalId);
-    }
-    
-    // Actualizar inmediatamente
-    updateCountdownDisplay();
-    
-    // Actualizar cada segundo
-    countdownState.intervalId = setInterval(() => {
+    // Si no hay cuenta regresiva activa o cambió significativamente, reiniciar
+    if (!countdownState.targetTime || distanceChanged || speedChanged) {
+        // Calcular tiempo total en segundos
+        const totalSeconds = Math.floor((distance / speed) * 3600);
+        
+        // Establecer tiempo objetivo
+        countdownState.targetTime = Date.now() + (totalSeconds * 1000);
+        countdownState.lastDistance = distance;
+        countdownState.lastSpeed = speed;
+        
+        // Limpiar intervalo anterior si existe
+        if (countdownState.intervalId) {
+            clearInterval(countdownState.intervalId);
+        }
+        
+        // Actualizar inmediatamente
         updateCountdownDisplay();
-    }, 1000);
+        
+        // Actualizar cada segundo
+        countdownState.intervalId = setInterval(() => {
+            updateCountdownDisplay();
+        }, 1000);
+    }
 }
 
 /**
