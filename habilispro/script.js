@@ -4116,17 +4116,6 @@ function initChristmasNarration() {
         
         // Reproducir con text-to-speech
         if ('speechSynthesis' in window) {
-            // Verificar si el usuario ha interactuado (requerido por el navegador)
-            if (!userInteracted) {
-                console.warn('⚠️ Esperando interacción del usuario para reproducir narración...');
-                // Mostrar el texto aunque no se pueda reproducir
-                setTimeout(() => {
-                    narration.style.display = 'none';
-                }, 30000);
-                lastNarrationTime = Date.now();
-                return;
-            }
-            
             // Asegurar que las voces estén cargadas
             if (!voicesLoaded) {
                 loadVoices();
