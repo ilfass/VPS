@@ -4010,17 +4010,49 @@ const CHRISTMAS_NARRATIONS = [
 function initChristmasNarration() {
     const narration = document.getElementById('christmasNarration');
     const narrationContent = document.getElementById('narrationContent');
-    if (!narration || !narrationContent) return;
+    if (!narration || !narrationContent) {
+        console.warn('⚠️ Elementos de narración no encontrados');
+        return;
+    }
     
     let narrationIndex = 0;
     let lastNarrationTime = 0;
+    let voicesLoaded = false;
+    
+    // Función para cargar voces
+    const loadVoices = () => {
+        if ('speechSynthesis' in window) {
+            const voices = speechSynthesis.getVoices();
+            if (voices.length > 0) {
+                voicesLoaded = true;
+                console.log('✅ Voces cargadas:', voices.length);
+                return true;
+            }
+        }
+        return false;
+    };
+    
+    // Intentar cargar voces inmediatamente
+    if (loadVoices()) {
+        voicesLoaded = true;
+    }
+    
+    // Escuchar cuando las voces estén disponibles
+    if ('speechSynthesis' in window) {
+        speechSynthesis.onvoiceschanged = () => {
+            voicesLoaded = loadVoices();
+        };
+    }
     
     const playNarration = () => {
         const now = Date.now();
         const fifteenMinutes = 15 * 60 * 1000; // 15 minutos en milisegundos
         
-        // Verificar si han pasado 15 minutos desde la última narración
-        if (now - lastNarrationTime < fifteenMinutes) {
+        // Para la primera narración, no verificar el tiempo
+        const isFirstNarration = lastNarrationTime === 0;
+        
+        // Verificar si han pasado 15 minutos desde la última narración (excepto la primera)
+        if (!isFirstNarration && now - lastNarrationTime < fifteenMinutes) {
             return;
         }
         
@@ -4028,47 +4060,79 @@ function initChristmasNarration() {
         const narrationText = CHRISTMAS_NARRATIONS[narrationIndex % CHRISTMAS_NARRATIONS.length];
         narrationIndex++;
         
+        console.log('🎤 Reproduciendo narración:', narrationText.substring(0, 50) + '...');
+        
         // Actualizar contenido
         narrationContent.textContent = narrationText;
         narration.style.display = 'block';
         
         // Reproducir con text-to-speech
         if ('speechSynthesis' in window) {
+            // Asegurar que las voces estén cargadas
+            if (!voicesLoaded) {
+                loadVoices();
+            }
+            
             // Cancelar cualquier narración anterior
             speechSynthesis.cancel();
             
-            const utterance = new SpeechSynthesisUtterance(narrationText);
-            utterance.lang = 'es-ES';
-            utterance.rate = 0.85; // Velocidad cómoda para escuchar
-            utterance.pitch = 1;
-            utterance.volume = 0.8;
-            
-            // Intentar usar voz en español
-            const voices = speechSynthesis.getVoices();
-            const spanishVoice = voices.find(v => v.lang.includes('es')) || voices[0];
-            if (spanishVoice) {
-                utterance.voice = spanishVoice;
-            }
-            
-            speechSynthesis.speak(utterance);
-            
-            // Actualizar tiempo de última narración
-            lastNarrationTime = now;
-            
-            // Ocultar cuando termine
-            utterance.onend = () => {
-                setTimeout(() => {
-                    narration.style.display = 'none';
-                }, 2000);
-            };
-            
-            utterance.onerror = () => {
-                // Si hay error, ocultar después de un tiempo
-                setTimeout(() => {
-                    narration.style.display = 'none';
-                }, 5000);
-            };
+            // Esperar un poco para asegurar que las voces estén listas
+            setTimeout(() => {
+                const utterance = new SpeechSynthesisUtterance(narrationText);
+                utterance.lang = 'es-ES';
+                utterance.rate = 0.85; // Velocidad cómoda para escuchar
+                utterance.pitch = 1;
+                utterance.volume = 0.8;
+                
+                // Intentar usar voz en español
+                const voices = speechSynthesis.getVoices();
+                console.log('🔊 Voces disponibles:', voices.length);
+                
+                const spanishVoice = voices.find(v => v.lang.includes('es')) || voices[0];
+                if (spanishVoice) {
+                    utterance.voice = spanishVoice;
+                    console.log('✅ Usando voz:', spanishVoice.name, spanishVoice.lang);
+                } else {
+                    console.warn('⚠️ No se encontró voz en español, usando voz por defecto');
+                }
+                
+                // Eventos de depuración
+                utterance.onstart = () => {
+                    console.log('▶️ Narración iniciada');
+                };
+                
+                utterance.onend = () => {
+                    console.log('✅ Narración completada');
+                    setTimeout(() => {
+                        narration.style.display = 'none';
+                    }, 2000);
+                };
+                
+                utterance.onerror = (event) => {
+                    console.error('❌ Error en narración:', event.error);
+                    setTimeout(() => {
+                        narration.style.display = 'none';
+                    }, 5000);
+                };
+                
+                // Actualizar tiempo de última narración
+                lastNarrationTime = Date.now();
+                
+                // Reproducir
+                try {
+                    speechSynthesis.speak(utterance);
+                    console.log('🎤 Comando de reproducción enviado');
+                } catch (error) {
+                    console.error('❌ Error al reproducir:', error);
+                    // Si hay error, mostrar por 30 segundos
+                    setTimeout(() => {
+                        narration.style.display = 'none';
+                    }, 30000);
+                    lastNarrationTime = Date.now();
+                }
+            }, 100);
         } else {
+            console.warn('⚠️ speechSynthesis no disponible');
             // Si no hay TTS, mostrar por 30 segundos
             setTimeout(() => {
                 narration.style.display = 'none';
@@ -4077,10 +4141,11 @@ function initChristmasNarration() {
         }
     };
     
-    // Reproducir primera narración después de 30 segundos
+    // Reproducir primera narración después de 3 segundos (mensaje de bienvenida)
     setTimeout(() => {
+        console.log('🎅 Iniciando narración de bienvenida...');
         playNarration();
-    }, 30000);
+    }, 3000);
     
     // Verificar cada minuto si es hora de reproducir otra narración
     setInterval(() => {
