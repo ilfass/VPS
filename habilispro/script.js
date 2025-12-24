@@ -3334,9 +3334,15 @@ function init() {
     }, 10000); // Cada 10 segundos
     
     // Intentar extraer ubicación del tracker de Google periódicamente
+    // Si falla, usar lógica basada en medianoche del 25 de diciembre
     setInterval(() => {
         tryExtractTrackerLocation();
-    }, 5000); // Cada 5 segundos
+    }, 30000); // Cada 30 segundos (más frecuente para detectar cambios)
+    
+    // También actualizar inmediatamente al iniciar
+    setTimeout(() => {
+        tryExtractTrackerLocation();
+    }, 2000);
     
     // Inicializar interacción del público
     initPublicInteraction();
