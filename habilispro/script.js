@@ -3647,6 +3647,16 @@ function playSound(type = 'notification') {
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
             oscillator.start(audioContext.currentTime);
             oscillator.stop(audioContext.currentTime + 1);
+        } else if (type === 'alert') {
+            // Sonido estridente de alerta
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.2);
+            oscillator.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.4);
+            gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.6);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.6);
         } else if (type === 'expand') {
             // Sonido de expansión
             oscillator.frequency.setValueAtTime(220, audioContext.currentTime);
@@ -4093,22 +4103,18 @@ if ('speechSynthesis' in window) {
  * Inicializa la celebración cada hora
  */
 function initHourlyCelebration() {
+    let lastCelebratedHour = -1;
+    
     const checkHourlyCelebration = () => {
         const now = new Date();
         const minutes = now.getMinutes();
         const seconds = now.getSeconds();
+        const currentHour = now.getHours();
         
-        // Verificar si es el minuto 00 (inicio de hora)
-        if (minutes === 0 && seconds < 5) {
-            // Solo ejecutar una vez por hora
-            const lastCelebrationKey = 'lastHourlyCelebration';
-            const lastCelebration = localStorage.getItem(lastCelebrationKey);
-            const currentHour = now.getHours();
-            
-            if (lastCelebration !== currentHour.toString()) {
-                localStorage.setItem(lastCelebrationKey, currentHour.toString());
-                triggerHourlyCelebration();
-            }
+        // Verificar si es el minuto 00 (inicio de hora) y no hemos celebrado esta hora
+        if (minutes === 0 && seconds >= 0 && seconds < 10 && lastCelebratedHour !== currentHour) {
+            lastCelebratedHour = currentHour;
+            triggerHourlyCelebration();
         }
     };
     
@@ -4130,52 +4136,62 @@ function triggerHourlyCelebration() {
     
     if (!celebration || !celebrationMessage || !celebrationLocation) return;
     
-    // Obtener una ciudad aleatoria de las que pasaron las 00:00
-    const citiesWithTimezones = Object.entries(LOCATIONS_DATABASE);
     const now = new Date();
+    const currentHour = now.getHours();
     
-    const passedCities = citiesWithTimezones
-        .map(([cityName, timezone]) => {
-            try {
-                const formatter = new Intl.DateTimeFormat('en-US', {
-                    timeZone: timezone,
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                });
-                const parts = formatter.formatToParts(now);
-                const cityHour = parseInt(parts.find(p => p.type === 'hour').value);
-                const cityMinute = parseInt(parts.find(p => p.type === 'minute').value);
-                
-                // Ciudades que están en el minuto 00 de una hora
-                if (cityMinute === 0) {
-                    return cityName;
-                }
-            } catch (e) {
-                return null;
-            }
-        })
-        .filter(city => city !== null);
+    // Calcular tiempo restante para que Papá Noel llegue a la casa del usuario
+    let timeRemainingText = '';
+    if (state.userCoordinates) {
+        const santaCoords = getSantaCurrentCoordinates();
+        const distance = calculateDistance(
+            state.userCoordinates.lat,
+            state.userCoordinates.lng,
+            santaCoords.lat,
+            santaCoords.lng
+        );
+        const avgSpeed = state.speed || CONFIG.initialSpeed;
+        const hoursRemaining = distance / avgSpeed;
+        
+        if (hoursRemaining < 1) {
+            const minutes = Math.floor(hoursRemaining * 60);
+            timeRemainingText = `¡Solo faltan ${minutes} minutos para que Papá Noel llegue a tu casa! 🎁`;
+        } else if (hoursRemaining < 24) {
+            const hours = Math.floor(hoursRemaining);
+            const minutes = Math.floor((hoursRemaining % 1) * 60);
+            timeRemainingText = `¡Solo faltan ${hours} hora${hours > 1 ? 's' : ''} y ${minutes} minuto${minutes !== 1 ? 's' : ''} para que Papá Noel llegue a tu casa! 🎁`;
+        } else {
+            const days = Math.floor(hoursRemaining / 24);
+            timeRemainingText = `¡Faltan ${days} día${days > 1 ? 's' : ''} para que Papá Noel llegue a tu casa! 🎁`;
+        }
+    } else {
+        timeRemainingText = '¡Cada hora que pasa, Papá Noel está más cerca de tu casa! 🎁';
+    }
     
-    const selectedCity = passedCities.length > 0 
-        ? passedCities[Math.floor(Math.random() * passedCities.length)]
-        : 'alrededor del mundo';
+    // Configurar mensaje destacado
+    celebrationMessage.innerHTML = `
+        <div class="celebration-hour">¡Nueva Hora Cumplida! ⏰</div>
+        <div class="celebration-main-message">🎅 ¡Se cumplió una nueva hora! 🎅</div>
+        <div class="celebration-time-remaining">${timeRemainingText}</div>
+    `;
     
-    // Configurar mensaje
-    celebrationMessage.textContent = '🎅 ¡Papá Noel acaba de llegar!';
-    celebrationLocation.textContent = `📍 ${selectedCity}`;
+    // Obtener hora actual formateada
+    const hourFormatted = String(currentHour).padStart(2, '0') + ':00';
+    celebrationLocation.innerHTML = `🕐 Hora actual: ${hourFormatted}`;
     
-    // Crear fuegos artificiales
-    createFireworks(fireworksContainer);
+    // Crear fuegos artificiales intensos
+    createIntenseFireworks(fireworksContainer);
     
-    // Reproducir sonido de campanita
-    playSound('bell');
+    // Agregar destellos en toda la página
+    createScreenFlashes();
+    
+    // Reproducir múltiples sonidos (campanas y sonidos estridentes)
+    playMultipleSounds();
     
     // Mostrar celebración
     celebration.style.display = 'flex';
     celebration.classList.add('show');
     
-    // Ocultar después de 8 segundos
+    // Ocultar después de 10 segundos
     setTimeout(() => {
         celebration.classList.remove('show');
         setTimeout(() => {
@@ -4183,32 +4199,89 @@ function triggerHourlyCelebration() {
             if (fireworksContainer) {
                 fireworksContainer.innerHTML = '';
             }
+            // Limpiar destellos
+            const flashes = document.querySelectorAll('.screen-flash');
+            flashes.forEach(flash => flash.remove());
         }, 1000);
-    }, 8000);
+    }, 10000);
 }
 
 /**
- * Crea efectos de fuegos artificiales
+ * Crea efectos de fuegos artificiales intensos
  */
-function createFireworks(container) {
+function createIntenseFireworks(container) {
     if (!container) return;
     
     container.innerHTML = '';
     
-    // Crear múltiples fuegos artificiales
-    for (let i = 0; i < 20; i++) {
+    // Crear muchos más fuegos artificiales con colores variados
+    const colors = ['#ffc107', '#ff0000', '#00ff00', '#00ffff', '#ff00ff', '#ffff00'];
+    
+    for (let i = 0; i < 50; i++) {
         setTimeout(() => {
             const firework = document.createElement('div');
             firework.className = 'firework';
             firework.style.left = Math.random() * 100 + '%';
             firework.style.top = Math.random() * 100 + '%';
             firework.style.animationDelay = Math.random() * 0.5 + 's';
+            firework.style.background = colors[Math.floor(Math.random() * colors.length)];
+            firework.style.boxShadow = `
+                0 0 10px ${colors[Math.floor(Math.random() * colors.length)]},
+                0 0 20px ${colors[Math.floor(Math.random() * colors.length)]},
+                0 0 30px ${colors[Math.floor(Math.random() * colors.length)]}
+            `;
             container.appendChild(firework);
             
             // Remover después de la animación
             setTimeout(() => {
                 firework.remove();
-            }, 2000);
-        }, i * 100);
+            }, 3000);
+        }, i * 50);
     }
+}
+
+/**
+ * Crea destellos en toda la pantalla
+ */
+function createScreenFlashes() {
+    const body = document.body;
+    
+    // Crear múltiples destellos
+    for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+            const flash = document.createElement('div');
+            flash.className = 'screen-flash';
+            flash.style.position = 'fixed';
+            flash.style.top = '0';
+            flash.style.left = '0';
+            flash.style.width = '100%';
+            flash.style.height = '100%';
+            flash.style.background = 'rgba(255, 255, 255, 0.8)';
+            flash.style.pointerEvents = 'none';
+            flash.style.zIndex = '9999';
+            flash.style.animation = 'flashPulse 0.3s ease-out';
+            body.appendChild(flash);
+            
+            setTimeout(() => {
+                flash.remove();
+            }, 300);
+        }, i * 200);
+    }
+}
+
+/**
+ * Reproduce múltiples sonidos (campanas y sonidos estridentes)
+ */
+function playMultipleSounds() {
+    // Reproducir campanita múltiples veces
+    for (let i = 0; i < 3; i++) {
+        setTimeout(() => {
+            playSound('bell');
+        }, i * 300);
+    }
+    
+    // Reproducir sonido estridente después de las campanas
+    setTimeout(() => {
+        playSound('alert');
+    }, 1000);
 }

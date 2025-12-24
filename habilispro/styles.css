@@ -2234,10 +2234,20 @@ body.shaking {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.85);
     opacity: 0;
     transition: opacity 0.5s ease;
     pointer-events: none;
+    animation: celebrationBackgroundPulse 2s infinite;
+}
+
+@keyframes celebrationBackgroundPulse {
+    0%, 100% {
+        background: rgba(0, 0, 0, 0.85);
+    }
+    50% {
+        background: rgba(20, 40, 60, 0.9);
+    }
 }
 
 .hourly-celebration.show {
@@ -2277,6 +2287,89 @@ body.shaking {
         0 4px 10px rgba(0, 0, 0, 0.8);
     margin-bottom: 15px;
     animation: celebrationGlow 1s infinite;
+}
+
+.celebration-hour {
+    font-size: 36px;
+    font-weight: 800;
+    color: #ffffff;
+    text-shadow: 
+        0 0 15px rgba(255, 255, 255, 1),
+        0 0 30px rgba(255, 255, 255, 0.8),
+        0 0 45px rgba(255, 255, 255, 0.6),
+        0 2px 8px rgba(0, 0, 0, 0.8);
+    margin-bottom: 20px;
+    animation: celebrationPulse 0.8s infinite;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+}
+
+.celebration-main-message {
+    font-size: 64px;
+    font-weight: 900;
+    color: #ffc107;
+    text-shadow: 
+        0 0 25px rgba(255, 193, 7, 1),
+        0 0 50px rgba(255, 193, 7, 0.9),
+        0 0 75px rgba(255, 193, 7, 0.7),
+        0 0 100px rgba(255, 193, 7, 0.5),
+        0 4px 15px rgba(0, 0, 0, 0.9);
+    margin-bottom: 25px;
+    animation: celebrationGlow 0.6s infinite;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+}
+
+.celebration-time-remaining {
+    font-size: 42px;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 
+        0 0 20px rgba(40, 167, 69, 0.9),
+        0 0 40px rgba(40, 167, 69, 0.7),
+        0 0 60px rgba(40, 167, 69, 0.5),
+        0 3px 12px rgba(0, 0, 0, 0.8);
+    margin-top: 20px;
+    animation: celebrationShake 0.5s infinite;
+    padding: 20px;
+    background: rgba(40, 167, 69, 0.2);
+    border-radius: 15px;
+    border: 3px solid rgba(40, 167, 69, 0.6);
+}
+
+@keyframes celebrationPulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.9;
+    }
+}
+
+@keyframes celebrationShake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-5px);
+    }
+    75% {
+        transform: translateX(5px);
+    }
+}
+
+@keyframes flashPulse {
+    0% {
+        opacity: 0;
+    }
+    50% {
+        opacity: 0.9;
+    }
+    100% {
+        opacity: 0;
+    }
 }
 
 @keyframes celebrationGlow {
