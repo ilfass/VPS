@@ -2504,7 +2504,18 @@ function initPublicInteraction() {
  * Solicita el nombre del usuario
  */
 function requestUserName() {
+    console.log('🔍 requestUserName() llamado');
+    
+    // Verificar si ya hay un nombre guardado
+    const savedName = localStorage.getItem('santaTracker_userName');
+    if (savedName) {
+        state.userName = savedName;
+        console.log(`👋 Nombre recuperado de localStorage: ${state.userName}`);
+        return state.userName;
+    }
+    
     // Siempre preguntar el nombre al ingresar (no usar localStorage para forzar pregunta)
+    console.log('📝 Solicitando nombre al usuario...');
     const name = prompt('🎅 ¡Hola! ¿Cuál es tu nombre?\n\n(Puedes dejarlo en blanco si prefieres mantenerte anónimo)');
     
     if (name && name.trim() !== '') {
@@ -2588,13 +2599,17 @@ async function getCityNameFromCoordinates(lat, lng) {
  * Solicita la ciudad del usuario manualmente
  */
 function requestUserCity() {
+    console.log('🔍 requestUserCity() llamado');
+    
     const savedCity = localStorage.getItem('santaTracker_userCity');
     if (savedCity) {
         state.userCity = savedCity;
+        console.log(`🏙️ Ciudad recuperada de localStorage: ${state.userCity}`);
         updateUserCityPanel();
         return;
     }
     
+    console.log('📝 Solicitando ciudad al usuario...');
     const city = prompt('🏙️ ¿En qué ciudad vives?\n\n(Ejemplo: Madrid, España o Buenos Aires, Argentina)');
     
     if (city && city.trim() !== '') {
@@ -2602,6 +2617,8 @@ function requestUserCity() {
         localStorage.setItem('santaTracker_userCity', state.userCity);
         updateUserCityPanel();
         console.log('🏙️ Ciudad guardada:', state.userCity);
+    } else {
+        console.warn('⚠️ No se proporcionó ciudad');
     }
 }
 
@@ -3452,6 +3469,8 @@ function unmuteTracker() {
  * Inicializa la personalización del usuario
  */
 function initUserPersonalization() {
+    console.log('🎯 initUserPersonalization() iniciado');
+    
     // Solicitar nombre
     const userName = requestUserName();
     
@@ -3461,7 +3480,16 @@ function initUserPersonalization() {
     }
     
     // Intentar obtener ubicación
+    console.log('📍 Intentando obtener ubicación del usuario...');
     getUserLocation();
+    
+    // Si después de 5 segundos no se obtuvo la ciudad, solicitar manualmente
+    setTimeout(() => {
+        if (!state.userCity) {
+            console.log('⏰ Timeout: solicitando ciudad manualmente');
+            requestUserCity();
+        }
+    }, 5000);
     
     // Actualizar panel cada 10 segundos (más frecuente para cuenta regresiva)
     setInterval(() => {
