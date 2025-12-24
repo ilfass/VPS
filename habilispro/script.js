@@ -2937,9 +2937,39 @@ function startCountdownForPanel(distance, speed, countdownEl) {
     countdownEl.dataset.lastSpeed = speed.toString();
     
     const updateCountdown = () => {
-        // Recalcular dinámicamente basándose en distancia y velocidad actuales
-        const currentDistance = parseFloat(countdownEl.dataset.lastDistance || distance);
-        const currentSpeed = parseFloat(countdownEl.dataset.lastSpeed || speed);
+        // Recalcular distancia y velocidad en tiempo real
+        let currentDistance = parseFloat(countdownEl.dataset.lastDistance || distance);
+        let currentSpeed = parseFloat(countdownEl.dataset.lastSpeed || speed);
+        
+        // Identificar el panel para recalcular desde coordenadas
+        const panel = countdownEl.closest('.user-city-panel, .random-city-panel');
+        if (panel) {
+            if (panel.classList.contains('user-city-panel') && state.userCoordinates) {
+                // Recalcular distancia para ciudad del usuario
+                const santaCoords = getSantaCurrentCoordinates();
+                currentDistance = calculateDistance(
+                    state.userCoordinates.lat,
+                    state.userCoordinates.lng,
+                    santaCoords.lat,
+                    santaCoords.lng
+                );
+                currentSpeed = state.speed || CONFIG.initialSpeed;
+            } else if (panel.classList.contains('random-city-panel') && currentRandomCity) {
+                // Recalcular distancia para ciudad aleatoria
+                const santaCoords = getSantaCurrentCoordinates();
+                currentDistance = calculateDistance(
+                    currentRandomCity.lat,
+                    currentRandomCity.lng,
+                    santaCoords.lat,
+                    santaCoords.lng
+                );
+                currentSpeed = state.speed || CONFIG.initialSpeed;
+            }
+        }
+        
+        // Actualizar valores guardados
+        countdownEl.dataset.lastDistance = currentDistance.toString();
+        countdownEl.dataset.lastSpeed = currentSpeed.toString();
         
         if (!currentDistance || currentDistance <= 0 || !currentSpeed || currentSpeed <= 0) {
             countdownEl.textContent = '--:--:--';
@@ -2948,12 +2978,13 @@ function startCountdownForPanel(distance, speed, countdownEl) {
         
         // Calcular tiempo en horas
         const hoursRemaining = currentDistance / currentSpeed;
-        const totalSeconds = Math.floor(hoursRemaining * 3600);
+        const totalSeconds = Math.max(0, Math.floor(hoursRemaining * 3600));
         
         if (totalSeconds <= 0) {
             countdownEl.textContent = '00:00:00';
             if (countdownEl.dataset.intervalId) {
                 clearInterval(parseInt(countdownEl.dataset.intervalId));
+                countdownEl.dataset.intervalId = '';
             }
             return;
         }
