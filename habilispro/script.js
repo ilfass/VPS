@@ -1343,17 +1343,44 @@ function updateLocationBasedOnChristmasMidnight() {
         // Ordenar ciudades por proximidad a medianoche (más cercanas primero)
         citiesStatus.sort((a, b) => Math.abs(a.hoursSinceMidnight) - Math.abs(b.hoursSinceMidnight));
         
-        // Rotar al siguiente índice cada vez
+        // Rotar al siguiente índice cada vez, incluso si es la misma ciudad
+        // Esto fuerza la rotación
         rotationIndex = (rotationIndex + 1) % citiesStatus.length;
         localStorage.setItem('locationRotationIndex', rotationIndex.toString());
         
         targetCity = citiesStatus[rotationIndex];
+        
+        // Si la ciudad seleccionada es la misma que la actual, forzar cambio a la siguiente
+        if (targetCity.name === state.location && citiesStatus.length > 1) {
+            rotationIndex = (rotationIndex + 1) % citiesStatus.length;
+            localStorage.setItem('locationRotationIndex', rotationIndex.toString());
+            targetCity = citiesStatus[rotationIndex];
+        }
     }
     
     // Actualizar ubicación si es diferente
-    if (targetCity && targetCity.name !== state.location) {
-        console.log(`📍 Actualizando ubicación a: ${targetCity.name} (${targetCity.hoursSinceMidnight >= 0 ? 'pasó' : 'faltan'} ${Math.abs(targetCity.hoursSinceMidnight).toFixed(1)} horas)`);
-        syncLocation(targetCity.name);
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateLocationBasedOnChristmasMidnight',message:'Evaluando actualización de ubicación',data:{targetCity:targetCity?.name,currentLocation:state.location,passedCitiesCount:passedCities.length,nearbyCitiesCount:nearbyCities.length,allCitiesCount:citiesStatus.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    
+    if (targetCity) {
+        if (targetCity.name !== state.location) {
+            console.log(`📍 Actualizando ubicación a: ${targetCity.name} (${targetCity.hoursSinceMidnight >= 0 ? 'pasó' : 'faltan'} ${Math.abs(targetCity.hoursSinceMidnight).toFixed(1)} horas)`);
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateLocationBasedOnChristmasMidnight',message:'Actualizando ubicación',data:{from:state.location,to:targetCity.name,hoursSinceMidnight:targetCity.hoursSinceMidnight},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
+            syncLocation(targetCity.name);
+        } else {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateLocationBasedOnChristmasMidnight',message:'Ubicación no cambia - misma ciudad',data:{currentLocation:state.location,targetCity:targetCity.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
+            console.log(`📍 Ubicación actual ya es: ${targetCity.name} - no se actualiza`);
+        }
+    } else {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateLocationBasedOnChristmasMidnight',message:'No se encontró ciudad objetivo',data:{passedCitiesCount:passedCities.length,nearbyCitiesCount:nearbyCities.length,allCitiesCount:citiesStatus.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
+        console.warn('⚠️ No se encontró ciudad objetivo para actualizar');
     }
 }
 
@@ -3414,10 +3441,21 @@ function init() {
         tryExtractTrackerLocation();
     }, 2000);
     
-    // Actualizar ubicación cada 5 minutos para rotación constante
+    // Actualizar ubicación cada 2 minutos para rotación más frecuente
     setInterval(() => {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:init',message:'Ejecutando actualización periódica de ubicación',data:{currentLocation:state.location},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
         updateLocationBasedOnChristmasMidnight();
-    }, 300000); // Cada 5 minutos
+    }, 120000); // Cada 2 minutos (más frecuente)
+    
+    // También actualizar inmediatamente al iniciar
+    setTimeout(() => {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:init',message:'Ejecutando actualización inicial de ubicación',data:{currentLocation:state.location},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+        // #endregion
+        updateLocationBasedOnChristmasMidnight();
+    }, 3000);
     
     // Inicializar interacción del público
     initPublicInteraction();
