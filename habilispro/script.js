@@ -186,42 +186,42 @@ const EVENTS_DATABASE = [
 // ============================================
 
 const SANTA_MESSAGES = [
-    // Mensajes con referencia al canal
+    // Mensajes con referencia a Instagram
     {
         type: 'youtube',
         message: '¡Hola a todos! 🎅',
-        subtitle: 'No olviden suscribirse a @fabiandeharo para más contenido navideño',
+        subtitle: '¡Sígueme en Instagram para más contenido navideño! 📸',
         includeNames: false
     },
     {
         type: 'youtube',
         message: '¡Feliz Navidad! 🎄',
-        subtitle: 'Si te gusta este contenido, suscríbete a @fabiandeharo en YouTube',
+        subtitle: '¡Sígueme en Instagram ¡Sígueme en Instagram! 📸 para más sorpresas! 📸',
         includeNames: false
     },
     {
         type: 'youtube',
         message: '¡Gracias por acompañarme! 🎁',
-        subtitle: 'Suscríbete a @fabiandeharo para no perderte nada',
+        subtitle: '¡No te pierdas nada, sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'youtube',
         message: '¡Estoy entregando regalos! 🎅',
-        subtitle: 'Mientras tanto, suscríbete a @fabiandeharo en YouTube',
+        subtitle: '¡Sígueme en Instagram para más aventuras! 📸',
         includeNames: false
     },
     {
         type: 'youtube',
         message: '¡Qué gran comunidad! ❤️',
-        subtitle: 'Únete a @fabiandeharo y activa la campanita 🔔',
+        subtitle: '¡Sígueme en Instagram ¡Sígueme en Instagram! 📸! 📸',
         includeNames: false
     },
     // Mensajes con saludos a usuarios del chat
     {
         type: 'greeting',
         message: '¡Hola {names}! 🎅',
-        subtitle: '¡Gracias por estar aquí! No olviden suscribirse a @fabiandeharo',
+        subtitle: '¡Gracias por estar aquí! ¡Sígueme en Instagram! 📸',
         includeNames: true,
         minNames: 1,
         maxNames: 3
@@ -229,7 +229,7 @@ const SANTA_MESSAGES = [
     {
         type: 'greeting',
         message: '¡Saludos especiales a {names}! 🎄',
-        subtitle: '¡Feliz Navidad! Suscríbete a @fabiandeharo para más sorpresas',
+        subtitle: '¡Feliz Navidad! ¡Sígueme en Instagram ¡Sígueme en Instagram! 📸! 📸',
         includeNames: true,
         minNames: 2,
         maxNames: 4
@@ -237,7 +237,7 @@ const SANTA_MESSAGES = [
     {
         type: 'greeting',
         message: '¡Un abrazo navideño para {names}! 🎁',
-        subtitle: '¡Gracias por seguir el viaje! @fabiandeharo en YouTube',
+        subtitle: '¡Gracias por seguir el viaje! ¡Sígueme en Instagram! 📸',
         includeNames: true,
         minNames: 1,
         maxNames: 2
@@ -245,7 +245,7 @@ const SANTA_MESSAGES = [
     {
         type: 'greeting',
         message: '¡{names}, ustedes son increíbles! ❤️',
-        subtitle: 'Suscríbete a @fabiandeharo y activa las notificaciones 🔔',
+        subtitle: '¡Sígueme en Instagram ¡Sígueme en Instagram! 📸 para más contenido! 📸',
         includeNames: true,
         minNames: 1,
         maxNames: 3
@@ -254,19 +254,19 @@ const SANTA_MESSAGES = [
     {
         type: 'general',
         message: '¡Sigo mi ruta alrededor del mundo! 🌍',
-        subtitle: 'Acompáñame y suscríbete a @fabiandeharo',
+        subtitle: '¡Acompáñame y sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'general',
         message: '¡Millones de regalos por entregar! 🎅',
-        subtitle: '¡Qué noche tan especial! @fabiandeharo en YouTube',
+        subtitle: '¡Qué noche tan especial! ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'general',
         message: '¡Los renos están volando perfecto! 🦌',
-        subtitle: '¡Gracias por seguir el viaje! Suscríbete a @fabiandeharo',
+        subtitle: '¡Gracias por seguir el viaje! ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     // ============================================
@@ -275,25 +275,25 @@ const SANTA_MESSAGES = [
     {
         type: 'country',
         message: '¡Feliz Navidad desde España! 🇪🇸',
-        subtitle: 'Aquí celebramos con turrones y cava. ¡Suscríbete a @fabiandeharo!',
+        subtitle: 'Aquí celebramos con turrones y cava. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Nochebuena en España! 🎄',
-        subtitle: 'Las familias se reúnen para la cena. @fabiandeharo en YouTube',
+        subtitle: 'Las familias se reúnen para la cena. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Los Reyes Magos están llegando! 👑',
-        subtitle: 'En España celebramos el 6 de enero. Suscríbete a @fabiandeharo',
+        subtitle: 'En España celebramos el 6 de enero. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Madrid! 🏛️',
-        subtitle: 'Luces navideñas iluminan las calles. @fabiandeharo',
+        subtitle: 'Luces navideñas iluminan las calles. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     // ============================================
@@ -302,61 +302,61 @@ const SANTA_MESSAGES = [
     {
         type: 'country',
         message: '¡Navidad en Argentina! 🇦🇷',
-        subtitle: 'Celebramos con asado y pan dulce. ¡Suscríbete a @fabiandeharo!',
+        subtitle: 'Celebramos con asado y pan dulce. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Feliz Navidad desde Brasil! 🇧🇷',
-        subtitle: 'Aquí es verano, pero el espíritu navideño está presente. @fabiandeharo',
+        subtitle: 'Aquí es verano, pero el espíritu navideño está presente. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Chile! 🇨🇱',
-        subtitle: 'Las familias se reúnen para la cena de Nochebuena. Suscríbete a @fabiandeharo',
+        subtitle: 'Las familias se reúnen para la cena de Nochebuena. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Colombia! 🇨🇴',
-        subtitle: 'Celebramos con natilla y buñuelos. ¡@fabiandeharo en YouTube!',
+        subtitle: 'Celebramos con natilla y buñuelos. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Feliz Navidad desde Perú! 🇵🇪',
-        subtitle: 'Panetón y chocolate caliente. Suscríbete a @fabiandeharo',
+        subtitle: 'Panetón y chocolate caliente. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Venezuela! 🇻🇪',
-        subtitle: 'Hallacas y pan de jamón en cada mesa. @fabiandeharo',
+        subtitle: 'Hallacas y pan de jamón en cada mesa. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Uruguay! 🇺🇾',
-        subtitle: 'Celebramos con fuegos artificiales. ¡Suscríbete a @fabiandeharo!',
+        subtitle: 'Celebramos con fuegos artificiales. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Paraguay! 🇵🇾',
-        subtitle: 'Chipa y sopa paraguaya. @fabiandeharo en YouTube',
+        subtitle: 'Chipa y sopa paraguaya. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Feliz Navidad desde Ecuador! 🇪🇨',
-        subtitle: 'Pristiños y buñuelos navideños. Suscríbete a @fabiandeharo',
+        subtitle: 'Pristiños y buñuelos navideños. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Bolivia! 🇧🇴',
-        subtitle: 'Picana y panetón en cada hogar. @fabiandeharo',
+        subtitle: 'Picana y panetón en cada hogar. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     // ============================================
@@ -365,49 +365,49 @@ const SANTA_MESSAGES = [
     {
         type: 'country',
         message: '¡Navidad en México! 🇲🇽',
-        subtitle: 'Posadas, piñatas y tamales. ¡Suscríbete a @fabiandeharo!',
+        subtitle: 'Posadas, piñatas y tamales. ¡¡Sígueme en Instagram! 📸!',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Feliz Navidad desde Guatemala! 🇬🇹',
-        subtitle: 'Celebramos con tamales y ponche. @fabiandeharo en YouTube',
+        subtitle: 'Celebramos con tamales y ponche. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Costa Rica! 🇨🇷',
-        subtitle: 'Tamales y rompope en cada mesa. Suscríbete a @fabiandeharo',
+        subtitle: 'Tamales y rompope en cada mesa. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Panamá! 🇵🇦',
-        subtitle: 'Celebramos con arroz con guandú. ¡@fabiandeharo!',
+        subtitle: 'Celebramos con arroz con guandú. ¡¡Sígueme en Instagram! 📸!',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Feliz Navidad desde Honduras! 🇭🇳',
-        subtitle: 'Torrejas y ponche navideño. Suscríbete a @fabiandeharo',
+        subtitle: 'Torrejas y ponche navideño. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en El Salvador! 🇸🇻',
-        subtitle: 'Tamales y panes con pollo. @fabiandeharo en YouTube',
+        subtitle: 'Tamales y panes con pollo. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Nicaragua! 🇳🇮',
-        subtitle: 'Nacatamales y cajeta de coco. ¡Suscríbete a @fabiandeharo!',
+        subtitle: 'Nacatamales y cajeta de coco. ¡¡Sígueme en Instagram! 📸!',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en República Dominicana! 🇩🇴',
-        subtitle: 'Cerdo asado y pasteles en hoja. @fabiandeharo',
+        subtitle: 'Cerdo asado y pasteles en hoja. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     // ============================================
@@ -416,43 +416,43 @@ const SANTA_MESSAGES = [
     {
         type: 'country',
         message: '¡Navidad en Estados Unidos! 🇺🇸',
-        subtitle: 'Cookies para Santa y decoraciones. Suscríbete a @fabiandeharo',
+        subtitle: 'Cookies para Santa y decoraciones. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Feliz Navidad desde Italia! 🇮🇹',
-        subtitle: 'Panettone y cena de Nochebuena. @fabiandeharo en YouTube',
+        subtitle: 'Panettone y cena de Nochebuena. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Francia! 🇫🇷',
-        subtitle: 'Bûche de Noël y foie gras. ¡Suscríbete a @fabiandeharo!',
+        subtitle: 'Bûche de Noël y foie gras. ¡¡Sígueme en Instagram! 📸!',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Alemania! 🇩🇪',
-        subtitle: 'Mercados navideños y stollen. @fabiandeharo',
+        subtitle: 'Mercados navideños y stollen. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Feliz Navidad desde Japón! 🇯🇵',
-        subtitle: 'KFC y pasteles de Navidad. Suscríbete a @fabiandeharo',
+        subtitle: 'KFC y pasteles de Navidad. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Australia! 🇦🇺',
-        subtitle: 'Navidad en verano con barbacoas. @fabiandeharo en YouTube',
+        subtitle: 'Navidad en verano con barbacoas. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'country',
         message: '¡Navidad en Finlandia! 🇫🇮',
-        subtitle: 'La casa de Papá Noel está aquí. ¡Suscríbete a @fabiandeharo!',
+        subtitle: 'La casa de Papá Noel está aquí. ¡¡Sígueme en Instagram! 📸!',
         includeNames: false
     },
     // ============================================
@@ -461,85 +461,85 @@ const SANTA_MESSAGES = [
     {
         type: 'greeting',
         message: '¡Feliz Navidad! 🎄',
-        subtitle: 'Que esta temporada esté llena de alegría. @fabiandeharo',
+        subtitle: 'Que esta temporada esté llena de alegría. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Feliz Navidad y Próspero Año Nuevo! 🎅',
-        subtitle: 'Deseos de paz y felicidad. Suscríbete a @fabiandeharo',
+        subtitle: 'Deseos de paz y felicidad. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Felices Fiestas! 🎁',
-        subtitle: 'Que la magia de la Navidad te acompañe. @fabiandeharo en YouTube',
+        subtitle: 'Que la magia de la Navidad te acompañe. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Noche de Paz! ✨',
-        subtitle: 'Que todos tengan una Navidad llena de amor. Suscríbete a @fabiandeharo',
+        subtitle: 'Que todos tengan una Navidad llena de amor. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Joyeux Noël! 🇫🇷',
-        subtitle: 'Feliz Navidad desde Francia. @fabiandeharo',
+        subtitle: 'Feliz Navidad desde Francia. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Buon Natale! 🇮🇹',
-        subtitle: 'Feliz Navidad desde Italia. ¡Suscríbete a @fabiandeharo!',
+        subtitle: 'Feliz Navidad desde Italia. ¡¡Sígueme en Instagram! 📸!',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Frohe Weihnachten! 🇩🇪',
-        subtitle: 'Feliz Navidad desde Alemania. @fabiandeharo en YouTube',
+        subtitle: 'Feliz Navidad desde Alemania. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Feliz Natal! 🇧🇷',
-        subtitle: 'Feliz Navidad desde Brasil. Suscríbete a @fabiandeharo',
+        subtitle: 'Feliz Navidad desde Brasil. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Merry Christmas! 🇺🇸',
-        subtitle: 'Feliz Navidad desde Estados Unidos. @fabiandeharo',
+        subtitle: 'Feliz Navidad desde Estados Unidos. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡God Jul! 🇸🇪',
-        subtitle: 'Feliz Navidad desde Suecia. ¡Suscríbete a @fabiandeharo!',
+        subtitle: 'Feliz Navidad desde Suecia. ¡¡Sígueme en Instagram! 📸!',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Hyvää Joulua! 🇫🇮',
-        subtitle: 'Feliz Navidad desde Finlandia. @fabiandeharo en YouTube',
+        subtitle: 'Feliz Navidad desde Finlandia. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡¡Feliz Navidad a todos!! 🎅🎄',
-        subtitle: 'Que esta sea una temporada especial. Suscríbete a @fabiandeharo',
+        subtitle: 'Que esta sea una temporada especial. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Que la paz y el amor reinen! ❤️',
-        subtitle: 'Feliz Navidad para todos. @fabiandeharo',
+        subtitle: 'Feliz Navidad para todos. ¡Sígueme en Instagram! 📸',
         includeNames: false
     },
     {
         type: 'greeting',
         message: '¡Brindemos por la Navidad! 🥂',
-        subtitle: 'Que todos tengan una noche mágica. ¡Suscríbete a @fabiandeharo!',
+        subtitle: 'Que todos tengan una noche mágica. ¡¡Sígueme en Instagram! 📸!',
         includeNames: false
     },
     // ============================================
@@ -548,7 +548,7 @@ const SANTA_MESSAGES = [
     {
         type: 'greeting',
         message: '¡{names}, Feliz Navidad desde España! 🇪🇸',
-        subtitle: 'Que disfruten de las tradiciones navideñas. @fabiandeharo',
+        subtitle: 'Que disfruten de las tradiciones navideñas. ¡Sígueme en Instagram! 📸',
         includeNames: true,
         minNames: 1,
         maxNames: 2
@@ -556,7 +556,7 @@ const SANTA_MESSAGES = [
     {
         type: 'greeting',
         message: '¡{names}, saludos desde Argentina! 🇦🇷',
-        subtitle: '¡Feliz Navidad! Suscríbete a @fabiandeharo',
+        subtitle: '¡Feliz Navidad! ¡Sígueme en Instagram! 📸',
         includeNames: true,
         minNames: 1,
         maxNames: 3
@@ -564,7 +564,7 @@ const SANTA_MESSAGES = [
     {
         type: 'greeting',
         message: '¡{names}, Feliz Navidad desde México! 🇲🇽',
-        subtitle: 'Que disfruten de las posadas. @fabiandeharo en YouTube',
+        subtitle: 'Que disfruten de las posadas. ¡Sígueme en Instagram! 📸',
         includeNames: true,
         minNames: 2,
         maxNames: 4
@@ -572,7 +572,7 @@ const SANTA_MESSAGES = [
     {
         type: 'greeting',
         message: '¡{names}, saludos navideños desde Colombia! 🇨🇴',
-        subtitle: '¡Que tengan una Navidad llena de alegría! Suscríbete a @fabiandeharo',
+        subtitle: '¡Que tengan una Navidad llena de alegría! ¡Sígueme en Instagram! 📸',
         includeNames: true,
         minNames: 1,
         maxNames: 2
@@ -580,7 +580,7 @@ const SANTA_MESSAGES = [
     {
         type: 'greeting',
         message: '¡{names}, Feliz Navidad desde Chile! 🇨🇱',
-        subtitle: 'Que disfruten de la cena navideña. @fabiandeharo',
+        subtitle: 'Que disfruten de la cena navideña. ¡Sígueme en Instagram! 📸',
         includeNames: true,
         minNames: 1,
         maxNames: 3
@@ -591,84 +591,84 @@ const SANTA_MESSAGES = [
     {
         type: 'personal',
         message: '¡Hola {userName}! 🎅',
-        subtitle: '¡Espero que estés disfrutando esta Navidad! Suscríbete a @fabiandeharo',
+        subtitle: '¡Espero que estés disfrutando esta Navidad! ¡Sígueme en Instagram! 📸',
         includeUserName: true,
         includeCity: false
     },
     {
         type: 'personal',
         message: '¡{userName}, Feliz Navidad! 🎄',
-        subtitle: 'Que esta temporada esté llena de alegría para ti. @fabiandeharo',
+        subtitle: 'Que esta temporada esté llena de alegría para ti. ¡Sígueme en Instagram! 📸',
         includeUserName: true,
         includeCity: false
     },
     {
         type: 'personal',
         message: '¡{userName}, tengo un regalo especial para ti! 🎁',
-        subtitle: '¡Gracias por seguir el viaje! Suscríbete a @fabiandeharo',
+        subtitle: '¡Gracias por seguir el viaje! ¡Sígueme en Instagram! 📸',
         includeUserName: true,
         includeCity: false
     },
     {
         type: 'personal',
         message: '¡{userName}, estoy en camino a {userCity}! 🎅',
-        subtitle: '¡Prepárate, que ya llego! @fabiandeharo en YouTube',
+        subtitle: '¡Prepárate, que ya llego! ¡Sígueme en Instagram! 📸',
         includeUserName: true,
         includeCity: true
     },
     {
         type: 'personal',
         message: '¡Hola {userName} desde {userCity}! 🌍',
-        subtitle: '¡Feliz Navidad desde tu ciudad! Suscríbete a @fabiandeharo',
+        subtitle: '¡Feliz Navidad desde tu ciudad! ¡Sígueme en Instagram! 📸',
         includeUserName: true,
         includeCity: true
     },
     {
         type: 'personal',
         message: '¡{userName}, saludos desde el trineo! 🦌',
-        subtitle: '¡Estoy volando hacia {userCity}! @fabiandeharo',
+        subtitle: '¡Estoy volando hacia {userCity}! ¡Sígueme en Instagram! 📸',
         includeUserName: true,
         includeCity: true
     },
     {
         type: 'personal',
         message: '¡{userName}, qué bueno verte aquí! ❤️',
-        subtitle: '¡Gracias por acompañarme en este viaje! Suscríbete a @fabiandeharo',
+        subtitle: '¡Gracias por acompañarme en este viaje! ¡Sígueme en Instagram! 📸',
         includeUserName: true,
         includeCity: false
     },
     {
         type: 'personal',
         message: '¡{userName}, espero que estés listo! 🎅',
-        subtitle: '¡Los regalos para {userCity} están en camino! @fabiandeharo',
+        subtitle: '¡Los regalos para {userCity} están en camino! ¡Sígueme en Instagram! 📸',
         includeUserName: true,
         includeCity: true
     },
     {
         type: 'personal',
         message: '¡{userName}, Feliz Navidad desde {userCity}! 🎄',
-        subtitle: '¡Que disfrutes de las tradiciones navideñas! Suscríbete a @fabiandeharo',
+        subtitle: '¡Que disfrutes de las tradiciones navideñas! ¡Sígueme en Instagram! 📸',
         includeUserName: true,
         includeCity: true
     },
     {
         type: 'personal',
         message: '¡{userName}, estoy cerca de {userCity}! 🎁',
-        subtitle: '¡Prepárate para una Navidad mágica! @fabiandeharo',
+        subtitle: '¡Prepárate para una Navidad mágica! ¡Sígueme en Instagram! 📸',
         includeUserName: true,
         includeCity: true
     },
     {
         type: 'personal',
         message: '¡{userName}, los renos están emocionados! 🦌',
-        subtitle: '¡Especialmente por visitar {userCity}! Suscríbete a @fabiandeharo',
+        subtitle: '¡Especialmente por visitar {userCity}! ¡Sígueme en Instagram! 📸',
         includeUserName: true,
         includeCity: true
     },
     {
         type: 'personal',
         message: '¡{userName}, qué noche tan especial! ✨',
-        subtitle: '¡Espero que disfrutes la Navidad en {userCity}! @fabiandeharo',
+        subtitle: '¡Espero que disfrutes la Navidad en {userCity}! ¡Sígueme en Instagram! 📸',
         includeUserName: true,
         includeCity: true
     },
