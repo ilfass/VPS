@@ -26,7 +26,7 @@ const CONFIG = {
     initialSpeed: 850,
     
     // Regalos entregados iniciales
-    initialGifts: 0,
+    initialGifts: 5000000, // Empezar con 5 millones de regalos
     
     // Estado inicial del trineo: 'ok', 'warning', 'error'
     initialStatus: 'ok',
@@ -34,8 +34,8 @@ const CONFIG = {
     // Intervalo para mostrar eventos automáticamente (en minutos)
     autoEventInterval: 0.75, // Reducido aún más para más frecuencia
     
-    // Velocidad de incremento de regalos (por segundo)
-    giftsPerSecond: 0.5,
+    // Velocidad de incremento de regalos (por segundo) - AUMENTADO
+    giftsPerSecond: 15, // Mucho más rápido
     
     // Variación de velocidad (porcentaje de cambio aleatorio)
     speedVariation: 0.05, // 5% de variación
@@ -949,6 +949,129 @@ const SANTA_MESSAGES = [
         subtitle: 'Hace loopings y piruetas en el aire. Los otros renos están celosos porque él siempre roba el show. Pero todos trabajamos en equipo para hacer esta noche especial. ¡Sígueme en IG @ilfass! 📸',
         includeNames: false
     },
+    // ============================================
+    // NUEVOS MENSAJES DIVERTIDOS Y OCURRENTES
+    // ============================================
+    {
+        type: 'humor',
+        message: '¡Los elfos están haciendo TikTok mientras empaquetan! 📱',
+        subtitle: 'Rudolph dice que quiere ser influencer. ¡Le dije que primero termine de volar! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Acabo de pasar por una zona de auroras boreales! 🌌',
+        subtitle: 'Rudolph casi se distrae con los colores. ¡Tuve que recordarle que tenemos trabajo que hacer! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Los renos están escuchando música navideña! 🎵',
+        subtitle: 'Rudolph quiere que pongamos "All I Want for Christmas" otra vez. ¡Ya va 47 veces! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡El GPS del trineo se actualizó! 🗺️',
+        subtitle: 'Ahora incluye rutas de entrega optimizadas. ¡Los elfos programaron un algoritmo especial! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Acabo de ver un cometa! ☄️',
+        subtitle: 'Rudolph quiso seguirlo, pero le dije que tenemos millones de regalos que entregar. ¡Primero lo primero! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'informative',
+        message: '¡Dato curioso navideño! 🎄',
+        subtitle: '¿Sabías que en Finlandia dicen que vivo en Rovaniemi? ¡Es verdad! Pero esta noche estoy por todo el mundo. ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'informative',
+        message: '¡En Argentina celebran con asado! 🥩',
+        subtitle: 'Me encantaría probar, pero tengo que seguir entregando regalos. ¡Tal vez después de Navidad! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'informative',
+        message: '¡En México hacen posadas! 🎉',
+        subtitle: 'Las familias se reúnen para celebrar. ¡Qué tradición tan hermosa! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'informative',
+        message: '¡En España comen turrón! 🍬',
+        subtitle: 'Me encanta el turrón de Jijona. ¡Los elfos me trajeron una caja especial! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Rudolph está quejándose del viento! 💨',
+        subtitle: 'Dice que le despeina el pelaje. ¡Le dije que es parte del trabajo! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Los elfos están haciendo competencia de velocidad! 🏃',
+        subtitle: 'Ver quién empaqueta más rápido. ¡El ganador se lleva un día extra de vacaciones! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡El trineo tiene modo turbo! ⚡',
+        subtitle: 'Solo lo uso en emergencias. ¡Pero esta noche es especial, así que lo activé! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'informative',
+        message: '¡En Chile celebran con pan de Pascua! 🍞',
+        subtitle: 'Me encantaría probarlo. ¡Los elfos dicen que es delicioso! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Acabo de pasar por la Estación Espacial! 🚀',
+        subtitle: 'Los astronautas me saludaron. ¡Les dije que tengo que seguir entregando regalos! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Los renos están haciendo ejercicio! 💪',
+        subtitle: 'Rudolph dice que quiere estar en forma para la próxima Navidad. ¡Le dije que ya está perfecto! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'informative',
+        message: '¡En Colombia celebran con natilla! 🍮',
+        subtitle: 'Me encanta la comida navideña de cada país. ¡Cada uno tiene sus tradiciones especiales! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡El trineo tiene Wi-Fi! 📶',
+        subtitle: 'Los elfos lo instalaron para que pueda chatear con ustedes. ¡Qué tecnología tan moderna! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Rudolph quiere selfies con todos! 📸',
+        subtitle: 'Le dije que primero terminemos de entregar regalos. ¡Después puede tomar todas las fotos que quiera! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'informative',
+        message: '¡En Perú celebran con chocolate caliente! ☕',
+        subtitle: 'Me encantaría una taza, pero tengo que seguir volando. ¡Tal vez después! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
+    {
+        type: 'humor',
+        message: '¡Los elfos están haciendo coreografía! 💃',
+        subtitle: 'Practican para el show de fin de año. ¡Son muy talentosos! ¡Sígueme en IG @ilfass! 📸',
+        includeNames: false
+    },
 ];
 
 // ============================================
@@ -1333,12 +1456,21 @@ function updateLocationBasedOnChristmasMidnight() {
         
         // Rotar entre las ciudades que pasaron, no solo seleccionar siempre la primera
         let rotationIndex = parseInt(localStorage.getItem('passedCitiesRotationIndex') || '0');
-        rotationIndex = (rotationIndex + 1) % passedCities.length;
-        localStorage.setItem('passedCitiesRotationIndex', rotationIndex.toString());
         
+        // Si la ciudad actual está en la lista, encontrar su índice y avanzar
+        const currentIndex = passedCities.findIndex(city => city.name === state.location);
+        if (currentIndex >= 0 && passedCities.length > 1) {
+            // Avanzar al siguiente después de la actual
+            rotationIndex = (currentIndex + 1) % passedCities.length;
+        } else {
+            // Si no está en la lista o es la única, rotar normalmente
+            rotationIndex = (rotationIndex + 1) % passedCities.length;
+        }
+        
+        localStorage.setItem('passedCitiesRotationIndex', rotationIndex.toString());
         targetCity = passedCities[rotationIndex];
         
-        // Si la ciudad seleccionada es la misma que la actual, avanzar a la siguiente
+        // Si aún es la misma ciudad y hay más opciones, forzar cambio
         if (targetCity.name === state.location && passedCities.length > 1) {
             rotationIndex = (rotationIndex + 1) % passedCities.length;
             localStorage.setItem('passedCitiesRotationIndex', rotationIndex.toString());
@@ -2422,16 +2554,12 @@ function startCountdown(distance, speed) {
     const speedChanged = !countdownState.lastSpeed || 
                         Math.abs(speed - countdownState.lastSpeed) > (countdownState.lastSpeed * 0.1);
     
-    // Si no hay cuenta regresiva activa o cambió significativamente, reiniciar
-    if (!countdownState.targetTime || distanceChanged || speedChanged) {
-        // Calcular tiempo total en segundos
-        const totalSeconds = Math.floor((distance / speed) * 3600);
-        
-        // Establecer tiempo objetivo
-        countdownState.targetTime = Date.now() + (totalSeconds * 1000);
-        countdownState.lastDistance = distance;
-        countdownState.lastSpeed = speed;
-        
+    // Actualizar distancia y velocidad siempre (para countdown dinámico)
+    countdownState.lastDistance = distance;
+    countdownState.lastSpeed = speed;
+    
+    // Si no hay cuenta regresiva activa o cambió significativamente, reiniciar intervalo
+    if (!countdownState.intervalId || distanceChanged || speedChanged) {
         // Limpiar intervalo anterior si existe
         if (countdownState.intervalId) {
             clearInterval(countdownState.intervalId);
@@ -2440,7 +2568,7 @@ function startCountdown(distance, speed) {
         // Actualizar inmediatamente
         updateCountdownDisplay();
         
-        // Actualizar cada segundo
+        // Actualizar cada segundo (recalcula dinámicamente)
         countdownState.intervalId = setInterval(() => {
             updateCountdownDisplay();
         }, 1000);
@@ -2452,14 +2580,27 @@ function startCountdown(distance, speed) {
  */
 function updateCountdownDisplay() {
     const countdownEl = document.getElementById('userCityCountdown');
-    if (!countdownEl || !countdownState.targetTime) {
+    if (!countdownEl) {
         return;
     }
     
-    const now = Date.now();
-    const remaining = Math.max(0, Math.floor((countdownState.targetTime - now) / 1000));
+    // Recalcular dinámicamente basándose en distancia y velocidad actuales
+    // Esto hace el countdown más preciso
+    if (!countdownState.lastDistance || !countdownState.lastSpeed || 
+        countdownState.lastDistance <= 0 || countdownState.lastSpeed <= 0) {
+        countdownEl.textContent = '--:--:--';
+        return;
+    }
     
-    if (remaining <= 0) {
+    // Recalcular tiempo restante basándose en distancia y velocidad actuales
+    const currentDistance = countdownState.lastDistance;
+    const currentSpeed = countdownState.lastSpeed;
+    
+    // Calcular tiempo en horas
+    const hoursRemaining = currentDistance / currentSpeed;
+    const totalSeconds = Math.floor(hoursRemaining * 3600);
+    
+    if (totalSeconds <= 0) {
         countdownEl.textContent = '00:00:00';
         if (countdownState.intervalId) {
             clearInterval(countdownState.intervalId);
@@ -2469,9 +2610,9 @@ function updateCountdownDisplay() {
     }
     
     // Calcular horas, minutos y segundos
-    const hours = Math.floor(remaining / 3600);
-    const minutes = Math.floor((remaining % 3600) / 60);
-    const seconds = remaining % 60;
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
     
     // Formatear con ceros a la izquierda
     const formatted = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
