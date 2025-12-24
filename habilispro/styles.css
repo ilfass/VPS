@@ -628,8 +628,8 @@ body {
     background: rgba(10, 25, 40, 0.9);
     border: 3px solid rgba(40, 167, 69, 0.8);
     border-radius: 12px;
-    padding: 15px;
-    padding-top: 30px;
+    padding: 12px;
+    padding-top: 25px;
     backdrop-filter: blur(5px);
     pointer-events: auto;
     box-shadow: 
@@ -647,8 +647,8 @@ body {
     user-select: none;
     transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     min-width: 200px;
-    max-height: calc(100vh - 420px); /* Evitar que se salga de la pantalla */
-    overflow-y: auto;
+    /* Sin max-height ni overflow - el contenido se ajusta automáticamente */
+    overflow: visible;
 }
 
 .user-city-panel.visible {
@@ -789,51 +789,51 @@ body.shaking {
 }
 
 .user-city-name {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 700;
     color: #28a745;
     text-shadow: 0 0 10px rgba(40, 167, 69, 0.8);
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     word-wrap: break-word;
 }
 
 .user-city-distance {
-    font-size: 32px;
+    font-size: 26px;
     font-weight: 700;
     color: #ffffff;
     text-shadow: 
         0 0 15px rgba(40, 167, 69, 0.8),
         0 2px 10px rgba(0, 0, 0, 0.5);
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .user-city-eta {
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.9);
     text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
     background: rgba(0, 0, 0, 0.3);
-    padding: 10px;
-    border-radius: 8px;
+    padding: 6px;
+    border-radius: 6px;
     border: 1px solid rgba(40, 167, 69, 0.4);
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .user-city-countdown {
-    font-size: 28px;
+    font-size: 22px;
     font-weight: 700;
     color: #ffc107;
     text-shadow: 
         0 0 15px rgba(255, 193, 7, 0.8),
         0 2px 10px rgba(0, 0, 0, 0.5);
     background: rgba(0, 0, 0, 0.4);
-    padding: 12px;
-    border-radius: 8px;
+    padding: 8px;
+    border-radius: 6px;
     border: 2px solid rgba(255, 193, 7, 0.6);
     animation: countdownPulse 1s infinite;
     font-family: 'Courier New', monospace;
     letter-spacing: 1px;
-    margin-top: 10px;
+    margin-top: 8px;
     word-break: keep-all;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -889,7 +889,8 @@ body.shaking {
         inset 0 0 20px rgba(0, 0, 0, 0.2);
     overflow: hidden;
     z-index: 100;
-    max-height: calc(100vh - 420px); /* Evitar que se salga de la pantalla */
+    /* Calcular altura máxima basada en el espacio disponible desde el bottom hasta el top */
+    max-height: calc(100vh - 70px - 250px - 20px - 20px); /* Footer (70px) + control panel (~250px) + margen (20px) + padding superior (20px) */
 }
 
 .public-interaction-panel::before {
@@ -1387,11 +1388,11 @@ body.shaking {
 @media (min-width: 769px) and (max-width: 1400px) {
     .user-city-panel {
         max-width: 240px;
-        padding: 12px;
-        padding-top: 28px;
+        padding: 10px;
+        padding-top: 20px;
         bottom: calc(60px + 220px + 15px); /* Control panel ajustado + altura + margen */
         left: 15px;
-        max-height: calc(100vh - 350px); /* Ajustar altura máxima */
+        /* Sin max-height ni overflow - el contenido se ajusta automáticamente */
     }
     
     .user-city-header h2 {
@@ -1446,27 +1447,50 @@ body.shaking {
         bottom: calc(60px + 220px + 15px); /* Alineado con panel de ciudad */
         right: 15px;
         max-width: 350px;
-        max-height: calc(100vh - 350px); /* Ajustar altura máxima */
+        /* Calcular altura máxima basada en el espacio disponible */
+        max-height: calc(100vh - 60px - 220px - 15px - 15px - 20px); /* Footer + control panel + márgenes + padding */
     }
 }
 
 /* Media query específico para 1366x768 */
 @media (min-width: 1366px) and (max-width: 1366px) and (min-height: 768px) and (max-height: 768px) {
     .user-city-panel {
-        max-width: 220px;
-        padding: 10px;
-        padding-top: 25px;
+        max-width: 200px;
+        padding: 8px;
+        padding-top: 18px;
         bottom: calc(60px + 200px + 10px); /* Ajustado para altura limitada */
         left: 10px;
-        max-height: calc(100vh - 320px);
+        /* Sin max-height ni overflow - el contenido se ajusta automáticamente */
+    }
+    
+    .user-city-name {
+        font-size: 16px;
+        margin-bottom: 6px;
+    }
+    
+    .user-city-distance {
+        font-size: 20px;
+        margin-bottom: 6px;
+    }
+    
+    .user-city-eta {
+        font-size: 11px;
+        padding: 4px;
+        margin-bottom: 6px;
+    }
+    
+    .user-city-countdown {
+        font-size: 18px;
+        padding: 6px;
+        margin-top: 6px;
     }
     
     .public-interaction-panel {
         bottom: calc(60px + 200px + 10px);
         right: 10px;
         max-width: 320px;
-        max-height: calc(100vh - 320px);
-        padding: 15px;
+        max-height: calc(100vh - 60px - 200px - 10px - 10px - 15px); /* Footer + control panel + márgenes + padding */
+        padding: 12px;
     }
     
     .control-panel {
@@ -1498,15 +1522,17 @@ body.shaking {
 /* Media query para pantallas grandes (1920x1080 y similares) */
 @media (min-width: 1920px) {
     .user-city-panel {
-        max-width: 300px;
+        max-width: 280px;
         bottom: calc(70px + 280px + 30px);
         left: 30px;
+        /* Sin max-height ni overflow - el contenido se ajusta automáticamente */
     }
     
     .public-interaction-panel {
         bottom: calc(70px + 280px + 30px);
         right: 30px;
         max-width: 450px;
+        max-height: calc(100vh - 70px - 280px - 30px - 30px - 20px); /* Footer + control panel + márgenes + padding */
     }
     
     .control-panel {
