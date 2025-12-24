@@ -1386,11 +1386,21 @@ function displayMessage(message) {
 }
 
 /**
- * Obtiene respuesta de Papá Noel usando Gemini API
+ * Obtiene respuesta de Papá Noel usando Gemini API con historial de conversación
  */
 async function getSantaResponse(userMessage) {
     try {
-        const prompt = `Eres Papá Noel (Santa Claus) en un vivo de YouTube interactuando con los espectadores. Un usuario escribió: "${userMessage}".
+        // Obtener los últimos mensajes del historial (últimos 15 mensajes para contexto)
+        const recentMessages = state.publicMessages.slice(-15);
+        
+        // Construir el historial de conversación en formato Gemini
+        const conversationHistory = [];
+        
+        // Agregar el contexto inicial
+        conversationHistory.push({
+            role: 'user',
+            parts: [{
+                text: `Eres Papá Noel (Santa Claus) en un vivo de YouTube interactuando con los espectadores. 
 
 INSTRUCCIONES:
 - Responde como si fueras Papá Noel real, muy amigable, cálido y cercano
@@ -1403,9 +1413,54 @@ INSTRUCCIONES:
 - Muestra interés genuino en lo que dicen
 - Responde en español
 - Usa expresiones como "¡Hola!", "¡Qué bueno!", "¡Me encanta!", "¡Claro que sí!"
+- Mantén el contexto de la conversación anterior
 
-Ejemplo de tono: "¡Hola! ¡Qué alegría verte aquí! 🎅 Me encanta que estés siguiendo mi viaje. ¡Feliz Navidad! 🎄"
-`;
+Ahora continúa la conversación basándote en el historial:`
+            }]
+        });
+        
+        conversationHistory.push({
+            role: 'model',
+            parts: [{
+                text: '¡Por supuesto! Estoy listo para charlar contigo. 🎅'
+            }]
+        });
+        
+        // Agregar el historial de mensajes anteriores
+        recentMessages.forEach(msg => {
+            const isSanta = msg.author === '🎅 Papá Noel' || msg.author.includes('Papá Noel');
+            const isTyping = msg.text.includes('está escribiendo');
+            
+            // Saltar mensajes de "escribiendo"
+            if (isTyping) return;
+            
+            if (isSanta) {
+                conversationHistory.push({
+                    role: 'model',
+                    parts: [{
+                        text: msg.text
+                    }]
+                });
+            } else {
+                // Es un mensaje del usuario
+                const userName = msg.author || 'Usuario';
+                conversationHistory.push({
+                    role: 'user',
+                    parts: [{
+                        text: `${userName}: ${msg.text}`
+                    }]
+                });
+            }
+        });
+        
+        // Agregar el nuevo mensaje del usuario
+        const userName = state.userName || 'Usuario';
+        conversationHistory.push({
+            role: 'user',
+            parts: [{
+                text: `${userName}: ${userMessage}`
+            }]
+        });
 
         const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
             method: 'POST',
@@ -1413,15 +1468,13 @@ Ejemplo de tono: "¡Hola! ¡Qué alegría verte aquí! 🎅 Me encanta que esté
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: prompt
-                    }]
-                }]
+                contents: conversationHistory
             })
         });
 
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Error de Gemini API:', errorText);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
