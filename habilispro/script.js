@@ -820,7 +820,8 @@ const SANTA_MESSAGES = [
 // ============================================
 
 const GEMINI_API_KEY = 'AIzaSyD-NDbMygTSZUiaHWC426Q5PJ7vhUoHkko';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+// Usar v1 en lugar de v1beta, y el modelo correcto
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent';
 
 // ============================================
 // ESTADO GLOBAL
