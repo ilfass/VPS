@@ -1338,14 +1338,6 @@ function addPublicMessage(text, author = null) {
     
     // Agregar a la UI
     displayMessage(message);
-    
-    // Scroll al inicio
-    const messagesContainer = document.getElementById('messagesContainer');
-    if (messagesContainer) {
-        messagesContainer.scrollTop = 0;
-    }
-    
-    console.log(`💬 Mensaje de ${userId}: ${text}`);
 }
 
 /**
