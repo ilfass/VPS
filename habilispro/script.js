@@ -2536,27 +2536,69 @@ function requestUserName() {
  * Obtiene la ubicación del usuario mediante geolocalización
  */
 function getUserLocation() {
-    if (!navigator.geolocation) {
-        console.warn('⚠️ Geolocalización no disponible en este navegador');
+    console.log('🔍 getUserLocation() llamado');
+    
+    // Verificar si ya hay una ciudad guardada
+    const savedCity = localStorage.getItem('santaTracker_userCity');
+    if (savedCity && savedCity.trim() !== '') {
+        state.userCity = savedCity;
+        console.log(`🏙️ Ciudad recuperada de localStorage: ${state.userCity}`);
+        // Intentar obtener coordenadas si no las tenemos
+        if (!state.userCoordinates && navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    state.userCoordinates = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    console.log('📍 Coordenadas obtenidas:', state.userCoordinates);
+                    updateUserCityPanel();
+                },
+                (error) => {
+                    console.warn('⚠️ No se pudieron obtener coordenadas:', error.message);
+                },
+                { enableHighAccuracy: true, timeout: 5000 }
+            );
+        }
+        updateUserCityPanel();
         return;
     }
     
+    if (!navigator.geolocation) {
+        console.warn('⚠️ Geolocalización no disponible en este navegador');
+        // Solicitar ciudad manualmente si no hay geolocalización
+        setTimeout(() => {
+            if (!state.userCity) {
+                console.log('📝 Solicitando ciudad manualmente (geolocalización no disponible)');
+                requestUserCity();
+            }
+        }, 1000);
+        return;
+    }
+    
+    console.log('📍 Solicitando permisos de geolocalización...');
     navigator.geolocation.getCurrentPosition(
         (position) => {
+            console.log('✅ Permisos de geolocalización otorgados');
             state.userCoordinates = {
                 lat: position.coords.latitude,
                 lng: position.coords.longitude
             };
             
+            console.log('📍 Coordenadas obtenidas:', state.userCoordinates);
+            
             // Obtener nombre de la ciudad mediante geocodificación inversa
             getCityNameFromCoordinates(state.userCoordinates.lat, state.userCoordinates.lng);
-            
-            console.log('📍 Ubicación detectada:', state.userCoordinates);
         },
         (error) => {
-            console.warn('⚠️ No se pudo obtener la ubicación:', error.message);
+            console.warn('⚠️ No se pudo obtener la ubicación:', error.message, error.code);
             // Permitir entrada manual de ciudad
-            requestUserCity();
+            setTimeout(() => {
+                if (!state.userCity) {
+                    console.log('📝 Solicitando ciudad manualmente debido a error de geolocalización');
+                    requestUserCity();
+                }
+            }, 1000);
         },
         {
             enableHighAccuracy: true,
