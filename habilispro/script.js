@@ -2661,24 +2661,41 @@ function initCityPanelToggle() {
     
     // Por defecto mostrar "Tu Ciudad", solo cambiar si hay modo guardado explícitamente como 'random'
     const savedMode = localStorage.getItem('cityPanelMode');
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:initCityPanelToggle',message:'Inicializando toggle de paneles',data:{savedMode:savedMode,hasUserCity:!!state.userCity,userCity:state.userCity,hasUserPanel:!!userPanel,hasRandomPanel:!!randomPanel},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
+    
     if (savedMode === 'random') {
         // Solo cambiar si el usuario explícitamente guardó modo random
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:initCityPanelToggle',message:'Modo random guardado, cambiando',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
         toggleCityPanels(true);
     } else {
         // Por defecto: mostrar "Tu Ciudad" y asegurar que random esté oculto
         if (userPanel && randomPanel) {
             randomPanel.style.display = 'none';
+            randomPanel.classList.remove('visible');
             // Mostrar "Tu Ciudad" si hay ciudad del usuario
             if (state.userCity) {
                 userPanel.style.display = 'block';
-                // Forzar visibilidad con !important a través de clase
                 userPanel.classList.add('visible');
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:initCityPanelToggle',message:'Mostrando panel Tu Ciudad',data:{userCity:state.userCity},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                // #endregion
             } else {
                 userPanel.style.display = 'none';
                 userPanel.classList.remove('visible');
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:initCityPanelToggle',message:'No hay ciudad, ocultando panel',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                // #endregion
             }
             // Establecer modo user como predeterminado
             localStorage.setItem('cityPanelMode', 'user');
+        } else {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:initCityPanelToggle',message:'Paneles no encontrados',data:{hasUserPanel:!!userPanel,hasRandomPanel:!!randomPanel},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            // #endregion
         }
     }
 }
