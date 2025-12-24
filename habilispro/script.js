@@ -1353,13 +1353,13 @@ function displayMessage(message) {
     
     // Determinar si es mensaje de Papá Noel o del usuario
     const isSantaMessage = message.author === '🎅 Papá Noel' || message.author.includes('Papá Noel');
-    const isUserMessage = !isSantaMessage && message.author !== 'Sistema';
+    const isUserMessage = !isSantaMessage;
     
-    // Aplicar clases según el tipo de mensaje
+    // Aplicar clases según el tipo de mensaje (solo Papá Noel o Usuario)
     messageItem.className = 'message-item';
     if (isSantaMessage) {
         messageItem.classList.add('santa-message');
-    } else if (isUserMessage) {
+    } else {
         messageItem.classList.add('user-message');
     }
     
