@@ -13,6 +13,7 @@ services:
       - descuentosen
       - descuentosen-admin
       - habilispro
+      - habilispro-live
       - expodiario
     restart: always
 
@@ -34,6 +35,7 @@ services:
       - PORT=3001
       - MONGODB_URI=mongodb://descuentosen-mongo:27017/descuentosen
       - NODE_ENV=production
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-AIzaSyAKa_dvA4qmZ-io37eili_fEwZT91VtmQI}
     depends_on:
       - descuentosen-mongo
     restart: always
@@ -58,6 +60,12 @@ services:
 
   habilispro:
     build: ./habilispro
+    expose:
+      - "80"
+    restart: always
+
+  habilispro-live:
+    build: ./habilispro-live
     expose:
       - "80"
     restart: always
