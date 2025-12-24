@@ -1215,9 +1215,12 @@ function getEventIcon(type) {
  * Determina la ubicación actual basándose en ciudades que ya pasaron las 00:00 del 25 de diciembre
  */
 function updateLocationBasedOnChristmasMidnight() {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateLocationBasedOnChristmasMidnight',message:'Iniciando actualización de ubicación',data:{currentLocation:state.location},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+    // #endregion
+    
     const now = new Date();
     const currentYear = now.getFullYear();
-    const christmasDate = new Date(currentYear, 11, 25); // 25 de diciembre (mes 11 = diciembre)
     
     // Obtener todas las ciudades con sus zonas horarias
     const citiesWithTimezones = Object.entries(LOCATIONS_DATABASE);
@@ -1225,31 +1228,53 @@ function updateLocationBasedOnChristmasMidnight() {
     // Calcular para cada ciudad si ya pasó las 00:00 del 25
     const citiesStatus = citiesWithTimezones.map(([cityName, timezone]) => {
         try {
-            // Obtener hora local de la ciudad
-            const cityTime = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
-            const cityDate = new Date(cityTime);
+            // Obtener fecha/hora actual en la zona horaria de la ciudad
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: timezone,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            
+            const parts = formatter.formatToParts(now);
+            const cityYear = parseInt(parts.find(p => p.type === 'year').value);
+            const cityMonth = parseInt(parts.find(p => p.type === 'month').value) - 1; // Mes es 0-indexed
+            const cityDay = parseInt(parts.find(p => p.type === 'day').value);
+            const cityHour = parseInt(parts.find(p => p.type === 'hour').value);
+            const cityMinute = parseInt(parts.find(p => p.type === 'minute').value);
             
             // Crear fecha de medianoche del 25 de diciembre en esa zona horaria
-            const christmasMidnight = new Date(Date.UTC(currentYear, 11, 25, 0, 0, 0));
-            const localChristmasMidnight = new Date(christmasMidnight.toLocaleString('en-US', { timeZone: timezone }));
+            const christmasMidnight = new Date(Date.UTC(cityYear, 11, 25, 0, 0, 0));
+            const cityNow = new Date(Date.UTC(cityYear, cityMonth, cityDay, cityHour, cityMinute, 0));
             
             // Calcular diferencia en horas desde las 00:00 del 25
-            const hoursSinceMidnight = (cityDate - localChristmasMidnight) / (1000 * 60 * 60);
+            const hoursSinceMidnight = (cityNow - christmasMidnight) / (1000 * 60 * 60);
             
             return {
                 name: cityName,
                 timezone: timezone,
                 hoursSinceMidnight: hoursSinceMidnight,
                 hasPassed: hoursSinceMidnight >= 0,
-                cityTime: cityDate
+                cityTime: cityNow
             };
         } catch (e) {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateLocationBasedOnChristmasMidnight',message:'Error calculando ciudad',data:{cityName:cityName,error:e.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+            // #endregion
             return null;
         }
     }).filter(city => city !== null);
     
     // Filtrar ciudades que ya pasaron las 00:00 (o están muy cerca, dentro de 1 hora antes)
     const passedCities = citiesStatus.filter(city => city.hoursSinceMidnight >= -1);
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateLocationBasedOnChristmasMidnight',message:'Ciudades procesadas',data:{totalCities:citiesStatus.length,passedCities:passedCities.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+    // #endregion
     
     if (passedCities.length > 0) {
         // Ordenar por horas desde medianoche (más reciente primero)
@@ -1261,16 +1286,30 @@ function updateLocationBasedOnChristmasMidnight() {
         // Actualizar ubicación si es diferente
         if (currentCity.name !== state.location) {
             console.log(`📍 Actualizando ubicación a: ${currentCity.name} (pasó las 00:00 hace ${currentCity.hoursSinceMidnight.toFixed(1)} horas)`);
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateLocationBasedOnChristmasMidnight',message:'Actualizando ubicación',data:{oldLocation:state.location,newLocation:currentCity.name,hoursSinceMidnight:currentCity.hoursSinceMidnight},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+            // #endregion
             syncLocation(currentCity.name);
+        } else {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateLocationBasedOnChristmasMidnight',message:'Ubicación ya es correcta',data:{location:state.location},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+            // #endregion
         }
     } else {
         // Si ninguna ciudad ha pasado las 00:00, usar la que está más cerca
         citiesStatus.sort((a, b) => a.hoursSinceMidnight - b.hoursSinceMidnight);
         const nextCity = citiesStatus[0];
         
-        if (nextCity && nextCity.name !== state.location) {
+        if (nextCity) {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateLocationBasedOnChristmasMidnight',message:'Ninguna ciudad pasó las 00:00',data:{nextCity:nextCity.name,hoursUntilMidnight:Math.abs(nextCity.hoursSinceMidnight)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+            // #endregion
             console.log(`📍 Próxima ciudad: ${nextCity.name} (faltan ${Math.abs(nextCity.hoursSinceMidnight).toFixed(1)} horas)`);
-            // No actualizar aún, solo mostrar en consola
+            // Actualizar a la próxima ciudad si está muy cerca (menos de 2 horas)
+            if (Math.abs(nextCity.hoursSinceMidnight) < 2 && nextCity.name !== state.location) {
+                console.log(`📍 Actualizando a próxima ciudad cercana: ${nextCity.name}`);
+                syncLocation(nextCity.name);
+            }
         }
     }
 }
@@ -2609,6 +2648,7 @@ function toggleCityPanels(showRandom = null) {
         randomPanel.style.display = 'block';
         randomPanel.classList.add('visible');
         localStorage.setItem('cityPanelMode', 'random');
+        localStorage.setItem('userExplicitlyChangedPanel', 'true'); // Marcar que el usuario cambió explícitamente
         // Inicializar ciudad aleatoria si no hay
         if (!currentRandomCity) {
             currentRandomCity = getRandomWeightedCity();
@@ -2631,6 +2671,7 @@ function toggleCityPanels(showRandom = null) {
             userPanel.classList.remove('visible');
         }
         localStorage.setItem('cityPanelMode', 'user');
+        localStorage.setItem('userExplicitlyChangedPanel', 'true'); // Marcar que el usuario cambió explícitamente
         if (randomCityInterval) {
             clearInterval(randomCityInterval);
             randomCityInterval = null;
@@ -2659,35 +2700,39 @@ function initCityPanelToggle() {
         });
     }
     
-    // Por defecto mostrar "Tu Ciudad", solo cambiar si hay modo guardado explícitamente como 'random'
+    // SIEMPRE mostrar "Tu Ciudad" por defecto (predeterminado)
+    // Solo cambiar a "Próximas Ciudades" si el usuario explícitamente presionó el botón
+    // Verificar si el usuario explícitamente cambió a random (usando una clave diferente)
+    const userExplicitlyChanged = localStorage.getItem('userExplicitlyChangedPanel');
     const savedMode = localStorage.getItem('cityPanelMode');
+    
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:initCityPanelToggle',message:'Inicializando toggle de paneles',data:{savedMode:savedMode,hasUserCity:!!state.userCity,userCity:state.userCity,hasUserPanel:!!userPanel,hasRandomPanel:!!randomPanel},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:initCityPanelToggle',message:'Inicializando toggle de paneles',data:{savedMode:savedMode,userExplicitlyChanged:userExplicitlyChanged,hasUserCity:!!state.userCity,userCity:state.userCity,hasUserPanel:!!userPanel,hasRandomPanel:!!randomPanel},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
     // #endregion
     
-    if (savedMode === 'random') {
-        // Solo cambiar si el usuario explícitamente guardó modo random
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:initCityPanelToggle',message:'Modo random guardado, cambiando',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
-        toggleCityPanels(true);
-    } else {
-        // Por defecto: mostrar "Tu Ciudad" si hay ciudad, o "Próximas Ciudades" si no hay
-        if (userPanel && randomPanel) {
-            // SIEMPRE mostrar "Tu Ciudad" por defecto (predeterminado)
+    if (userPanel && randomPanel) {
+        // Solo mostrar random si el usuario explícitamente lo cambió
+        if (userExplicitlyChanged === 'true' && savedMode === 'random') {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:initCityPanelToggle',message:'Usuario cambió explícitamente a random, respetando',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            // #endregion
+            toggleCityPanels(true);
+        } else {
+            // SIEMPRE mostrar "Tu Ciudad" por defecto
             userPanel.style.display = 'block';
             userPanel.classList.add('visible');
             randomPanel.style.display = 'none';
             randomPanel.classList.remove('visible');
             localStorage.setItem('cityPanelMode', 'user');
+            localStorage.removeItem('userExplicitlyChangedPanel'); // Limpiar flag
             // #region agent log
             fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:initCityPanelToggle',message:'Mostrando panel Tu Ciudad por defecto',data:{userCity:state.userCity,hasUserCity:!!state.userCity},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
             // #endregion
-        } else {
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:initCityPanelToggle',message:'Paneles no encontrados',data:{hasUserPanel:!!userPanel,hasRandomPanel:!!randomPanel},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-            // #endregion
         }
+    } else {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:initCityPanelToggle',message:'Paneles no encontrados',data:{hasUserPanel:!!userPanel,hasRandomPanel:!!randomPanel},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
     }
 }
 
