@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centro de Control - Papá Noel</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Google Santa Tracker - Fondo -->
+    <div class="tracker-container">
+            <iframe 
+            id="santaTracker"
+            src="https://santatracker.google.com/" 
+            frameborder="0"
+            allowfullscreen
+            allow="geolocation; microphone; camera; autoplay; encrypted-media"
+            title="Google Santa Tracker"
+            volume="1">
+        </iframe>
+    </div>
+
+    <!-- Overlay Principal -->
+    <div class="overlay-container">
+        <!-- Panel de Información Principal -->
+        <!-- Botón Hamburguesa para Móviles -->
+        <button class="mobile-menu-toggle" id="mobileMenuToggle">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
+        <div class="control-panel" id="controlPanel">
+            <div class="panel-header">
+                <div class="header-title-section">
+                    <h1>🎅 Control Panel <span class="control-operator" id="controlOperator" style="display: none;">a cargo de <span id="operatorName">-</span></span></h1>
+                </div>
+                <div class="status-indicator" id="statusIndicator">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span class="status-text" id="statusText">OK</span>
+                </div>
+            </div>
+
+            <div class="info-grid">
+                <!-- Ubicación Actual -->
+                <div class="info-card">
+                    <div class="info-label">📍 Ubicación Actual</div>
+                    <div class="info-value" id="currentLocation">Rovaniemi, Finlandia</div>
+                </div>
+
+                <!-- Hora Local -->
+                <div class="info-card">
+                    <div class="info-label">🕐 Hora Local</div>
+                    <div class="info-value" id="localTime">00:00:00</div>
+                </div>
+
+                <!-- Velocidad del Trineo -->
+                <div class="info-card">
+                    <div class="info-label">⚡ Velocidad</div>
+                    <div class="info-value" id="sleighSpeed">0 km/h</div>
+                </div>
+
+                <!-- Regalos Entregados -->
+                <div class="info-card">
+                    <div class="info-label">🎁 Regalos Entregados</div>
+                    <div class="info-value" id="giftsDelivered">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel de Distancia a Ciudades de Habla Hispana (Movible) -->
+        <div class="user-city-panel draggable" id="userCityPanel">
+            <div class="drag-handle">☰</div>
+            <div class="user-city-header">
+                <h2>🌎 Próxima Ciudad</h2>
+            </div>
+            <div class="user-city-content">
+                <div class="user-city-name" id="userCityName">Cargando...</div>
+                <div class="user-city-distance" id="userCityDistance">Calculando...</div>
+                <div class="user-city-eta" id="userCityETA">Estimando tiempo...</div>
+                <div class="user-city-countdown" id="userCityCountdown">--:--:--</div>
+            </div>
+        </div>
+
+        <!-- Footer de Donación -->
+        <div class="donation-footer">
+                <div class="donation-content">
+                <span class="donation-text">¡Gracias por tu visita! Si te gustó, puedes hacer una donación al alias ilfass (Fabian de Haro)</span>
+            </div>
+        </div>
+
+
+        <!-- Botón Flotante para Panel de Interacción (Móvil) -->
+        <button class="mobile-interaction-toggle" id="mobileInteractionToggle">
+            💬
+        </button>
+
+        <!-- Panel de Interacción con el Público -->
+        <div class="public-interaction-panel" id="publicInteractionPanel">
+            <div class="interaction-header">
+                <h2>🎅 Habla con Papá Noel, Santa Claus</h2>
+                <div class="participants-count">
+                    <span id="participantsCount">0</span> participantes
+                </div>
+            </div>
+            
+            <!-- Área de Mensajes del Público -->
+            <div class="messages-container" id="messagesContainer">
+                <div class="messages-list" id="messagesList">
+                    <!-- Los mensajes del público aparecerán aquí -->
+                </div>
+            </div>
+
+            <!-- Formulario de Interacción -->
+            <div class="interaction-form">
+                <input 
+                    type="text" 
+                    id="userMessageInput" 
+                    placeholder="Escribe tu mensaje o sugerencia..."
+                    maxlength="100"
+                    class="message-input"
+                >
+                <div class="interaction-buttons">
+                    <button class="interaction-btn" id="sendMessageBtn" title="Enviar mensaje">
+                        📤 Enviar
+                    </button>
+                    <button class="interaction-btn reaction-btn" id="likeBtn" title="Me gusta">
+                        ❤️ <span id="likeCount">0</span>
+                    </button>
+                    <button class="interaction-btn reaction-btn" id="cheerBtn" title="Aplaudir">
+                        👏 <span id="cheerCount">0</span>
+                    </button>
+                    <button class="interaction-btn reaction-btn" id="santaBtn" title="¡Vamos Papá Noel!">
+                        🎅 <span id="santaCount">0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Efecto de Flash de Pantalla Completa -->
+        <div class="screen-flash" id="screenFlash"></div>
+
+        <!-- Notificación de Evento (aparece y desaparece) -->
+        <div class="event-notification" id="eventNotification">
+            <div class="notification-content">
+                <span class="notification-icon" id="notificationIcon">📡</span>
+                <span class="notification-text" id="notificationText"></span>
+            </div>
+        </div>
+
+        <!-- Aparición Grande de Papá Noel -->
+        <div class="santa-appearance" id="santaAppearance">
+            <div class="santa-content">
+                <div class="santa-icon">🎅</div>
+                <div class="santa-message" id="santaMessage"></div>
+                <div class="santa-subtitle" id="santaSubtitle"></div>
+                <div class="santa-youtube-link">
+                    <a href="https://www.youtube.com/@fabiandeharo" target="_blank" class="youtube-button">
+                        📺 Suscríbete a @fabiandeharo en YouTube
+                    </a>
+                </div>
+            </div>
+            <div class="santa-background-effect"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

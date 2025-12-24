@@ -1813,10 +1813,7 @@ async function handleSendMessage() {
             if (santaResponse) {
                 addPublicMessage(santaResponse, '🎅 Papá Noel');
             } else {
-                // Usar respuesta predefinida contextual cuando Gemini falla
-                const userName = state.userName || 'Usuario';
-                const predefinedResponse = getPredefinedResponse(text, userName);
-                addPublicMessage(predefinedResponse, '🎅 Papá Noel');
+                addPublicMessage('¡Hola! ¡Qué bueno verte aquí! 🎅 Estoy muy ocupado entregando regalos alrededor del mundo, pero me encanta charlar contigo. ¡Feliz Navidad! 🎄✨', '🎅 Papá Noel');
             }
         }, typingDelay);
     } catch (error) {
@@ -1939,9 +1936,7 @@ function initPublicInteraction() {
     
     // Mensaje inicial de Papá Noel
     setTimeout(() => {
-        const userName = state.userName || 'Usuario';
-        const welcomeMessage = getPredefinedResponse('hola', userName);
-        addPublicMessage(welcomeMessage, '🎅 Papá Noel');
+        addPublicMessage('¡Hola! ¡Qué alegría verte aquí! 🎅 Estoy muy ocupado entregando regalos alrededor del mundo, pero me encanta charlar contigo. ¡Escribe lo que quieras! 🎄✨', '🎅 Papá Noel');
     }, 2000);
 }
 
@@ -1972,38 +1967,108 @@ function requestUserName() {
     return null;
 }
 
+// Lista de ciudades de habla hispana (prioridad: Argentina, Chile, México, otros)
+const SPANISH_SPEAKING_CITIES = [
+    // Argentina
+    { name: 'Buenos Aires, Argentina', lat: -34.6037, lng: -58.3816 },
+    { name: 'Córdoba, Argentina', lat: -31.4201, lng: -64.1888 },
+    { name: 'Rosario, Argentina', lat: -32.9442, lng: -60.6505 },
+    { name: 'Mendoza, Argentina', lat: -32.8895, lng: -68.8458 },
+    { name: 'Tucumán, Argentina', lat: -26.8083, lng: -65.2176 },
+    { name: 'La Plata, Argentina', lat: -34.9215, lng: -57.9545 },
+    { name: 'Mar del Plata, Argentina', lat: -38.0055, lng: -57.5426 },
+    { name: 'Salta, Argentina', lat: -24.7859, lng: -65.4117 },
+    { name: 'Santa Fe, Argentina', lat: -31.6333, lng: -60.7 },
+    { name: 'San Juan, Argentina', lat: -31.5375, lng: -68.5364 },
+    // Chile
+    { name: 'Santiago, Chile', lat: -33.4489, lng: -70.6693 },
+    { name: 'Valparaíso, Chile', lat: -33.0472, lng: -71.6127 },
+    { name: 'Concepción, Chile', lat: -36.8201, lng: -73.0444 },
+    { name: 'La Serena, Chile', lat: -29.9027, lng: -71.2519 },
+    { name: 'Antofagasta, Chile', lat: -23.6509, lng: -70.3975 },
+    { name: 'Temuco, Chile', lat: -38.7359, lng: -72.5904 },
+    { name: 'Viña del Mar, Chile', lat: -33.0246, lng: -71.5518 },
+    // México
+    { name: 'Ciudad de México, México', lat: 19.4326, lng: -99.1332 },
+    { name: 'Guadalajara, México', lat: 20.6597, lng: -103.3496 },
+    { name: 'Monterrey, México', lat: 25.6866, lng: -100.3161 },
+    { name: 'Puebla, México', lat: 19.0414, lng: -98.2063 },
+    { name: 'Tijuana, México', lat: 32.5149, lng: -117.0382 },
+    { name: 'León, México', lat: 21.1250, lng: -101.6860 },
+    { name: 'Querétaro, México', lat: 20.5888, lng: -100.3899 },
+    // España
+    { name: 'Madrid, España', lat: 40.4168, lng: -3.7038 },
+    { name: 'Barcelona, España', lat: 41.3851, lng: 2.1734 },
+    { name: 'Valencia, España', lat: 39.4699, lng: -0.3763 },
+    { name: 'Sevilla, España', lat: 37.3891, lng: -5.9845 },
+    // Colombia
+    { name: 'Bogotá, Colombia', lat: 4.7110, lng: -74.0721 },
+    { name: 'Medellín, Colombia', lat: 6.2476, lng: -75.5658 },
+    { name: 'Cali, Colombia', lat: 3.4516, lng: -76.5320 },
+    // Perú
+    { name: 'Lima, Perú', lat: -12.0464, lng: -77.0428 },
+    { name: 'Arequipa, Perú', lat: -16.4090, lng: -71.5375 },
+    // Venezuela
+    { name: 'Caracas, Venezuela', lat: 10.4806, lng: -66.9036 },
+    // Ecuador
+    { name: 'Quito, Ecuador', lat: -0.1807, lng: -78.4678 },
+    { name: 'Guayaquil, Ecuador', lat: -2.1709, lng: -79.9224 },
+    // Uruguay
+    { name: 'Montevideo, Uruguay', lat: -34.9011, lng: -56.1645 },
+    // Paraguay
+    { name: 'Asunción, Paraguay', lat: -25.2637, lng: -57.5759 },
+    // Bolivia
+    { name: 'La Paz, Bolivia', lat: -16.5000, lng: -68.1500 },
+    { name: 'Santa Cruz, Bolivia', lat: -17.8146, lng: -63.1561 },
+    // República Dominicana
+    { name: 'Santo Domingo, República Dominicana', lat: 18.4861, lng: -69.9312 },
+    // Guatemala
+    { name: 'Ciudad de Guatemala, Guatemala', lat: 14.6349, lng: -90.5069 },
+    // Costa Rica
+    { name: 'San José, Costa Rica', lat: 9.9281, lng: -84.0907 },
+    // Panamá
+    { name: 'Ciudad de Panamá, Panamá', lat: 8.9824, lng: -79.5199 },
+    // El Salvador
+    { name: 'San Salvador, El Salvador', lat: 13.6929, lng: -89.2182 },
+    // Honduras
+    { name: 'Tegucigalpa, Honduras', lat: 14.0723, lng: -87.1921 },
+    // Nicaragua
+    { name: 'Managua, Nicaragua', lat: 12.1364, lng: -86.2514 },
+    // Cuba
+    { name: 'La Habana, Cuba', lat: 23.1136, lng: -82.3666 },
+    // Puerto Rico
+    { name: 'San Juan, Puerto Rico', lat: 18.4655, lng: -66.1057 }
+];
+
+let currentCityIndex = 0;
+
 /**
- * Obtiene la ubicación del usuario mediante geolocalización
+ * Obtiene la siguiente ciudad de habla hispana para mostrar
+ */
+function getNextSpanishCity() {
+    if (SPANISH_SPEAKING_CITIES.length === 0) return null;
+    
+    const city = SPANISH_SPEAKING_CITIES[currentCityIndex];
+    currentCityIndex = (currentCityIndex + 1) % SPANISH_SPEAKING_CITIES.length;
+    
+    return city;
+}
+
+/**
+ * Obtiene la ubicación del usuario mediante geolocalización (DESHABILITADO PARA VIVO)
  */
 function getUserLocation() {
-    if (!navigator.geolocation) {
-        console.warn('⚠️ Geolocalización no disponible en este navegador');
-        return;
+    // Para la versión live, no usar geolocalización, usar ciudades rotativas
+    const city = getNextSpanishCity();
+    if (city) {
+        state.userCity = city.name;
+        state.userCoordinates = {
+            lat: city.lat,
+            lng: city.lng
+        };
+        updateUserCityPanel();
+        console.log('🌎 Ciudad seleccionada:', state.userCity);
     }
-    
-    navigator.geolocation.getCurrentPosition(
-        (position) => {
-            state.userCoordinates = {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude
-            };
-            
-            // Obtener nombre de la ciudad mediante geocodificación inversa
-            getCityNameFromCoordinates(state.userCoordinates.lat, state.userCoordinates.lng);
-            
-            console.log('📍 Ubicación detectada:', state.userCoordinates);
-        },
-        (error) => {
-            console.warn('⚠️ No se pudo obtener la ubicación:', error.message);
-            // Permitir entrada manual de ciudad
-            requestUserCity();
-        },
-        {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0
-        }
-    );
 }
 
 /**
@@ -2196,13 +2261,23 @@ function updateUserCityPanel() {
     
     if (!panel || !cityNameEl || !distanceEl || !etaEl) return;
     
+    // Para la versión live, siempre mostrar el panel con una ciudad
     if (!state.userCity) {
-        panel.style.display = 'none';
-        return;
+        const city = getNextSpanishCity();
+        if (city) {
+            state.userCity = city.name;
+            state.userCoordinates = {
+                lat: city.lat,
+                lng: city.lng
+            };
+        } else {
+            panel.style.display = 'none';
+            return;
+        }
     }
     
     // Mostrar panel
-    panel.style.display = 'block';
+    panel.style.display = 'flex';
     cityNameEl.textContent = state.userCity;
     
     // Calcular distancia si tenemos coordenadas
