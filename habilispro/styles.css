@@ -637,7 +637,7 @@ body {
     max-width: 280px;
     width: auto;
     position: fixed;
-    bottom: 100px;
+    bottom: 380px; /* Por encima del control panel (que está en bottom: 70px y tiene ~250px de altura) */
     left: 20px;
     right: auto;
     top: auto;
@@ -873,15 +873,19 @@ body.shaking {
     backdrop-filter: blur(10px);
     pointer-events: auto;
     max-width: 400px;
-    margin-left: auto;
-    margin-top: auto;
+    position: fixed;
+    bottom: 350px; /* Por encima del control panel (que está en bottom: 70px y tiene ~250px de altura) */
+    right: 20px;
+    left: auto;
+    top: auto;
     transition: all 0.3s ease;
     box-shadow: 
         0 0 30px rgba(255, 215, 0, 0.5),
         0 0 60px rgba(255, 0, 0, 0.3),
         inset 0 0 20px rgba(0, 0, 0, 0.2);
-    position: relative;
     overflow: hidden;
+    z-index: 100;
+    max-height: calc(100vh - 400px); /* Limitar altura para que no se salga de la pantalla */
 }
 
 .public-interaction-panel::before {
@@ -1381,7 +1385,7 @@ body.shaking {
         max-width: 240px;
         padding: 12px;
         padding-top: 28px;
-        bottom: 80px;
+        bottom: 380px; /* Por encima del control panel */
         left: 15px;
     }
     
