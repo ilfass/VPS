@@ -1457,7 +1457,7 @@ async function handleSendMessage() {
     addParticipant();
     
     // Mostrar indicador de que Papá Noel está escribiendo
-    addPublicMessage('🎅 Papá Noel está escribiendo...', 'Sistema');
+    addPublicMessage('🎅 Papá Noel está escribiendo...', '🎅 Papá Noel');
     
     // Obtener respuesta de Gemini
     try {
@@ -1475,9 +1475,21 @@ async function handleSendMessage() {
         }, typingDelay);
     } catch (error) {
         console.error('Error al obtener respuesta de Papá Noel:', error);
+        
+        // Remover el mensaje de "escribiendo"
+        const messagesList = document.getElementById('messagesList');
+        if (messagesList) {
+            const typingMessages = Array.from(messagesList.querySelectorAll('.message-item'));
+            typingMessages.forEach(msg => {
+                if (msg.textContent.includes('está escribiendo')) {
+                    msg.remove();
+                }
+            });
+        }
+        
         setTimeout(() => {
             addPublicMessage('¡Hola! ¡Qué alegría verte aquí! 🎅 Estoy muy ocupado entregando regalos, pero gracias por tu mensaje. ¡Feliz Navidad! 🎄✨', '🎅 Papá Noel');
-        }, 1500);
+        }, 500);
     }
 }
 
@@ -1576,14 +1588,9 @@ function initPublicInteraction() {
     // Agregar participante inicial
     addParticipant();
     
-    // Mensaje de bienvenida del sistema
+    // Mensaje inicial de Papá Noel
     setTimeout(() => {
-        addPublicMessage('¡Bienvenido al chat con Papá Noel! 🎅 Escribe tu mensaje abajo 👇', 'Sistema');
-        
-        // Mensaje inicial de Papá Noel después de 1 segundo
-        setTimeout(() => {
-            addPublicMessage('¡Hola! ¡Qué alegría verte aquí! 🎅 Estoy muy ocupado entregando regalos alrededor del mundo, pero me encanta charlar contigo. ¡Escribe lo que quieras! 🎄✨', '🎅 Papá Noel');
-        }, 1500);
+        addPublicMessage('¡Hola! ¡Qué alegría verte aquí! 🎅 Estoy muy ocupado entregando regalos alrededor del mundo, pero me encanta charlar contigo. ¡Escribe lo que quieras! 🎄✨', '🎅 Papá Noel');
     }, 2000);
 }
 
