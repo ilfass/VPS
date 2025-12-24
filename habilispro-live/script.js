@@ -1948,23 +1948,18 @@ function initPublicInteraction() {
  * Solicita el nombre del usuario
  */
 function requestUserName() {
+    // En la versión live, no solicitar nombre al usuario
+    // Usar nombre genérico o el guardado si existe
     const savedName = localStorage.getItem('santaTracker_userName');
     if (savedName) {
         state.userName = savedName;
         return savedName;
     }
     
-    // Solicitar nombre con un prompt amigable
-    const name = prompt('🎅 ¡Hola! ¿Cuál es tu nombre?\n\n(Puedes dejarlo en blanco si prefieres mantenerte anónimo)');
-    
-    if (name && name.trim() !== '') {
-        state.userName = name.trim();
-        localStorage.setItem('santaTracker_userName', state.userName);
-        console.log(`👋 Nombre guardado: ${state.userName}`);
-        return state.userName;
-    }
-    
-    return null;
+    // Usar nombre genérico para la versión live (sin preguntar)
+    state.userName = 'Operador';
+    localStorage.setItem('santaTracker_userName', state.userName);
+    return state.userName;
 }
 
 // Lista de ciudades de habla hispana (prioridad: Argentina, Chile, México, España)
