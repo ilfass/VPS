@@ -1401,7 +1401,14 @@ async function listAvailableModels() {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`);
         const data = await response.json();
         console.log('Modelos disponibles:', data);
-        return data;
+        if (data.models) {
+            const availableModels = data.models
+                .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+                .map(m => m.name.replace('models/', ''));
+            console.log('Modelos que soportan generateContent:', availableModels);
+            return availableModels;
+        }
+        return null;
     } catch (error) {
         console.error('Error al listar modelos:', error);
         return null;
