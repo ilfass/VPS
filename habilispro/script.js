@@ -1631,6 +1631,48 @@ function updateGifts() {
 }
 
 /**
+ * Registra una visita y actualiza el contador
+ */
+function registerVisit() {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const visitKey = `visit_${today}`;
+    const lastVisitKey = 'lastVisitDate';
+    
+    // Obtener última fecha de visita
+    const lastVisitDate = localStorage.getItem(lastVisitKey);
+    
+    // Si es un nuevo día, resetear contador
+    if (lastVisitDate !== today) {
+        localStorage.setItem(visitKey, '0');
+        localStorage.setItem(lastVisitKey, today);
+    }
+    
+    // Incrementar contador de visitas del día
+    const currentVisits = parseInt(localStorage.getItem(visitKey) || '0');
+    const newVisits = currentVisits + 1;
+    localStorage.setItem(visitKey, newVisits.toString());
+    
+    // Actualizar display
+    updateVisitsDisplay();
+    
+    return newVisits;
+}
+
+/**
+ * Actualiza el display de visitas
+ */
+function updateVisitsDisplay() {
+    const element = document.getElementById('visitsToday');
+    if (!element) return;
+    
+    const today = new Date().toISOString().split('T')[0];
+    const visitKey = `visit_${today}`;
+    const visits = parseInt(localStorage.getItem(visitKey) || '0');
+    
+    element.textContent = formatNumber(visits);
+}
+
+/**
  * Actualiza el estado del trineo
  */
 function updateStatus() {
@@ -3569,6 +3611,10 @@ function init() {
     updateSpeed();
     updateGifts();
     updateStatus();
+    
+    // Registrar visita y mostrar contador
+    registerVisit();
+    updateVisitsDisplay();
     
     // Actualizar hora cada segundo
     setInterval(updateTime, 1000);
