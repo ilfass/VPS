@@ -1895,6 +1895,76 @@ function unmuteTracker() {
 }
 
 /**
+ * Inicializa el botón de sonido
+ */
+function initSoundButton() {
+    const soundButton = document.getElementById('soundToggleButton');
+    if (!soundButton) return;
+    
+    let isMuted = true; // Asumimos que está muteado inicialmente
+    
+    soundButton.addEventListener('click', () => {
+        const iframe = document.getElementById('santaTracker');
+        if (!iframe) return;
+        
+        isMuted = !isMuted;
+        
+        // Actualizar apariencia del botón
+        if (isMuted) {
+            soundButton.classList.add('muted');
+            soundButton.setAttribute('aria-label', 'Activar sonido');
+            soundButton.setAttribute('title', 'Activar sonido');
+        } else {
+            soundButton.classList.remove('muted');
+            soundButton.setAttribute('aria-label', 'Desactivar sonido');
+            soundButton.setAttribute('title', 'Desactivar sonido');
+        }
+        
+        // Intentar desmutear/mutear el iframe
+        try {
+            const iframeWindow = iframe.contentWindow;
+            const iframeDoc = iframe.contentDocument || iframeWindow?.document;
+            
+            if (iframeDoc) {
+                // Buscar y hacer clic en el botón de mute del tracker
+                const muteButtons = iframeDoc.querySelectorAll(
+                    'button[aria-label*="mute" i], ' +
+                    'button[aria-label*="sonido" i], ' +
+                    'button[aria-label*="sound" i], ' +
+                    'button[title*="mute" i], ' +
+                    'button[title*="sonido" i], ' +
+                    'button[title*="sound" i], ' +
+                    '[class*="mute" i], ' +
+                    '[class*="sound" i]'
+                );
+                
+                if (muteButtons.length > 0) {
+                    // Hacer clic en el primer botón encontrado
+                    muteButtons[0].click();
+                } else {
+                    // Si no hay botón, intentar con elementos de audio/video
+                    const audioElements = iframeDoc.querySelectorAll('audio, video');
+                    audioElements.forEach(el => {
+                        el.muted = isMuted;
+                        if (!isMuted) {
+                            el.volume = 1;
+                        }
+                    });
+                }
+            } else {
+                // Si no podemos acceder, mostrar mensaje
+                console.log('No se puede acceder al contenido del iframe para controlar el sonido');
+            }
+        } catch (e) {
+            console.log('Error al controlar el sonido:', e.message);
+        }
+    });
+    
+    // Marcar como muteado inicialmente
+    soundButton.classList.add('muted');
+}
+
+/**
  * Inicializa la personalización del usuario
  */
 function initUserPersonalization() {
@@ -2181,6 +2251,9 @@ function init() {
     
     // Inicializar panel de interacción tipo acordeón para móviles
     initMobileInteractionPanel();
+    
+    // Inicializar botón de sonido
+    initSoundButton();
     
     // Inicializar panel arrastrable "Tu ciudad"
     setTimeout(() => {

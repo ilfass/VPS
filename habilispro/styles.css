@@ -85,6 +85,7 @@ body {
 
 .header-title-section {
     flex: 1;
+    overflow: hidden;
 }
 
 .panel-header h1 {
@@ -93,8 +94,9 @@ body {
     color: #ffffff;
     text-shadow: 0 2px 10px rgba(220, 53, 69, 0.5);
     margin: 0;
-    display: inline-block;
-    white-space: nowrap;
+    display: inline;
+    white-space: normal;
+    line-height: 1.2;
 }
 
 .control-operator {
@@ -103,6 +105,7 @@ body {
     color: rgba(255, 255, 255, 0.9);
     font-style: normal;
     display: inline;
+    white-space: normal;
 }
 
 .control-operator span {
@@ -702,6 +705,9 @@ body.shaking {
 
 .user-city-content {
     text-align: center;
+    overflow: hidden;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .user-city-name {
@@ -736,19 +742,25 @@ body.shaking {
 }
 
 .user-city-countdown {
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 700;
     color: #ffc107;
     text-shadow: 
         0 0 15px rgba(255, 193, 7, 0.8),
         0 2px 10px rgba(0, 0, 0, 0.5);
     background: rgba(0, 0, 0, 0.4);
-    padding: 15px;
+    padding: 12px;
     border-radius: 8px;
     border: 2px solid rgba(255, 193, 7, 0.6);
     animation: countdownPulse 1s infinite;
     font-family: 'Courier New', monospace;
-    letter-spacing: 2px;
+    letter-spacing: 1px;
+    margin-top: 10px;
+    word-break: keep-all;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 @keyframes countdownPulse {
@@ -1052,6 +1064,60 @@ body.shaking {
 }
 
 /* ============================================
+   BOTÓN DE SONIDO
+   ============================================ */
+
+.sound-toggle-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 2000;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(220, 53, 69, 0.9);
+    border: 2px solid rgba(220, 53, 69, 1);
+    color: #ffffff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+    transition: all 0.3s ease;
+    padding: 0;
+}
+
+.sound-toggle-button:hover {
+    background: rgba(220, 53, 69, 1);
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(220, 53, 69, 0.6);
+}
+
+.sound-toggle-button:active {
+    transform: scale(0.95);
+}
+
+.sound-toggle-button.muted {
+    background: rgba(108, 117, 125, 0.9);
+    border-color: rgba(108, 117, 125, 1);
+}
+
+.sound-toggle-button.muted:hover {
+    background: rgba(108, 117, 125, 1);
+}
+
+.sound-icon {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+}
+
+.sound-toggle-button.muted .sound-icon {
+    opacity: 0.5;
+}
+
+/* ============================================
    FOOTER DE DONACIÓN
    ============================================ */
 
@@ -1126,8 +1192,23 @@ body.shaking {
     }
 
     .user-city-countdown {
-        font-size: 24px;
-        padding: 12px;
+        font-size: 20px;
+        padding: 10px;
+        letter-spacing: 1px;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .sound-toggle-button {
+        width: 45px;
+        height: 45px;
+        top: 15px;
+        right: 15px;
+    }
+
+    .sound-icon {
+        width: 20px;
+        height: 20px;
     }
 
     .donation-footer {
