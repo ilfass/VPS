@@ -1953,13 +1953,7 @@ function initPublicInteraction() {
  * Solicita el nombre del usuario
  */
 function requestUserName() {
-    const savedName = localStorage.getItem('santaTracker_userName');
-    if (savedName) {
-        state.userName = savedName;
-        return savedName;
-    }
-    
-    // Solicitar nombre con un prompt amigable
+    // Siempre preguntar el nombre al ingresar (no usar localStorage para forzar pregunta)
     const name = prompt('🎅 ¡Hola! ¿Cuál es tu nombre?\n\n(Puedes dejarlo en blanco si prefieres mantenerte anónimo)');
     
     if (name && name.trim() !== '') {
@@ -1967,9 +1961,13 @@ function requestUserName() {
         localStorage.setItem('santaTracker_userName', state.userName);
         console.log(`👋 Nombre guardado: ${state.userName}`);
         return state.userName;
+    } else {
+        // Si no proporciona nombre, usar uno por defecto
+        state.userName = 'Operador';
+        localStorage.setItem('santaTracker_userName', state.userName);
+        console.log(`👋 Usando nombre por defecto: ${state.userName}`);
+        return state.userName;
     }
-    
-    return null;
 }
 
 /**
@@ -2258,8 +2256,13 @@ function updateOperatorName() {
     const operatorEl = document.getElementById('controlOperator');
     const operatorNameEl = document.getElementById('operatorName');
     
-    if (operatorEl && operatorNameEl && state.userName) {
-        operatorNameEl.textContent = state.userName;
+    if (operatorEl && operatorNameEl) {
+        if (state.userName) {
+            operatorNameEl.textContent = state.userName;
+            operatorEl.style.display = 'inline'; // Mostrar el operador
+        } else {
+            operatorEl.style.display = 'none'; // Ocultar si no hay nombre
+        }
         operatorEl.style.display = 'block';
     }
 }
@@ -2426,13 +2429,32 @@ function shakeScreen() {
     const cityPanel = document.getElementById('userCityPanel');
     const body = document.body;
     
-    if (cityPanel && cityPanel.style.display !== 'none') {
-        cityPanel.classList.add('shaking');
-        cityPanel.classList.add('expanded');
+    if (!cityPanel) {
+        console.warn('⚠️ Panel de ciudad no encontrado en shakeScreen');
+        return;
     }
+    
+    if (cityPanel.style.display === 'none') {
+        console.warn('⚠️ Panel de ciudad está oculto');
+        return;
+    }
+    
+    console.log('🔔 Aplicando zumbido intenso al panel de ciudad');
+    
+    // Expandir y hacer shake al panel
+    cityPanel.classList.add('shaking');
+    cityPanel.classList.add('expanded');
     
     // Agregar efecto de shake a toda la pantalla
     body.classList.add('shaking');
+    
+    // Remover clases después de la animación
+    setTimeout(() => {
+        cityPanel.classList.remove('shaking');
+        cityPanel.classList.remove('expanded');
+        body.classList.remove('shaking');
+        console.log('🔔 Zumbido completado');
+    }, 5000); // 5 segundos de zumbido intenso
     
     // Remover después de 3 segundos
     setTimeout(() => {
@@ -2448,15 +2470,29 @@ function shakeScreen() {
  * Inicializa los timers para expandir el panel
  */
 function initCityPanelTimers() {
+    console.log('⏰ Inicializando timers del panel de ciudad...');
+    
     // Expandir cada 5 minutos
     setInterval(() => {
+        console.log('📢 Expandiendo panel de ciudad (cada 5 minutos)');
         expandCityPanel();
     }, 5 * 60 * 1000); // 5 minutos
     
-    // Verificar cada minuto si es el minuto 00 de cada hora
+    // Ejecutar primera expansión después de 5 minutos
+    setTimeout(() => {
+        console.log('📢 Primera expansión del panel de ciudad');
+        expandCityPanel();
+    }, 5 * 60 * 1000);
+    
+    // Zumbido cada 30 minutos (en los minutos 00 y 30)
     setInterval(() => {
         const now = new Date();
-        if (now.getMinutes() === 0 && now.getSeconds() < 5) {
+        const minutes = now.getMinutes();
+        const seconds = now.getSeconds();
+        
+        // Verificar si estamos en el minuto 00 o 30
+        if ((minutes === 0 || minutes === 30) && seconds < 5) {
+            console.log('🔔 Zumbido del panel de ciudad (cada 30 minutos)');
             shakeScreen();
         }
     }, 1000); // Verificar cada segundo
