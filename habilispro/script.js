@@ -1389,18 +1389,20 @@ function displayMessage(message) {
  * Obtiene respuesta de Papá Noel usando Gemini API con historial de conversación
  */
 async function getSantaResponse(userMessage) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Iniciando getSantaResponse',data:{userMessage,messageCount:state.publicMessages.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    
     try {
         // Obtener los últimos mensajes del historial (últimos 15 mensajes para contexto)
         const recentMessages = state.publicMessages.slice(-15);
         
-        // Construir el historial de conversación en formato Gemini
-        const conversationHistory = [];
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Mensajes recientes obtenidos',data:{recentCount:recentMessages.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         
-        // Agregar el contexto inicial
-        conversationHistory.push({
-            role: 'user',
-            parts: [{
-                text: `Eres Papá Noel (Santa Claus) en un vivo de YouTube interactuando con los espectadores. 
+        // Construir el prompt con historial
+        const systemPrompt = `Eres Papá Noel (Santa Claus) en un vivo de YouTube interactuando con los espectadores. 
 
 INSTRUCCIONES:
 - Responde como si fueras Papá Noel real, muy amigable, cálido y cercano
@@ -1415,18 +1417,11 @@ INSTRUCCIONES:
 - Usa expresiones como "¡Hola!", "¡Qué bueno!", "¡Me encanta!", "¡Claro que sí!"
 - Mantén el contexto de la conversación anterior
 
-Ahora continúa la conversación basándote en el historial:`
-            }]
-        });
+HISTORIAL DE LA CONVERSACIÓN:`;
+
+        // Construir el historial como texto
+        let historyText = systemPrompt + '\n\n';
         
-        conversationHistory.push({
-            role: 'model',
-            parts: [{
-                text: '¡Por supuesto! Estoy listo para charlar contigo. 🎅'
-            }]
-        });
-        
-        // Agregar el historial de mensajes anteriores
         recentMessages.forEach(msg => {
             const isSanta = msg.author === '🎅 Papá Noel' || msg.author.includes('Papá Noel');
             const isTyping = msg.text.includes('está escribiendo');
@@ -1435,57 +1430,77 @@ Ahora continúa la conversación basándote en el historial:`
             if (isTyping) return;
             
             if (isSanta) {
-                conversationHistory.push({
-                    role: 'model',
-                    parts: [{
-                        text: msg.text
-                    }]
-                });
+                historyText += `Papá Noel: ${msg.text}\n`;
             } else {
-                // Es un mensaje del usuario
                 const userName = msg.author || 'Usuario';
-                conversationHistory.push({
-                    role: 'user',
-                    parts: [{
-                        text: `${userName}: ${msg.text}`
-                    }]
-                });
+                historyText += `${userName}: ${msg.text}\n`;
             }
         });
         
-        // Agregar el nuevo mensaje del usuario
+        // Agregar el nuevo mensaje
         const userName = state.userName || 'Usuario';
-        conversationHistory.push({
-            role: 'user',
-            parts: [{
-                text: `${userName}: ${userMessage}`
+        historyText += `\n${userName}: ${userMessage}\n\nPapá Noel:`;
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Prompt construido',data:{promptLength:historyText.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+
+        const requestBody = {
+            contents: [{
+                parts: [{
+                    text: historyText
+                }]
             }]
-        });
+        };
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Enviando petición a Gemini',data:{url:GEMINI_API_URL,hasKey:!!GEMINI_API_KEY,bodyLength:JSON.stringify(requestBody).length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
 
         const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                contents: conversationHistory
-            })
+            body: JSON.stringify(requestBody)
         });
+
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Respuesta recibida',data:{status:response.status,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
 
         if (!response.ok) {
             const errorText = await response.text();
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Error en respuesta',data:{status:response.status,errorText},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            // #endregion
             console.error('Error de Gemini API:', errorText);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
         
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Datos parseados',data:{hasCandidates:!!data.candidates,candidatesLength:data.candidates?.length,hasContent:!!(data.candidates?.[0]?.content)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+        // #endregion
+        
         if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-            return data.candidates[0].content.parts[0].text.trim();
+            const responseText = data.candidates[0].content.parts[0].text.trim();
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Respuesta exitosa',data:{responseLength:responseText.length,responsePreview:responseText.substring(0,50)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+            // #endregion
+            return responseText;
         }
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'No se encontró respuesta en datos',data:{dataKeys:Object.keys(data),fullData:JSON.stringify(data).substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+        // #endregion
         
         return null;
     } catch (error) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:getSantaResponse',message:'Excepción capturada',data:{errorMessage:error.message,errorName:error.name,errorStack:error.stack?.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
+        // #endregion
         console.error('Error al obtener respuesta de Gemini:', error);
         return null;
     }
