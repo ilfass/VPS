@@ -2378,17 +2378,37 @@ function updateCountdownDisplay() {
  * Actualiza el panel de ciudad del usuario
  */
 function updateUserCityPanel() {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateUserCityPanel',message:'Iniciando updateUserCityPanel',data:{hasUserCity:!!state.userCity,userCity:state.userCity},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    
     const panel = document.getElementById('userCityPanel');
     const cityNameEl = document.getElementById('userCityName');
     const distanceEl = document.getElementById('userCityDistance');
     const etaEl = document.getElementById('userCityETA');
     const countdownEl = document.getElementById('userCityCountdown');
     
-    if (!panel || !cityNameEl || !distanceEl || !etaEl) return;
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateUserCityPanel',message:'Elementos encontrados',data:{panel:!!panel,cityNameEl:!!cityNameEl,distanceEl:!!distanceEl,etaEl:!!etaEl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    
+    if (!panel || !cityNameEl || !distanceEl || !etaEl) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateUserCityPanel',message:'Elementos faltantes, saliendo',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        return;
+    }
     
     // Verificar si estamos en modo "random" - si es así, NO actualizar ni cambiar visibilidad
     const savedMode = localStorage.getItem('cityPanelMode');
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateUserCityPanel',message:'Modo guardado',data:{savedMode:savedMode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    
     if (savedMode === 'random') {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateUserCityPanel',message:'Modo random, no actualizar',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
         // No hacer nada si estamos en modo random - solo actualizar cuando el usuario cambie
         return;
     }
@@ -2396,6 +2416,9 @@ function updateUserCityPanel() {
     // Solo actualizar contenido, NO cambiar visibilidad automáticamente
     // La visibilidad solo cambia cuando el usuario presiona el botón
     if (!state.userCity) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateUserCityPanel',message:'No hay ciudad del usuario',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         // Si no hay ciudad, ocultar solo si no está en modo random
         if (panel.style.display !== 'none') {
             panel.style.display = 'none';
@@ -2403,7 +2426,19 @@ function updateUserCityPanel() {
         return;
     }
     
-    // Actualizar contenido del panel (no cambiar visibilidad)
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateUserCityPanel',message:'Actualizando contenido del panel',data:{userCity:state.userCity,currentDisplay:panel.style.display},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
+    
+    // Actualizar contenido del panel (no cambiar visibilidad automáticamente)
+    // PERO asegurar que esté visible si hay ciudad
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        panel.classList.add('visible');
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6416de3c-af16-442d-aeb0-b4c97cbdf40e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:updateUserCityPanel',message:'Panel estaba oculto, mostrándolo',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
+    }
     cityNameEl.textContent = state.userCity;
     
     // Calcular distancia si tenemos coordenadas
