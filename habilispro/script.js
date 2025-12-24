@@ -325,12 +325,13 @@ function addEventToHistory(event) {
 }
 
 /**
- * Muestra una notificación de evento
+ * Muestra una notificación de evento con efectos mejorados
  */
 function showEventNotification(event) {
     const notification = document.getElementById('eventNotification');
     const icon = document.getElementById('notificationIcon');
     const text = document.getElementById('notificationText');
+    const screenFlash = document.getElementById('screenFlash');
     
     if (!notification || !icon || !text) return;
     
@@ -338,13 +339,32 @@ function showEventNotification(event) {
     icon.textContent = getEventIcon(event.type);
     text.textContent = event.text;
     
-    // Mostrar notificación
-    notification.classList.add('show');
+    // Efecto de flash de pantalla completa
+    if (screenFlash) {
+        screenFlash.classList.add('flash');
+        setTimeout(() => {
+            screenFlash.classList.remove('flash');
+        }, 600);
+    }
     
-    // Ocultar después de 4 segundos
+    // Pequeño delay antes de mostrar la notificación para mayor impacto
+    setTimeout(() => {
+        // Mostrar notificación con animación
+        notification.classList.add('show');
+        
+        // Efecto de vibración sutil en el icono
+        if (icon) {
+            icon.style.animation = 'none';
+            setTimeout(() => {
+                icon.style.animation = 'iconPulse 0.5s ease';
+            }, 10);
+        }
+    }, 100);
+    
+    // Ocultar después de 5 segundos (aumentado para más visibilidad)
     setTimeout(() => {
         notification.classList.remove('show');
-    }, 4000);
+    }, 5000);
 }
 
 // ============================================
