@@ -83,6 +83,8 @@ body {
     left: 20px;
     right: 20px;
     max-width: calc(100% - 40px);
+    max-height: calc(100vh - 90px); /* Limitar altura para evitar recortes */
+    overflow-y: auto; /* Permitir scroll si el contenido es muy largo */
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5),
                 0 0 30px rgba(220, 53, 69, 0.2);
     backdrop-filter: blur(5px);
@@ -637,7 +639,7 @@ body {
     max-width: 280px;
     width: auto;
     position: fixed;
-    bottom: 380px; /* Por encima del control panel (que está en bottom: 70px y tiene ~250px de altura) */
+    bottom: calc(70px + 250px + 20px); /* Control panel (70px) + altura (~250px) + margen (20px) */
     left: 20px;
     right: auto;
     top: auto;
@@ -645,6 +647,8 @@ body {
     user-select: none;
     transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     min-width: 200px;
+    max-height: calc(100vh - 420px); /* Evitar que se salga de la pantalla */
+    overflow-y: auto;
 }
 
 .user-city-panel.visible {
@@ -874,7 +878,7 @@ body.shaking {
     pointer-events: auto;
     max-width: 400px;
     position: fixed;
-    bottom: 350px; /* Por encima del control panel (que está en bottom: 70px y tiene ~250px de altura) */
+    bottom: calc(70px + 250px + 20px); /* Control panel (70px) + altura (~250px) + margen (20px) */
     right: 20px;
     left: auto;
     top: auto;
@@ -885,7 +889,7 @@ body.shaking {
         inset 0 0 20px rgba(0, 0, 0, 0.2);
     overflow: hidden;
     z-index: 100;
-    max-height: calc(100vh - 400px); /* Limitar altura para que no se salga de la pantalla */
+    max-height: calc(100vh - 420px); /* Evitar que se salga de la pantalla */
 }
 
 .public-interaction-panel::before {
@@ -1385,8 +1389,9 @@ body.shaking {
         max-width: 240px;
         padding: 12px;
         padding-top: 28px;
-        bottom: 380px; /* Por encima del control panel */
+        bottom: calc(60px + 220px + 15px); /* Control panel ajustado + altura + margen */
         left: 15px;
+        max-height: calc(100vh - 350px); /* Ajustar altura máxima */
     }
     
     .user-city-header h2 {
@@ -1421,6 +1426,8 @@ body.shaking {
         left: 15px;
         right: 15px;
         max-width: calc(100% - 30px);
+        max-height: calc(100vh - 120px); /* Limitar altura del control panel */
+        overflow-y: auto;
     }
     
     .panel-header h1 {
@@ -1433,6 +1440,80 @@ body.shaking {
     
     .info-label {
         font-size: 12px;
+    }
+    
+    .public-interaction-panel {
+        bottom: calc(60px + 220px + 15px); /* Alineado con panel de ciudad */
+        right: 15px;
+        max-width: 350px;
+        max-height: calc(100vh - 350px); /* Ajustar altura máxima */
+    }
+}
+
+/* Media query específico para 1366x768 */
+@media (min-width: 1366px) and (max-width: 1366px) and (min-height: 768px) and (max-height: 768px) {
+    .user-city-panel {
+        max-width: 220px;
+        padding: 10px;
+        padding-top: 25px;
+        bottom: calc(60px + 200px + 10px); /* Ajustado para altura limitada */
+        left: 10px;
+        max-height: calc(100vh - 320px);
+    }
+    
+    .public-interaction-panel {
+        bottom: calc(60px + 200px + 10px);
+        right: 10px;
+        max-width: 320px;
+        max-height: calc(100vh - 320px);
+        padding: 15px;
+    }
+    
+    .control-panel {
+        padding: 12px;
+        bottom: 60px;
+        max-height: 200px; /* Limitar altura en esta resolución */
+        overflow-y: auto;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .info-card {
+        padding: 8px;
+    }
+    
+    .info-label {
+        font-size: 11px;
+    }
+    
+    .info-value {
+        font-size: 18px;
+    }
+}
+
+/* Media query para pantallas grandes (1920x1080 y similares) */
+@media (min-width: 1920px) {
+    .user-city-panel {
+        max-width: 300px;
+        bottom: calc(70px + 280px + 30px);
+        left: 30px;
+    }
+    
+    .public-interaction-panel {
+        bottom: calc(70px + 280px + 30px);
+        right: 30px;
+        max-width: 450px;
+    }
+    
+    .control-panel {
+        bottom: 70px;
+        left: 30px;
+        right: 30px;
+        max-width: calc(100% - 60px);
     }
 }
 
