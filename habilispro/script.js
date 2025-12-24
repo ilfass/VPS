@@ -32,7 +32,7 @@ const CONFIG = {
     initialStatus: 'ok',
     
     // Intervalo para mostrar eventos automáticamente (en minutos)
-    autoEventInterval: 3,
+    autoEventInterval: 1.5, // Reducido para más frecuencia
     
     // Velocidad de incremento de regalos (por segundo)
     giftsPerSecond: 0.5,
@@ -41,7 +41,7 @@ const CONFIG = {
     speedVariation: 0.05, // 5% de variación
     
     // Intervalo para aparición de Papá Noel (en minutos)
-    santaAppearanceInterval: 5,
+    santaAppearanceInterval: 2.5, // Reducido para más frecuencia
     
     // Duración de la aparición (en segundos)
     santaAppearanceDuration: 8,
@@ -152,6 +152,33 @@ const EVENTS_DATABASE = [
     { type: 'humor', text: 'Sistema anti-gravedad funcionando perfecto' },
     { type: 'humor', text: 'Los renos están sincronizados' },
     { type: 'humor', text: 'Papá Noel está en forma' },
+    { type: 'humor', text: 'Los elfos están trabajando a toda velocidad' },
+    { type: 'humor', text: 'Rudolph brilla más que nunca' },
+    { type: 'humor', text: 'Papá Noel está en excelente forma física' },
+    
+    // Más Eventos Técnicos
+    { type: 'technical', text: 'Sistema de carga de regalos optimizado' },
+    { type: 'technical', text: 'Comunicación con base estable' },
+    { type: 'technical', text: 'Ruta recalculada exitosamente' },
+    { type: 'technical', text: 'Todos los sistemas operativos' },
+    { type: 'technical', text: 'Velocidad de crucero alcanzada' },
+    
+    // Más Eventos de Clima
+    { type: 'weather', text: 'Cielo despejado en la ruta' },
+    { type: 'weather', text: 'Viento perfecto para el vuelo' },
+    { type: 'weather', text: 'Condiciones ideales de vuelo' },
+    { type: 'weather', text: 'Visibilidad perfecta' },
+    { type: 'weather', text: 'Temperatura óptima para los renos' },
+    
+    // Más Eventos Narrativos
+    { type: 'narrative', text: 'Ciudad iluminada con luces navideñas' },
+    { type: 'narrative', text: 'Niños esperando en las ventanas' },
+    { type: 'narrative', text: 'Árboles de Navidad decorados' },
+    { type: 'narrative', text: 'Villancicos en el aire' },
+    { type: 'narrative', text: 'Entrega especial en curso' },
+    { type: 'narrative', text: 'Zona de alta actividad detectada' },
+    { type: 'narrative', text: 'Chimeneas listas para la entrega' },
+    { type: 'narrative', text: 'Regalos siendo preparados' },
 ];
 
 // ============================================
@@ -241,6 +268,322 @@ const SANTA_MESSAGES = [
         message: '¡Los renos están volando perfecto! 🦌',
         subtitle: '¡Gracias por seguir el viaje! Suscríbete a @fabiandeharo',
         includeNames: false
+    },
+    // ============================================
+    // MENSAJES SOBRE NAVIDAD EN ESPAÑA
+    // ============================================
+    {
+        type: 'country',
+        message: '¡Feliz Navidad desde España! 🇪🇸',
+        subtitle: 'Aquí celebramos con turrones y cava. ¡Suscríbete a @fabiandeharo!',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Nochebuena en España! 🎄',
+        subtitle: 'Las familias se reúnen para la cena. @fabiandeharo en YouTube',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Los Reyes Magos están llegando! 👑',
+        subtitle: 'En España celebramos el 6 de enero. Suscríbete a @fabiandeharo',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Navidad en Madrid! 🏛️',
+        subtitle: 'Luces navideñas iluminan las calles. @fabiandeharo',
+        includeNames: false
+    },
+    // ============================================
+    // MENSAJES SOBRE NAVIDAD EN SUDAMÉRICA
+    // ============================================
+    {
+        type: 'country',
+        message: '¡Navidad en Argentina! 🇦🇷',
+        subtitle: 'Celebramos con asado y pan dulce. ¡Suscríbete a @fabiandeharo!',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Feliz Navidad desde Brasil! 🇧🇷',
+        subtitle: 'Aquí es verano, pero el espíritu navideño está presente. @fabiandeharo',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Navidad en Chile! 🇨🇱',
+        subtitle: 'Las familias se reúnen para la cena de Nochebuena. Suscríbete a @fabiandeharo',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Navidad en Colombia! 🇨🇴',
+        subtitle: 'Celebramos con natilla y buñuelos. ¡@fabiandeharo en YouTube!',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Feliz Navidad desde Perú! 🇵🇪',
+        subtitle: 'Panetón y chocolate caliente. Suscríbete a @fabiandeharo',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Navidad en Venezuela! 🇻🇪',
+        subtitle: 'Hallacas y pan de jamón en cada mesa. @fabiandeharo',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Navidad en Uruguay! 🇺🇾',
+        subtitle: 'Celebramos con fuegos artificiales. ¡Suscríbete a @fabiandeharo!',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Navidad en Paraguay! 🇵🇾',
+        subtitle: 'Chipa y sopa paraguaya. @fabiandeharo en YouTube',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Feliz Navidad desde Ecuador! 🇪🇨',
+        subtitle: 'Pristiños y buñuelos navideños. Suscríbete a @fabiandeharo',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Navidad en Bolivia! 🇧🇴',
+        subtitle: 'Picana y panetón en cada hogar. @fabiandeharo',
+        includeNames: false
+    },
+    // ============================================
+    // MENSAJES SOBRE NAVIDAD EN CENTROAMÉRICA
+    // ============================================
+    {
+        type: 'country',
+        message: '¡Navidad en México! 🇲🇽',
+        subtitle: 'Posadas, piñatas y tamales. ¡Suscríbete a @fabiandeharo!',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Feliz Navidad desde Guatemala! 🇬🇹',
+        subtitle: 'Celebramos con tamales y ponche. @fabiandeharo en YouTube',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Navidad en Costa Rica! 🇨🇷',
+        subtitle: 'Tamales y rompope en cada mesa. Suscríbete a @fabiandeharo',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Navidad en Panamá! 🇵🇦',
+        subtitle: 'Celebramos con arroz con guandú. ¡@fabiandeharo!',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Feliz Navidad desde Honduras! 🇭🇳',
+        subtitle: 'Torrejas y ponche navideño. Suscríbete a @fabiandeharo',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Navidad en El Salvador! 🇸🇻',
+        subtitle: 'Tamales y panes con pollo. @fabiandeharo en YouTube',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Navidad en Nicaragua! 🇳🇮',
+        subtitle: 'Nacatamales y cajeta de coco. ¡Suscríbete a @fabiandeharo!',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Navidad en República Dominicana! 🇩🇴',
+        subtitle: 'Cerdo asado y pasteles en hoja. @fabiandeharo',
+        includeNames: false
+    },
+    // ============================================
+    // MENSAJES SOBRE NAVIDAD EN OTROS PAÍSES
+    // ============================================
+    {
+        type: 'country',
+        message: '¡Navidad en Estados Unidos! 🇺🇸',
+        subtitle: 'Cookies para Santa y decoraciones. Suscríbete a @fabiandeharo',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Feliz Navidad desde Italia! 🇮🇹',
+        subtitle: 'Panettone y cena de Nochebuena. @fabiandeharo en YouTube',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Navidad en Francia! 🇫🇷',
+        subtitle: 'Bûche de Noël y foie gras. ¡Suscríbete a @fabiandeharo!',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Navidad en Alemania! 🇩🇪',
+        subtitle: 'Mercados navideños y stollen. @fabiandeharo',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Feliz Navidad desde Japón! 🇯🇵',
+        subtitle: 'KFC y pasteles de Navidad. Suscríbete a @fabiandeharo',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Navidad en Australia! 🇦🇺',
+        subtitle: 'Navidad en verano con barbacoas. @fabiandeharo en YouTube',
+        includeNames: false
+    },
+    {
+        type: 'country',
+        message: '¡Navidad en Finlandia! 🇫🇮',
+        subtitle: 'La casa de Papá Noel está aquí. ¡Suscríbete a @fabiandeharo!',
+        includeNames: false
+    },
+    // ============================================
+    // SALUDOS NAVIDEÑOS EN DIFERENTES IDIOMAS
+    // ============================================
+    {
+        type: 'greeting',
+        message: '¡Feliz Navidad! 🎄',
+        subtitle: 'Que esta temporada esté llena de alegría. @fabiandeharo',
+        includeNames: false
+    },
+    {
+        type: 'greeting',
+        message: '¡Feliz Navidad y Próspero Año Nuevo! 🎅',
+        subtitle: 'Deseos de paz y felicidad. Suscríbete a @fabiandeharo',
+        includeNames: false
+    },
+    {
+        type: 'greeting',
+        message: '¡Felices Fiestas! 🎁',
+        subtitle: 'Que la magia de la Navidad te acompañe. @fabiandeharo en YouTube',
+        includeNames: false
+    },
+    {
+        type: 'greeting',
+        message: '¡Noche de Paz! ✨',
+        subtitle: 'Que todos tengan una Navidad llena de amor. Suscríbete a @fabiandeharo',
+        includeNames: false
+    },
+    {
+        type: 'greeting',
+        message: '¡Joyeux Noël! 🇫🇷',
+        subtitle: 'Feliz Navidad desde Francia. @fabiandeharo',
+        includeNames: false
+    },
+    {
+        type: 'greeting',
+        message: '¡Buon Natale! 🇮🇹',
+        subtitle: 'Feliz Navidad desde Italia. ¡Suscríbete a @fabiandeharo!',
+        includeNames: false
+    },
+    {
+        type: 'greeting',
+        message: '¡Frohe Weihnachten! 🇩🇪',
+        subtitle: 'Feliz Navidad desde Alemania. @fabiandeharo en YouTube',
+        includeNames: false
+    },
+    {
+        type: 'greeting',
+        message: '¡Feliz Natal! 🇧🇷',
+        subtitle: 'Feliz Navidad desde Brasil. Suscríbete a @fabiandeharo',
+        includeNames: false
+    },
+    {
+        type: 'greeting',
+        message: '¡Merry Christmas! 🇺🇸',
+        subtitle: 'Feliz Navidad desde Estados Unidos. @fabiandeharo',
+        includeNames: false
+    },
+    {
+        type: 'greeting',
+        message: '¡God Jul! 🇸🇪',
+        subtitle: 'Feliz Navidad desde Suecia. ¡Suscríbete a @fabiandeharo!',
+        includeNames: false
+    },
+    {
+        type: 'greeting',
+        message: '¡Hyvää Joulua! 🇫🇮',
+        subtitle: 'Feliz Navidad desde Finlandia. @fabiandeharo en YouTube',
+        includeNames: false
+    },
+    {
+        type: 'greeting',
+        message: '¡¡Feliz Navidad a todos!! 🎅🎄',
+        subtitle: 'Que esta sea una temporada especial. Suscríbete a @fabiandeharo',
+        includeNames: false
+    },
+    {
+        type: 'greeting',
+        message: '¡Que la paz y el amor reinen! ❤️',
+        subtitle: 'Feliz Navidad para todos. @fabiandeharo',
+        includeNames: false
+    },
+    {
+        type: 'greeting',
+        message: '¡Brindemos por la Navidad! 🥂',
+        subtitle: 'Que todos tengan una noche mágica. ¡Suscríbete a @fabiandeharo!',
+        includeNames: false
+    },
+    // ============================================
+    // MENSAJES CON SALUDOS A USUARIOS + PAÍSES
+    // ============================================
+    {
+        type: 'greeting',
+        message: '¡{names}, Feliz Navidad desde España! 🇪🇸',
+        subtitle: 'Que disfruten de las tradiciones navideñas. @fabiandeharo',
+        includeNames: true,
+        minNames: 1,
+        maxNames: 2
+    },
+    {
+        type: 'greeting',
+        message: '¡{names}, saludos desde Argentina! 🇦🇷',
+        subtitle: '¡Feliz Navidad! Suscríbete a @fabiandeharo',
+        includeNames: true,
+        minNames: 1,
+        maxNames: 3
+    },
+    {
+        type: 'greeting',
+        message: '¡{names}, Feliz Navidad desde México! 🇲🇽',
+        subtitle: 'Que disfruten de las posadas. @fabiandeharo en YouTube',
+        includeNames: true,
+        minNames: 2,
+        maxNames: 4
+    },
+    {
+        type: 'greeting',
+        message: '¡{names}, saludos navideños desde Colombia! 🇨🇴',
+        subtitle: '¡Que tengan una Navidad llena de alegría! Suscríbete a @fabiandeharo',
+        includeNames: true,
+        minNames: 1,
+        maxNames: 2
+    },
+    {
+        type: 'greeting',
+        message: '¡{names}, Feliz Navidad desde Chile! 🇨🇱',
+        subtitle: 'Que disfruten de la cena navideña. @fabiandeharo',
+        includeNames: true,
+        minNames: 1,
+        maxNames: 3
     },
 ];
 
