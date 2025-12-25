@@ -1096,13 +1096,10 @@ function getPredefinedResponse(userMessage, userName = 'Usuario') {
     
     // Obtener información del panel "Tu ciudad" si está disponible
     let cityDistance = null;
-    let cityETA = null;
     const cityPanel = document.getElementById('userCityPanel');
     if (cityPanel && cityPanel.style.display !== 'none') {
         const distanceEl = document.getElementById('userCityDistance');
-        const etaEl = document.getElementById('userCityETA');
         if (distanceEl) cityDistance = distanceEl.textContent;
-        if (etaEl) cityETA = etaEl.textContent;
     }
     
     // Respuestas contextuales basadas en palabras clave
@@ -1125,13 +1122,13 @@ function getPredefinedResponse(userMessage, userName = 'Usuario') {
     if (message.includes('cuándo') || message.includes('cuando') || message.includes('llegas') || 
         message.includes('llegar') || message.includes('tiempo') || message.includes('falta') ||
         message.includes('cuenta') || message.includes('eta')) {
-        if (cityDistance && cityETA) {
+        if (cityDistance) {
             responses.push(
-                `¡Hola ${userName}! 🎅 Estoy a ${cityDistance} de ${userCity}. ${cityETA} y estaré ahí! ⏰`,
+                `¡Hola ${userName}! 🎅 Estoy a ${cityDistance} de ${userCity}. ¡Pronto estaré ahí! ⏰`,
                 `¡${userName}! Me falta ${cityDistance} para llegar a ${userCity}. ¡Pronto estaré ahí! 🎄`,
-                `¡Hola! 🎅 Según mis cálculos, llegaré a ${userCity} en ${cityETA}. ¡Prepárate! ✨`,
+                `¡Hola! 🎅 Estoy volando hacia ${userCity}. ¡Prepárate! ✨`,
                 `¡${userName}! Estoy a ${cityDistance} de tu ciudad. ¡Ya casi llego! 🦌`,
-                `¡Hola! 🎅 Me falta poco para llegar a ${userCity}. ${cityETA} y estaré entregando regalos! 🎁`
+                `¡Hola! 🎅 Me falta poco para llegar a ${userCity}. ¡Pronto estaré entregando regalos! 🎁`
             );
         } else {
             responses.push(
