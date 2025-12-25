@@ -2793,11 +2793,8 @@ function updateUserCityPanel() {
     const panel = document.getElementById('userCityPanel');
     const cityNameEl = document.getElementById('userCityName');
     const distanceEl = document.getElementById('userCityDistance');
-    const etaEl = document.getElementById('userCityETA');
-    const countdownEl = document.getElementById('userCityCountdown');
     
-    
-    if (!panel || !cityNameEl || !distanceEl || !etaEl) {
+    if (!panel || !cityNameEl || !distanceEl) {
         return;
     }
     
@@ -2840,37 +2837,8 @@ function updateUserCityPanel() {
         
         // Mostrar distancia
         distanceEl.textContent = `${distance.toFixed(0)} km`;
-        
-        // Calcular tiempo estimado (asumiendo velocidad promedio)
-        const avgSpeed = state.speed || CONFIG.initialSpeed; // km/h
-        const hours = distance / avgSpeed;
-        const minutes = Math.floor((hours % 1) * 60);
-        const hoursInt = Math.floor(hours);
-        
-        let etaText = '';
-        if (hoursInt > 0) {
-            etaText = `${hoursInt}h ${minutes}m`;
-        } else {
-            etaText = `${minutes}m`;
-        }
-        
-        etaEl.textContent = `⏱️ Llegada estimada: ${etaText}`;
-        
-        // Iniciar cuenta regresiva
-        if (countdownEl) {
-            startCountdown(distance, avgSpeed);
-        }
     } else {
         distanceEl.textContent = 'Calculando...';
-        etaEl.textContent = 'Estimando tiempo...';
-        if (countdownEl) {
-            countdownEl.textContent = '--:--:--';
-            // Limpiar cuenta regresiva
-            if (countdownState.intervalId) {
-                clearInterval(countdownState.intervalId);
-                countdownState.intervalId = null;
-            }
-        }
     }
 }
 
@@ -2920,32 +2888,6 @@ function updateRandomCityPanel() {
     
     // Mostrar distancia
     distanceEl.textContent = `${distance.toFixed(0)} km`;
-    
-    // Calcular tiempo estimado
-    const avgSpeed = state.speed || CONFIG.initialSpeed; // km/h
-    const hours = distance / avgSpeed;
-    const minutes = Math.floor((hours % 1) * 60);
-    const hoursInt = Math.floor(hours);
-    
-    let etaText = '';
-    if (hoursInt > 0) {
-        etaText = `${hoursInt}h ${minutes}m`;
-    } else {
-        etaText = `${minutes}m`;
-    }
-    
-    etaEl.textContent = `⏱️ Llegada estimada: ${etaText}`;
-    
-    // Iniciar cuenta regresiva
-    if (countdownEl) {
-        // Si ya hay un countdown activo, solo actualizar los datos
-        if (countdownEl.dataset.intervalId && countdownEl.updateCountdownData) {
-            countdownEl.updateCountdownData(distance, avgSpeed);
-        } else {
-            // Si no hay countdown activo, iniciarlo
-            startCountdownForPanel(distance, avgSpeed, countdownEl);
-        }
-    }
 }
 
 /**
