@@ -2849,10 +2849,8 @@ function updateRandomCityPanel() {
     const panel = document.getElementById('randomCityPanel');
     const cityNameEl = document.getElementById('randomCityName');
     const distanceEl = document.getElementById('randomCityDistance');
-    const etaEl = document.getElementById('randomCityETA');
-    const countdownEl = document.getElementById('randomCityCountdown');
     
-    if (!panel || !cityNameEl || !distanceEl || !etaEl) return;
+    if (!panel || !cityNameEl || !distanceEl) return;
     
     // Verificar si estamos en modo "user" - si es así, NO actualizar ni cambiar visibilidad
     const savedMode = localStorage.getItem('cityPanelMode');
