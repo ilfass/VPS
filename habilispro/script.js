@@ -1228,13 +1228,13 @@ function getPredefinedResponse(userMessage, userName = 'Usuario') {
     // Preguntas sobre la ciudad del usuario
     if (userCity && (message.includes(userCity.toLowerCase()) || message.includes('mi ciudad') ||
         message.includes('mi casa') || message.includes('llegar aquí'))) {
-        if (cityDistance && cityETA) {
+        if (cityDistance) {
             responses.push(
-                `¡Hola ${userName}! 🎅 Estoy a ${cityDistance} de ${userCity}. ${cityETA} y estaré ahí! ⏰`,
+                `¡Hola ${userName}! 🎅 Estoy a ${cityDistance} de ${userCity}. ¡Pronto estaré ahí! ⏰`,
                 `¡${userName}! Me falta ${cityDistance} para llegar a ${userCity}. ¡Pronto estaré entregando regalos! 🎁`,
-                `¡Hola! 🎅 Según mis cálculos, llegaré a ${userCity} en ${cityETA}. ¡Prepárate! ✨`,
+                `¡Hola! 🎅 Estoy volando hacia ${userCity}. ¡Prepárate! ✨`,
                 `¡${userName}! Estoy a ${cityDistance} de tu ciudad. ¡Ya casi llego! 🦌`,
-                `¡Hola! 🎅 Me falta poco para llegar a ${userCity}. ${cityETA} y estaré ahí! 🎄`
+                `¡Hola! 🎅 Me falta poco para llegar a ${userCity}. ¡Pronto estaré ahí! 🎄`
             );
         } else {
             responses.push(
