@@ -1625,45 +1625,86 @@ function addTimelineSparkle(position) {
 // PRESENTADOR CON IA
 // ============================================
 
+// Generador de contenido con IA (simulado - en producción usarías una API real)
+async function generateAIContent(context) {
+    // Simular generación de contenido con IA
+    // En producción, esto llamaría a OpenAI, Anthropic, o similar
+    
+    const templates = {
+        welcome: [
+            '¡Bienvenidos al rastreador global del Año Nuevo! Estamos aquí para seguir juntos el avance de las celebraciones alrededor del mundo en tiempo real.',
+            'Hola y bienvenidos a esta transmisión especial. Estamos siguiendo el avance del Año Nuevo por todo el planeta, zona horaria por zona horaria.',
+            'Bienvenidos a esta experiencia única. Juntos vamos a presenciar cómo el mundo celebra el Año Nuevo, desde las primeras islas del Pacífico hasta las últimas regiones.'
+        ],
+        traditions: [
+            `En este momento, ${context.currentZone || 'varias regiones'} están celebrando. Cada cultura tiene sus propias tradiciones fascinantes para recibir el nuevo año.`,
+            `Las tradiciones del Año Nuevo son increíblemente diversas. Desde las 12 uvas en España hasta los templos en Japón, cada país celebra a su manera única.`,
+            `¿Sabías que en diferentes partes del mundo se celebran diferentes Años Nuevos? El calendario gregoriano es solo uno de muchos sistemas de tiempo fascinantes.`
+        ],
+        progress: [
+            `Ya hemos visto ${context.celebratedZones || 0} zonas horarias celebrar el Año Nuevo. El mundo se está iluminando gradualmente con festejos.`,
+            `En este momento, ${context.nextZone || 'la próxima zona'} se prepara para recibir el Año Nuevo. La celebración continúa avanzando por el planeta.`,
+            `Estamos en un momento especial. Miles de personas alrededor del mundo están conectadas, compartiendo este evento único que une a toda la humanidad.`
+        ],
+        reflection: [
+            'El Año Nuevo es más que una fecha en el calendario. Es un símbolo de esperanza, renovación y la oportunidad de comenzar de nuevo.',
+            'Cada año nuevo trae consigo la promesa de nuevos comienzos. Es un momento para reflexionar sobre el pasado y mirar hacia el futuro con optimismo.',
+            'En este momento especial, personas de todas las culturas y continentes se unen en celebración. Es un recordatorio de nuestra humanidad compartida.'
+        ]
+    };
+    
+    // Seleccionar categoría basada en el contexto
+    let category = 'welcome';
+    if (context.celebratedZones > 0) category = 'progress';
+    if (context.celebratedZones > 5) category = 'traditions';
+    if (Math.random() > 0.7) category = 'reflection';
+    
+    const options = templates[category];
+    // Simular delay de IA (en producción sería una llamada real a la API)
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    return options[Math.floor(Math.random() * options.length)];
+}
+
 const PRESENTER_TOPICS = [
     {
         title: 'Bienvenida',
-        content: '¡Bienvenidos al rastreador global del Año Nuevo! Estamos aquí para seguir juntos el avance de las celebraciones alrededor del mundo.',
+        category: 'welcome',
         duration: 15000
     },
     {
         title: 'Historia del Año Nuevo',
-        content: '¿Sabías que el Año Nuevo se celebra en diferentes fechas según la cultura? En Occidente usamos el calendario gregoriano, pero hay muchas otras tradiciones fascinantes.',
+        category: 'traditions',
         duration: 20000
     },
     {
         title: 'Primera celebración',
-        content: 'Las primeras celebraciones del Año Nuevo ocurren en las Islas Line, en el Pacífico, que están en UTC+14. ¡Son las primeras en recibir el nuevo año!',
+        category: 'progress',
         duration: 18000
     },
     {
         title: 'Tradiciones mundiales',
-        content: 'Cada país tiene sus propias tradiciones: en España se comen 12 uvas, en Japón se visitan templos, en Brasil se viste de blanco, y en Escocia se celebra Hogmanay.',
+        category: 'traditions',
         duration: 22000
     },
     {
         title: 'Zona horaria actual',
-        content: 'En este momento, estamos viendo cómo el Año Nuevo avanza zona por zona. Cada hora, una nueva región del mundo se une a la celebración.',
+        category: 'progress',
         duration: 16000
     },
     {
         title: 'Estadísticas globales',
-        content: 'Miles de personas alrededor del mundo están conectadas en este momento, siguiendo juntos este evento único que une a toda la humanidad.',
+        category: 'progress',
         duration: 15000
     },
     {
         title: 'Próxima zona',
-        content: 'La próxima zona horaria en celebrar está a punto de recibir el Año Nuevo. ¡Prepárense para ver cómo se ilumina el mundo!',
+        category: 'progress',
         duration: 17000
     },
     {
         title: 'Reflexión',
-        content: 'El Año Nuevo es un momento de reflexión, esperanza y nuevos comienzos. Es una oportunidad para dejar atrás lo viejo y abrazar lo nuevo.',
+        category: 'reflection',
         duration: 18000
     }
 ];
