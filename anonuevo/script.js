@@ -333,24 +333,96 @@ function updateMapRotation() {
         const seconds = now.getUTCSeconds();
         
         // Calcular el desplazamiento basado en la hora UTC
-        // El mapa debe desplazarse para que el meridiano de Greenwich esté en el centro
+        // El mapa debe desplazarse para que el meridiano de Greenwich (0°) esté en el centro
         // A las 00:00 UTC, el meridiano de Greenwich está en el centro
         // A las 12:00 UTC, el meridiano opuesto (180°) está en el centro
-        const totalSeconds = hours * 3600 + minutes * 60 + seconds;
-        const rotationOffset = (totalSeconds / 86400) * 360; // 360 grados en 24 horas
         
-        // Usar transform CSS en el SVG interno en lugar de modificar el contenedor
-        // Esto evita romper el renderizado de Highmaps
+        // Calcular cuántos grados se ha desplazado desde medianoche UTC
+        // A las 00:00 UTC: 0 grados (Greenwich en el centro)
+        // A las 12:00 UTC: 180 grados (Greenwich opuesto en el centro)
+        const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+        const degreesFromMidnight = (totalSeconds / 86400) * 360; // 360 grados en 24 horas
+        
         const container = document.getElementById('highmapsPlanisphere');
         if (container) {
             const svg = container.querySelector('svg');
             if (svg && svg.viewBox && svg.viewBox.baseVal) {
-                // Calcular el desplazamiento en píxeles
                 const mapWidth = svg.viewBox.baseVal.width || 1000;
-                const pixelOffset = (rotationOffset / 360) * mapWidth;
-                // Aplicar transform al SVG pero usando transform-origin para mantener el centro
-                svg.style.transformOrigin = 'center center';
-                svg.style.transform = `translateX(${-pixelOffset % mapWidth}px)`;
+                const screenWidth = window.innerWidth;
+                
+                // El meridiano 0° (Greenwich) está en el centro del mapa original (mapWidth/2)
+                // Necesitamos desplazar el mapa para que el meridiano 0° esté en el centro de la pantalla
+                // A las 00:00 UTC: meridiano 0° debe estar en el centro de la pantalla
+                //   - El meridiano 0° está en mapWidth/2 del mapa
+                //   - El centro de la pantalla está en screenWidth/2
+                //   - Desplazamiento = (mapWidth/2) - (screenWidth/2) = 0 (si el mapa está centrado inicialmente)
+                
+                // A las 12:00 UTC: meridiano 180° debe estar en el centro de la pantalla
+                //   - El meridiano 180° está en 0 del mapa (o mapWidth)
+                //   - Desplazamiento = 0 - (screenWidth/2) = -screenWidth/2
+                
+                // Calcular el desplazamiento en píxeles
+                // El mapa tiene 360 grados de ancho
+                // Cada grado = mapWidth / 360 píxeles
+                // El meridiano 0° está en mapWidth/2
+                // Necesitamos desplazarlo según la hora UTC
+                
+                // A las 00:00 UTC: meridiano 0° en el centro = desplazamiento = 0
+                // A las 12:00 UTC: meridiano 180° en el centro = desplazamiento = -mapWidth/2
+                const pixelOffset = (degreesFromMidnight / 360) * mapWidth;
+                
+                // Calcular el desplazamiento para centrar el meridiano 0°
+                // El meridiano 0° está en mapWidth/2, necesitamos moverlo al centro de la pantalla
+                // Desplazamiento = (mapWidth/2) - pixelOffset - (screenWidth/2)
+                // Simplificado: desplazamiento = (mapWidth - screenWidth)/2 - pixelOffset
+                const offset = (mapWidth - screenWidth) / 2 - pixelOffset;
+                
+                // Aplicar wrap around (mosaico) - cuando el mapa se desplaza más allá del borde,
+                // mostrar el principio nuevamente
+                // Normalizar el offset para que esté en el rango [-mapWidth, mapWidth]
+                let wrappedOffset = offset % mapWidth;
+                if (wrappedOffset < 0) {
+                    wrappedOffset += mapWidth;
+                }
+                
+                // Aplicar transform al SVG
+                svg.style.transformOrigin = 'left center';
+                svg.style.transform = `translateX(${-wrappedOffset}px)`;
+                
+                // Crear efecto de mosaico: duplicar el mapa si es necesario
+                // Si el mapa se desplaza más allá del borde, mostrar el principio nuevamente
+                if (!state.mapDuplicated) {
+                    // Duplicar el SVG para crear efecto de mosaico continuo
+                    const svgClone = svg.cloneNode(true);
+                    svgClone.id = 'highmapsPlanisphere-clone-right';
+                    svgClone.style.position = 'absolute';
+                    svgClone.style.left = `${mapWidth}px`;
+                    svgClone.style.top = '0';
+                    svgClone.style.pointerEvents = 'none';
+                    svgClone.style.zIndex = '-1';
+                    container.appendChild(svgClone);
+                    
+                    const svgClone2 = svg.cloneNode(true);
+                    svgClone2.id = 'highmapsPlanisphere-clone-left';
+                    svgClone2.style.position = 'absolute';
+                    svgClone2.style.left = `${-mapWidth}px`;
+                    svgClone2.style.top = '0';
+                    svgClone2.style.pointerEvents = 'none';
+                    svgClone2.style.zIndex = '-1';
+                    container.appendChild(svgClone2);
+                    
+                    state.mapDuplicated = true;
+                } else {
+                    // Actualizar las copias también
+                    const cloneRight = document.getElementById('highmapsPlanisphere-clone-right');
+                    const cloneLeft = document.getElementById('highmapsPlanisphere-clone-left');
+                    if (cloneRight) {
+                        cloneRight.style.transform = `translateX(${-wrappedOffset}px)`;
+                    }
+                    if (cloneLeft) {
+                        cloneLeft.style.transform = `translateX(${-wrappedOffset}px)`;
+                    }
+                }
             }
         }
         
