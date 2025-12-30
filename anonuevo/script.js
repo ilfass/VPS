@@ -1858,6 +1858,11 @@ async function animatePresenterAvatar() {
 async function initializeFaceAnimation() {
     // Opción 1: Usar TensorFlow.js Face Landmarks Detection
     try {
+        // Verificar que las librerías estén cargadas
+        if (typeof faceLandmarksDetection === 'undefined') {
+            throw new Error('faceLandmarksDetection no está disponible');
+        }
+        
         const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
         const detectorConfig = {
             runtime: 'mediapipe',
@@ -1873,7 +1878,12 @@ async function initializeFaceAnimation() {
         startFaceAnimation();
     } catch (error) {
         console.warn('⚠️ TensorFlow.js no disponible, usando animación alternativa:', error);
-        initializeBasicFaceAnimation();
+        // Esperar un poco y reintentar, o usar básica
+        setTimeout(() => {
+            if (!state.faceAnimationModel) {
+                initializeBasicFaceAnimation();
+            }
+        }, 2000);
     }
 }
 
@@ -1999,44 +2009,59 @@ function startBasicFaceAnimation() {
 
 function drawAnimatedFace(ctx, img, face) {
     const canvas = state.avatarCanvas;
-    const landmarks = face.keypoints;
+    const landmarks = face.keypoints || face.landmarks;
     
-    // Encontrar puntos clave
-    const leftEye = landmarks.find(p => p.name === 'leftEye') || landmarks[33];
-    const rightEye = landmarks.find(p => p.name === 'rightEye') || landmarks[263];
-    const mouth = landmarks.find(p => p.name === 'mouth') || landmarks[13];
+    if (!landmarks || landmarks.length === 0) {
+        drawStaticFace(ctx, img);
+        return;
+    }
+    
+    // Encontrar puntos clave (índices aproximados de MediaPipe)
+    const leftEye = landmarks[33] || landmarks[0];
+    const rightEye = landmarks[263] || landmarks[1];
+    const mouth = landmarks[13] || landmarks[2];
     
     // Calcular transformaciones basadas en landmarks
-    const eyeDistance = Math.abs(leftEye.x - rightEye.x);
-    const faceCenterX = (leftEye.x + rightEye.x) / 2;
-    const faceCenterY = (leftEye.y + rightEye.y) / 2;
+    const eyeDistance = Math.abs((leftEye.x || leftEye[0]) - (rightEye.x || rightEye[0]));
+    const faceCenterX = ((leftEye.x || leftEye[0]) + (rightEye.x || rightEye[0])) / 2;
+    const faceCenterY = ((leftEye.y || leftEye[1]) + (rightEye.y || rightEye[1])) / 2;
     
     // Animación de boca si está hablando
     let mouthScale = 1;
-    if (state.aiPresenterActive && mouth) {
+    let headTilt = 0;
+    if (state.aiPresenterActive) {
         mouthScale = 1 + Math.sin(Date.now() / 100) * 0.15;
+        headTilt = Math.sin(Date.now() / 500) * 2; // Movimiento sutil de cabeza
     }
     
     ctx.save();
     ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(headTilt * Math.PI / 180);
     
-    // Escalar y posicionar
-    const scale = canvas.width / (eyeDistance * 2.5);
-    ctx.scale(scale, scale);
-    ctx.translate(-faceCenterX, -faceCenterY);
+    // Escalar y posicionar si tenemos landmarks válidos
+    if (eyeDistance > 0) {
+        const scale = canvas.width / (eyeDistance * 2.5);
+        ctx.scale(scale, scale);
+        ctx.translate(-faceCenterX, -faceCenterY);
+    }
     
-    // Dibujar imagen
-    ctx.drawImage(img, 0, 0, img.width, img.height);
+    // Dibujar imagen base
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     
-    // Aplicar animación de boca
+    // Aplicar animación de boca con transformación
     if (state.aiPresenterActive && mouth) {
+        const mouthX = mouth.x || mouth[0] || canvas.width / 2;
+        const mouthY = mouth.y || mouth[1] || canvas.height * 0.6;
+        
         ctx.save();
-        ctx.translate(mouth.x, mouth.y);
+        ctx.translate(mouthX, mouthY);
         ctx.scale(mouthScale, mouthScale);
-        ctx.translate(-mouth.x, -mouth.y);
-        // Redibujar área de boca con escala
-        const mouthRegion = ctx.getImageData(mouth.x - 20, mouth.y - 10, 40, 20);
-        ctx.putImageData(mouthRegion, mouth.x - 20, mouth.y - 10);
+        ctx.translate(-mouthX, -mouthY);
+        
+        // Redibujar área de boca con escala aplicada
+        const mouthSize = 30;
+        const mouthRegion = ctx.getImageData(mouthX - mouthSize, mouthY - mouthSize/2, mouthSize * 2, mouthSize);
+        ctx.putImageData(mouthRegion, mouthX - mouthSize, mouthY - mouthSize/2);
         ctx.restore();
     }
     
