@@ -155,82 +155,112 @@ function detectUserTimezone() {
 // ============================================
 
 function initializeMapbox() {
-    // Configuración de Mapbox
-    // Nota: En producción, usa tu propia API key de Mapbox
-    // Puedes obtener una gratis en https://account.mapbox.com/
-    mapboxgl.accessToken = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw';
-    
-    const mapContainer = document.getElementById('mapboxGlobe');
+    // Inicializar Highmaps en lugar de Mapbox (como 24timezones.com)
+    const mapContainer = document.getElementById('highmapsPlanisphere');
     if (!mapContainer) {
-        console.warn('⚠️ Contenedor de Mapbox no encontrado');
+        console.warn('⚠️ Contenedor de Highmaps no encontrado');
+        return;
+    }
+    
+    // Verificar que Highmaps esté disponible
+    if (typeof Highcharts === 'undefined' || !Highcharts.maps) {
+        console.warn('⚠️ Highmaps no está cargado, reintentando...');
+        setTimeout(initializeMapbox, 1000); // Reintentar después de 1 segundo
         return;
     }
     
     try {
-        // Crear mapa de Mapbox con vista de planisferio (proyección plana)
-        state.mapboxMap = new mapboxgl.Map({
-            container: 'mapboxGlobe',
-            style: 'mapbox://styles/mapbox/dark-v11', // Estilo oscuro
-            projection: 'mercator', // Proyección planisferio (Mercator)
-            center: [state.userLongitude || -65, state.userLatitude || -35], // Centrar en Argentina por defecto
-            zoom: 2,
-            pitch: 0,
-            bearing: 0
-        });
-        
-        // Cuando el mapa esté cargado
-        state.mapboxMap.on('load', () => {
-            console.log('✅ Mapbox cargado');
-            
-            // Configurar iluminación para mostrar día/noche
-            state.mapboxMap.setConfigProperty('light', 'anchor', 'viewport');
-            
-            // Centrar en ubicación del usuario si está disponible
-            if (state.userLongitude && state.userLatitude) {
-                state.mapboxMap.flyTo({
-                    center: [state.userLongitude, state.userLatitude],
-                    zoom: 2,
-                    duration: 2000
-                });
+        // Crear mapa con Highmaps (similar a 24timezones.com)
+        state.highmapsChart = Highcharts.mapChart('highmapsPlanisphere', {
+            chart: {
+                backgroundColor: 'transparent',
+                map: 'custom/world',
+                animation: false,
+                height: window.innerHeight,
+                width: window.innerWidth
+            },
+            title: {
+                text: ''
+            },
+            mapNavigation: {
+                enabled: false
+            },
+            colorAxis: {
+                min: 0,
+                max: 1,
+                stops: [
+                    [0, '#1a1a2e'], // Noche
+                    [0.5, '#2a3a5e'], // Amanecer/Atardecer
+                    [1, '#4a6a9e'] // Día
+                ]
+            },
+            legend: {
+                enabled: false
+            },
+            series: [{
+                name: 'World',
+                mapData: Highcharts.maps['custom/world'],
+                data: [],
+                joinBy: ['iso-a2', 'code'],
+                nullColor: '#1a1a2e',
+                borderColor: 'rgba(255, 255, 255, 0.3)',
+                borderWidth: 0.5,
+                states: {
+                    hover: {
+                        color: '#4a6a9e'
+                    }
+                }
+            }],
+            credits: {
+                enabled: false
             }
-            
-            // Actualizar rotación del globo basada en hora UTC
-            updateMapboxRotation();
-            setInterval(updateMapboxRotation, 1000);
         });
         
-        // Manejar errores
-        state.mapboxMap.on('error', (e) => {
-            console.warn('⚠️ Error de Mapbox, usando globo 3D como respaldo:', e);
+        console.log('✅ Highmaps planisferio cargado');
+        
+        // Ajustar tamaño cuando cambie la ventana
+        window.addEventListener('resize', () => {
+            if (state.highmapsChart) {
+                state.highmapsChart.setSize(window.innerWidth, window.innerHeight);
+            }
         });
+        
+        // Actualizar día/noche y línea de medianoche
+        updateHighmapsDayNight();
+        updateMidnightLine();
+        setInterval(() => {
+            updateHighmapsDayNight();
+            updateMidnightLine();
+        }, 1000);
         
     } catch (error) {
-        console.warn('⚠️ No se pudo inicializar Mapbox, usando globo 3D:', error);
+        console.warn('⚠️ No se pudo inicializar Highmaps:', error);
     }
 }
 
-function updateMapboxRotation() {
-    if (!state.mapboxMap) return;
+function updateHighmapsDayNight() {
+    if (!state.highmapsChart) return;
     
-    // Para planisferio, no necesitamos rotar, solo actualizar iluminación día/noche
-    const sunPosition = calculateSunPosition();
-    if (sunPosition) {
-        // Actualizar iluminación para mostrar día/noche en el planisferio
-        state.mapboxMap.setConfigProperty('light', 'position', sunPosition);
-        state.mapboxMap.setConfigProperty('light', 'intensity', 1.0);
-    }
-}
-
-function calculateSunPosition() {
     const now = new Date();
     const hours = now.getUTCHours();
     const minutes = now.getUTCMinutes();
     
-    // Calcular posición del sol (simplificado)
-    const sunLongitude = (hours * 15 + minutes * 0.25) - 180;
-    const sunLatitude = 0; // El sol está en el ecuador
+    // Calcular posición del sol (longitud donde es mediodía)
+    const noonLongitude = (hours * 15 + minutes * 0.25) - 180;
     
-    return [sunLongitude, sunLatitude, 100];
+    // Actualizar colores del mapa basados en día/noche
+    // Esto es una simplificación - en un mapa real se calcularía para cada país
+    const series = state.highmapsChart.series[0];
+    if (series) {
+        // Actualizar el mapa con colores de día/noche
+        // Por ahora mantenemos el estilo base
+    }
+}
+
+function updateMapboxRotation() {
+    // Función mantenida para compatibilidad, pero ahora usa Highmaps
+    updateHighmapsDayNight();
+    updateMidnightLine();
 }
 
 // ============================================
