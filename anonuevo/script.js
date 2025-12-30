@@ -154,6 +154,9 @@ function detectUserTimezone() {
 // MAPBOX PLANISFERIO
 // ============================================
 
+let mapInitAttempts = 0;
+const MAX_MAP_INIT_ATTEMPTS = 20;
+
 function initializeMapbox() {
     // Inicializar Highmaps en lugar de Mapbox (como 24timezones.com)
     const mapContainer = document.getElementById('highmapsPlanisphere');
@@ -162,30 +165,51 @@ function initializeMapbox() {
         return;
     }
     
+    mapInitAttempts++;
+    
     // Verificar que Highmaps esté disponible
     if (typeof Highcharts === 'undefined' || !Highcharts.maps) {
-        console.warn('⚠️ Highmaps no está cargado, reintentando...');
-        setTimeout(initializeMapbox, 1000); // Reintentar después de 1 segundo
+        if (mapInitAttempts < MAX_MAP_INIT_ATTEMPTS) {
+            console.warn(`⚠️ Highmaps no está cargado, reintentando... (${mapInitAttempts}/${MAX_MAP_INIT_ATTEMPTS})`);
+            setTimeout(initializeMapbox, 1000); // Reintentar después de 1 segundo
+        } else {
+            console.error('❌ No se pudo cargar Highmaps después de varios intentos');
+        }
         return;
     }
     
     // Verificar que el mapa esté disponible (puede tardar en cargar)
-    if (!Highcharts.maps || !Highcharts.maps['custom/world']) {
-        console.warn('⚠️ Mapa del mundo no disponible aún, reintentando...');
-        setTimeout(initializeMapbox, 500); // Reintentar después de 0.5 segundos
+    // El mapa puede estar en diferentes formatos según la versión de Highmaps
+    const mapKeys = Object.keys(Highcharts.maps || {});
+    const worldMap = Highcharts.maps['custom/world'] || Highcharts.maps['world'] || Highcharts.maps[mapKeys.find(k => k.toLowerCase().includes('world'))];
+    
+    if (!worldMap) {
+        if (mapInitAttempts < MAX_MAP_INIT_ATTEMPTS) {
+            console.warn(`⚠️ Mapa del mundo no disponible aún, reintentando... (${mapInitAttempts}/${MAX_MAP_INIT_ATTEMPTS})`);
+            console.log('📊 Mapas disponibles:', mapKeys);
+            setTimeout(initializeMapbox, 500); // Reintentar después de 0.5 segundos
+        } else {
+            console.error('❌ No se pudo cargar el mapa del mundo después de varios intentos');
+            console.log('📊 Mapas disponibles:', mapKeys);
+        }
         return;
     }
+    
+    mapInitAttempts = 0; // Resetear contador al éxito
     
     try {
         
         console.log('🗺️ Inicializando planisferio con Highmaps...');
         console.log('📊 Datos del mapa disponibles:', Object.keys(Highcharts.maps));
         
+        console.log('🗺️ Inicializando planisferio con Highmaps...');
+        console.log('📊 Mapa encontrado:', worldMap ? 'Sí' : 'No');
+        
         // Crear mapa con Highmaps (similar a 24timezones.com)
         state.highmapsChart = Highcharts.mapChart('highmapsPlanisphere', {
             chart: {
                 backgroundColor: '#0a0e27',
-                map: Highcharts.maps['custom/world'],
+                map: worldMap,
                 animation: false,
                 height: window.innerHeight,
                 width: window.innerWidth,
@@ -221,7 +245,7 @@ function initializeMapbox() {
             },
             series: [{
                 name: 'World',
-                mapData: Highcharts.maps['custom/world'],
+                mapData: worldMap,
                 joinBy: null, // No unir con datos, solo mostrar el mapa
                 nullColor: '#4a5a7e',
                 borderColor: 'rgba(255, 255, 255, 0.7)',
