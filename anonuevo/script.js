@@ -93,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeVisualEffects();
     initializeBackgroundAudio();
     initializeYouTubeChat();
+    initializeWebcams();
     
     // Actualizar cada segundo
     setInterval(updateAll, 1000);
@@ -200,6 +201,9 @@ function initializeGlobe() {
     state.globeMesh.castShadow = true;
     state.globeScene.add(state.globeMesh);
     
+    // Dibujar husos horarios en el globo
+    drawTimezonesOnGlobe();
+    
     // Agregar atmósfera (esfera exterior semitransparente)
     const atmosphereGeometry = new THREE.SphereGeometry(1.02, 64, 64);
     const atmosphereMaterial = new THREE.MeshBasicMaterial({
@@ -284,6 +288,40 @@ function createStars() {
     state.globeScene.add(stars);
 }
 
+function drawTimezonesOnGlobe() {
+    if (!state.globeScene) return;
+    
+    // Dibujar meridianos de husos horarios en el globo
+    // Cada 15 grados (360° / 24 = 15°)
+    for (let lon = -180; lon <= 180; lon += 15) {
+        const longitude = lon * (Math.PI / 180); // Convertir a radianes
+        
+        // Crear línea de meridiano
+        const points = [];
+        for (let lat = -90; lat <= 90; lat += 5) {
+            const latitude = lat * (Math.PI / 180);
+            const radius = 1.01; // Ligeramente fuera del globo
+            
+            // Convertir coordenadas esféricas a cartesianas
+            const x = radius * Math.cos(latitude) * Math.sin(longitude);
+            const y = radius * Math.sin(latitude);
+            const z = radius * Math.cos(latitude) * Math.cos(longitude);
+            
+            points.push(new THREE.Vector3(x, y, z));
+        }
+        
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const material = new THREE.LineBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.2,
+            linewidth: 1
+        });
+        const line = new THREE.Line(geometry, material);
+        state.globeScene.add(line);
+    }
+}
+
 function animateGlobe() {
     if (!state.globeMesh || !state.globeRenderer || !state.globeScene || !state.globeCamera) return;
     
@@ -358,31 +396,119 @@ function initializeWorldMap() {
     // Limpiar SVG
     svg.innerHTML = '';
     
-    // Crear franjas horarias aproximadas
-    // Nota: Esta es una simplificación visual. En producción, usarías datos geográficos reales
-    TIMEZONES.forEach((tz, index) => {
-        const zone = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        const x = (index / TIMEZONES.length) * 1440;
-        const width = 1440 / TIMEZONES.length;
+    // Dibujar husos horarios basados en meridianos reales
+    // Cada huso horario tiene 15 grados de ancho (360° / 24 = 15°)
+    const totalZones = 24;
+    const degreesPerZone = 360 / totalZones;
+    
+    // Crear husos horarios basados en meridianos
+    for (let i = 0; i < totalZones; i++) {
+        // Calcular offset UTC (UTC+12 a UTC-11, centrado en UTC+0)
+        let offset = 12 - i;
+        if (offset > 12) offset = offset - 24;
         
+        // Calcular posición del meridiano central del huso
+        const meridian = offset * 15; // Cada huso está centrado en múltiplos de 15°
+        
+        // Convertir longitud a posición X en el mapa (proyección equirectangular)
+        const x = ((meridian + 180) / 360) * 1440;
+        const width = (degreesPerZone / 360) * 1440;
+        
+        // Crear zona horaria
+        const zone = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         zone.setAttribute('class', 'timezone-zone');
-        zone.setAttribute('data-offset', tz.offset);
-        zone.setAttribute('data-name', tz.name);
-        zone.setAttribute('x', x);
+        zone.setAttribute('data-offset', offset);
+        zone.setAttribute('data-name', `UTC${offset >= 0 ? '+' : ''}${offset}`);
+        zone.setAttribute('x', x - width / 2);
         zone.setAttribute('y', 0);
         zone.setAttribute('width', width);
         zone.setAttribute('height', 720);
-        zone.setAttribute('fill', 'rgba(30, 30, 60, 0.6)');
+        zone.setAttribute('fill', 'rgba(30, 30, 60, 0.5)');
+        zone.setAttribute('stroke', 'rgba(100, 100, 150, 0.3)');
+        zone.setAttribute('stroke-width', '1');
         
-        // Agregar tooltip
+        // Agregar interactividad
+        zone.addEventListener('mouseenter', (e) => {
+            showTimezoneInfo(offset, e);
+        });
+        zone.addEventListener('mouseleave', () => {
+            hideTimezoneInfo();
+        });
+        
+        // Agregar tooltip con ciudades
+        const cities = getCitiesForOffset(offset);
         const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-        title.textContent = `${tz.name} - ${tz.region}`;
+        title.textContent = `UTC${offset >= 0 ? '+' : ''}${offset} - ${cities.slice(0, 3).join(', ')}`;
         zone.appendChild(title);
         
         svg.appendChild(zone);
-    });
+    }
+    
+    // Dibujar meridianos de referencia
+    drawMeridians(svg);
     
     updateWorldMap();
+}
+
+function drawMeridians(svg) {
+    // Dibujar meridianos principales cada 15 grados
+    for (let lon = -180; lon <= 180; lon += 15) {
+        const x = ((lon + 180) / 360) * 1440;
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', x);
+        line.setAttribute('y1', 0);
+        line.setAttribute('x2', x);
+        line.setAttribute('y2', 720);
+        line.setAttribute('stroke', 'rgba(255, 255, 255, 0.1)');
+        line.setAttribute('stroke-width', '1');
+        line.setAttribute('stroke-dasharray', '5,5');
+        svg.appendChild(line);
+    }
+}
+
+function showTimezoneInfo(offset, event) {
+    const cities = getCitiesForOffset(offset);
+    const now = new Date();
+    const localTime = new Date(now.getTime() + (offset * 60 * 60 * 1000));
+    
+    // Crear tooltip flotante
+    let tooltip = document.getElementById('timezoneTooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'timezoneTooltip';
+        tooltip.className = 'timezone-tooltip';
+        document.body.appendChild(tooltip);
+    }
+    
+    const hours = String(localTime.getUTCHours()).padStart(2, '0');
+    const minutes = String(localTime.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(localTime.getUTCSeconds()).padStart(2, '0');
+    
+    tooltip.innerHTML = `
+        <div class="tooltip-header">UTC${offset >= 0 ? '+' : ''}${offset}</div>
+        <div class="tooltip-time">${hours}:${minutes}:${seconds}</div>
+        <div class="tooltip-cities">${cities.slice(0, 5).join(', ')}</div>
+    `;
+    
+    tooltip.style.display = 'block';
+    tooltip.style.left = (event.clientX + 10) + 'px';
+    tooltip.style.top = (event.clientY + 10) + 'px';
+}
+
+function hideTimezoneInfo() {
+    const tooltip = document.getElementById('timezoneTooltip');
+    if (tooltip) {
+        tooltip.style.display = 'none';
+    }
+}
+
+function getCitiesForOffset(offset) {
+    if (typeof TIMEZONE_CITIES !== 'undefined') {
+        return TIMEZONE_CITIES[offset] || TIMEZONE_CITIES[String(offset)] || [];
+    }
+    // Fallback si no está disponible
+    const tz = TIMEZONES.find(t => t.offset === offset);
+    return tz ? [tz.region] : [];
 }
 
 function updateWorldMap() {
@@ -767,6 +893,107 @@ function initializeBackgroundAudio() {
             console.log(`ℹ️ Audio ${track.id} no configurado. Agrega ${track.src} a la carpeta del proyecto.`);
         }
     });
+}
+
+// ============================================
+// CÁMARAS WEB EN VIVO
+// ============================================
+
+function initializeWebcams() {
+    const webcamsGrid = document.getElementById('webcamsGrid');
+    if (!webcamsGrid) return;
+    
+    // Verificar si WEBCAMS está disponible
+    if (typeof WEBCAMS === 'undefined') {
+        console.warn('⚠️ WEBCAMS no está disponible. Cargando datos por defecto...');
+        loadDefaultWebcams();
+        return;
+    }
+    
+    // Crear grid de cámaras
+    WEBCAMS.forEach((webcam, index) => {
+        const webcamCard = createWebcamCard(webcam, index);
+        webcamsGrid.appendChild(webcamCard);
+    });
+    
+    // Toggle para mostrar/ocultar panel
+    const toggle = document.getElementById('webcamsToggle');
+    if (toggle) {
+        toggle.addEventListener('click', () => {
+            const grid = document.getElementById('webcamsGrid');
+            if (grid.style.display === 'none') {
+                grid.style.display = 'grid';
+                toggle.textContent = '▼';
+            } else {
+                grid.style.display = 'none';
+                toggle.textContent = '▶';
+            }
+        });
+    }
+    
+    console.log(`📹 ${WEBCAMS.length} cámaras web cargadas`);
+}
+
+function loadDefaultWebcams() {
+    // Cámaras por defecto si no se puede cargar el archivo
+    const defaultWebcams = [
+        { id: 'times-square', name: 'Times Square, New York', timezone: -5, city: 'New York', country: 'USA' },
+        { id: 'london', name: 'London, UK', timezone: 0, city: 'London', country: 'UK' },
+        { id: 'tokyo', name: 'Tokyo, Japan', timezone: 9, city: 'Tokyo', country: 'Japan' },
+        { id: 'sydney', name: 'Sydney, Australia', timezone: 10, city: 'Sydney', country: 'Australia' }
+    ];
+    
+    const webcamsGrid = document.getElementById('webcamsGrid');
+    defaultWebcams.forEach((webcam, index) => {
+        const webcamCard = createWebcamCard(webcam, index);
+        webcamsGrid.appendChild(webcamCard);
+    });
+}
+
+function createWebcamCard(webcam, index) {
+    const card = document.createElement('div');
+    card.className = 'webcam-card';
+    card.setAttribute('data-timezone', webcam.timezone);
+    
+    // Calcular hora local de la cámara
+    const now = new Date();
+    const localTime = new Date(now.getTime() + (webcam.timezone * 60 * 60 * 1000));
+    const hours = String(localTime.getUTCHours()).padStart(2, '0');
+    const minutes = String(localTime.getUTCMinutes()).padStart(2, '0');
+    
+    card.innerHTML = `
+        <div class="webcam-header">
+            <h3>${webcam.name}</h3>
+            <div class="webcam-time">${hours}:${minutes}</div>
+        </div>
+        <div class="webcam-container">
+            <iframe 
+                src="${webcam.embed || webcam.url}" 
+                frameborder="0" 
+                allowfullscreen
+                loading="lazy"
+                title="${webcam.name}">
+            </iframe>
+        </div>
+        <div class="webcam-footer">
+            <span class="webcam-location">📍 ${webcam.city}, ${webcam.country}</span>
+            <span class="webcam-timezone">UTC${webcam.timezone >= 0 ? '+' : ''}${webcam.timezone}</span>
+        </div>
+    `;
+    
+    // Actualizar hora cada minuto
+    setInterval(() => {
+        const now = new Date();
+        const localTime = new Date(now.getTime() + (webcam.timezone * 60 * 60 * 1000));
+        const hours = String(localTime.getUTCHours()).padStart(2, '0');
+        const minutes = String(localTime.getUTCMinutes()).padStart(2, '0');
+        const timeEl = card.querySelector('.webcam-time');
+        if (timeEl) {
+            timeEl.textContent = `${hours}:${minutes}`;
+        }
+    }, 60000);
+    
+    return card;
 }
 
 // ============================================

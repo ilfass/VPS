@@ -11,6 +11,9 @@
     <link rel="stylesheet" href="styles.css">
     <!-- Three.js para el globo terráqueo 3D -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- D3.js para el mapa de husos horarios -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/topojson@3"></script>
 </head>
 <body>
     <!-- Globo Terráqueo 3D -->
@@ -95,6 +98,17 @@
             </div>
         </div>
 
+        <!-- Panel de Cámaras Web en Vivo -->
+        <div class="webcams-panel" id="webcamsPanel">
+            <div class="webcams-header">
+                <h2>📹 Cámaras en Vivo del Mundo</h2>
+                <button class="webcams-toggle" id="webcamsToggle">▼</button>
+            </div>
+            <div class="webcams-grid" id="webcamsGrid">
+                <!-- Las cámaras web se cargarán dinámicamente -->
+            </div>
+        </div>
+
         <!-- Panel de Chat de YouTube -->
         <div class="chat-panel" id="chatPanel">
             <div class="chat-header">
@@ -141,6 +155,7 @@
         <!-- Audio adicional -->
     </audio>
 
+    <script src="timezones-data.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

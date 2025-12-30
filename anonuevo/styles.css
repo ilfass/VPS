@@ -297,6 +297,162 @@ body {
     color: #60a5fa;
 }
 
+/* Tooltip de Zona Horaria */
+.timezone-tooltip {
+    position: fixed;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 15px;
+    border: 2px solid rgba(100, 200, 255, 0.5);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    pointer-events: none;
+    display: none;
+    min-width: 200px;
+}
+
+.tooltip-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: #60a5fa;
+    margin-bottom: 8px;
+}
+
+.tooltip-time {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffd700;
+    margin-bottom: 8px;
+    font-variant-numeric: tabular-nums;
+}
+
+.tooltip-cities {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.4;
+}
+
+/* Panel de Cámaras Web */
+.webcams-panel {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 400px;
+    max-height: 600px;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    z-index: 15;
+}
+
+.webcams-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.webcams-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.webcams-toggle {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border-radius: 8px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.webcams-toggle:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.webcams-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.webcam-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.webcam-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.webcam-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.webcam-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+}
+
+.webcam-time {
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffd700;
+    font-variant-numeric: tabular-nums;
+}
+
+.webcam-container {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    background: #000;
+    overflow: hidden;
+}
+
+.webcam-container iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.webcam-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 15px;
+    background: rgba(255, 255, 255, 0.03);
+    font-size: 11px;
+}
+
+.webcam-location {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.webcam-timezone {
+    color: #60a5fa;
+    font-weight: 600;
+}
+
 /* Panel de Chat */
 .chat-panel {
     position: absolute;
@@ -312,6 +468,7 @@ body {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     display: flex;
     flex-direction: column;
+    z-index: 15;
 }
 
 .chat-header {
@@ -529,6 +686,17 @@ body {
         width: calc(100% - 40px);
         right: 20px;
         left: 20px;
+    }
+
+    .webcams-panel {
+        width: calc(100% - 40px);
+        right: 20px;
+        left: 20px;
+        max-height: 400px;
+    }
+
+    .webcams-grid {
+        grid-template-columns: 1fr;
     }
 
     .countdown-value {
