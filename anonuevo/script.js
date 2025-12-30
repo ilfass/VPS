@@ -178,7 +178,14 @@ function initializeMapbox() {
                 animation: false,
                 height: window.innerHeight,
                 width: window.innerWidth,
-                spacing: [0, 0, 0, 0]
+                spacing: [0, 0, 0, 0],
+                plotBackgroundColor: 'transparent'
+            },
+            plotOptions: {
+                map: {
+                    allAreas: true,
+                    joinBy: ['iso-a2', 'code']
+                }
             },
             title: {
                 text: ''
@@ -203,14 +210,15 @@ function initializeMapbox() {
                 mapData: Highcharts.maps['custom/world'],
                 data: [],
                 joinBy: ['iso-a2', 'code'],
-                nullColor: '#1a1a2e',
-                borderColor: 'rgba(255, 255, 255, 0.4)',
-                borderWidth: 1,
-                color: '#2a3a5e',
+                nullColor: '#2a3a5e',
+                borderColor: 'rgba(255, 255, 255, 0.5)',
+                borderWidth: 1.5,
+                color: '#3a4a6e',
                 states: {
                     hover: {
-                        color: '#4a6a9e',
-                        borderColor: 'rgba(255, 255, 255, 0.6)'
+                        color: '#5a7aae',
+                        borderColor: 'rgba(255, 255, 255, 0.8)',
+                        brightness: 0.1
                     }
                 }
             }],
