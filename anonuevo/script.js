@@ -247,16 +247,19 @@ function initializeMapbox() {
                 name: 'World',
                 mapData: worldMap,
                 joinBy: null, // No unir con datos, solo mostrar el mapa
-                nullColor: '#4a5a7e',
-                borderColor: 'rgba(255, 255, 255, 0.7)',
-                borderWidth: 2,
-                color: '#5a6a8e',
+                nullColor: '#2a3a5e',
+                borderColor: 'rgba(255, 255, 255, 0.6)',
+                borderWidth: 1.5,
+                color: '#4a5a7e',
                 states: {
                     hover: {
-                        color: '#7a9aae',
-                        borderColor: 'rgba(255, 255, 255, 1)',
+                        color: '#6a8aae',
+                        borderColor: 'rgba(255, 255, 255, 0.9)',
                         brightness: 0.2
                     }
+                },
+                dataLabels: {
+                    enabled: false
                 }
             }],
             credits: {
@@ -361,41 +364,55 @@ function highlightCountriesAtGreenwich() {
     const series = state.highmapsChart.series[0];
     if (!series) return;
     
-    const now = new Date();
-    const hours = now.getUTCHours();
-    const minutes = now.getUTCMinutes();
-    const seconds = now.getUTCSeconds();
-    
-    // Calcular qué países están en el meridiano de Greenwich (longitud 0°)
-    // La línea central del mapa representa el meridiano de Greenwich
-    // Los países que cruzan esta línea deben iluminarse
-    
     // Obtener todos los puntos del mapa
     const points = series.points || [];
     
-    points.forEach(point => {
-        if (!point.geometry || !point.geometry.coordinates) return;
+    // Calcular la posición central del mapa (donde está el meridiano de Greenwich)
+    const chartWidth = state.highmapsChart.chartWidth || window.innerWidth;
+    const centerX = chartWidth / 2;
+    
+    // Almacenar países iluminados para evitar actualizaciones innecesarias
+    if (!state.highlightedCountries) {
+        state.highlightedCountries = new Set();
+    }
+    
+    const currentlyHighlighted = new Set();
+    
+    points.forEach((point, index) => {
+        if (!point) return;
         
-        // Calcular si el país está cerca del meridiano de Greenwich
-        // Simplificado: iluminar países basados en su posición aproximada
-        const isNearGreenwich = checkIfNearGreenwich(point);
+        // Obtener la posición del país en el mapa
+        const pointX = point.plotX || 0;
+        const distanceFromCenter = Math.abs(pointX - centerX);
         
-        if (isNearGreenwich) {
-            // Iluminar el país
-            point.update({
-                color: '#ffd700',
-                borderColor: 'rgba(255, 215, 0, 1)',
-                borderWidth: 3
-            }, false);
+        // Si el país está cerca del centro (dentro de 50 píxeles), iluminarlo
+        const isNearCenter = distanceFromCenter < 50;
+        
+        if (isNearCenter) {
+            currentlyHighlighted.add(index);
+            
+            // Solo actualizar si no estaba iluminado antes
+            if (!state.highlightedCountries.has(index)) {
+                point.update({
+                    color: '#ffd700',
+                    borderColor: 'rgba(255, 215, 0, 1)',
+                    borderWidth: 3
+                }, false);
+            }
         } else {
-            // Restaurar color normal
-            point.update({
-                color: '#5a6a8e',
-                borderColor: 'rgba(255, 255, 255, 0.7)',
-                borderWidth: 2
-            }, false);
+            // Solo restaurar si estaba iluminado antes
+            if (state.highlightedCountries.has(index)) {
+                point.update({
+                    color: '#4a5a7e',
+                    borderColor: 'rgba(255, 255, 255, 0.6)',
+                    borderWidth: 1.5
+                }, false);
+            }
         }
     });
+    
+    // Actualizar el conjunto de países iluminados
+    state.highlightedCountries = currentlyHighlighted;
     
     // Redibujar el mapa
     state.highmapsChart.redraw();
@@ -1696,23 +1713,54 @@ function showHourlyBanner() {
 
 function initializeTimeline() {
     const now = new Date();
-    const startDate = document.getElementById('timelineStartDate');
-    if (startDate) {
-        const dateStr = now.toLocaleDateString('es-ES', { 
-            day: 'numeric', 
-            month: 'long', 
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-        startDate.textContent = dateStr;
-    }
+    const startOfYear = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+    const endOfYear = new Date(2026, 0, 1, 0, 0, 0, 0);
     
-    // Agregar hitos (milestones) en la línea de tiempo
-    addTimelineMilestones();
+    // Crear los 365 días del año
+    createTimelineDays(startOfYear, endOfYear);
     
     updateTimeline();
     setInterval(updateTimeline, 1000);
+}
+
+// Crear los 365 días en la línea de tiempo
+function createTimelineDays(startDate, endDate) {
+    const timelineTrack = document.querySelector('.timeline-track');
+    if (!timelineTrack) return;
+    
+    // Limpiar contenido anterior
+    const existingDays = timelineTrack.querySelectorAll('.timeline-day');
+    existingDays.forEach(day => day.remove());
+    
+    const totalDays = 365;
+    const daysContainer = document.createElement('div');
+    daysContainer.className = 'timeline-days';
+    daysContainer.style.position = 'absolute';
+    daysContainer.style.top = '0';
+    daysContainer.style.left = '0';
+    daysContainer.style.width = '100%';
+    daysContainer.style.height = '100%';
+    
+    for (let i = 0; i < totalDays; i++) {
+        const dayEl = document.createElement('div');
+        dayEl.className = 'timeline-day';
+        dayEl.setAttribute('data-day', i + 1);
+        
+        // Los primeros 362 días son pequeños, los últimos 3 se agrandan
+        if (i < 362) {
+            dayEl.classList.add('day-small');
+        } else {
+            dayEl.classList.add('day-large');
+        }
+        
+        // Posición basada en el día del año
+        const position = (i / totalDays) * 100;
+        dayEl.style.left = `${position}%`;
+        
+        daysContainer.appendChild(dayEl);
+    }
+    
+    timelineTrack.appendChild(daysContainer);
 }
 
 function addTimelineMilestones() {

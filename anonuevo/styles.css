@@ -36,6 +36,12 @@ body {
     min-width: 100vw;
 }
 
+@media (max-width: 768px) {
+    .highmaps-planisphere {
+        min-height: 100vh;
+    }
+}
+
 .highmaps-planisphere svg {
     width: 100% !important;
     height: 100% !important;
@@ -586,15 +592,24 @@ body {
     bottom: 20px;
     left: 20px;
     right: 20px;
-    max-width: 800px;
+    max-width: 90%;
     margin: 0 auto;
     background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(10px);
     border-radius: 20px;
-    padding: 20px;
+    padding: 15px;
     border: 2px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     z-index: 15;
+}
+
+@media (max-width: 768px) {
+    .timeline-container {
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
+        padding: 10px;
+    }
 }
 
 .timeline-header {
@@ -616,11 +631,72 @@ body {
 
 .timeline-track {
     position: relative;
-    height: 80px;
+    height: 100px;
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 40px;
-    overflow: hidden;
+    border-radius: 50px;
+    overflow: visible;
     margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+    .timeline-track {
+        height: 60px;
+    }
+}
+
+/* Días de la línea de tiempo */
+.timeline-days {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.timeline-day {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+.timeline-day.day-small {
+    width: 2px;
+    height: 15px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.timeline-day.day-large {
+    width: 6px;
+    height: 30px;
+    background: rgba(255, 215, 0, 0.6);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.timeline-day.day-passed {
+    background: rgba(100, 200, 255, 0.5);
+}
+
+@media (max-width: 768px) {
+    .timeline-day {
+        width: 2px;
+        height: 12px;
+    }
+    
+    .timeline-day.day-small {
+        width: 1px;
+        height: 10px;
+    }
+    
+    .timeline-day.day-large {
+        width: 4px;
+        height: 20px;
+    }
 }
 
 .timeline-start,
@@ -1017,6 +1093,12 @@ body {
 
 /* Presentador con IA */
 .ai-presenter-panel {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 450px;
+    max-width: calc(100% - 40px);
+    max-width: calc(100% - 40px);
     position: absolute;
     bottom: 80px;
     right: 20px;
