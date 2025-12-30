@@ -94,7 +94,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Detectar zona horaria del usuario
     detectUserTimezone();
     
-    // Inicializar globo terráqueo 3D
+    // Inicializar Mapbox primero (planisferio principal)
+    initializeMapbox();
+    
+    // Inicializar globo terráqueo 3D (respaldo si Mapbox falla)
     initializeGlobe();
     
     initializeWorldMap();
