@@ -69,7 +69,8 @@ const state = {
     globeScene: null,
     globeCamera: null,
     globeRenderer: null,
-    globeMesh: null
+    globeMesh: null,
+    celebrationLights: []
 };
 
 // ============================================
@@ -143,51 +144,97 @@ function initializeGlobe() {
     
     // Crear escena
     state.globeScene = new THREE.Scene();
+    state.globeScene.background = null; // Transparente para ver el fondo
     
     // Crear cámara
     const width = window.innerWidth;
     const height = window.innerHeight;
     state.globeCamera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    state.globeCamera.position.z = 3;
+    state.globeCamera.position.set(0, 0, 2.5);
     
     // Crear renderer
     state.globeRenderer = new THREE.WebGLRenderer({ 
         canvas: canvas,
         alpha: true,
-        antialias: true 
+        antialias: true,
+        powerPreference: "high-performance"
     });
     state.globeRenderer.setSize(width, height);
-    state.globeRenderer.setPixelRatio(window.devicePixelRatio);
+    state.globeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    state.globeRenderer.shadowMap.enabled = true;
+    state.globeRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
     
-    // Crear geometría de esfera (globo)
-    const geometry = new THREE.SphereGeometry(1, 64, 64);
+    // Crear geometría de esfera (globo) - más detalle
+    const geometry = new THREE.SphereGeometry(1, 128, 64);
     
-    // Crear material con textura de la Tierra
-    // Usaremos un material básico con colores que simulan la Tierra
+    // Cargar textura de la Tierra
+    const textureLoader = new THREE.TextureLoader();
+    
+    // Usar textura de la Tierra desde una URL pública
+    // Textura de alta calidad de la NASA
+    const earthTexture = textureLoader.load(
+        'https://raw.githubusercontent.com/turban/webgl-earth/master/images/2_no_clouds_4k.jpg',
+        () => {
+            console.log('✅ Textura de la Tierra cargada');
+        },
+        undefined,
+        (err) => {
+            console.warn('⚠️ No se pudo cargar textura de la Tierra, usando material procedural:', err);
+            // Fallback a material procedural mejorado
+            createProceduralEarth();
+        }
+    );
+    
+    // Crear material con textura realista
     const material = new THREE.MeshPhongMaterial({
-        color: 0x2233ff,
-        emissive: 0x112244,
-        shininess: 30,
-        transparent: true,
-        opacity: 0.9
+        map: earthTexture,
+        shininess: 10,
+        specular: 0x222222,
+        emissive: 0x000000,
+        transparent: false
     });
     
     // Crear malla del globo
     state.globeMesh = new THREE.Mesh(geometry, material);
+    state.globeMesh.receiveShadow = true;
+    state.globeMesh.castShadow = true;
     state.globeScene.add(state.globeMesh);
     
-    // Agregar iluminación
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+    // Agregar atmósfera (esfera exterior semitransparente)
+    const atmosphereGeometry = new THREE.SphereGeometry(1.02, 64, 64);
+    const atmosphereMaterial = new THREE.MeshBasicMaterial({
+        color: 0x87CEEB,
+        transparent: true,
+        opacity: 0.15,
+        side: THREE.BackSide
+    });
+    const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+    state.globeScene.add(atmosphere);
+    
+    // Agregar estrellas de fondo
+    createStars();
+    
+    // Iluminación principal (simula el sol)
+    const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    sunLight.position.set(5, 3, 5);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.camera.near = 0.5;
+    sunLight.shadow.camera.far = 50;
+    state.globeScene.add(sunLight);
+    
+    // Luz ambiental suave
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
     state.globeScene.add(ambientLight);
     
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(5, 3, 5);
-    state.globeScene.add(directionalLight);
+    // Luz de relleno para el lado oscuro
+    const fillLight = new THREE.DirectionalLight(0x87CEEB, 0.3);
+    fillLight.position.set(-3, -2, -2);
+    state.globeScene.add(fillLight);
     
-    // Agregar puntos de luz para zonas que ya celebraron
-    const pointLight = new THREE.PointLight(0xffd700, 1, 10);
-    pointLight.position.set(0, 0, 0);
-    state.globeScene.add(pointLight);
+    // Agregar puntos de luz dorados para zonas que celebran
+    state.celebrationLights = [];
     
     // Manejar resize
     window.addEventListener('resize', () => {
@@ -198,19 +245,106 @@ function initializeGlobe() {
         state.globeRenderer.setSize(width, height);
     });
     
-    console.log('🌍 Globo terráqueo 3D inicializado');
+    console.log('🌍 Globo terráqueo 3D inicializado con textura real');
+}
+
+function createProceduralEarth() {
+    // Material procedural mejorado si no se puede cargar la textura
+    if (state.globeMesh) {
+        const material = new THREE.MeshPhongMaterial({
+            color: 0x4a90e2, // Azul océano
+            emissive: 0x001122,
+            shininess: 30,
+            specular: 0x222222,
+            transparent: false
+        });
+        state.globeMesh.material = material;
+    }
+}
+
+function createStars() {
+    const starsGeometry = new THREE.BufferGeometry();
+    const starsMaterial = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 0.5,
+        transparent: true,
+        opacity: 0.8
+    });
+    
+    const starsVertices = [];
+    for (let i = 0; i < 10000; i++) {
+        const x = (Math.random() - 0.5) * 2000;
+        const y = (Math.random() - 0.5) * 2000;
+        const z = (Math.random() - 0.5) * 2000;
+        starsVertices.push(x, y, z);
+    }
+    
+    starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
+    const stars = new THREE.Points(starsGeometry, starsMaterial);
+    state.globeScene.add(stars);
 }
 
 function animateGlobe() {
     if (!state.globeMesh || !state.globeRenderer || !state.globeScene || !state.globeCamera) return;
     
-    // Rotar el globo lentamente
+    // Rotar el globo lentamente (una rotación completa cada ~52 minutos)
     state.globeMesh.rotation.y += 0.002;
+    
+    // Rotar la luz del sol para simular día/noche
+    const time = Date.now() * 0.0001;
+    if (state.globeScene.children) {
+        state.globeScene.children.forEach(child => {
+            if (child.type === 'DirectionalLight' && child.position.x > 0) {
+                // Rotar la luz del sol alrededor del globo
+                child.position.x = Math.cos(time) * 5;
+                child.position.z = Math.sin(time) * 5;
+            }
+        });
+    }
+    
+    // Actualizar luces de celebración
+    updateCelebrationLights();
     
     // Renderizar
     state.globeRenderer.render(state.globeScene, state.globeCamera);
     
     requestAnimationFrame(animateGlobe);
+}
+
+function updateCelebrationLights() {
+    // Agregar puntos de luz dorados en zonas que ya celebraron
+    if (!state.celebratedZones || state.celebratedZones.size === 0) return;
+    
+    // Limpiar luces antiguas si hay demasiadas
+    if (state.celebrationLights && state.celebrationLights.length > 20) {
+        state.celebrationLights.forEach(light => {
+            state.globeScene.remove(light);
+        });
+        state.celebrationLights = [];
+    }
+    
+    // Agregar nuevas luces ocasionalmente
+    if (Math.random() > 0.95 && state.celebratedZones.size > 0) {
+        const light = new THREE.PointLight(0xffd700, 2, 3);
+        const angle = Math.random() * Math.PI * 2;
+        const phi = Math.random() * Math.PI;
+        light.position.set(
+            Math.sin(phi) * Math.cos(angle) * 1.1,
+            Math.cos(phi) * 1.1,
+            Math.sin(phi) * Math.sin(angle) * 1.1
+        );
+        state.globeScene.add(light);
+        state.celebrationLights.push(light);
+        
+        // Remover la luz después de 3 segundos
+        setTimeout(() => {
+            state.globeScene.remove(light);
+            const index = state.celebrationLights.indexOf(light);
+            if (index > -1) {
+                state.celebrationLights.splice(index, 1);
+            }
+        }, 3000);
+    }
 }
 
 // ============================================
