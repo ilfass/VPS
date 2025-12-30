@@ -173,11 +173,12 @@ function initializeMapbox() {
         // Crear mapa con Highmaps (similar a 24timezones.com)
         state.highmapsChart = Highcharts.mapChart('highmapsPlanisphere', {
             chart: {
-                backgroundColor: 'transparent',
+                backgroundColor: '#0a0e27',
                 map: 'custom/world',
                 animation: false,
                 height: window.innerHeight,
-                width: window.innerWidth
+                width: window.innerWidth,
+                spacing: [0, 0, 0, 0]
             },
             title: {
                 text: ''
@@ -203,11 +204,13 @@ function initializeMapbox() {
                 data: [],
                 joinBy: ['iso-a2', 'code'],
                 nullColor: '#1a1a2e',
-                borderColor: 'rgba(255, 255, 255, 0.3)',
-                borderWidth: 0.5,
+                borderColor: 'rgba(255, 255, 255, 0.4)',
+                borderWidth: 1,
+                color: '#2a3a5e',
                 states: {
                     hover: {
-                        color: '#4a6a9e'
+                        color: '#4a6a9e',
+                        borderColor: 'rgba(255, 255, 255, 0.6)'
                     }
                 }
             }],
@@ -1096,27 +1099,27 @@ function updateTimeDisplay() {
     const now = new Date();
     
     // Actualizar hora UTC
-    const utcTime = now.toUTCString();
-    const timeMatch = utcTime.match(/(\d{2}):(\d{2}):(\d{2})/);
-    const dateMatch = utcTime.match(/(\w+), (\d+) (\w+) (\d+)/);
+    const utcHours = String(now.getUTCHours()).padStart(2, '0');
+    const utcMinutes = String(now.getUTCMinutes()).padStart(2, '0');
+    const utcSeconds = String(now.getUTCSeconds()).padStart(2, '0');
+    const utcTimeStr = `${utcHours}:${utcMinutes}:${utcSeconds}`;
     
-    if (timeMatch) {
-        const hours = timeMatch[1];
-        const minutes = timeMatch[2];
-        const seconds = timeMatch[3];
-        document.getElementById('utcTime').textContent = `${hours}:${minutes}:${seconds}`;
+    const utcTimeEl = document.getElementById('utcTime');
+    if (utcTimeEl) {
+        utcTimeEl.textContent = utcTimeStr;
     }
     
-    if (dateMatch) {
-        const day = dateMatch[2];
-        const month = dateMatch[3];
-        const year = dateMatch[4];
-        const monthNames = {
-            'Jan': 'Enero', 'Feb': 'Febrero', 'Mar': 'Marzo', 'Apr': 'Abril',
-            'May': 'Mayo', 'Jun': 'Junio', 'Jul': 'Julio', 'Aug': 'Agosto',
-            'Sep': 'Septiembre', 'Oct': 'Octubre', 'Nov': 'Noviembre', 'Dec': 'Diciembre'
-        };
-        document.getElementById('utcDate').textContent = `${day} de ${monthNames[month] || month}, ${year}`;
+    // Fecha UTC
+    const utcDay = now.getUTCDate();
+    const utcMonth = now.getUTCMonth();
+    const utcYear = now.getUTCFullYear();
+    const monthNames = [
+        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    const utcDateEl = document.getElementById('utcDate');
+    if (utcDateEl) {
+        utcDateEl.textContent = `${utcDay} de ${monthNames[utcMonth]}, ${utcYear}`;
     }
     
     // Actualizar hora del usuario (local)
