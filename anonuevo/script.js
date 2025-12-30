@@ -71,6 +71,7 @@ const state = {
     globeRenderer: null,
     globeMesh: null,
     celebrationLights: [],
+    sunLight: null,
     sunLight: null
 };
 
@@ -187,13 +188,15 @@ function initializeGlobe() {
         }
     );
     
-    // Crear material con textura realista
+    // Crear material con textura realista y mejor contraste para día/noche
     const material = new THREE.MeshPhongMaterial({
         map: earthTexture,
         shininess: 10,
-        specular: 0x222222,
+        specular: 0x333333,
         emissive: 0x000000,
-        transparent: false
+        transparent: false,
+        // Aumentar el contraste para mejor visualización de día/noche
+        color: 0xffffff
     });
     
     // Crear malla del globo
