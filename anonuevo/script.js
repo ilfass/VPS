@@ -169,13 +169,13 @@ function initializeMapbox() {
     }
     
     try {
-        // Crear mapa de Mapbox con vista de globo
+        // Crear mapa de Mapbox con vista de planisferio (proyección plana)
         state.mapboxMap = new mapboxgl.Map({
             container: 'mapboxGlobe',
             style: 'mapbox://styles/mapbox/dark-v11', // Estilo oscuro
-            projection: 'globe', // Proyección de globo 3D
+            projection: 'mercator', // Proyección planisferio (Mercator)
             center: [state.userLongitude || -65, state.userLatitude || -35], // Centrar en Argentina por defecto
-            zoom: 1.5,
+            zoom: 2,
             pitch: 0,
             bearing: 0
         });
@@ -214,23 +214,12 @@ function initializeMapbox() {
 function updateMapboxRotation() {
     if (!state.mapboxMap) return;
     
-    // Calcular rotación basada en hora UTC
-    const now = new Date();
-    const hours = now.getUTCHours();
-    const minutes = now.getUTCMinutes();
-    const seconds = now.getUTCSeconds();
-    
-    // Rotar el globo para mostrar la hora actual
-    // La Tierra rota 15 grados por hora
-    const rotationDegrees = (hours * 15) + (minutes * 0.25) + (seconds * 0.0041667);
-    
-    // Ajustar bearing para rotar el globo
-    state.mapboxMap.setBearing(rotationDegrees);
-    
-    // Actualizar iluminación para día/noche
+    // Para planisferio, no necesitamos rotar, solo actualizar iluminación día/noche
     const sunPosition = calculateSunPosition();
     if (sunPosition) {
+        // Actualizar iluminación para mostrar día/noche en el planisferio
         state.mapboxMap.setConfigProperty('light', 'position', sunPosition);
+        state.mapboxMap.setConfigProperty('light', 'intensity', 1.0);
     }
 }
 
@@ -1282,14 +1271,8 @@ function initializeBackgroundAudio() {
 // ============================================
 
 function initializeDynamicFeatures() {
-    // Inicializar estadísticas dinámicas
-    initializeDynamicStats();
-    
     // Inicializar contador global
     initializeGlobalCountdown();
-    
-    // Actualizar estadísticas cada 5 segundos
-    setInterval(updateDynamicStats, 5000);
     
     // Actualizar contador global cada segundo
     setInterval(updateGlobalCountdown, 1000);
@@ -1574,45 +1557,111 @@ function addTimelineSparkle(position) {
 // PRESENTADOR CON IA
 // ============================================
 
-// Generador de contenido con IA (simulado - en producción usarías una API real)
+// Datos de países con información histórica y zonas horarias
+const COUNTRIES_DATA = {
+    'Kiritimati': { name: 'Kiritimati (Islas Line)', timezone: 'Pacific/Kiritimati', offset: 14, history: 'Kiritimati, también conocida como Isla de Navidad, es el primer lugar habitado en recibir el Año Nuevo. Esta isla del Pacífico, parte de Kiribati, tiene una rica historia de exploración polinesia y colonialismo británico.' },
+    'Samoa': { name: 'Samoa', timezone: 'Pacific/Apia', offset: 13, history: 'Samoa fue el primer país en recibir el Año Nuevo hasta 2011, cuando cambió su zona horaria para estar más cerca de sus socios comerciales. Tiene una cultura polinesia única con tradiciones ancestrales.' },
+    'Nueva Zelanda': { name: 'Nueva Zelanda', timezone: 'Pacific/Auckland', offset: 12, history: 'Nueva Zelanda celebra el Año Nuevo con fuegos artificiales espectaculares en Auckland. El país tiene una rica herencia maorí y es conocido por ser uno de los primeros lugares en ver el amanecer del nuevo año.' },
+    'Australia': { name: 'Australia', timezone: 'Australia/Sydney', offset: 10, history: 'Australia celebra con grandes eventos en Sídney, incluyendo el famoso espectáculo de fuegos artificiales en el puerto. El país tiene una historia fascinante que combina culturas aborígenes milenarias con influencias europeas y asiáticas.' },
+    'Japón': { name: 'Japón', timezone: 'Asia/Tokyo', offset: 9, history: 'En Japón, el Año Nuevo se celebra visitando templos sintoístas y budistas. La tradición incluye comer soba (fideos) y escuchar las 108 campanadas que representan los 108 deseos terrenales. Japón tiene una historia milenaria de imperios, samuráis y transformación moderna.' },
+    'China': { name: 'China', timezone: 'Asia/Shanghai', offset: 8, history: 'China celebra el Año Nuevo según el calendario lunar, pero también festeja el año nuevo gregoriano. Con más de 5000 años de historia, China es una de las civilizaciones más antiguas del mundo, conocida por sus dinastías, la Gran Muralla y sus contribuciones a la humanidad.' },
+    'España': { name: 'España', timezone: 'Europe/Madrid', offset: 1, history: 'España es famosa por la tradición de las 12 uvas de la suerte en la Puerta del Sol de Madrid. Con una rica historia que incluye el Imperio Romano, la ocupación musulmana, y la era de los descubrimientos, España ha influido profundamente en la cultura mundial.' },
+    'Argentina': { name: 'Argentina', timezone: 'America/Argentina/Buenos_Aires', offset: -3, history: 'Argentina celebra el Año Nuevo con grandes festejos en Buenos Aires. El país tiene una rica historia de inmigración europea, tango, y una cultura única que combina influencias italianas, españolas e indígenas.' },
+    'Chile': { name: 'Chile', timezone: 'America/Santiago', offset: -3, history: 'Chile celebra con fuegos artificiales en Valparaíso y Santiago. Con una geografía única que se extiende desde el desierto de Atacama hasta la Patagonia, Chile tiene una historia de resistencia indígena y desarrollo económico.' },
+    'Uruguay': { name: 'Uruguay', timezone: 'America/Montevideo', offset: -3, history: 'Uruguay celebra el Año Nuevo en las playas de Punta del Este. Conocido como la Suiza de América, Uruguay tiene una historia de estabilidad democrática y una rica cultura gaucha.' },
+    'Paraguay': { name: 'Paraguay', timezone: 'America/Asuncion', offset: -4, history: 'Paraguay celebra con tradiciones que mezclan influencias guaraníes y españolas. El país tiene una historia única de independencia temprana y resistencia, siendo el único país de América donde el guaraní es idioma oficial junto al español.' },
+    'Bolivia': { name: 'Bolivia', timezone: 'America/La_Paz', offset: -4, history: 'Bolivia celebra el Año Nuevo con rituales andinos y tradiciones católicas. Con una población mayoritariamente indígena, Bolivia tiene una rica historia precolombina, incluyendo el Imperio Tiwanaku y la cultura incaica.' },
+    'Colombia': { name: 'Colombia', timezone: 'America/Bogota', offset: -5, history: 'Colombia celebra con música, baile y fuegos artificiales. El país tiene una historia fascinante que incluye civilizaciones precolombinas como los muiscas, la época colonial española, y una rica diversidad cultural.' },
+    'Ecuador': { name: 'Ecuador', timezone: 'America/Guayaquil', offset: -5, history: 'Ecuador celebra el Año Nuevo con la quema de muñecos de año viejo. El país tiene una historia única que incluye ser parte del Imperio Inca, y es el hogar de las Islas Galápagos, fundamentales para la teoría de la evolución.' },
+    'México': { name: 'México', timezone: 'America/Mexico_City', offset: -6, history: 'México celebra con grandes festejos y tradiciones que mezclan culturas prehispánicas y españolas. Con civilizaciones milenarias como los aztecas y mayas, México tiene una de las historias más ricas y complejas de América.' }
+};
+
+// Función para calcular tiempo hasta Año Nuevo para un país
+function getTimeUntilNewYear(countryKey) {
+    const country = COUNTRIES_DATA[countryKey];
+    if (!country) return null;
+    
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const newYearDate = new Date(currentYear + 1, 0, 1, 0, 0, 0, 0);
+    
+    // Convertir a la zona horaria del país
+    const countryTime = new Date(now.toLocaleString('en-US', { timeZone: country.timezone }));
+    const countryNewYear = new Date(newYearDate.toLocaleString('en-US', { timeZone: country.timezone }));
+    
+    const diff = countryNewYear - countryTime;
+    
+    if (diff <= 0) {
+        return { days: 0, hours: 0, minutes: 0, text: '¡Ya llegó el Año Nuevo!' };
+    }
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    let text = '';
+    if (days > 0) {
+        text = `${days} día${days > 1 ? 's' : ''} y ${hours} hora${hours !== 1 ? 's' : ''}`;
+    } else if (hours > 0) {
+        text = `${hours} hora${hours > 1 ? 's' : ''} y ${minutes} minuto${minutes !== 1 ? 's' : ''}`;
+    } else {
+        text = `${minutes} minuto${minutes !== 1 ? 's' : ''}`;
+    }
+    
+    return { days, hours, minutes, text };
+}
+
+// Generador de contenido con IA mejorado
 async function generateAIContent(context) {
-    // Simular generación de contenido con IA
-    // En producción, esto llamaría a OpenAI, Anthropic, o similar
+    const now = new Date();
+    const topics = [];
     
-    const templates = {
-        welcome: [
-            '¡Bienvenidos al rastreador global del Año Nuevo! Estamos aquí para seguir juntos el avance de las celebraciones alrededor del mundo en tiempo real.',
-            'Hola y bienvenidos a esta transmisión especial. Estamos siguiendo el avance del Año Nuevo por todo el planeta, zona horaria por zona horaria.',
-            'Bienvenidos a esta experiencia única. Juntos vamos a presenciar cómo el mundo celebra el Año Nuevo, desde las primeras islas del Pacífico hasta las últimas regiones.'
-        ],
-        traditions: [
-            `En este momento, ${context.currentZone || 'varias regiones'} están celebrando. Cada cultura tiene sus propias tradiciones fascinantes para recibir el nuevo año.`,
-            `Las tradiciones del Año Nuevo son increíblemente diversas. Desde las 12 uvas en España hasta los templos en Japón, cada país celebra a su manera única.`,
-            `¿Sabías que en diferentes partes del mundo se celebran diferentes Años Nuevos? El calendario gregoriano es solo uno de muchos sistemas de tiempo fascinantes.`
-        ],
-        progress: [
-            `Ya hemos visto ${context.celebratedZones || 0} zonas horarias celebrar el Año Nuevo. El mundo se está iluminando gradualmente con festejos.`,
-            `En este momento, ${context.nextZone || 'la próxima zona'} se prepara para recibir el Año Nuevo. La celebración continúa avanzando por el planeta.`,
-            `Estamos en un momento especial. Miles de personas alrededor del mundo están conectadas, compartiendo este evento único que une a toda la humanidad.`
-        ],
-        reflection: [
-            'El Año Nuevo es más que una fecha en el calendario. Es un símbolo de esperanza, renovación y la oportunidad de comenzar de nuevo.',
-            'Cada año nuevo trae consigo la promesa de nuevos comienzos. Es un momento para reflexionar sobre el pasado y mirar hacia el futuro con optimismo.',
-            'En este momento especial, personas de todas las culturas y continentes se unen en celebración. Es un recordatorio de nuestra humanidad compartida.'
-        ]
-    };
+    // Tema 1: Primeros países en recibir Año Nuevo
+    topics.push(`Los primeros países en recibir el Año Nuevo son las Islas Line, específicamente Kiritimati, en UTC+14. ${COUNTRIES_DATA.Kiritimati.history} Le siguen Samoa en UTC+13, Nueva Zelanda en UTC+12, y Australia en UTC+10. Cada uno tiene tradiciones únicas y una historia fascinante.`);
     
-    // Seleccionar categoría basada en el contexto
-    let category = 'welcome';
-    if (context.celebratedZones > 0) category = 'progress';
-    if (context.celebratedZones > 5) category = 'traditions';
-    if (Math.random() > 0.7) category = 'reflection';
+    // Tema 2: Tiempo hasta Año Nuevo en países específicos
+    const countriesToCheck = ['Argentina', 'Chile', 'Uruguay', 'Paraguay', 'Bolivia', 'Colombia', 'Ecuador', 'México', 'España', 'Japón', 'China'];
+    const countryTimes = countriesToCheck.map(country => {
+        const time = getTimeUntilNewYear(country);
+        if (time) {
+            return { country, time, data: COUNTRIES_DATA[country] };
+        }
+        return null;
+    }).filter(Boolean);
     
-    const options = templates[category];
-    // Simular delay de IA (en producción sería una llamada real a la API)
+    if (countryTimes.length > 0) {
+        const selectedCountries = countryTimes.slice(0, 3);
+        let timeMessage = 'En cuanto a los tiempos hasta el Año Nuevo, ';
+        selectedCountries.forEach((item, index) => {
+            if (index > 0) timeMessage += '. Además, ';
+            timeMessage += `para ${item.data.name} faltan ${item.time.text}. ${item.data.history}`;
+        });
+        topics.push(timeMessage);
+    }
+    
+    // Tema 3: Historia de países europeos
+    topics.push(`En Europa, España tiene una tradición única de las 12 uvas de la suerte. ${COUNTRIES_DATA.España.history} Otros países europeos como Francia, Alemania e Italia también tienen sus propias tradiciones fascinantes que reflejan siglos de historia y cultura.`);
+    
+    // Tema 4: Países asiáticos
+    topics.push(`En Asia, Japón y China tienen celebraciones muy especiales. ${COUNTRIES_DATA.Japón.history} ${COUNTRIES_DATA.China.history} Estos países representan civilizaciones milenarias con tradiciones que se remontan a miles de años.`);
+    
+    // Tema 5: Países latinoamericanos
+    const latamCountries = ['Argentina', 'Chile', 'Uruguay', 'Paraguay', 'Bolivia', 'Colombia', 'Ecuador', 'México'];
+    const latamInfo = latamCountries.slice(0, 3).map(c => COUNTRIES_DATA[c].history).join(' ');
+    topics.push(`Los países latinoamericanos tienen tradiciones ricas y diversas. ${latamInfo} Cada país celebra de manera única, reflejando su historia y cultura.`);
+    
+    // Tema 6: Progreso de las celebraciones
+    if (context.celebratedZones > 0) {
+        topics.push(`Ya hemos visto ${context.celebratedZones} zonas horarias celebrar el Año Nuevo. La celebración continúa avanzando por el planeta, iluminando el mundo zona por zona. Es un espectáculo único que une a toda la humanidad.`);
+    }
+    
+    // Seleccionar tema aleatorio
+    const selectedTopic = topics[Math.floor(Math.random() * topics.length)];
+    
+    // Simular delay de IA
     await new Promise(resolve => setTimeout(resolve, 500));
     
-    return options[Math.floor(Math.random() * options.length)];
+    return selectedTopic;
 }
 
 const PRESENTER_TOPICS = [
@@ -1671,11 +1720,11 @@ function initializeAIPresenter() {
     // Empezar con el primer tema
     presentTopicWithAI(0);
     
-    // Cambiar de tema cada cierto tiempo
+    // Cambiar de tema cada cierto tiempo (más frecuente para que hable más)
     presenterInterval = setInterval(() => {
         currentTopicIndex = (currentTopicIndex + 1) % PRESENTER_TOPICS.length;
         presentTopicWithAI(currentTopicIndex);
-    }, 50000); // Cambiar cada 50 segundos
+    }, 30000); // Cambiar cada 30 segundos para que hable más
     
     console.log('🎙️ Presentador con IA inicializado');
 }
@@ -1747,16 +1796,19 @@ function speakPresenterMessage(message) {
         
         const utterance = new SpeechSynthesisUtterance(message);
         utterance.lang = 'es-ES';
-        utterance.rate = 0.9; // Velocidad natural
-        utterance.pitch = 1.0; // Tono natural
+        utterance.rate = 0.85; // Velocidad más lenta para mejor comprensión
+        utterance.pitch = 0.75; // Voz más grave (0.5-2.0, más bajo = más grave)
         utterance.volume = 0.95;
         
-        // Buscar la mejor voz en español
+        // Buscar la mejor voz en español (preferir voces masculinas/graves)
         const voices = window.speechSynthesis.getVoices();
         let bestVoice = voices.find(voice => 
-            voice.lang.startsWith('es') && (voice.name.includes('Neural') || voice.name.includes('Premium'))
+            voice.lang.startsWith('es') && (voice.name.includes('Neural') || voice.name.includes('Premium')) && 
+            (voice.name.includes('Male') || voice.name.includes('Masculino') || !voice.name.includes('Female'))
         ) || voices.find(voice => 
-            voice.lang.startsWith('es') && voice.name.includes('Female')
+            voice.lang.startsWith('es') && (voice.name.includes('Male') || voice.name.includes('Masculino'))
+        ) || voices.find(voice => 
+            voice.lang.startsWith('es') && !voice.name.includes('Female')
         ) || voices.find(voice => voice.lang.startsWith('es'));
         
         if (bestVoice) {
