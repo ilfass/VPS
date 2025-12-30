@@ -260,10 +260,28 @@ function initializeGlobe() {
     state.sunLight = sunLight; // Guardar referencia
     
     // Luz ambiental muy suave (solo para el lado oscuro)
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.2);
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.15);
     state.globeScene.add(ambientLight);
     
-    // No usar luz de relleno para mantener el contraste día/noche
+    // Agregar luz adicional para el lado oscuro (más oscuro)
+    const darkSideLight = new THREE.DirectionalLight(0x000033, 0.1);
+    darkSideLight.position.set(-sunLight.position.x, -sunLight.position.y, -sunLight.position.z);
+    state.globeScene.add(darkSideLight);
+    
+    // Crear material para el lado oscuro (más oscuro)
+    const darkMaterial = new THREE.MeshBasicMaterial({
+        color: 0x000033,
+        transparent: true,
+        opacity: 0.3,
+        side: THREE.BackSide
+    });
+    
+    // Agregar esfera oscura para el lado de noche
+    const darkSphere = new THREE.Mesh(
+        new THREE.SphereGeometry(1.001, 64, 64),
+        darkMaterial
+    );
+    state.globeScene.add(darkSphere);
     
     // Agregar puntos de luz dorados para zonas que celebran
     state.celebrationLights = [];
@@ -1023,16 +1041,55 @@ function updateDynamicMessage() {
     const messageEl = document.getElementById('dynamicMessageText');
     if (!messageEl || state.dynamicMessages.length === 0) return;
     
-    // Seleccionar mensaje aleatorio
-    const randomIndex = Math.floor(Math.random() * state.dynamicMessages.length);
-    const newMessage = state.dynamicMessages[randomIndex];
+    // Seleccionar mensaje (rotar en orden, no aleatorio)
+    const newMessage = state.dynamicMessages[state.currentMessageIndex];
+    state.currentMessageIndex = (state.currentMessageIndex + 1) % state.dynamicMessages.length;
     
     // Animación de fade
     messageEl.style.opacity = '0';
     setTimeout(() => {
         messageEl.textContent = newMessage;
         messageEl.style.opacity = '1';
+        
+        // Leer el mensaje con voz
+        speakMessage(newMessage);
     }, 300);
+}
+
+function speakMessage(message) {
+    // Verificar si el navegador soporta speech synthesis
+    if ('speechSynthesis' in window) {
+        // Cancelar cualquier mensaje anterior
+        window.speechSynthesis.cancel();
+        
+        // Crear utterance
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.lang = 'es-ES';
+        utterance.rate = 0.9; // Velocidad ligeramente más lenta
+        utterance.pitch = 1.0;
+        utterance.volume = 0.8;
+        
+        // Intentar usar voz en español
+        const voices = window.speechSynthesis.getVoices();
+        const spanishVoice = voices.find(voice => voice.lang.startsWith('es'));
+        if (spanishVoice) {
+            utterance.voice = spanishVoice;
+        }
+        
+        // Reproducir
+        window.speechSynthesis.speak(utterance);
+        
+        console.log('🔊 Mensaje leído:', message);
+    } else {
+        console.log('⚠️ Speech synthesis no disponible');
+    }
+}
+
+// Cargar voces cuando estén disponibles
+if ('speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = () => {
+        console.log('✅ Voces cargadas');
+    };
 }
 
 function initializeDynamicStats() {
