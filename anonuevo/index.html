@@ -9,9 +9,16 @@
     <title>🎆 Año Nuevo Global 2025 | Rastreador en Vivo</title>
     <meta name="description" content="Sigue el avance del Año Nuevo por el mundo en tiempo real. Mapa global con franjas horarias, cuenta regresiva y transmisión en vivo.">
     <link rel="stylesheet" href="styles.css">
+    <!-- Three.js para el globo terráqueo 3D -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
-    <!-- Mapa Global de Franjas Horarias -->
+    <!-- Globo Terráqueo 3D -->
+    <div class="globe-container" id="globeContainer">
+        <canvas id="globeCanvas"></canvas>
+    </div>
+    
+    <!-- Mapa Global de Franjas Horarias (overlay) -->
     <div class="world-map-container" id="worldMap">
         <svg class="world-map" viewBox="0 0 1440 720" xmlns="http://www.w3.org/2000/svg">
             <!-- Las franjas horarias se generarán dinámicamente con JavaScript -->
@@ -28,6 +35,14 @@
                     <span class="status-dot" id="statusDot"></span>
                     <span class="status-text" id="statusText">EN VIVO</span>
                 </div>
+            </div>
+
+            <!-- Hora del Usuario -->
+            <div class="time-display user-time">
+                <div class="time-label">Tu Hora Local</div>
+                <div class="time-value" id="userTime">00:00:00</div>
+                <div class="time-date" id="userDate">1 de Enero, 2025</div>
+                <div class="time-zone" id="userTimezone">UTC+0</div>
             </div>
 
             <!-- Hora Actual UTC -->
@@ -115,9 +130,15 @@
         </footer>
     </div>
 
-    <!-- Audio de Fondo -->
-    <audio id="backgroundAudio" loop>
-        <!-- El audio se cargará dinámicamente -->
+    <!-- Audio de Fondo - Múltiples pistas -->
+    <audio id="backgroundAudio1" loop>
+        <!-- Audio principal -->
+    </audio>
+    <audio id="backgroundAudio2" loop>
+        <!-- Audio secundario -->
+    </audio>
+    <audio id="backgroundAudio3" loop>
+        <!-- Audio adicional -->
     </audio>
 
     <script src="script.js"></script>

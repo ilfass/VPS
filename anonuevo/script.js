@@ -63,7 +63,13 @@ const state = {
     nextZone: null,
     visualEffectsActive: false,
     backgroundAudio: null,
-    youtubeChat: null
+    youtubeChat: null,
+    userTimezone: null,
+    userTimezoneOffset: null,
+    globeScene: null,
+    globeCamera: null,
+    globeRenderer: null,
+    globeMesh: null
 };
 
 // ============================================
@@ -72,6 +78,12 @@ const state = {
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🎆 Inicializando Año Nuevo Global 2025');
+    
+    // Detectar zona horaria del usuario
+    detectUserTimezone();
+    
+    // Inicializar globo terráqueo 3D
+    initializeGlobe();
     
     initializeWorldMap();
     initializeTimeDisplay();
@@ -90,8 +102,116 @@ document.addEventListener('DOMContentLoaded', () => {
     // Actualizar mapa cada 5 segundos
     setInterval(updateWorldMap, 5000);
     
+    // Animar globo continuamente
+    animateGlobe();
+    
     console.log('✅ Inicialización completada');
 });
+
+// ============================================
+// DETECCIÓN DE ZONA HORARIA DEL USUARIO
+// ============================================
+
+function detectUserTimezone() {
+    const now = new Date();
+    const offset = -now.getTimezoneOffset() / 60; // Offset en horas
+    state.userTimezoneOffset = offset;
+    
+    // Obtener nombre de la zona horaria
+    const timezoneName = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    state.userTimezone = timezoneName;
+    
+    // Formatear offset como UTC±X
+    const offsetStr = offset >= 0 ? `UTC+${offset}` : `UTC${offset}`;
+    
+    // Actualizar display
+    const timezoneEl = document.getElementById('userTimezone');
+    if (timezoneEl) {
+        timezoneEl.textContent = `${offsetStr} - ${timezoneName}`;
+    }
+    
+    console.log(`📍 Zona horaria detectada: ${offsetStr} (${timezoneName})`);
+}
+
+// ============================================
+// GLOBO TERRÁQUEO 3D
+// ============================================
+
+function initializeGlobe() {
+    const canvas = document.getElementById('globeCanvas');
+    if (!canvas) return;
+    
+    // Crear escena
+    state.globeScene = new THREE.Scene();
+    
+    // Crear cámara
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    state.globeCamera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    state.globeCamera.position.z = 3;
+    
+    // Crear renderer
+    state.globeRenderer = new THREE.WebGLRenderer({ 
+        canvas: canvas,
+        alpha: true,
+        antialias: true 
+    });
+    state.globeRenderer.setSize(width, height);
+    state.globeRenderer.setPixelRatio(window.devicePixelRatio);
+    
+    // Crear geometría de esfera (globo)
+    const geometry = new THREE.SphereGeometry(1, 64, 64);
+    
+    // Crear material con textura de la Tierra
+    // Usaremos un material básico con colores que simulan la Tierra
+    const material = new THREE.MeshPhongMaterial({
+        color: 0x2233ff,
+        emissive: 0x112244,
+        shininess: 30,
+        transparent: true,
+        opacity: 0.9
+    });
+    
+    // Crear malla del globo
+    state.globeMesh = new THREE.Mesh(geometry, material);
+    state.globeScene.add(state.globeMesh);
+    
+    // Agregar iluminación
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+    state.globeScene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(5, 3, 5);
+    state.globeScene.add(directionalLight);
+    
+    // Agregar puntos de luz para zonas que ya celebraron
+    const pointLight = new THREE.PointLight(0xffd700, 1, 10);
+    pointLight.position.set(0, 0, 0);
+    state.globeScene.add(pointLight);
+    
+    // Manejar resize
+    window.addEventListener('resize', () => {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        state.globeCamera.aspect = width / height;
+        state.globeCamera.updateProjectionMatrix();
+        state.globeRenderer.setSize(width, height);
+    });
+    
+    console.log('🌍 Globo terráqueo 3D inicializado');
+}
+
+function animateGlobe() {
+    if (!state.globeMesh || !state.globeRenderer || !state.globeScene || !state.globeCamera) return;
+    
+    // Rotar el globo lentamente
+    state.globeMesh.rotation.y += 0.002;
+    
+    // Renderizar
+    state.globeRenderer.render(state.globeScene, state.globeCamera);
+    
+    requestAnimationFrame(animateGlobe);
+}
 
 // ============================================
 // MAPA MUNDIAL Y FRANJAS HORARIAS
@@ -228,7 +348,7 @@ function updateStatistics() {
 }
 
 // ============================================
-// DISPLAY DE TIEMPO UTC
+// DISPLAY DE TIEMPO UTC Y DEL USUARIO
 // ============================================
 
 function initializeTimeDisplay() {
@@ -237,6 +357,8 @@ function initializeTimeDisplay() {
 
 function updateTimeDisplay() {
     const now = new Date();
+    
+    // Actualizar hora UTC
     const utcTime = now.toUTCString();
     const timeMatch = utcTime.match(/(\d{2}):(\d{2}):(\d{2})/);
     const dateMatch = utcTime.match(/(\w+), (\d+) (\w+) (\d+)/);
@@ -259,6 +381,22 @@ function updateTimeDisplay() {
         };
         document.getElementById('utcDate').textContent = `${day} de ${monthNames[month] || month}, ${year}`;
     }
+    
+    // Actualizar hora del usuario (local)
+    const userHours = String(now.getHours()).padStart(2, '0');
+    const userMinutes = String(now.getMinutes()).padStart(2, '0');
+    const userSeconds = String(now.getSeconds()).padStart(2, '0');
+    document.getElementById('userTime').textContent = `${userHours}:${userMinutes}:${userSeconds}`;
+    
+    // Fecha del usuario
+    const userDay = now.getDate();
+    const userMonth = now.getMonth();
+    const userYear = now.getFullYear();
+    const monthNames = [
+        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    document.getElementById('userDate').textContent = `${userDay} de ${monthNames[userMonth]}, ${userYear}`;
 }
 
 // ============================================
@@ -441,46 +579,60 @@ function createConfetti() {
 // AUDIO DE FONDO
 // ============================================
 
-// Configuración de audio de fondo
+// Configuración de audio de fondo - Múltiples pistas
 const AUDIO_CONFIG = {
-    // Para obtener el audio de YouTube Studio:
+    // Para obtener los audios de YouTube Studio:
     // 1. Ve a https://studio.youtube.com/channel/UCDg4eJJdvNAX2az-Bi7aBkA/music
-    // 2. Descarga el audio que quieras usar
-    // 3. Colócalo en la carpeta del proyecto como 'background-audio.mp3'
-    // 4. O usa una URL directa si está alojado en un servidor
-    src: 'background-audio.mp3', // Cambiar por la ruta real del audio
-    volume: 0.3, // Volumen (0.0 a 1.0)
-    loop: true
+    // 2. Descarga los audios que quieras usar
+    // 3. Colócalos en la carpeta del proyecto
+    // 4. Configura las rutas aquí
+    tracks: [
+        { id: 'backgroundAudio1', src: 'audio1.mp3', volume: 0.3, loop: true },
+        { id: 'backgroundAudio2', src: 'audio2.mp3', volume: 0.2, loop: true },
+        { id: 'backgroundAudio3', src: 'audio3.mp3', volume: 0.25, loop: true }
+    ]
 };
 
 function initializeBackgroundAudio() {
-    const audioEl = document.getElementById('backgroundAudio');
-    
-    if (AUDIO_CONFIG.src) {
-        audioEl.src = AUDIO_CONFIG.src;
-        audioEl.volume = AUDIO_CONFIG.volume;
-        audioEl.loop = AUDIO_CONFIG.loop;
+    // Inicializar cada pista de audio
+    AUDIO_CONFIG.tracks.forEach((track, index) => {
+        const audioEl = document.getElementById(track.id);
+        if (!audioEl) return;
         
-        // Intentar reproducir cuando el usuario interactúe (requerido por los navegadores)
-        const playAudio = () => {
-            if (audioEl.paused && audioEl.src) {
-                audioEl.play().catch(err => {
-                    console.log('No se pudo reproducir audio automáticamente:', err);
-                    console.log('El audio se reproducirá cuando el usuario interactúe con la página');
-                });
+        if (track.src) {
+            audioEl.src = track.src;
+            audioEl.volume = track.volume;
+            audioEl.loop = track.loop;
+            
+            // Intentar reproducir cuando el usuario interactúe
+            const playAudio = () => {
+                if (audioEl.paused && audioEl.src) {
+                    audioEl.play().catch(err => {
+                        console.log(`No se pudo reproducir ${track.id}:`, err);
+                    });
+                }
+            };
+            
+            // Reproducir con un pequeño delay entre pistas para crear ambiente
+            if (index === 0) {
+                // Primera pista se reproduce inmediatamente
+                document.addEventListener('click', playAudio, { once: true });
+                document.addEventListener('touchstart', playAudio, { once: true });
+                document.addEventListener('keydown', playAudio, { once: true });
+                setTimeout(playAudio, 1000);
+            } else {
+                // Otras pistas se reproducen con delay
+                const delay = index * 2000; // 2 segundos entre cada pista
+                setTimeout(() => {
+                    document.addEventListener('click', playAudio, { once: true });
+                    document.addEventListener('touchstart', playAudio, { once: true });
+                    setTimeout(playAudio, delay);
+                }, delay);
             }
-        };
-        
-        // Intentar reproducir después de la primera interacción
-        document.addEventListener('click', playAudio, { once: true });
-        document.addEventListener('touchstart', playAudio, { once: true });
-        document.addEventListener('keydown', playAudio, { once: true });
-        
-        // También intentar después de un delay (algunos navegadores permiten esto)
-        setTimeout(playAudio, 1000);
-    } else {
-        console.log('ℹ️ Audio de fondo no configurado. Configura AUDIO_CONFIG.src para agregar música de fondo.');
-    }
+        } else {
+            console.log(`ℹ️ Audio ${track.id} no configurado. Agrega ${track.src} a la carpeta del proyecto.`);
+        }
+    });
 }
 
 // ============================================
