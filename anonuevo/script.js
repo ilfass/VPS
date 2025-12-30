@@ -276,12 +276,14 @@ function initializeMapbox() {
             }
         });
         
-        // Actualizar día/noche y línea de medianoche
+        // Actualizar día/noche, línea de medianoche y rotación del mapa
         updateHighmapsDayNight();
         updateMidnightLine();
+        updateMapRotation();
         setInterval(() => {
             updateHighmapsDayNight();
             updateMidnightLine();
+            updateMapRotation();
         }, 1000);
         
     } catch (error) {
@@ -306,6 +308,125 @@ function updateHighmapsDayNight() {
         // Actualizar el mapa con colores de día/noche
         // Por ahora mantenemos el estilo base
     }
+}
+
+// Rotar el mapa según la hora UTC
+function updateMapRotation() {
+    if (!state.highmapsChart) return;
+    
+    const now = new Date();
+    const hours = now.getUTCHours();
+    const minutes = now.getUTCMinutes();
+    const seconds = now.getUTCSeconds();
+    
+    // Calcular el desplazamiento basado en la hora UTC
+    // El mapa debe desplazarse para que el meridiano de Greenwich esté en el centro
+    // A las 00:00 UTC, el meridiano de Greenwich está en el centro
+    // A las 12:00 UTC, el meridiano opuesto (180°) está en el centro
+    const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+    const rotationOffset = (totalSeconds / 86400) * 360; // 360 grados en 24 horas
+    
+    // Aplicar transformación al mapa
+    const chart = state.highmapsChart;
+    if (chart && chart.mapView) {
+        // Usar mapView para rotar el mapa
+        chart.mapView.update({
+            projection: {
+                name: 'EqualEarth',
+                rotation: [rotationOffset, 0, 0]
+            }
+        });
+    } else {
+        // Alternativa: usar transform CSS o SVG
+        const container = document.getElementById('highmapsPlanisphere');
+        if (container) {
+            const svg = container.querySelector('svg');
+            if (svg) {
+                // Calcular el desplazamiento en píxeles
+                const mapWidth = svg.viewBox.baseVal.width || 1000;
+                const pixelOffset = (rotationOffset / 360) * mapWidth;
+                svg.style.transform = `translateX(${-pixelOffset}px)`;
+            }
+        }
+    }
+    
+    // Iluminar países que cruzan el meridiano de Greenwich
+    highlightCountriesAtGreenwich();
+}
+
+// Iluminar países que están en el meridiano de Greenwich (medianoche UTC)
+function highlightCountriesAtGreenwich() {
+    if (!state.highmapsChart) return;
+    
+    const series = state.highmapsChart.series[0];
+    if (!series) return;
+    
+    const now = new Date();
+    const hours = now.getUTCHours();
+    const minutes = now.getUTCMinutes();
+    const seconds = now.getUTCSeconds();
+    
+    // Calcular qué países están en el meridiano de Greenwich (longitud 0°)
+    // La línea central del mapa representa el meridiano de Greenwich
+    // Los países que cruzan esta línea deben iluminarse
+    
+    // Obtener todos los puntos del mapa
+    const points = series.points || [];
+    
+    points.forEach(point => {
+        if (!point.geometry || !point.geometry.coordinates) return;
+        
+        // Calcular si el país está cerca del meridiano de Greenwich
+        // Simplificado: iluminar países basados en su posición aproximada
+        const isNearGreenwich = checkIfNearGreenwich(point);
+        
+        if (isNearGreenwich) {
+            // Iluminar el país
+            point.update({
+                color: '#ffd700',
+                borderColor: 'rgba(255, 215, 0, 1)',
+                borderWidth: 3
+            }, false);
+        } else {
+            // Restaurar color normal
+            point.update({
+                color: '#5a6a8e',
+                borderColor: 'rgba(255, 255, 255, 0.7)',
+                borderWidth: 2
+            }, false);
+        }
+    });
+    
+    // Redibujar el mapa
+    state.highmapsChart.redraw();
+}
+
+// Verificar si un país está cerca del meridiano de Greenwich
+function checkIfNearGreenwich(point) {
+    if (!point.geometry || !point.geometry.coordinates) return false;
+    
+    // Obtener las coordenadas del país
+    const coords = point.geometry.coordinates;
+    
+    // Simplificado: verificar si alguna coordenada está cerca de longitud 0°
+    // En un mapa real, esto sería más complejo
+    let isNear = false;
+    
+    const checkCoordinates = (coords) => {
+        if (Array.isArray(coords[0])) {
+            coords.forEach(coord => checkCoordinates(coord));
+        } else if (coords.length >= 2) {
+            const lon = coords[0];
+            // Verificar si está cerca del meridiano de Greenwich (longitud 0°)
+            // Con un margen de ±5 grados
+            if (Math.abs(lon) < 5 || Math.abs(lon - 360) < 5 || Math.abs(lon + 360) < 5) {
+                isNear = true;
+            }
+        }
+    };
+    
+    checkCoordinates(coords);
+    return isNear;
 }
 
 function updateMapboxRotation() {
@@ -1905,6 +2026,11 @@ async function presentTopicWithAI(index) {
             
             // Animar boca mientras habla
             animateMouthWhileSpeaking(aiContent.length * 50); // Duración aproximada
+            
+            // Iniciar scroll automático del texto
+            setTimeout(() => {
+                scrollPresenterText(presenterText);
+            }, 500);
         }, 300);
         
     } catch (error) {
@@ -1926,31 +2052,53 @@ function getFallbackContent(category) {
     return fallbacks[category] || fallbacks.welcome;
 }
 
-// Hacer scroll automático del texto del presentador
+// Hacer scroll automático del texto del presentador (máximo 3 líneas, scroll hacia arriba)
+let presenterScrollInterval = null;
+
 function scrollPresenterText(textElement) {
     if (!textElement) return;
     
-    // Resetear scroll
-    textElement.scrollTop = 0;
+    // Limpiar intervalo anterior si existe
+    if (presenterScrollInterval) {
+        clearInterval(presenterScrollInterval);
+    }
     
-    // Hacer scroll suave hacia abajo
-    const scrollHeight = textElement.scrollHeight;
-    const clientHeight = textElement.clientHeight;
+    // Obtener el contenedor del texto
+    const container = textElement.parentElement;
+    if (!container) return;
     
-    if (scrollHeight > clientHeight) {
-        const scrollDuration = 5000; // 5 segundos para hacer scroll completo
-        const scrollStep = scrollHeight / (scrollDuration / 16); // 60 FPS
-        let currentScroll = 0;
-        
-        const scrollInterval = setInterval(() => {
-            currentScroll += scrollStep;
-            if (currentScroll >= scrollHeight - clientHeight) {
-                textElement.scrollTop = scrollHeight - clientHeight;
-                clearInterval(scrollInterval);
+    // Configurar altura para mostrar máximo 3 líneas
+    const lineHeight = parseFloat(getComputedStyle(textElement).lineHeight) || 28.8; // 16px * 1.8
+    const maxHeight = lineHeight * 3; // 3 líneas
+    container.style.maxHeight = `${maxHeight}px`;
+    container.style.overflow = 'hidden';
+    
+    // Resetear scroll al inicio
+    container.scrollTop = 0;
+    
+    // Dividir el texto en líneas y mostrar máximo 3 líneas a la vez
+    const text = textElement.textContent;
+    const words = text.split(' ');
+    const wordsPerLine = Math.ceil(words.length / Math.ceil(textElement.scrollHeight / lineHeight));
+    
+    // Crear un sistema de scroll que muestre 3 líneas y vaya subiendo
+    let currentLineIndex = 0;
+    const totalLines = Math.ceil(textElement.scrollHeight / lineHeight);
+    
+    if (totalLines > 3) {
+        // Scroll automático hacia arriba cada 2 segundos
+        presenterScrollInterval = setInterval(() => {
+            currentLineIndex++;
+            const maxScroll = textElement.scrollHeight - maxHeight;
+            
+            if (currentLineIndex * lineHeight <= maxScroll) {
+                container.scrollTop = currentLineIndex * lineHeight;
             } else {
-                textElement.scrollTop = currentScroll;
+                // Reiniciar cuando llegue al final
+                currentLineIndex = 0;
+                container.scrollTop = 0;
             }
-        }, 16);
+        }, 2000); // Cambiar cada 2 segundos
     }
 }
 
@@ -2230,6 +2378,7 @@ function startFaceAnimation() {
 }
 
 function startBasicFaceAnimation() {
+    // Mejorar animación básica con más movimiento y realismo
     if (!state.avatarCanvas || !state.faceImage) return;
     
     let lastTime = 0;

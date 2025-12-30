@@ -1074,6 +1074,34 @@ body {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
     overflow: hidden;
     background: #1a1a2e;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.presenter-avatar.animated {
+    animation: avatar-float 3s ease-in-out infinite, avatar-glow 2s ease-in-out infinite;
+}
+
+@keyframes avatar-float {
+    0%, 100% {
+        transform: translateY(0px) scale(1);
+    }
+    50% {
+        transform: translateY(-3px) scale(1.02);
+    }
+}
+
+@keyframes avatar-glow {
+    0%, 100% {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 10px rgba(100, 200, 255, 0.3);
+    }
+    50% {
+        box-shadow: 0 4px 25px rgba(0, 0, 0, 0.7), 0 0 20px rgba(100, 200, 255, 0.5);
+    }
+}
+
+.presenter-avatar:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.8), 0 0 25px rgba(100, 200, 255, 0.6);
 }
 
 .avatar-image {
@@ -1172,6 +1200,23 @@ body {
 
 .presenter-text-container {
     flex: 1;
+    max-height: 86.4px; /* 3 líneas: 16px * 1.8 * 3 */
+    overflow-y: auto;
+    scroll-behavior: smooth;
+}
+
+.presenter-text-container::-webkit-scrollbar {
+    width: 4px;
+}
+
+.presenter-text-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+}
+
+.presenter-text-container::-webkit-scrollbar-thumb {
+    background: rgba(100, 200, 255, 0.5);
+    border-radius: 2px;
 }
 
 .presenter-text {
