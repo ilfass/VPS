@@ -1322,34 +1322,7 @@ function initializeDynamicStats() {
 }
 
 function updateDynamicStats() {
-    // Simular variación en el número de espectadores
-    const baseViewers = 1234;
-    const variation = Math.floor(Math.random() * 200) - 100;
-    state.viewersCount = Math.max(100, baseViewers + variation);
-    
-    // Simular variación en países
-    const baseCountries = 47;
-    const countryVariation = Math.floor(Math.random() * 10) - 5;
-    state.countriesCount = Math.max(20, baseCountries + countryVariation);
-    
-    // Actualizar UI
-    const viewersEl = document.getElementById('viewersCount');
-    if (viewersEl) {
-        viewersEl.textContent = state.viewersCount.toLocaleString();
-    }
-    
-    const countriesEl = document.getElementById('countriesCount');
-    if (countriesEl) {
-        countriesEl.textContent = state.countriesCount;
-    }
-    
-    // Calcular tiempo promedio (simulado)
-    const avgTimeEl = document.getElementById('avgTime');
-    if (avgTimeEl) {
-        const minutes = Math.floor(Math.random() * 30) + 5;
-        const seconds = Math.floor(Math.random() * 60);
-        avgTimeEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-    }
+    // Funciones de estadísticas eliminadas - ya no se usan
 }
 
 function initializeGlobalCountdown() {
