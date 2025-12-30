@@ -1820,74 +1820,21 @@ function scrollPresenterText(textElement) {
 }
 
 function speakPresenterMessage(message) {
-    if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        
+    if (!('speechSynthesis' in window)) {
+        console.warn('⚠️ Speech Synthesis no está disponible');
+        return;
+    }
+    
+    // Cancelar cualquier mensaje anterior
+    window.speechSynthesis.cancel();
+    
+    // Esperar un momento para asegurar que se canceló
+    setTimeout(() => {
         const utterance = new SpeechSynthesisUtterance(message);
         utterance.lang = 'es-ES';
         utterance.rate = 0.85; // Velocidad más lenta para mejor comprensión
         utterance.pitch = 0.75; // Voz más grave (0.5-2.0, más bajo = más grave)
-        utterance.volume = 0.95;
-        
-        // Buscar la mejor voz en español (preferir voces masculinas/graves)
-        const voices = window.speechSynthesis.getVoices();
-        let bestVoice = voices.find(voice => 
-            voice.lang.startsWith('es') && (voice.name.includes('Neural') || voice.name.includes('Premium')) && 
-            (voice.name.includes('Male') || voice.name.includes('Masculino') || !voice.name.includes('Female'))
-        ) || voices.find(voice => 
-            voice.lang.startsWith('es') && (voice.name.includes('Male') || voice.name.includes('Masculino'))
-        ) || voices.find(voice => 
-            voice.lang.startsWith('es') && !voice.name.includes('Female')
-        ) || voices.find(voice => voice.lang.startsWith('es'));
-        
-        if (bestVoice) {
-            utterance.voice = bestVoice;
-        }
-        
-        // Eventos para animar el avatar y sincronizar boca
-        const mouthOverlay = document.getElementById('avatarMouth');
-        
-        utterance.onstart = () => {
-            state.aiPresenterActive = true;
-            if (mouthOverlay) {
-                mouthOverlay.classList.add('speaking');
-            }
-            // Reiniciar animación facial si está pausada
-            if (!state.animationFrame && state.avatarCanvas) {
-                if (state.faceAnimationModel) {
-                    startFaceAnimation();
-                } else {
-                    startBasicFaceAnimation();
-                }
-            }
-        };
-        
-        utterance.onend = () => {
-            state.aiPresenterActive = false;
-            if (mouthOverlay) {
-                mouthOverlay.classList.remove('speaking');
-            }
-        };
-        
-        utterance.onerror = () => {
-            state.aiPresenterActive = false;
-            if (mouthOverlay) {
-                mouthOverlay.classList.remove('speaking');
-            }
-        };
-        
-        // Sincronizar boca con pausas y palabras
-        utterance.onboundary = (event) => {
-            if (mouthOverlay && event.name === 'word') {
-                // Pequeña animación en cada palabra
-                mouthOverlay.classList.remove('speaking');
-                setTimeout(() => {
-                    if (state.aiPresenterActive) {
-                        mouthOverlay.classList.add('speaking');
-                    }
-                }, 10);
-            }
-        };
+        utterance.volume = 1.0; // Volumen máximo
         
         // Cargar voces si no están disponibles
         const loadVoices = () => {
@@ -1922,6 +1869,14 @@ function speakPresenterMessage(message) {
                 state.aiPresenterActive = true;
                 if (mouthOverlay) {
                     mouthOverlay.classList.add('speaking');
+                }
+                // Reiniciar animación facial si está pausada
+                if (!state.animationFrame && state.avatarCanvas) {
+                    if (state.faceAnimationModel) {
+                        startFaceAnimation();
+                    } else {
+                        startBasicFaceAnimation();
+                    }
                 }
                 console.log('🎙️ Presentador empezó a hablar');
             };
@@ -1965,14 +1920,13 @@ function speakPresenterMessage(message) {
         };
         
         // Cargar voces
-        loadVoices();
-        
-        // Si las voces ya están cargadas, ejecutar inmediatamente
         if (window.speechSynthesis.getVoices().length > 0) {
             loadVoices();
         } else {
             // Esperar a que se carguen las voces
             window.speechSynthesis.onvoiceschanged = loadVoices;
+            // También intentar después de un delay
+            setTimeout(loadVoices, 500);
         }
     }, 100);
 }
