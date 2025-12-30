@@ -94,13 +94,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Detectar zona horaria del usuario
     detectUserTimezone();
     
-    // Inicializar Mapbox primero (planisferio principal)
+    // Inicializar Mapbox (planisferio principal)
     initializeMapbox();
     
-    // Inicializar globo terráqueo 3D (respaldo si Mapbox falla)
-    initializeGlobe();
-    
-    initializeWorldMap();
+    // Inicializar línea de medianoche
+    initializeMidnightLine();
     initializeTimeDisplay();
     initializeCountdown();
     initializeVoiceSystem();
@@ -1763,6 +1761,34 @@ function getFallbackContent(category) {
     return fallbacks[category] || fallbacks.welcome;
 }
 
+// Hacer scroll automático del texto del presentador
+function scrollPresenterText(textElement) {
+    if (!textElement) return;
+    
+    // Resetear scroll
+    textElement.scrollTop = 0;
+    
+    // Hacer scroll suave hacia abajo
+    const scrollHeight = textElement.scrollHeight;
+    const clientHeight = textElement.clientHeight;
+    
+    if (scrollHeight > clientHeight) {
+        const scrollDuration = 5000; // 5 segundos para hacer scroll completo
+        const scrollStep = scrollHeight / (scrollDuration / 16); // 60 FPS
+        let currentScroll = 0;
+        
+        const scrollInterval = setInterval(() => {
+            currentScroll += scrollStep;
+            if (currentScroll >= scrollHeight - clientHeight) {
+                textElement.scrollTop = scrollHeight - clientHeight;
+                clearInterval(scrollInterval);
+            } else {
+                textElement.scrollTop = currentScroll;
+            }
+        }, 16);
+    }
+}
+
 function speakPresenterMessage(message) {
     if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -1833,10 +1859,92 @@ function speakPresenterMessage(message) {
             }
         };
         
-        window.speechSynthesis.speak(utterance);
+        // Cargar voces si no están disponibles
+        const loadVoices = () => {
+            const voices = window.speechSynthesis.getVoices();
+            if (voices.length === 0) {
+                console.log('⏳ Esperando voces...');
+                setTimeout(loadVoices, 100);
+                return;
+            }
+            
+            // Buscar la mejor voz en español (preferir voces masculinas/graves)
+            let bestVoice = voices.find(voice => 
+                voice.lang.startsWith('es') && (voice.name.includes('Neural') || voice.name.includes('Premium')) && 
+                (voice.name.includes('Male') || voice.name.includes('Masculino') || !voice.name.includes('Female'))
+            ) || voices.find(voice => 
+                voice.lang.startsWith('es') && (voice.name.includes('Male') || voice.name.includes('Masculino'))
+            ) || voices.find(voice => 
+                voice.lang.startsWith('es') && !voice.name.includes('Female')
+            ) || voices.find(voice => voice.lang.startsWith('es'));
+            
+            if (bestVoice) {
+                utterance.voice = bestVoice;
+                console.log('✅ Voz seleccionada:', bestVoice.name);
+            } else {
+                console.warn('⚠️ No se encontró voz en español, usando predeterminada');
+            }
+            
+            // Eventos para animar el avatar y sincronizar boca
+            const mouthOverlay = document.getElementById('avatarMouth');
+            
+            utterance.onstart = () => {
+                state.aiPresenterActive = true;
+                if (mouthOverlay) {
+                    mouthOverlay.classList.add('speaking');
+                }
+                console.log('🎙️ Presentador empezó a hablar');
+            };
+            
+            utterance.onend = () => {
+                state.aiPresenterActive = false;
+                if (mouthOverlay) {
+                    mouthOverlay.classList.remove('speaking');
+                }
+                console.log('✅ Presentador terminó de hablar');
+            };
+            
+            utterance.onerror = (event) => {
+                state.aiPresenterActive = false;
+                if (mouthOverlay) {
+                    mouthOverlay.classList.remove('speaking');
+                }
+                console.error('❌ Error en speech synthesis:', event);
+            };
+            
+            // Sincronizar boca con pausas y palabras
+            utterance.onboundary = (event) => {
+                if (mouthOverlay && event.name === 'word') {
+                    // Pequeña animación en cada palabra
+                    mouthOverlay.classList.remove('speaking');
+                    setTimeout(() => {
+                        if (state.aiPresenterActive) {
+                            mouthOverlay.classList.add('speaking');
+                        }
+                    }, 10);
+                }
+            };
+            
+            // Intentar reproducir
+            try {
+                window.speechSynthesis.speak(utterance);
+                console.log('🎙️ Presentador habla:', message.substring(0, 50) + '...');
+            } catch (error) {
+                console.error('❌ Error al reproducir voz:', error);
+            }
+        };
         
-        console.log('🎙️ Presentador habla:', message.substring(0, 50) + '...');
-    }
+        // Cargar voces
+        loadVoices();
+        
+        // Si las voces ya están cargadas, ejecutar inmediatamente
+        if (window.speechSynthesis.getVoices().length > 0) {
+            loadVoices();
+        } else {
+            // Esperar a que se carguen las voces
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+        }
+    }, 100);
 }
 
 async function animatePresenterAvatar() {

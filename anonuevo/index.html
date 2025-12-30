@@ -27,17 +27,11 @@
     <script src="https://cdn.jsdelivr.net/npm/topojson@3"></script>
 </head>
 <body>
-    <!-- Globo Terráqueo 3D con Mapbox -->
+    <!-- Planisferio con Mapbox -->
     <div class="globe-container" id="globeContainer">
         <div id="mapboxGlobe" class="mapbox-globe"></div>
-        <canvas id="globeCanvas"></canvas>
-    </div>
-    
-    <!-- Mapa Global de Franjas Horarias (overlay) -->
-    <div class="world-map-container" id="worldMap">
-        <svg class="world-map" viewBox="0 0 1440 720" xmlns="http://www.w3.org/2000/svg">
-            <!-- Las franjas horarias se generarán dinámicamente con JavaScript -->
-        </svg>
+        <!-- Línea central que marca dónde es medianoche (Año Nuevo) -->
+        <div class="midnight-line" id="midnightLine"></div>
     </div>
 
     <!-- Overlay de Información -->
