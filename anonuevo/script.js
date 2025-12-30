@@ -615,62 +615,132 @@ function drawMeridians(svg) {
 }
 
 function drawMainCountries(svg) {
-    // Coordenadas aproximadas de países principales (longitud, latitud)
-    // Usando proyección equirectangular simple
+    // Dibujar países como formas tipo planisferio (simplificado)
+    // Usando polígonos aproximados para países principales
+    
     const countries = [
-        { name: 'Argentina', lon: -65, lat: -35, color: 'rgba(116, 195, 101, 0.6)' },
-        { name: 'Brasil', lon: -55, lat: -15, color: 'rgba(116, 195, 101, 0.6)' },
-        { name: 'Chile', lon: -70, lat: -30, color: 'rgba(116, 195, 101, 0.6)' },
-        { name: 'México', lon: -100, lat: 23, color: 'rgba(116, 195, 101, 0.6)' },
-        { name: 'Estados Unidos', lon: -95, lat: 38, color: 'rgba(116, 195, 101, 0.6)' },
-        { name: 'España', lon: -3, lat: 40, color: 'rgba(116, 195, 101, 0.6)' },
-        { name: 'Francia', lon: 2, lat: 46, color: 'rgba(116, 195, 101, 0.6)' },
-        { name: 'Rusia', lon: 100, lat: 60, color: 'rgba(116, 195, 101, 0.6)' },
-        { name: 'China', lon: 105, lat: 35, color: 'rgba(116, 195, 101, 0.6)' },
-        { name: 'India', lon: 77, lat: 20, color: 'rgba(116, 195, 101, 0.6)' },
-        { name: 'Japón', lon: 138, lat: 36, color: 'rgba(116, 195, 101, 0.6)' },
-        { name: 'Australia', lon: 135, lat: -25, color: 'rgba(116, 195, 101, 0.6)' }
+        {
+            name: 'Argentina',
+            path: 'M 400 500 L 450 480 L 480 520 L 460 560 L 420 550 Z',
+            color: 'rgba(116, 195, 101, 0.7)',
+            highlight: true,
+            centerX: 450,
+            centerY: 520
+        },
+        {
+            name: 'Brasil',
+            path: 'M 480 420 L 520 400 L 540 440 L 530 480 L 500 470 Z',
+            color: 'rgba(116, 195, 101, 0.6)',
+            centerX: 520,
+            centerY: 440
+        },
+        {
+            name: 'Chile',
+            path: 'M 380 500 L 400 480 L 410 520 L 395 560 L 375 540 Z',
+            color: 'rgba(116, 195, 101, 0.6)',
+            centerX: 395,
+            centerY: 520
+        },
+        {
+            name: 'México',
+            path: 'M 280 360 L 320 350 L 330 380 L 310 400 L 290 390 Z',
+            color: 'rgba(116, 195, 101, 0.6)',
+            centerX: 310,
+            centerY: 376
+        },
+        {
+            name: 'Estados Unidos',
+            path: 'M 250 280 L 320 270 L 340 300 L 330 340 L 280 330 Z',
+            color: 'rgba(116, 195, 101, 0.6)',
+            centerX: 304,
+            centerY: 304
+        },
+        {
+            name: 'España',
+            path: 'M 680 300 L 700 295 L 710 310 L 705 325 L 690 320 Z',
+            color: 'rgba(116, 195, 101, 0.6)',
+            centerX: 697,
+            centerY: 310
+        },
+        {
+            name: 'Francia',
+            path: 'M 700 280 L 720 275 L 730 290 L 725 305 L 710 300 Z',
+            color: 'rgba(116, 195, 101, 0.6)',
+            centerX: 717,
+            centerY: 290
+        },
+        {
+            name: 'Rusia',
+            path: 'M 900 200 L 1100 180 L 1120 220 L 1080 240 L 920 230 Z',
+            color: 'rgba(116, 195, 101, 0.6)',
+            centerX: 1004,
+            centerY: 214
+        },
+        {
+            name: 'China',
+            path: 'M 1000 320 L 1080 310 L 1100 340 L 1070 360 L 1020 350 Z',
+            color: 'rgba(116, 195, 101, 0.6)',
+            centerX: 1054,
+            centerY: 336
+        },
+        {
+            name: 'India',
+            path: 'M 920 380 L 960 370 L 970 400 L 950 420 L 930 410 Z',
+            color: 'rgba(116, 195, 101, 0.6)',
+            centerX: 946,
+            centerY: 396
+        },
+        {
+            name: 'Japón',
+            path: 'M 1150 320 L 1170 315 L 1175 330 L 1165 340 L 1155 335 Z',
+            color: 'rgba(116, 195, 101, 0.6)',
+            centerX: 1163,
+            centerY: 328
+        },
+        {
+            name: 'Australia',
+            path: 'M 1100 520 L 1160 510 L 1180 540 L 1150 560 L 1110 550 Z',
+            color: 'rgba(116, 195, 101, 0.6)',
+            centerX: 1140,
+            centerY: 536
+        }
     ];
     
     countries.forEach(country => {
-        // Convertir coordenadas a posición en el mapa
-        const x = ((country.lon + 180) / 360) * 1440;
-        const y = ((90 - country.lat) / 180) * 720;
+        // Dibujar forma del país
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', country.path);
+        path.setAttribute('fill', country.color);
+        path.setAttribute('stroke', country.highlight ? 'rgba(255, 215, 0, 1)' : 'rgba(255, 255, 255, 0.6)');
+        path.setAttribute('stroke-width', country.highlight ? '3' : '1.5');
+        path.setAttribute('class', 'country-shape');
+        path.setAttribute('data-country', country.name);
+        path.setAttribute('opacity', '0.8');
         
-        // Dibujar punto/círculo para el país
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', x);
-        circle.setAttribute('cy', y);
-        circle.setAttribute('r', '8');
-        circle.setAttribute('fill', country.color);
-        circle.setAttribute('stroke', 'rgba(255, 255, 255, 0.8)');
-        circle.setAttribute('stroke-width', '2');
-        circle.setAttribute('class', 'country-marker');
-        circle.setAttribute('data-country', country.name);
+        // Agregar interactividad
+        path.addEventListener('mouseenter', () => {
+            path.setAttribute('fill', 'rgba(255, 215, 0, 0.8)');
+            path.setAttribute('stroke-width', '3');
+        });
+        path.addEventListener('mouseleave', () => {
+            path.setAttribute('fill', country.color);
+            path.setAttribute('stroke-width', country.highlight ? '3' : '1.5');
+        });
         
-        // Agregar etiqueta de texto
+        svg.appendChild(path);
+        
+        // Agregar etiqueta de texto en el centro
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        text.setAttribute('x', x);
-        text.setAttribute('y', y - 15);
-        text.setAttribute('fill', 'rgba(255, 255, 255, 0.9)');
-        text.setAttribute('font-size', '12');
-        text.setAttribute('font-weight', '600');
+        text.setAttribute('x', country.centerX);
+        text.setAttribute('y', country.centerY);
+        text.setAttribute('fill', country.highlight ? '#ffd700' : 'rgba(255, 255, 255, 0.9)');
+        text.setAttribute('font-size', country.highlight ? '14' : '11');
+        text.setAttribute('font-weight', country.highlight ? '700' : '600');
         text.setAttribute('text-anchor', 'middle');
         text.setAttribute('class', 'country-label');
+        text.setAttribute('pointer-events', 'none');
         text.textContent = country.name;
         
-        // Hacer Argentina más visible
-        if (country.name === 'Argentina') {
-            circle.setAttribute('r', '12');
-            circle.setAttribute('fill', 'rgba(116, 195, 101, 0.9)');
-            circle.setAttribute('stroke', 'rgba(255, 215, 0, 1)');
-            circle.setAttribute('stroke-width', '3');
-            text.setAttribute('font-size', '14');
-            text.setAttribute('fill', '#ffd700');
-            text.setAttribute('font-weight', '700');
-        }
-        
-        svg.appendChild(circle);
         svg.appendChild(text);
     });
 }
@@ -1352,8 +1422,34 @@ function initializeTimeline() {
         startDate.textContent = dateStr;
     }
     
+    // Agregar hitos (milestones) en la línea de tiempo
+    addTimelineMilestones();
+    
     updateTimeline();
     setInterval(updateTimeline, 1000);
+}
+
+function addTimelineMilestones() {
+    const milestonesContainer = document.getElementById('timelineMilestones');
+    if (!milestonesContainer) return;
+    
+    const milestones = [
+        { progress: 25, emoji: '🌱', label: 'Primavera' },
+        { progress: 50, emoji: '☀️', label: 'Verano' },
+        { progress: 75, emoji: '🍂', label: 'Otoño' },
+        { progress: 90, emoji: '❄️', label: 'Invierno' }
+    ];
+    
+    milestones.forEach(milestone => {
+        const milestoneEl = document.createElement('div');
+        milestoneEl.className = 'timeline-milestone';
+        milestoneEl.style.left = `${milestone.progress}%`;
+        milestoneEl.innerHTML = `
+            <div class="milestone-emoji">${milestone.emoji}</div>
+            <div class="milestone-label">${milestone.label}</div>
+        `;
+        milestonesContainer.appendChild(milestoneEl);
+    });
 }
 
 function updateTimeline() {
