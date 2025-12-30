@@ -32,14 +32,23 @@ body {
     height: 100%;
     z-index: 1;
     background: #0a0e27;
+    min-height: 100vh;
+    min-width: 100vw;
 }
 
 .highmaps-planisphere svg {
     width: 100% !important;
     height: 100% !important;
+    display: block;
 }
 
 .highmaps-planisphere .highcharts-container {
+    width: 100% !important;
+    height: 100% !important;
+    position: relative !important;
+}
+
+.highmaps-planisphere .highcharts-root {
     width: 100% !important;
     height: 100% !important;
 }
