@@ -184,34 +184,37 @@ function initializeGlobe() {
     // Usar textura de la Tierra desde una URL pública
     // Textura de alta calidad de la NASA
     const earthTexture = textureLoader.load(
-        'https://raw.githubusercontent.com/turban/webgl-earth/master/images/2_no_clouds_4k.jpg',
-        () => {
-            console.log('✅ Textura de la Tierra cargada');
-        },
-        undefined,
-        (err) => {
-            console.warn('⚠️ No se pudo cargar textura de la Tierra, usando material procedural:', err);
-            // Fallback a material procedural mejorado
-            createProceduralEarth();
-        }
+        'https://raw.githubusercontent.com/turban/webgl-earth/master/images/2_no_clouds_4k.jpg'
     );
     
     // Crear material con textura realista y mejor contraste para día/noche
+    // Primero crear material básico para que el globo se vea inmediatamente
     const material = new THREE.MeshPhongMaterial({
-        map: earthTexture,
+        color: 0x4a90e2, // Azul océano por defecto
         shininess: 10,
         specular: 0x333333,
-        emissive: 0x000000,
-        transparent: false,
-        // Aumentar el contraste para mejor visualización de día/noche
-        color: 0xffffff
+        emissive: 0x001122,
+        transparent: false
     });
     
-    // Crear malla del globo
+    // Crear malla del globo INMEDIATAMENTE (antes de cargar textura)
     state.globeMesh = new THREE.Mesh(geometry, material);
     state.globeMesh.receiveShadow = true;
     state.globeMesh.castShadow = true;
     state.globeScene.add(state.globeMesh);
+    
+    // Actualizar material cuando la textura se cargue
+    earthTexture.onLoad = () => {
+        console.log('✅ Textura de la Tierra cargada');
+        material.map = earthTexture;
+        material.needsUpdate = true;
+    };
+    
+    // Si la textura falla, usar material procedural
+    earthTexture.onError = (err) => {
+        console.warn('⚠️ No se pudo cargar textura de la Tierra, usando material procedural:', err);
+        createProceduralEarth();
+    };
     
     // Dibujar husos horarios en el globo
     drawTimezonesOnGlobe();
@@ -272,7 +275,10 @@ function initializeGlobe() {
         state.globeRenderer.setSize(width, height);
     });
     
-    console.log('🌍 Globo terráqueo 3D inicializado con textura real');
+    // Iniciar animación inmediatamente
+    animateGlobe();
+    
+    console.log('🌍 Globo terráqueo 3D inicializado');
 }
 
 function createProceduralEarth() {
@@ -346,7 +352,10 @@ function drawTimezonesOnGlobe() {
 }
 
 function animateGlobe() {
-    if (!state.globeMesh || !state.globeRenderer || !state.globeScene || !state.globeCamera) return;
+    if (!state.globeMesh || !state.globeRenderer || !state.globeScene || !state.globeCamera) {
+        console.warn('⚠️ Globo no inicializado completamente');
+        return;
+    }
     
     // Calcular rotación real de la Tierra
     const now = new Date();
