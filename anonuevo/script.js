@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
     animatePresenterAvatar(); // Inicializar animación facial con IA
     initializeAIPresenter();
     initializeDynamicFeatures();
-    initializeUserLocation();
+    // initializeUserLocation(); // Función no implementada aún
     
     // Actualizar cada segundo
     setInterval(updateAll, 1000);
@@ -2002,13 +2002,47 @@ function speakPresenterMessage(message) {
         };
         
         // Cargar voces
-        if (window.speechSynthesis.getVoices().length > 0) {
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length > 0) {
             loadVoices();
         } else {
-            // Esperar a que se carguen las voces
-            window.speechSynthesis.onvoiceschanged = loadVoices;
-            // También intentar después de un delay
-            setTimeout(loadVoices, 500);
+            // Esperar a que se carguen las voces (con timeout máximo)
+            let attempts = 0;
+            const maxAttempts = 50; // Máximo 5 segundos
+            const checkVoices = () => {
+                attempts++;
+                const currentVoices = window.speechSynthesis.getVoices();
+                if (currentVoices.length > 0) {
+                    loadVoices();
+                } else if (attempts < maxAttempts) {
+                    setTimeout(checkVoices, 100);
+                } else {
+                    console.warn('⚠️ No se pudieron cargar voces después de varios intentos, usando voz predeterminada');
+                    // Usar voz predeterminada sin selección
+                    utterance.onstart = () => {
+                        state.aiPresenterActive = true;
+                        const mouthOverlay = document.getElementById('avatarMouth');
+                        if (mouthOverlay) {
+                            mouthOverlay.classList.add('speaking');
+                        }
+                    };
+                    utterance.onend = () => {
+                        state.aiPresenterActive = false;
+                        const mouthOverlay = document.getElementById('avatarMouth');
+                        if (mouthOverlay) {
+                            mouthOverlay.classList.remove('speaking');
+                        }
+                    };
+                    try {
+                        window.speechSynthesis.speak(utterance);
+                        console.log('🎙️ Presentador habla (voz predeterminada):', message.substring(0, 50) + '...');
+                    } catch (error) {
+                        console.error('❌ Error al reproducir voz:', error);
+                    }
+                }
+            };
+            window.speechSynthesis.onvoiceschanged = checkVoices;
+            setTimeout(checkVoices, 100);
         }
     }, 100);
 }
