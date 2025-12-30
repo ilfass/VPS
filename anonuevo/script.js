@@ -1126,17 +1126,19 @@ function updateTimeDisplay() {
     const userHours = String(now.getHours()).padStart(2, '0');
     const userMinutes = String(now.getMinutes()).padStart(2, '0');
     const userSeconds = String(now.getSeconds()).padStart(2, '0');
-    document.getElementById('userTime').textContent = `${userHours}:${userMinutes}:${userSeconds}`;
+    const userTimeEl = document.getElementById('userTime');
+    if (userTimeEl) {
+        userTimeEl.textContent = `${userHours}:${userMinutes}:${userSeconds}`;
+    }
     
     // Fecha del usuario
     const userDay = now.getDate();
     const userMonth = now.getMonth();
     const userYear = now.getFullYear();
-    const monthNames = [
-        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
-    document.getElementById('userDate').textContent = `${userDay} de ${monthNames[userMonth]}, ${userYear}`;
+    const userDateEl = document.getElementById('userDate');
+    if (userDateEl) {
+        userDateEl.textContent = `${userDay} de ${monthNames[userMonth]}, ${userYear}`;
+    }
 }
 
 // ============================================
