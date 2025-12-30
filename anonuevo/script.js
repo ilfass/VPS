@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeVoiceSystem();
     initializeVisualEffects();
     initializeBackgroundAudio();
-    initializeYouTubeChat();
+    initializeAIPresenter();
     initializeDynamicFeatures();
     initializeUserLocation();
     
@@ -1364,7 +1364,12 @@ function updateTimeline() {
     
     const totalTime = endOfYear - startOfYear;
     const elapsedTime = now - startOfYear;
-    const progress = Math.min(100, (elapsedTime / totalTime) * 100);
+    
+    // Ajustar progreso: empezar más atrás (dejar atrás algunas horas)
+    // Restar 12 horas para que la personita esté más atrás
+    const hoursBehind = 12;
+    const adjustedElapsedTime = Math.max(0, elapsedTime - (hoursBehind * 60 * 60 * 1000));
+    const progress = Math.min(100, (adjustedElapsedTime / totalTime) * 100);
     
     const person = document.getElementById('timelinePerson');
     const progressBar = document.getElementById('timelineProgress');
@@ -1377,24 +1382,162 @@ function updateTimeline() {
         progressBar.style.width = `${progress}%`;
         
         // Hacer la personita más grande a medida que avanza
-        const scale = 1 + (progress / 100) * 0.5; // Crece hasta 1.5x
+        const scale = 1 + (progress / 100) * 0.8; // Crece hasta 1.8x
         person.style.transform = `translateX(-50%) scale(${scale})`;
         
-        // Cambiar emoji según el progreso
-        if (progress < 25) {
-            person.querySelector('.person-emoji').textContent = '🚶';
-        } else if (progress < 50) {
-            person.querySelector('.person-emoji').textContent = '🏃';
-        } else if (progress < 75) {
-            person.querySelector('.person-emoji').textContent = '🚀';
-        } else {
-            person.querySelector('.person-emoji').textContent = '🎆';
+        // Cambiar emoji y animación según el progreso
+        const emojiEl = person.querySelector('.person-emoji');
+        if (emojiEl) {
+            if (progress < 10) {
+                emojiEl.textContent = '😴';
+                emojiEl.style.animation = 'person-sleep 2s ease-in-out infinite';
+            } else if (progress < 25) {
+                emojiEl.textContent = '🚶';
+                emojiEl.style.animation = 'person-walk 1s ease-in-out infinite';
+            } else if (progress < 50) {
+                emojiEl.textContent = '🏃';
+                emojiEl.style.animation = 'person-run 0.8s ease-in-out infinite';
+            } else if (progress < 75) {
+                emojiEl.textContent = '🚀';
+                emojiEl.style.animation = 'person-fly 0.5s ease-in-out infinite';
+            } else {
+                emojiEl.textContent = '🎆';
+                emojiEl.style.animation = 'person-celebrate 0.3s ease-in-out infinite';
+            }
+        }
+        
+        // Agregar chispas cuando avanza
+        if (Math.random() > 0.7) {
+            addTimelineSparkle(progress);
         }
     }
 }
 
+function addTimelineSparkle(position) {
+    const sparklesContainer = document.getElementById('timelineSparkles');
+    if (!sparklesContainer) return;
+    
+    const sparkle = document.createElement('div');
+    sparkle.className = 'timeline-sparkle';
+    sparkle.style.left = `${position}%`;
+    sparkle.textContent = ['✨', '⭐', '💫'][Math.floor(Math.random() * 3)];
+    sparklesContainer.appendChild(sparkle);
+    
+    setTimeout(() => {
+        sparkle.remove();
+    }, 2000);
+}
+
 // ============================================
-// INTEGRACIÓN CON YOUTUBE LIVE CHAT
+// PRESENTADOR CON IA
+// ============================================
+
+const PRESENTER_TOPICS = [
+    {
+        title: 'Bienvenida',
+        content: '¡Bienvenidos al rastreador global del Año Nuevo! Estamos aquí para seguir juntos el avance de las celebraciones alrededor del mundo.',
+        duration: 15000
+    },
+    {
+        title: 'Historia del Año Nuevo',
+        content: '¿Sabías que el Año Nuevo se celebra en diferentes fechas según la cultura? En Occidente usamos el calendario gregoriano, pero hay muchas otras tradiciones fascinantes.',
+        duration: 20000
+    },
+    {
+        title: 'Primera celebración',
+        content: 'Las primeras celebraciones del Año Nuevo ocurren en las Islas Line, en el Pacífico, que están en UTC+14. ¡Son las primeras en recibir el nuevo año!',
+        duration: 18000
+    },
+    {
+        title: 'Tradiciones mundiales',
+        content: 'Cada país tiene sus propias tradiciones: en España se comen 12 uvas, en Japón se visitan templos, en Brasil se viste de blanco, y en Escocia se celebra Hogmanay.',
+        duration: 22000
+    },
+    {
+        title: 'Zona horaria actual',
+        content: 'En este momento, estamos viendo cómo el Año Nuevo avanza zona por zona. Cada hora, una nueva región del mundo se une a la celebración.',
+        duration: 16000
+    },
+    {
+        title: 'Estadísticas globales',
+        content: 'Miles de personas alrededor del mundo están conectadas en este momento, siguiendo juntos este evento único que une a toda la humanidad.',
+        duration: 15000
+    },
+    {
+        title: 'Próxima zona',
+        content: 'La próxima zona horaria en celebrar está a punto de recibir el Año Nuevo. ¡Prepárense para ver cómo se ilumina el mundo!',
+        duration: 17000
+    },
+    {
+        title: 'Reflexión',
+        content: 'El Año Nuevo es un momento de reflexión, esperanza y nuevos comienzos. Es una oportunidad para dejar atrás lo viejo y abrazar lo nuevo.',
+        duration: 18000
+    }
+];
+
+let currentTopicIndex = 0;
+let presenterInterval = null;
+
+function initializeAIPresenter() {
+    const presenterText = document.getElementById('presenterText');
+    if (!presenterText) return;
+    
+    // Empezar con el primer tema
+    presentTopic(0);
+    
+    // Cambiar de tema cada cierto tiempo
+    presenterInterval = setInterval(() => {
+        currentTopicIndex = (currentTopicIndex + 1) % PRESENTER_TOPICS.length;
+        presentTopic(currentTopicIndex);
+    }, 45000); // Cambiar cada 45 segundos
+    
+    console.log('🎙️ Presentador con IA inicializado');
+}
+
+function presentTopic(index) {
+    const topic = PRESENTER_TOPICS[index];
+    const presenterText = document.getElementById('presenterText');
+    
+    if (!presenterText || !topic) return;
+    
+    // Actualizar texto con animación
+    presenterText.style.opacity = '0';
+    setTimeout(() => {
+        presenterText.textContent = topic.content;
+        presenterText.style.opacity = '1';
+        
+        // Leer con voz
+        speakPresenterMessage(topic.content);
+    }, 300);
+}
+
+function speakPresenterMessage(message) {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.lang = 'es-ES';
+        utterance.rate = 0.85; // Velocidad más lenta para presentador
+        utterance.pitch = 1.1; // Tono ligeramente más alto
+        utterance.volume = 0.9;
+        
+        const voices = window.speechSynthesis.getVoices();
+        const spanishVoice = voices.find(voice => 
+            voice.lang.startsWith('es') && voice.name.includes('Female')
+        ) || voices.find(voice => voice.lang.startsWith('es'));
+        
+        if (spanishVoice) {
+            utterance.voice = spanishVoice;
+        }
+        
+        window.speechSynthesis.speak(utterance);
+        
+        console.log('🎙️ Presentador habla:', message.substring(0, 50) + '...');
+    }
+}
+
+// ============================================
+// INTEGRACIÓN CON YOUTUBE LIVE CHAT (ELIMINADO)
 // ============================================
 
 // Configuración de YouTube Live Chat
