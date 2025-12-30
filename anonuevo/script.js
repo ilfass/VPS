@@ -284,17 +284,19 @@ function initializeMapbox() {
         // Actualizar día/noche, línea de medianoche y rotación del mapa
         // Esperar un momento para que el mapa se renderice completamente
         setTimeout(() => {
-            updateHighmapsDayNight();
-            updateMidnightLine();
-            updateMapRotation();
-            setInterval(() => {
-                if (state.highmapsChart) {
-                    updateHighmapsDayNight();
-                    updateMidnightLine();
-                    updateMapRotation();
-                }
-            }, 1000);
-        }, 500);
+            if (state.highmapsChart) {
+                updateHighmapsDayNight();
+                updateMidnightLine();
+                updateMapRotation();
+                setInterval(() => {
+                    if (state.highmapsChart && state.highmapsChart.series && state.highmapsChart.series[0]) {
+                        updateHighmapsDayNight();
+                        updateMidnightLine();
+                        updateMapRotation();
+                    }
+                }, 1000);
+            }
+        }, 1000);
         
     } catch (error) {
         console.warn('⚠️ No se pudo inicializar Highmaps:', error);
@@ -324,105 +326,110 @@ function updateHighmapsDayNight() {
 function updateMapRotation() {
     if (!state.highmapsChart) return;
     
-    const now = new Date();
-    const hours = now.getUTCHours();
-    const minutes = now.getUTCMinutes();
-    const seconds = now.getUTCSeconds();
-    
-    // Calcular el desplazamiento basado en la hora UTC
-    // El mapa debe desplazarse para que el meridiano de Greenwich esté en el centro
-    // A las 00:00 UTC, el meridiano de Greenwich está en el centro
-    // A las 12:00 UTC, el meridiano opuesto (180°) está en el centro
-    const totalSeconds = hours * 3600 + minutes * 60 + seconds;
-    const rotationOffset = (totalSeconds / 86400) * 360; // 360 grados en 24 horas
-    
-    // Aplicar transformación al mapa
-    const chart = state.highmapsChart;
-    if (chart && chart.mapView) {
-        // Usar mapView para rotar el mapa
-        chart.mapView.update({
-            projection: {
-                name: 'EqualEarth',
-                rotation: [rotationOffset, 0, 0]
-            }
-        });
-    } else {
-        // Alternativa: usar transform CSS o SVG
+    try {
+        const now = new Date();
+        const hours = now.getUTCHours();
+        const minutes = now.getUTCMinutes();
+        const seconds = now.getUTCSeconds();
+        
+        // Calcular el desplazamiento basado en la hora UTC
+        // El mapa debe desplazarse para que el meridiano de Greenwich esté en el centro
+        // A las 00:00 UTC, el meridiano de Greenwich está en el centro
+        // A las 12:00 UTC, el meridiano opuesto (180°) está en el centro
+        const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+        const rotationOffset = (totalSeconds / 86400) * 360; // 360 grados en 24 horas
+        
+        // Usar transform CSS en el SVG interno en lugar de modificar el contenedor
+        // Esto evita romper el renderizado de Highmaps
         const container = document.getElementById('highmapsPlanisphere');
         if (container) {
             const svg = container.querySelector('svg');
-            if (svg) {
+            if (svg && svg.viewBox && svg.viewBox.baseVal) {
                 // Calcular el desplazamiento en píxeles
                 const mapWidth = svg.viewBox.baseVal.width || 1000;
                 const pixelOffset = (rotationOffset / 360) * mapWidth;
-                svg.style.transform = `translateX(${-pixelOffset}px)`;
+                // Aplicar transform al SVG pero usando transform-origin para mantener el centro
+                svg.style.transformOrigin = 'center center';
+                svg.style.transform = `translateX(${-pixelOffset % mapWidth}px)`;
             }
         }
+        
+        // Iluminar países que cruzan el meridiano de Greenwich
+        highlightCountriesAtGreenwich();
+    } catch (error) {
+        console.warn('⚠️ Error al rotar el mapa:', error);
     }
-    
-    // Iluminar países que cruzan el meridiano de Greenwich
-    highlightCountriesAtGreenwich();
 }
 
 // Iluminar países que están en el meridiano de Greenwich (medianoche UTC)
 function highlightCountriesAtGreenwich() {
     if (!state.highmapsChart) return;
     
-    const series = state.highmapsChart.series[0];
-    if (!series) return;
-    
-    // Obtener todos los puntos del mapa
-    const points = series.points || [];
-    
-    // Calcular la posición central del mapa (donde está el meridiano de Greenwich)
-    const chartWidth = state.highmapsChart.chartWidth || window.innerWidth;
-    const centerX = chartWidth / 2;
-    
-    // Almacenar países iluminados para evitar actualizaciones innecesarias
-    if (!state.highlightedCountries) {
-        state.highlightedCountries = new Set();
-    }
-    
-    const currentlyHighlighted = new Set();
-    
-    points.forEach((point, index) => {
-        if (!point) return;
+    try {
+        const series = state.highmapsChart.series[0];
+        if (!series || !series.points) return;
         
-        // Obtener la posición del país en el mapa
-        const pointX = point.plotX || 0;
-        const distanceFromCenter = Math.abs(pointX - centerX);
+        // Obtener todos los puntos del mapa
+        const points = series.points;
         
-        // Si el país está cerca del centro (dentro de 50 píxeles), iluminarlo
-        const isNearCenter = distanceFromCenter < 50;
+        // Calcular la posición central del mapa (donde está el meridiano de Greenwich)
+        const chartWidth = state.highmapsChart.chartWidth || window.innerWidth;
+        const centerX = chartWidth / 2;
         
-        if (isNearCenter) {
-            currentlyHighlighted.add(index);
-            
-            // Solo actualizar si no estaba iluminado antes
-            if (!state.highlightedCountries.has(index)) {
-                point.update({
-                    color: '#ffd700',
-                    borderColor: 'rgba(255, 215, 0, 1)',
-                    borderWidth: 3
-                }, false);
-            }
-        } else {
-            // Solo restaurar si estaba iluminado antes
-            if (state.highlightedCountries.has(index)) {
-                point.update({
-                    color: '#4a5a7e',
-                    borderColor: 'rgba(255, 255, 255, 0.6)',
-                    borderWidth: 1.5
-                }, false);
-            }
+        // Almacenar países iluminados para evitar actualizaciones innecesarias
+        if (!state.highlightedCountries) {
+            state.highlightedCountries = new Set();
         }
-    });
-    
-    // Actualizar el conjunto de países iluminados
-    state.highlightedCountries = currentlyHighlighted;
-    
-    // Redibujar el mapa
-    state.highmapsChart.redraw();
+        
+        const currentlyHighlighted = new Set();
+        
+        points.forEach((point, index) => {
+            if (!point || !point.update) return;
+            
+            try {
+                // Obtener la posición del país en el mapa
+                const pointX = point.plotX || 0;
+                const distanceFromCenter = Math.abs(pointX - centerX);
+                
+                // Si el país está cerca del centro (dentro de 50 píxeles), iluminarlo
+                const isNearCenter = distanceFromCenter < 50;
+                
+                if (isNearCenter) {
+                    currentlyHighlighted.add(index);
+                    
+                    // Solo actualizar si no estaba iluminado antes
+                    if (!state.highlightedCountries.has(index)) {
+                        point.update({
+                            color: '#ffd700',
+                            borderColor: 'rgba(255, 215, 0, 1)',
+                            borderWidth: 3
+                        }, false);
+                    }
+                } else {
+                    // Solo restaurar si estaba iluminado antes
+                    if (state.highlightedCountries.has(index)) {
+                        point.update({
+                            color: '#5a7a9e',
+                            borderColor: 'rgba(255, 255, 255, 0.8)',
+                            borderWidth: 2
+                        }, false);
+                    }
+                }
+            } catch (pointError) {
+                console.warn(`⚠️ Error al actualizar punto ${index}:`, pointError);
+            }
+        });
+        
+        // Actualizar el conjunto de países iluminados
+        state.highlightedCountries = currentlyHighlighted;
+        
+        // Redibujar el mapa solo si hay cambios
+        if (currentlyHighlighted.size > 0 || state.highlightedCountries.size > 0) {
+            state.highmapsChart.redraw(false);
+        }
+    } catch (error) {
+        console.warn('⚠️ Error al iluminar países:', error);
+    }
 }
 
 // Verificar si un país está cerca del meridiano de Greenwich

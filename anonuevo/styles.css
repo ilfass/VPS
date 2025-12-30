@@ -34,22 +34,32 @@ body {
     background: #0a0e27;
     min-height: 100vh;
     min-width: 100vw;
+    overflow: hidden;
 }
 
 .highmaps-planisphere svg {
     width: 100% !important;
     height: 100% !important;
+    display: block;
 }
 
 .highmaps-planisphere .highcharts-container {
     width: 100% !important;
     height: 100% !important;
     position: relative !important;
+    overflow: visible !important;
 }
 
 .highmaps-planisphere .highcharts-root {
     width: 100% !important;
     height: 100% !important;
+}
+
+/* Asegurar que los países sean visibles */
+.highmaps-planisphere .highcharts-series path {
+    fill: #5a7a9e !important;
+    stroke: rgba(255, 255, 255, 0.8) !important;
+    stroke-width: 2 !important;
 }
 
 @media (max-width: 768px) {
