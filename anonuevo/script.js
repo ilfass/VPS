@@ -263,6 +263,88 @@ function updateMapboxRotation() {
     updateMidnightLine();
 }
 
+// Inicializar línea de medianoche
+function initializeMidnightLine() {
+    updateMidnightLine();
+    setInterval(updateMidnightLine, 1000); // Actualizar cada segundo
+}
+
+// Actualizar posición de la línea de medianoche
+function updateMidnightLine() {
+    const midnightLine = document.getElementById('midnightLine');
+    if (!midnightLine) return;
+    
+    // Calcular dónde es medianoche (UTC) en el planisferio
+    const now = new Date();
+    const hours = now.getUTCHours();
+    const minutes = now.getUTCMinutes();
+    const seconds = now.getUTCSeconds();
+    
+    // La línea de medianoche está en el meridiano opuesto al sol
+    // El sol está en su punto más alto a las 12:00 UTC en el meridiano 0°
+    // La medianoche está 12 horas (180 grados) opuesta al sol
+    // Longitud de medianoche = (12 - hora UTC) * 15 grados
+    const midnightLongitude = (12 - hours - minutes/60 - seconds/3600) * 15;
+    
+    // Convertir longitud a posición X en el mapa (0-100%)
+    // Longitud -180 a +180 se mapea a 0% a 100%
+    const xPosition = ((midnightLongitude + 180) / 360) * 100;
+    
+    midnightLine.style.left = `${xPosition}%`;
+    
+    // Agregar etiqueta con el país/región
+    updateMidnightLineLabel(midnightLongitude);
+}
+
+// Actualizar etiqueta de la línea de medianoche
+function updateMidnightLineLabel(longitude) {
+    // Encontrar país/región en esa longitud (simplificado)
+    // Esto se puede mejorar con datos geográficos más precisos
+    const midnightLine = document.getElementById('midnightLine');
+    if (!midnightLine) return;
+    
+    // Crear o actualizar etiqueta
+    let label = midnightLine.querySelector('.midnight-label');
+    if (!label) {
+        label = document.createElement('div');
+        label.className = 'midnight-label';
+        midnightLine.appendChild(label);
+    }
+    
+    // País aproximado basado en longitud (simplificado)
+    const country = getCountryAtLongitude(longitude);
+    if (country) {
+        label.textContent = `🎆 ${country}`;
+    }
+}
+
+// Obtener país aproximado en una longitud (simplificado)
+function getCountryAtLongitude(longitude) {
+    // Mapeo simplificado de longitudes a países/regiones
+    const regions = [
+        { min: -180, max: -150, name: 'Pacífico' },
+        { min: -150, max: -120, name: 'Hawaii' },
+        { min: -120, max: -90, name: 'América del Norte' },
+        { min: -90, max: -60, name: 'América Central' },
+        { min: -60, max: -30, name: 'América del Sur' },
+        { min: -30, max: 0, name: 'Atlántico' },
+        { min: 0, max: 30, name: 'Europa/Africa' },
+        { min: 30, max: 60, name: 'Rusia/Asia' },
+        { min: 60, max: 90, name: 'Asia Central' },
+        { min: 90, max: 120, name: 'China' },
+        { min: 120, max: 150, name: 'Japón' },
+        { min: 150, max: 180, name: 'Pacífico' }
+    ];
+    
+    for (const region of regions) {
+        if (longitude >= region.min && longitude < region.max) {
+            return region.name;
+        }
+    }
+    
+    return 'Pacífico';
+}
+
 // ============================================
 // GLOBO TERRÁQUEO 3D (RESPALDO)
 // ============================================
