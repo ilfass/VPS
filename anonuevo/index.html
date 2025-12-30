@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-adsense-account" content="ca-pub-2913558400341127">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2913558400341127"
+     crossorigin="anonymous"></script>
+    <title>🎆 Año Nuevo Global 2025 | Rastreador en Vivo</title>
+    <meta name="description" content="Sigue el avance del Año Nuevo por el mundo en tiempo real. Mapa global con franjas horarias, cuenta regresiva y transmisión en vivo.">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Mapa Global de Franjas Horarias -->
+    <div class="world-map-container" id="worldMap">
+        <svg class="world-map" viewBox="0 0 1440 720" xmlns="http://www.w3.org/2000/svg">
+            <!-- Las franjas horarias se generarán dinámicamente con JavaScript -->
+        </svg>
+    </div>
+
+    <!-- Overlay de Información -->
+    <div class="overlay-container">
+        <!-- Panel Principal de Información -->
+        <div class="info-panel">
+            <div class="info-header">
+                <h1>🎆 Año Nuevo Global 2025</h1>
+                <div class="status-indicator">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span class="status-text" id="statusText">EN VIVO</span>
+                </div>
+            </div>
+
+            <!-- Hora Actual UTC -->
+            <div class="time-display">
+                <div class="time-label">Hora Actual (UTC)</div>
+                <div class="time-value" id="utcTime">00:00:00</div>
+                <div class="time-date" id="utcDate">1 de Enero, 2025</div>
+            </div>
+
+            <!-- Cuenta Regresiva Local -->
+            <div class="countdown-display">
+                <div class="countdown-label">Tiempo hasta Año Nuevo (Tu Zona)</div>
+                <div class="countdown-value" id="localCountdown">
+                    <span class="countdown-unit">
+                        <span class="number" id="days">00</span>
+                        <span class="label">Días</span>
+                    </span>
+                    <span class="countdown-separator">:</span>
+                    <span class="countdown-unit">
+                        <span class="number" id="hours">00</span>
+                        <span class="label">Horas</span>
+                    </span>
+                    <span class="countdown-separator">:</span>
+                    <span class="countdown-unit">
+                        <span class="number" id="minutes">00</span>
+                        <span class="label">Min</span>
+                    </span>
+                    <span class="countdown-separator">:</span>
+                    <span class="countdown-unit">
+                        <span class="number" id="seconds">00</span>
+                        <span class="label">Seg</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Estadísticas -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Zonas que ya celebraron</div>
+                    <div class="stat-value" id="zonesCelebrated">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Zonas por celebrar</div>
+                    <div class="stat-value" id="zonesRemaining">26</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Próxima zona</div>
+                    <div class="stat-value" id="nextZone">UTC+14</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel de Chat de YouTube -->
+        <div class="chat-panel" id="chatPanel">
+            <div class="chat-header">
+                <h2>💬 Chat en Vivo</h2>
+                <div class="chat-status" id="chatStatus">Conectando...</div>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <!-- Los mensajes del chat aparecerán aquí -->
+            </div>
+        </div>
+
+        <!-- Mensaje de Voz en Off -->
+        <div class="voice-message" id="voiceMessage" style="display: none;">
+            <div class="voice-content">
+                <div class="voice-icon">🎤</div>
+                <div class="voice-text" id="voiceText"></div>
+            </div>
+        </div>
+
+        <!-- Juegos Visuales -->
+        <div class="visual-effects" id="visualEffects">
+            <!-- Efectos visuales dinámicos -->
+        </div>
+
+        <!-- Footer -->
+        <footer class="site-footer">
+            <div class="footer-content">
+                <span>🎆 Transmisión en Vivo - Año Nuevo Global 2025</span>
+                <a href="https://www.youtube.com/@fabiandeharo" target="_blank" class="youtube-link">
+                    📺 Suscríbete en YouTube
+                </a>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Audio de Fondo -->
+    <audio id="backgroundAudio" loop>
+        <!-- El audio se cargará dinámicamente -->
+    </audio>
+
+    <script src="script.js"></script>
+</body>
+</html>

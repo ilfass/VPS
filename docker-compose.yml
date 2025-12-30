@@ -15,6 +15,7 @@ services:
       - habilispro
       - habilispro-live
       - expodiario
+      - anonuevo
     restart: always
 
   descuentosen:
@@ -72,6 +73,12 @@ services:
 
   expodiario:
     build: ./expodiario
+    expose:
+      - "80"
+    restart: always
+
+  anonuevo:
+    build: ./anonuevo
     expose:
       - "80"
     restart: always

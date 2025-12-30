@@ -1,0 +1,2435 @@
+/* ============================================
+   OVERLAY CENTRO DE CONTROL - PAPÁ NOEL
+   Diseño navideño sobrio para streaming OBS
+   ============================================ */
+
+/* Reset y configuración base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #000000;
+    color: #ffffff;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    margin: 0;
+    padding: 0;
+}
+
+/* Contenedor del Google Santa Tracker - Fondo completo */
+.tracker-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+    background: #000000;
+    pointer-events: auto; /* Permite interacción completa con el tracker */
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+.tracker-container iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+    pointer-events: auto; /* Asegura que el iframe sea interactivo */
+    margin: 0;
+    padding: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* Contenedor principal del overlay - Superpuesto sobre el tracker */
+/* IMPORTANTE: pointer-events: none permite que los clicks pasen al tracker */
+/* Los paneles individuales tienen pointer-events: auto para ser interactivos */
+.overlay-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    gap: 20px;
+    z-index: 10; /* Por encima del tracker */
+    pointer-events: none; /* Permite interactuar con el tracker debajo en áreas vacías */
+    margin: 0;
+    overflow: hidden;
+}
+
+/* ============================================
+   PANEL DE CONTROL PRINCIPAL
+   ============================================ */
+
+.control-panel {
+    background: rgba(10, 25, 40, 0.85); /* Azul oscuro semi-transparente */
+    border: 2px solid rgba(220, 53, 69, 0.6); /* Borde rojo navideño */
+    border-radius: 12px;
+    padding: 20px;
+    position: fixed;
+    bottom: 70px; /* Justo encima del footer */
+    left: 20px;
+    right: 20px;
+    max-width: calc(100% - 40px);
+    max-height: calc(100vh - 90px); /* Limitar altura para evitar recortes */
+    overflow-y: auto; /* Permitir scroll si el contenido es muy largo */
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5),
+                0 0 30px rgba(220, 53, 69, 0.2);
+    backdrop-filter: blur(5px);
+    pointer-events: auto; /* Permite interacción con el panel */
+    z-index: 40; /* Debajo del chat (z-index: 100) y panel de ciudad (z-index: 50) */
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid rgba(220, 53, 69, 0.4);
+}
+
+.header-title-section {
+    flex: 1;
+    overflow: visible;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.panel-header h1 {
+    font-size: 24px;
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 0 2px 10px rgba(220, 53, 69, 0.5);
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    line-height: 1.4;
+    word-spacing: normal;
+    gap: 8px;
+}
+
+.control-operator {
+    font-size: 20px;
+    font-weight: 700;
+    color: #ffc107;
+    font-style: normal;
+    display: inline;
+    white-space: nowrap;
+    padding: 4px 12px;
+    background: rgba(255, 193, 7, 0.15);
+    border: 2px solid rgba(255, 193, 7, 0.6);
+    border-radius: 15px;
+    text-shadow: 0 0 10px rgba(255, 193, 7, 0.8);
+    box-shadow: 0 0 15px rgba(255, 193, 7, 0.4);
+    animation: operatorGlow 2s ease-in-out infinite;
+}
+
+@keyframes operatorGlow {
+    0%, 100% {
+        box-shadow: 0 0 15px rgba(255, 193, 7, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(255, 193, 7, 0.7);
+    }
+}
+
+.control-operator span {
+    color: #28a745;
+    font-weight: 600;
+}
+
+/* Indicador de Estado */
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #28a745; /* Verde por defecto (OK) */
+    box-shadow: 0 0 10px rgba(40, 167, 69, 0.8);
+    animation: pulse 2s infinite;
+}
+
+.status-dot.warning {
+    background: #ffc107; /* Amarillo (Atención) */
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.8);
+}
+
+.status-dot.error {
+    background: #dc3545; /* Rojo (En reparación) */
+    box-shadow: 0 0 10px rgba(220, 53, 69, 0.8);
+}
+
+.status-text {
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* Grid de Información */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.info-card {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 15px;
+    transition: all 0.3s ease;
+}
+
+.info-card:hover {
+    background: rgba(0, 0, 0, 0.4);
+    border-color: rgba(220, 53, 69, 0.4);
+    transform: translateY(-2px);
+}
+
+.info-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+.info-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================
+   PANEL DE EVENTOS
+   ============================================ */
+
+.events-panel {
+    background: rgba(10, 25, 40, 0.75);
+    border: 2px solid rgba(220, 53, 69, 0.4);
+    border-radius: 12px;
+    padding: 15px;
+    max-height: 200px;
+    overflow-y: auto;
+    backdrop-filter: blur(5px);
+    pointer-events: auto; /* Permite interacción con el panel */
+}
+
+.events-header h2 {
+    font-size: 18px;
+    margin-bottom: 12px;
+    color: #ffffff;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.events-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.event-item {
+    background: rgba(0, 0, 0, 0.4);
+    border-left: 5px solid;
+    padding: 12px 15px;
+    border-radius: 6px;
+    font-size: 13px;
+    animation: slideInFlash 0.5s ease;
+    opacity: 0;
+    animation-fill-mode: forwards;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.event-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shimmer 2s infinite;
+}
+
+.event-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+/* Colores según tipo de evento con efectos mejorados */
+.event-item.technical {
+    border-left-color: #17a2b8;
+    box-shadow: 0 0 15px rgba(23, 162, 184, 0.3);
+}
+
+.event-item.technical::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 5px;
+    height: 100%;
+    background: #17a2b8;
+    box-shadow: 0 0 10px rgba(23, 162, 184, 0.8);
+    animation: borderGlow 2s infinite;
+}
+
+.event-item.weather {
+    border-left-color: #6c757d;
+    box-shadow: 0 0 15px rgba(108, 117, 125, 0.3);
+}
+
+.event-item.weather::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 5px;
+    height: 100%;
+    background: #6c757d;
+    box-shadow: 0 0 10px rgba(108, 117, 125, 0.8);
+    animation: borderGlow 2s infinite;
+}
+
+.event-item.narrative {
+    border-left-color: #28a745;
+    box-shadow: 0 0 15px rgba(40, 167, 69, 0.3);
+}
+
+.event-item.narrative::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 5px;
+    height: 100%;
+    background: #28a745;
+    box-shadow: 0 0 10px rgba(40, 167, 69, 0.8);
+    animation: borderGlow 2s infinite;
+}
+
+.event-item.humor {
+    border-left-color: #ffc107;
+    box-shadow: 0 0 15px rgba(255, 193, 7, 0.3);
+}
+
+.event-item.humor::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 5px;
+    height: 100%;
+    background: #ffc107;
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.8);
+    animation: borderGlow 2s infinite;
+}
+
+.event-item .event-time {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 11px;
+    margin-right: 8px;
+    font-weight: 600;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.event-item .event-text {
+    color: #ffffff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes slideInFlash {
+    0% {
+        opacity: 0;
+        transform: translateX(-30px) scale(0.9);
+    }
+    50% {
+        opacity: 1;
+        transform: translateX(5px) scale(1.02);
+        box-shadow: 0 0 20px rgba(220, 53, 69, 0.5);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+@keyframes borderGlow {
+    0%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 10px currentColor;
+    }
+    50% {
+        opacity: 0.7;
+        box-shadow: 0 0 20px currentColor;
+    }
+}
+
+/* ============================================
+   EFECTO DE FLASH DE PANTALLA COMPLETA
+   ============================================ */
+
+.screen-flash {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(220, 53, 69, 0.3);
+    z-index: 999;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.screen-flash.flash {
+    opacity: 1;
+    animation: screenFlashEffect 0.6s ease-out;
+}
+
+@keyframes screenFlashEffect {
+    0% {
+        opacity: 0;
+        background: rgba(220, 53, 69, 0);
+    }
+    20% {
+        opacity: 1;
+        background: rgba(220, 53, 69, 0.4);
+    }
+    40% {
+        opacity: 0.8;
+        background: rgba(220, 53, 69, 0.2);
+    }
+    100% {
+        opacity: 0;
+        background: rgba(220, 53, 69, 0);
+    }
+}
+
+/* ============================================
+   NOTIFICACIÓN DE EVENTO - EFECTOS MEJORADOS
+   ============================================ */
+
+.event-notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0) rotate(-5deg);
+    background: rgba(10, 25, 40, 0.98);
+    border: 4px solid rgba(220, 53, 69, 1);
+    border-radius: 16px;
+    padding: 30px 45px;
+    box-shadow: 
+        0 0 0 0 rgba(220, 53, 69, 0.7),
+        0 0 0 0 rgba(220, 53, 69, 0.7),
+        0 8px 40px rgba(0, 0, 0, 0.8),
+        0 0 60px rgba(220, 53, 69, 0.6),
+        0 0 100px rgba(220, 53, 69, 0.4),
+        inset 0 0 30px rgba(220, 53, 69, 0.2);
+    z-index: 1000;
+    backdrop-filter: blur(15px);
+    pointer-events: none;
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    overflow: visible;
+}
+
+.event-notification::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(220, 53, 69, 0.3) 0%, transparent 70%);
+    animation: pulseGlow 2s infinite;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.event-notification::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 120%;
+    height: 120%;
+    border: 2px solid rgba(220, 53, 69, 0.5);
+    border-radius: 20px;
+    animation: expandRing 1s ease-out;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.event-notification.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+    box-shadow: 
+        0 0 0 10px rgba(220, 53, 69, 0.3),
+        0 0 0 20px rgba(220, 53, 69, 0.2),
+        0 8px 40px rgba(0, 0, 0, 0.8),
+        0 0 80px rgba(220, 53, 69, 0.8),
+        0 0 120px rgba(220, 53, 69, 0.6),
+        inset 0 0 40px rgba(220, 53, 69, 0.3);
+    animation: notificationPulse 0.6s ease-out;
+}
+
+@keyframes notificationPulse {
+    0% {
+        transform: translate(-50%, -50%) scale(0.8) rotate(-5deg);
+        opacity: 0;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.1) rotate(2deg);
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+@keyframes pulseGlow {
+    0%, 100% {
+        opacity: 0.3;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.1);
+    }
+}
+
+@keyframes expandRing {
+    0% {
+        width: 100%;
+        height: 100%;
+        opacity: 0.8;
+    }
+    100% {
+        width: 150%;
+        height: 150%;
+        opacity: 0;
+    }
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.notification-icon {
+    font-size: 40px;
+    animation: iconPulse 2s infinite;
+    filter: drop-shadow(0 0 10px rgba(220, 53, 69, 0.8));
+    transform-origin: center;
+}
+
+.notification-text {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 
+        0 0 10px rgba(220, 53, 69, 0.8),
+        0 2px 10px rgba(0, 0, 0, 0.5),
+        0 0 20px rgba(220, 53, 69, 0.5);
+    letter-spacing: 0.5px;
+}
+
+@keyframes iconPulse {
+    0%, 100% {
+        transform: scale(1) rotate(0deg);
+        filter: drop-shadow(0 0 10px rgba(220, 53, 69, 0.8));
+    }
+    25% {
+        transform: scale(1.1) rotate(-5deg);
+        filter: drop-shadow(0 0 15px rgba(220, 53, 69, 1));
+    }
+    75% {
+        transform: scale(1.1) rotate(5deg);
+        filter: drop-shadow(0 0 15px rgba(220, 53, 69, 1));
+    }
+}
+
+/* ============================================
+   SCROLLBAR PERSONALIZADO
+   ============================================ */
+
+.events-panel::-webkit-scrollbar {
+    width: 8px;
+}
+
+.events-panel::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.events-panel::-webkit-scrollbar-thumb {
+    background: rgba(220, 53, 69, 0.5);
+    border-radius: 4px;
+}
+
+.events-panel::-webkit-scrollbar-thumb:hover {
+    background: rgba(220, 53, 69, 0.7);
+}
+
+/* ============================================
+   PANEL DE DISTANCIA A TU CIUDAD
+   ============================================ */
+
+.user-city-panel {
+    background: rgba(10, 25, 40, 0.9);
+    border: 3px solid rgba(40, 167, 69, 0.8);
+    border-radius: 12px;
+    padding: 12px;
+    padding-top: 25px;
+    backdrop-filter: blur(5px);
+    pointer-events: auto;
+    box-shadow: 
+        0 0 20px rgba(40, 167, 69, 0.5),
+        0 4px 20px rgba(0, 0, 0, 0.5);
+    animation: cityPanelPulse 3s infinite;
+    max-width: 280px;
+    width: auto;
+    position: fixed;
+    bottom: calc(70px + 250px + 20px); /* Control panel (70px) + altura (~250px) + margen (20px) */
+    left: 20px;
+    right: auto;
+    top: auto;
+    z-index: 50;
+    user-select: none;
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    min-width: 200px;
+    /* Sin max-height ni overflow - el contenido se ajusta automáticamente */
+    overflow: visible;
+}
+
+.user-city-panel.visible {
+    display: block !important;
+    visibility: visible !important;
+}
+
+.user-city-panel.expanded {
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0;
+    padding: 60px;
+    padding-top: 80px;
+    z-index: 2000;
+    animation: cityPanelExpanded 0.5s ease;
+}
+
+.user-city-panel.expanded .user-city-name {
+    font-size: 48px !important;
+}
+
+.user-city-panel.expanded .user-city-distance {
+    font-size: 72px !important;
+}
+
+.user-city-panel.expanded .user-city-eta {
+    font-size: 36px !important;
+}
+
+.user-city-panel.expanded .user-city-countdown {
+    font-size: 96px !important;
+    padding: 40px !important;
+}
+
+.user-city-panel.shaking {
+    animation: screenShake 0.5s infinite;
+}
+
+@keyframes cityPanelExpanded {
+    0% {
+        transform: scale(0.8);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes screenShake {
+    0%, 100% {
+        transform: translate(0, 0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translate(-30px, -30px) rotate(-5deg);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translate(30px, 30px) rotate(5deg);
+    }
+}
+
+body.shaking {
+    animation: screenShake 0.05s infinite;
+}
+
+.user-city-panel.dragging {
+    cursor: grabbing !important;
+    opacity: 0.9;
+    animation: none;
+}
+
+.drag-handle {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    cursor: grab;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 18px;
+    padding: 5px 8px;
+    user-select: none;
+    z-index: 10;
+    transition: color 0.2s ease;
+}
+
+.drag-handle:hover {
+    color: rgba(255, 255, 255, 1);
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.user-city-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 2px solid rgba(40, 167, 69, 0.4);
+    padding-bottom: 10px;
+}
+
+.user-city-header h2 {
+    font-size: 20px;
+    color: #ffffff;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+    margin: 0;
+    flex: 1;
+    text-align: center;
+}
+
+.panel-toggle-btn {
+    background: rgba(40, 167, 69, 0.3);
+    border: 1px solid rgba(40, 167, 69, 0.6);
+    border-radius: 8px;
+    color: #28a745;
+    font-size: 18px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-left: 10px;
+}
+
+.panel-toggle-btn:hover {
+    background: rgba(40, 167, 69, 0.5);
+    transform: scale(1.1);
+}
+
+.user-city-content {
+    text-align: center;
+    overflow: hidden;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.user-city-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: #28a745;
+    text-shadow: 0 0 10px rgba(40, 167, 69, 0.8);
+    margin-bottom: 10px;
+    word-wrap: break-word;
+}
+
+.user-city-distance {
+    font-size: 26px;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 
+        0 0 15px rgba(40, 167, 69, 0.8),
+        0 2px 10px rgba(0, 0, 0, 0.5);
+    margin-bottom: 8px;
+}
+
+.user-city-eta {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.3);
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid rgba(40, 167, 69, 0.4);
+    margin-bottom: 8px;
+}
+
+.user-city-countdown {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffc107;
+    text-shadow: 
+        0 0 15px rgba(255, 193, 7, 0.8),
+        0 2px 10px rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.4);
+    padding: 8px;
+    border-radius: 6px;
+    border: 2px solid rgba(255, 193, 7, 0.6);
+    animation: countdownPulse 1s infinite;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+    margin-top: 8px;
+    word-break: keep-all;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+@keyframes countdownPulse {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(255, 193, 7, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(255, 193, 7, 0.8);
+    }
+}
+
+@keyframes cityPanelPulse {
+    0%, 100% {
+        box-shadow: 
+            0 0 20px rgba(40, 167, 69, 0.5),
+            0 4px 20px rgba(0, 0, 0, 0.5);
+        border-color: rgba(40, 167, 69, 0.8);
+    }
+    50% {
+        box-shadow: 
+            0 0 30px rgba(40, 167, 69, 0.8),
+            0 6px 30px rgba(0, 0, 0, 0.6);
+        border-color: rgba(40, 167, 69, 1);
+    }
+}
+
+/* ============================================
+   PANEL DE INTERACCIÓN CON EL PÚBLICO
+   ============================================ */
+
+.public-interaction-panel {
+    background: linear-gradient(135deg, rgba(139, 0, 0, 0.95) 0%, rgba(178, 34, 34, 0.95) 50%, rgba(139, 0, 0, 0.95) 100%);
+    border: 3px solid rgba(255, 215, 0, 0.8);
+    border-radius: 20px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+    pointer-events: auto;
+    max-width: 400px;
+    position: fixed;
+    bottom: calc(70px + 250px + 20px); /* Control panel (70px) + altura (~250px) + margen (20px) */
+    right: 20px;
+    left: auto;
+    top: auto;
+    transition: all 0.3s ease;
+    box-shadow: 
+        0 0 30px rgba(255, 215, 0, 0.5),
+        0 0 60px rgba(255, 0, 0, 0.3),
+        inset 0 0 20px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    z-index: 100;
+    /* Usar flexbox para distribuir el espacio correctamente */
+    display: flex;
+    flex-direction: column;
+    /* Calcular altura máxima: espacio disponible menos espacio para header y form */
+    max-height: calc(100vh - 70px - 250px - 20px); /* Footer + control panel + margen */
+    min-height: 400px; /* Altura mínima para que se vea bien */
+}
+
+.public-interaction-panel::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(255, 215, 0, 0.05) 10px,
+        rgba(255, 215, 0, 0.05) 20px
+    );
+    animation: shimmer 3s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(0) translateY(0);
+    }
+    100% {
+        transform: translateX(50px) translateY(50px);
+    }
+}
+
+.mobile-interaction-toggle {
+    display: none;
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    z-index: 100;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(220, 53, 69, 0.9);
+    border: 2px solid rgba(220, 53, 69, 1);
+    color: #ffffff;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+    transition: all 0.3s ease;
+}
+
+.mobile-interaction-toggle:hover {
+    background: rgba(220, 53, 69, 1);
+    transform: scale(1.1);
+}
+
+.mobile-interaction-toggle:active {
+    transform: scale(0.95);
+}
+
+.interaction-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 12px;
+    border-bottom: 3px solid rgba(255, 215, 0, 0.6);
+    position: relative;
+    z-index: 1;
+}
+
+.interaction-header::after {
+    content: '✨';
+    position: absolute;
+    right: -10px;
+    top: -5px;
+    font-size: 20px;
+    animation: twinkle 2s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+.interaction-header h2 {
+    font-size: 20px;
+    color: #FFD700;
+    text-shadow: 
+        0 0 10px rgba(255, 215, 0, 0.8),
+        0 0 20px rgba(255, 215, 0, 0.5),
+        0 2px 5px rgba(0, 0, 0, 0.8);
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+
+.participants-count {
+    font-size: 12px;
+    color: #FFD700;
+    background: rgba(0, 100, 0, 0.4);
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-weight: 700;
+    border: 2px solid rgba(255, 215, 0, 0.5);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.messages-container {
+    /* Usar flex: 1 para que ocupe el espacio disponible, pero con max-height para limitar */
+    flex: 1;
+    min-height: 0; /* Importante para que funcione el overflow */
+    max-height: 300px; /* Reducido para dejar espacio al form */
+    overflow-y: auto;
+    margin-bottom: 15px;
+    background: linear-gradient(135deg, rgba(0, 50, 0, 0.9) 0%, rgba(0, 100, 0, 0.85) 50%, rgba(0, 50, 0, 0.9) 100%);
+    border-radius: 15px;
+    padding: 15px;
+    border: 2px solid rgba(255, 215, 0, 0.5);
+    box-shadow: 
+        inset 0 2px 15px rgba(0, 0, 0, 0.4),
+        0 0 20px rgba(255, 215, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
+}
+
+.messages-container::before {
+    content: '❄️';
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    font-size: 16px;
+    opacity: 0.3;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(10deg); }
+}
+
+.messages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: min-content;
+}
+
+.message-item {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.1) 100%);
+    border-left: 4px solid rgba(255, 215, 0, 0.8);
+    padding: 14px 16px;
+    border-radius: 15px;
+    font-size: 14px;
+    animation: messageSlideIn 0.4s ease;
+    word-wrap: break-word;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(8px);
+    max-width: 100%;
+    box-sizing: border-box;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    position: relative;
+}
+
+.message-item::before {
+    content: '🎄';
+    position: absolute;
+    left: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    opacity: 0.5;
+}
+
+.message-item:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.15) 100%);
+    transform: translateX(5px);
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+    border-left-color: rgba(255, 215, 0, 1);
+}
+
+.message-item.santa-message {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.3) 0%, rgba(255, 140, 0, 0.2) 100%);
+    border-left: 5px solid rgba(255, 215, 0, 1);
+    border-right: 3px solid rgba(255, 0, 0, 0.4);
+    box-shadow: 
+        0 2px 10px rgba(255, 215, 0, 0.3),
+        inset 0 0 10px rgba(255, 215, 0, 0.1);
+}
+
+.message-item.santa-message::before {
+    content: '🎅';
+    opacity: 0.8;
+    font-size: 14px;
+}
+
+.message-item.user-message {
+    background: linear-gradient(135deg, rgba(0, 128, 0, 0.3) 0%, rgba(0, 100, 0, 0.2) 100%);
+    border-left: 4px solid rgba(0, 255, 0, 0.8);
+    box-shadow: 0 2px 8px rgba(0, 255, 0, 0.2);
+}
+
+.message-item.user-message::before {
+    content: '👤';
+    opacity: 0.6;
+}
+
+.message-item .message-author {
+    color: #FFD700;
+    font-weight: 800;
+    margin-right: 10px;
+    font-size: 14px;
+    text-shadow: 
+        0 0 8px rgba(255, 215, 0, 0.8),
+        0 1px 3px rgba(0, 0, 0, 0.8);
+    letter-spacing: 0.5px;
+}
+
+.message-item.santa-message .message-author {
+    color: #FFD700;
+    font-weight: 900;
+    font-size: 15px;
+    text-shadow: 
+        0 0 15px rgba(255, 215, 0, 1),
+        0 0 25px rgba(255, 215, 0, 0.6),
+        0 2px 5px rgba(0, 0, 0, 0.8);
+    animation: glow 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+    0%, 100% { text-shadow: 0 0 15px rgba(255, 215, 0, 1), 0 0 25px rgba(255, 215, 0, 0.6); }
+    50% { text-shadow: 0 0 20px rgba(255, 215, 0, 1), 0 0 35px rgba(255, 215, 0, 0.8); }
+}
+
+.message-item.user-message .message-author {
+    color: #90EE90;
+    font-weight: 700;
+    text-shadow: 0 0 8px rgba(144, 238, 144, 0.6);
+}
+
+.message-item .message-text {
+    color: #FFFFFF;
+    line-height: 1.6;
+    margin-top: 6px;
+    font-size: 14px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.message-item.santa-message .message-text {
+    color: #FFF8DC;
+    font-weight: 600;
+    font-style: italic;
+    text-shadow: 
+        0 1px 3px rgba(0, 0, 0, 0.6),
+        0 0 5px rgba(255, 215, 0, 0.3);
+}
+
+.message-item .message-time {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 10px;
+    margin-top: 6px;
+    display: block;
+    font-style: italic;
+}
+
+@keyframes messageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.interaction-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0; /* No se encoge, siempre visible */
+    margin-top: auto; /* Se empuja hacia abajo */
+}
+
+.message-input {
+    width: 100%;
+    padding: 12px 15px;
+    background: linear-gradient(135deg, rgba(0, 50, 0, 0.8) 0%, rgba(0, 100, 0, 0.7) 100%);
+    border: 2px solid rgba(255, 215, 0, 0.6);
+    border-radius: 12px;
+    color: #FFFFFF;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: all 0.3s ease;
+    box-shadow: 
+        inset 0 2px 5px rgba(0, 0, 0, 0.3),
+        0 0 10px rgba(255, 215, 0, 0.2);
+    position: relative;
+    z-index: 1;
+}
+
+.message-input:focus {
+    border-color: rgba(255, 215, 0, 1);
+    box-shadow: 
+        inset 0 2px 5px rgba(0, 0, 0, 0.3),
+        0 0 20px rgba(255, 215, 0, 0.5),
+        0 0 30px rgba(255, 215, 0, 0.3);
+    background: linear-gradient(135deg, rgba(0, 100, 0, 0.9) 0%, rgba(0, 150, 0, 0.8) 100%);
+    transform: scale(1.02);
+}
+
+.message-input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+    font-style: italic;
+}
+
+.interaction-buttons {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.interaction-btn {
+    flex: 1;
+    min-width: 100px;
+    padding: 12px 18px;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.9) 0%, rgba(255, 140, 0, 0.9) 100%);
+    border: 2px solid rgba(255, 215, 0, 1);
+    border-radius: 12px;
+    color: #8B0000;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: inherit;
+    pointer-events: auto;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+    box-shadow: 
+        0 4px 15px rgba(255, 215, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    position: relative;
+    z-index: 1;
+    letter-spacing: 0.5px;
+}
+
+.interaction-btn::before {
+    content: '🎁';
+    margin-right: 5px;
+}
+
+.interaction-btn:hover {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 1) 0%, rgba(255, 140, 0, 1) 100%);
+    box-shadow: 
+        0 6px 25px rgba(255, 215, 0, 0.6),
+        0 0 30px rgba(255, 215, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    transform: translateY(-3px) scale(1.05);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.interaction-btn:active {
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 
+        0 2px 10px rgba(255, 215, 0, 0.4),
+        inset 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.interaction-btn.reaction-btn {
+    background: rgba(40, 167, 69, 0.6);
+    border-color: rgba(40, 167, 69, 0.8);
+}
+
+.interaction-btn.reaction-btn:hover {
+    background: rgba(40, 167, 69, 0.8);
+    box-shadow: 0 0 15px rgba(40, 167, 69, 0.5);
+}
+
+.interaction-btn.reaction-btn.active {
+    animation: buttonPulse 0.5s ease;
+    background: rgba(40, 167, 69, 1);
+}
+
+@keyframes buttonPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+.messages-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.messages-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.messages-container::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.8) 0%, rgba(255, 140, 0, 0.8) 100%);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 215, 0, 0.5);
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.messages-container::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 1) 0%, rgba(255, 140, 0, 1) 100%);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+/* ============================================
+   MENÚ HAMBURGUESA PARA MÓVILES
+   ============================================ */
+
+.mobile-menu-toggle {
+    display: none;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+    background: rgba(220, 53, 69, 0.9);
+    border: 2px solid rgba(220, 53, 69, 1);
+    border-radius: 8px;
+    width: 50px;
+    height: 50px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+    transition: all 0.3s ease;
+}
+
+.mobile-menu-toggle:hover {
+    background: rgba(220, 53, 69, 1);
+    transform: scale(1.05);
+}
+
+.mobile-menu-toggle span {
+    width: 25px;
+    height: 3px;
+    background: #ffffff;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+.mobile-menu-toggle.active span:nth-child(1) {
+    transform: rotate(45deg) translate(8px, 8px);
+}
+
+.mobile-menu-toggle.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.mobile-menu-toggle.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(8px, -8px);
+}
+
+/* ============================================
+   FOOTER DE DONACIÓN
+   ============================================ */
+
+.donation-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(10, 25, 40, 0.95);
+    border-top: 2px solid rgba(220, 53, 69, 0.6);
+    padding: 12px 20px;
+    z-index: 100;
+    pointer-events: auto;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.donation-content {
+    text-align: center;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.donation-text {
+    color: #ffffff;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+/* Media query para pantallas intermedias (tablets) */
+/* Resoluciones intermedias (tablets y pantallas pequeñas) */
+@media (min-width: 769px) and (max-width: 1400px) {
+    .user-city-panel {
+        max-width: 240px;
+        padding: 10px;
+        padding-top: 20px;
+        bottom: calc(60px + 220px + 15px); /* Control panel ajustado + altura + margen */
+        left: 15px;
+        /* Sin max-height ni overflow - el contenido se ajusta automáticamente */
+    }
+    
+    .user-city-header h2 {
+        font-size: 16px;
+    }
+    
+    .user-city-name {
+        font-size: 16px;
+    }
+    
+    .user-city-distance {
+        font-size: 24px;
+    }
+    
+    .user-city-eta {
+        font-size: 14px;
+    }
+    
+    .user-city-countdown {
+        font-size: 20px;
+        padding: 8px;
+    }
+    
+    .panel-toggle-btn {
+        font-size: 16px;
+        padding: 4px 8px;
+    }
+    
+    .control-panel {
+        padding: 15px;
+        bottom: 60px; /* Ajustado para pantallas intermedias */
+        left: 15px;
+        right: 15px;
+        max-width: calc(100% - 30px);
+        max-height: calc(100vh - 120px); /* Limitar altura del control panel */
+        overflow-y: auto;
+    }
+    
+    .panel-header h1 {
+        font-size: 20px;
+    }
+    
+    .info-value {
+        font-size: 20px;
+    }
+    
+    .info-label {
+        font-size: 12px;
+    }
+    
+    .public-interaction-panel {
+        bottom: calc(60px + 220px + 15px); /* Alineado con panel de ciudad */
+        right: 15px;
+        max-width: 350px;
+        max-height: calc(100vh - 60px - 220px - 15px); /* Footer + control panel + margen */
+        min-height: 350px; /* Altura mínima */
+    }
+    
+    .messages-container {
+        max-height: 250px; /* Reducido para pantallas intermedias */
+    }
+}
+
+/* Media query específico para 1366x768 */
+@media (min-width: 1366px) and (max-width: 1366px) and (min-height: 768px) and (max-height: 768px) {
+    .user-city-panel {
+        max-width: 200px;
+        padding: 8px;
+        padding-top: 18px;
+        bottom: calc(60px + 200px + 10px); /* Ajustado para altura limitada */
+        left: 10px;
+        /* Sin max-height ni overflow - el contenido se ajusta automáticamente */
+    }
+    
+    .user-city-name {
+        font-size: 16px;
+        margin-bottom: 6px;
+    }
+    
+    .user-city-distance {
+        font-size: 20px;
+        margin-bottom: 6px;
+    }
+    
+    .user-city-eta {
+        font-size: 11px;
+        padding: 4px;
+        margin-bottom: 6px;
+    }
+    
+    .user-city-countdown {
+        font-size: 18px;
+        padding: 6px;
+        margin-top: 6px;
+    }
+    
+    .public-interaction-panel {
+        bottom: calc(60px + 200px + 10px);
+        right: 10px;
+        max-width: 320px;
+        max-height: calc(100vh - 60px - 200px - 10px); /* Footer + control panel + margen */
+        min-height: 320px; /* Altura mínima para 1366x768 */
+        padding: 12px;
+    }
+    
+    .messages-container {
+        max-height: 200px; /* Reducido para 1366x768 */
+    }
+    
+    .control-panel {
+        padding: 12px;
+        bottom: 60px;
+        max-height: 200px; /* Limitar altura en esta resolución */
+        overflow-y: auto;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .info-card {
+        padding: 8px;
+    }
+    
+    .info-label {
+        font-size: 11px;
+    }
+    
+    .info-value {
+        font-size: 18px;
+    }
+}
+
+/* Media query para pantallas grandes (1920x1080 y similares) */
+@media (min-width: 1920px) {
+    .user-city-panel {
+        max-width: 280px;
+        bottom: calc(70px + 280px + 30px);
+        left: 30px;
+        /* Sin max-height ni overflow - el contenido se ajusta automáticamente */
+    }
+    
+    .public-interaction-panel {
+        bottom: calc(70px + 280px + 30px);
+        right: 30px;
+        max-width: 450px;
+        max-height: calc(100vh - 70px - 280px - 30px); /* Footer + control panel + margen */
+        min-height: 450px; /* Altura mínima para 1920x1080 */
+    }
+    
+    .messages-container {
+        max-height: 350px; /* Más espacio en pantallas grandes */
+    }
+    
+    .control-panel {
+        bottom: 70px;
+        left: 30px;
+        right: 30px;
+        max-width: calc(100% - 60px);
+    }
+}
+
+@media (max-width: 768px) {
+    .mobile-menu-toggle {
+        display: flex;
+    }
+
+    .control-panel {
+        position: fixed;
+        top: 0;
+        left: -100%;
+        width: 80%;
+        max-width: 350px;
+        height: 100vh;
+        z-index: 999;
+        transition: left 0.3s ease;
+        overflow-y: auto;
+        border-radius: 0;
+        border-left: none;
+        border-right: 3px solid rgba(220, 53, 69, 0.8);
+    }
+
+    .control-panel.mobile-open {
+        left: 0;
+    }
+
+    .user-city-panel {
+        max-width: 200px;
+        width: auto;
+        padding: 10px;
+        padding-top: 25px;
+        bottom: 80px;
+        left: 10px;
+        right: auto;
+        top: auto;
+        margin: 0;
+    }
+
+    .user-city-header h2 {
+        font-size: 14px;
+    }
+
+    .user-city-name {
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    .user-city-distance {
+        font-size: 18px;
+        margin-bottom: 6px;
+    }
+
+    .user-city-eta {
+        font-size: 11px;
+        padding: 6px;
+        margin-bottom: 6px;
+    }
+
+    .user-city-countdown {
+        font-size: 16px;
+        padding: 6px;
+        letter-spacing: 0.5px;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .panel-toggle-btn {
+        font-size: 14px;
+        padding: 3px 6px;
+    }
+
+    .donation-footer {
+        padding: 10px 15px;
+        font-size: 12px;
+    }
+
+    .mobile-interaction-toggle {
+        display: block;
+    }
+
+    .public-interaction-panel {
+        position: fixed;
+        bottom: 0;
+        right: 0;
+        left: 0;
+        max-width: 100%;
+        margin: 0;
+        border-radius: 20px 20px 0 0;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+        z-index: 99;
+    }
+
+    .public-interaction-panel.mobile-open {
+        max-height: 60vh;
+        padding: 10px;
+    }
+    
+    .public-interaction-panel {
+        max-width: 100%;
+        width: 100%;
+        border-radius: 15px 15px 0 0;
+    }
+    
+    .interaction-header h2 {
+        font-size: 16px;
+    }
+    
+    .messages-container {
+        max-height: 200px;
+        padding: 10px;
+    }
+    
+    .message-item {
+        padding: 8px 10px;
+        margin-bottom: 8px;
+        font-size: 12px;
+    }
+    
+    .message-author {
+        font-size: 11px;
+    }
+    
+    .message-text {
+        font-size: 12px;
+        line-height: 1.3;
+    }
+    
+    .message-input {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+    
+    .interaction-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+
+    .user-city-panel {
+        max-width: calc(100% - 40px);
+        width: auto;
+        top: 100px;
+        left: 20px;
+        right: auto;
+    }
+
+    .panel-header h1 {
+        font-size: 20px;
+    }
+
+    .control-operator {
+        font-size: 20px;
+    }
+    .overlay-container {
+        padding: 15px;
+        gap: 15px;
+    }
+
+    .panel-header h1 {
+        font-size: 22px;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .info-value {
+        font-size: 20px;
+    }
+
+    .events-panel {
+        max-height: 150px;
+    }
+}
+
+/* ============================================
+   APARICIÓN GRANDE DE PAPÁ NOEL
+   ============================================ */
+
+.santa-appearance {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.santa-appearance.show {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+}
+
+.santa-background-effect {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(220, 53, 69, 0.4) 0%, rgba(0, 0, 0, 0.8) 70%);
+    animation: santaBackgroundPulse 2s infinite;
+    z-index: -1;
+}
+
+.santa-content {
+    text-align: center;
+    padding: 60px 40px;
+    background: rgba(10, 25, 40, 0.95);
+    border: 5px solid rgba(220, 53, 69, 1);
+    border-radius: 30px;
+    box-shadow: 
+        0 0 0 20px rgba(220, 53, 69, 0.3),
+        0 0 0 40px rgba(220, 53, 69, 0.2),
+        0 0 100px rgba(220, 53, 69, 0.6),
+        0 0 200px rgba(220, 53, 69, 0.4),
+        inset 0 0 50px rgba(220, 53, 69, 0.2);
+    max-width: 90%;
+    max-height: 90vh;
+    backdrop-filter: blur(20px);
+    animation: santaContentPulse 3s infinite;
+    position: relative;
+    overflow: hidden;
+}
+
+.santa-content::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(220, 53, 69, 0.2) 0%, transparent 70%);
+    animation: santaRotate 10s linear infinite;
+    z-index: -1;
+}
+
+.santa-icon {
+    font-size: 200px;
+    line-height: 1;
+    margin-bottom: 30px;
+    animation: santaBounce 2s infinite;
+    filter: drop-shadow(0 0 30px rgba(220, 53, 69, 0.8));
+    text-shadow: 0 0 50px rgba(220, 53, 69, 1);
+}
+
+.santa-message {
+    font-size: 48px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 20px;
+    text-shadow: 
+        0 0 20px rgba(220, 53, 69, 0.8),
+        0 0 40px rgba(220, 53, 69, 0.6),
+        0 4px 10px rgba(0, 0, 0, 0.8);
+    line-height: 1.3;
+    animation: santaTextGlow 2s infinite;
+}
+
+.santa-subtitle {
+    font-size: 32px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 40px;
+    text-shadow: 
+        0 0 15px rgba(220, 53, 69, 0.6),
+        0 2px 8px rgba(0, 0, 0, 0.6);
+    line-height: 1.4;
+}
+
+.santa-youtube-link {
+    margin-top: 30px;
+}
+
+.youtube-button {
+    display: inline-block;
+    padding: 20px 40px;
+    background: linear-gradient(135deg, #ff0000, #cc0000);
+    color: #ffffff;
+    font-size: 28px;
+    font-weight: 700;
+    text-decoration: none;
+    border-radius: 15px;
+    box-shadow: 
+        0 0 20px rgba(255, 0, 0, 0.6),
+        0 8px 20px rgba(0, 0, 0, 0.5),
+        inset 0 2px 5px rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    animation: youtubeButtonPulse 2s infinite;
+}
+
+.youtube-button:hover {
+    transform: scale(1.1);
+    box-shadow: 
+        0 0 30px rgba(255, 0, 0, 0.8),
+        0 12px 30px rgba(0, 0, 0, 0.6),
+        inset 0 2px 5px rgba(255, 255, 255, 0.3);
+    background: linear-gradient(135deg, #ff3333, #ff0000);
+}
+
+@keyframes santaBounce {
+    0%, 100% {
+        transform: translateY(0) scale(1);
+    }
+    50% {
+        transform: translateY(-20px) scale(1.05);
+    }
+}
+
+@keyframes santaTextGlow {
+    0%, 100% {
+        text-shadow: 
+            0 0 20px rgba(220, 53, 69, 0.8),
+            0 0 40px rgba(220, 53, 69, 0.6),
+            0 4px 10px rgba(0, 0, 0, 0.8);
+    }
+    50% {
+        text-shadow: 
+            0 0 30px rgba(220, 53, 69, 1),
+            0 0 60px rgba(220, 53, 69, 0.8),
+            0 4px 10px rgba(0, 0, 0, 0.8);
+    }
+}
+
+@keyframes santaContentPulse {
+    0%, 100% {
+        box-shadow: 
+            0 0 0 20px rgba(220, 53, 69, 0.3),
+            0 0 0 40px rgba(220, 53, 69, 0.2),
+            0 0 100px rgba(220, 53, 69, 0.6),
+            0 0 200px rgba(220, 53, 69, 0.4),
+            inset 0 0 50px rgba(220, 53, 69, 0.2);
+    }
+    50% {
+        box-shadow: 
+            0 0 0 25px rgba(220, 53, 69, 0.4),
+            0 0 0 50px rgba(220, 53, 69, 0.3),
+            0 0 120px rgba(220, 53, 69, 0.8),
+            0 0 250px rgba(220, 53, 69, 0.6),
+            inset 0 0 60px rgba(220, 53, 69, 0.3);
+    }
+}
+
+@keyframes santaBackgroundPulse {
+    0%, 100% {
+        opacity: 0.4;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+@keyframes santaRotate {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes youtubeButtonPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 
+            0 0 20px rgba(255, 0, 0, 0.6),
+            0 8px 20px rgba(0, 0, 0, 0.5);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 
+            0 0 30px rgba(255, 0, 0, 0.8),
+            0 12px 30px rgba(0, 0, 0, 0.6);
+    }
+}
+
+/* Responsive para aparición de Papá Noel */
+@media (max-width: 768px) {
+    .santa-icon {
+        font-size: 120px;
+    }
+    
+    .santa-message {
+        font-size: 32px;
+    }
+    
+    .santa-subtitle {
+        font-size: 24px;
+    }
+    
+    .youtube-button {
+        font-size: 20px;
+        padding: 15px 30px;
+    }
+    
+    .santa-content {
+        padding: 40px 25px;
+    }
+}
+
+/* ============================================
+   ANIMACIONES ADICIONALES
+   ============================================ */
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.overlay-container {
+    animation: fadeIn 0.5s ease;
+}
+
+/* ============================================
+   BOTÓN DE YOUTUBE FLOTANTE (PEQUEÑO, INTERMITENTE)
+   ============================================ */
+
+.youtube-button-floating {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 200;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #ff0000, #cc0000);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    border-radius: 8px;
+    box-shadow: 
+        0 0 15px rgba(255, 0, 0, 0.6),
+        0 4px 10px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    animation: youtubeFloatPulse 2s infinite;
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+}
+
+.youtube-button-floating[style*="display: block"] {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+    animation: youtubeFloatPulse 2s infinite, youtubeFloatFadeIn 0.5s ease;
+}
+
+@keyframes youtubeFloatPulse {
+    0%, 100% {
+        box-shadow: 
+            0 0 15px rgba(255, 0, 0, 0.6),
+            0 4px 10px rgba(0, 0, 0, 0.4);
+    }
+    50% {
+        box-shadow: 
+            0 0 25px rgba(255, 0, 0, 0.9),
+            0 6px 15px rgba(0, 0, 0, 0.5);
+    }
+}
+
+@keyframes youtubeFloatFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.youtube-button-floating:hover {
+    transform: scale(1.1);
+    box-shadow: 
+        0 0 30px rgba(255, 0, 0, 0.9),
+        0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================
+   INFORME DE VISITAS
+   ============================================ */
+
+.show-visits-btn {
+    position: fixed;
+    bottom: 140px;
+    right: 20px;
+    z-index: 100;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(40, 167, 69, 0.9);
+    border: 2px solid rgba(40, 167, 69, 1);
+    color: #ffffff;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.show-visits-btn:hover {
+    background: rgba(40, 167, 69, 1);
+    transform: scale(1.1);
+}
+
+.visits-report {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(10, 25, 40, 0.98);
+    border: 3px solid rgba(220, 53, 69, 0.8);
+    border-radius: 15px;
+    padding: 20px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    z-index: 10000;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.8);
+}
+
+.visits-report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(220, 53, 69, 0.6);
+}
+
+.visits-report-header h3 {
+    color: #ffffff;
+    margin: 0;
+    font-size: 24px;
+}
+
+.close-report {
+    background: rgba(220, 53, 69, 0.8);
+    border: none;
+    color: #ffffff;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.3s ease;
+}
+
+.close-report:hover {
+    background: rgba(220, 53, 69, 1);
+    transform: scale(1.1);
+}
+
+.visits-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.stat-item {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid rgba(220, 53, 69, 0.4);
+}
+
+.stat-label {
+    display: block;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    display: block;
+    color: #ffffff;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.visits-by-country {
+    margin-top: 20px;
+}
+
+.country-visit-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    margin-bottom: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    border-left: 3px solid rgba(40, 167, 69, 0.8);
+}
+
+.country-name {
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.country-count {
+    color: #28a745;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+/* ============================================
+   NARRACIÓN NAVIDEÑA
+   ============================================ */
+
+.christmas-narration {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10, 25, 40, 0.95);
+    border: 2px solid rgba(220, 53, 69, 0.6);
+    border-radius: 15px;
+    padding: 20px 30px;
+    max-width: 600px;
+    width: 90%;
+    z-index: 500;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+    animation: narrationFadeIn 0.5s ease;
+}
+
+@keyframes narrationFadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.narration-content {
+    color: #ffffff;
+    font-size: 16px;
+    line-height: 1.6;
+    text-align: center;
+}
+
+/* ============================================
+   CELEBRACIÓN HORARIA
+   ============================================ */
+
+.hourly-celebration {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.85);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+    animation: celebrationBackgroundPulse 2s infinite;
+}
+
+@keyframes celebrationBackgroundPulse {
+    0%, 100% {
+        background: rgba(0, 0, 0, 0.85);
+    }
+    50% {
+        background: rgba(20, 40, 60, 0.9);
+    }
+}
+
+.hourly-celebration.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.celebration-content {
+    text-align: center;
+    z-index: 10001;
+    position: relative;
+}
+
+.celebration-icon {
+    font-size: 120px;
+    animation: celebrationBounce 1s infinite;
+    filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.8));
+    margin-bottom: 20px;
+}
+
+@keyframes celebrationBounce {
+    0%, 100% {
+        transform: translateY(0) scale(1);
+    }
+    50% {
+        transform: translateY(-20px) scale(1.1);
+    }
+}
+
+.celebration-message {
+    font-size: 48px;
+    font-weight: 700;
+    color: #ffc107;
+    text-shadow: 
+        0 0 20px rgba(255, 193, 7, 0.8),
+        0 0 40px rgba(255, 193, 7, 0.6),
+        0 4px 10px rgba(0, 0, 0, 0.8);
+    margin-bottom: 15px;
+    animation: celebrationGlow 1s infinite;
+}
+
+.celebration-hour {
+    font-size: 36px;
+    font-weight: 800;
+    color: #ffffff;
+    text-shadow: 
+        0 0 15px rgba(255, 255, 255, 1),
+        0 0 30px rgba(255, 255, 255, 0.8),
+        0 0 45px rgba(255, 255, 255, 0.6),
+        0 2px 8px rgba(0, 0, 0, 0.8);
+    margin-bottom: 20px;
+    animation: celebrationPulse 0.8s infinite;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+}
+
+.celebration-main-message {
+    font-size: 64px;
+    font-weight: 900;
+    color: #ffc107;
+    text-shadow: 
+        0 0 25px rgba(255, 193, 7, 1),
+        0 0 50px rgba(255, 193, 7, 0.9),
+        0 0 75px rgba(255, 193, 7, 0.7),
+        0 0 100px rgba(255, 193, 7, 0.5),
+        0 4px 15px rgba(0, 0, 0, 0.9);
+    margin-bottom: 25px;
+    animation: celebrationGlow 0.6s infinite;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+}
+
+.celebration-time-remaining {
+    font-size: 42px;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 
+        0 0 20px rgba(40, 167, 69, 0.9),
+        0 0 40px rgba(40, 167, 69, 0.7),
+        0 0 60px rgba(40, 167, 69, 0.5),
+        0 3px 12px rgba(0, 0, 0, 0.8);
+    margin-top: 20px;
+    animation: celebrationShake 0.5s infinite;
+    padding: 20px;
+    background: rgba(40, 167, 69, 0.2);
+    border-radius: 15px;
+    border: 3px solid rgba(40, 167, 69, 0.6);
+}
+
+@keyframes celebrationPulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.9;
+    }
+}
+
+@keyframes celebrationShake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-5px);
+    }
+    75% {
+        transform: translateX(5px);
+    }
+}
+
+@keyframes flashPulse {
+    0% {
+        opacity: 0;
+    }
+    50% {
+        opacity: 0.9;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes celebrationGlow {
+    0%, 100% {
+        text-shadow: 
+            0 0 20px rgba(255, 193, 7, 0.8),
+            0 0 40px rgba(255, 193, 7, 0.6),
+            0 4px 10px rgba(0, 0, 0, 0.8);
+    }
+    50% {
+        text-shadow: 
+            0 0 30px rgba(255, 193, 7, 1),
+            0 0 60px rgba(255, 193, 7, 0.8),
+            0 6px 15px rgba(0, 0, 0, 0.8);
+    }
+}
+
+.celebration-location {
+    font-size: 32px;
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 
+        0 0 15px rgba(40, 167, 69, 0.8),
+        0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+.fireworks-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.firework {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: #ffc107;
+    border-radius: 50%;
+    animation: fireworkExplode 2s ease-out forwards;
+    box-shadow: 
+        0 0 10px #ffc107,
+        0 0 20px #ff0000,
+        0 0 30px #00ff00;
+}
+
+@keyframes fireworkExplode {
+    0% {
+        transform: scale(0);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(20);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(40);
+        opacity: 0;
+    }
+}
