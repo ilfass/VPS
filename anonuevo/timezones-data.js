@@ -67,78 +67,165 @@ const TIMEZONE_CITIES = {
 };
 
 // Cámaras web en vivo de diferentes lugares del mundo
+// Usando servicios públicos de webcams que permiten embed
 const WEBCAMS = [
+    // América del Norte
     {
         id: 'times-square',
         name: 'Times Square, New York',
-        url: 'https://www.earthcam.com/usa/newyork/timessquare/?cam=tsrobo1',
         timezone: -5,
         city: 'New York',
         country: 'USA',
-        embed: 'https://www.earthcam.com/widgets/timessquare/?cam=tsrobo1'
+        embed: 'https://www.earthcam.com/widgets/timessquare/?cam=tsrobo1',
+        type: 'iframe'
     },
     {
-        id: 'london',
-        name: 'London, UK',
-        url: 'https://www.skylinewebcams.com/en/webcam/united-kingdom/england/london/london-eye.html',
-        timezone: 0,
-        city: 'London',
-        country: 'UK',
-        embed: 'https://www.skylinewebcams.com/en/webcam/united-kingdom/england/london/london-eye.html'
+        id: 'miami',
+        name: 'Miami Beach, Florida',
+        timezone: -5,
+        city: 'Miami',
+        country: 'USA',
+        embed: 'https://www.earthcam.com/widgets/miamibeach/?cam=miamirobo1',
+        type: 'iframe'
     },
     {
-        id: 'tokyo',
-        name: 'Tokyo, Japan',
-        url: 'https://www.skylinewebcams.com/en/webcam/japan/tokyo/tokyo-shibuya.html',
-        timezone: 9,
-        city: 'Tokyo',
-        country: 'Japan',
-        embed: 'https://www.skylinewebcams.com/en/webcam/japan/tokyo/tokyo-shibuya.html'
+        id: 'los-angeles',
+        name: 'Los Angeles, California',
+        timezone: -8,
+        city: 'Los Angeles',
+        country: 'USA',
+        embed: 'https://www.earthcam.com/widgets/hollywood/?cam=hollywoodrobo1',
+        type: 'iframe'
     },
     {
-        id: 'sydney',
-        name: 'Sydney, Australia',
-        url: 'https://www.webcamtaxi.com/en/australia/new-south-wales/sydney-harbour-bridge.html',
-        timezone: 10,
-        city: 'Sydney',
-        country: 'Australia',
-        embed: 'https://www.webcamtaxi.com/en/australia/new-south-wales/sydney-harbour-bridge.html'
+        id: 'chicago',
+        name: 'Chicago, Illinois',
+        timezone: -6,
+        city: 'Chicago',
+        country: 'USA',
+        embed: 'https://www.earthcam.com/widgets/chicago/?cam=chicagorobo1',
+        type: 'iframe'
     },
     {
-        id: 'paris',
-        name: 'Paris, France',
-        url: 'https://www.skylinewebcams.com/en/webcam/france/ile-de-france/paris/eiffel-tower.html',
-        timezone: 1,
-        city: 'Paris',
-        country: 'France',
-        embed: 'https://www.skylinewebcams.com/en/webcam/france/ile-de-france/paris/eiffel-tower.html'
+        id: 'toronto',
+        name: 'Toronto, Canada',
+        timezone: -5,
+        city: 'Toronto',
+        country: 'Canada',
+        embed: 'https://www.earthcam.com/widgets/toronto/?cam=torontorobo1',
+        type: 'iframe'
+    },
+    // América Central y Caribe
+    {
+        id: 'mexico-city',
+        name: 'Ciudad de México',
+        timezone: -6,
+        city: 'Ciudad de México',
+        country: 'México',
+        embed: 'https://www.skylinewebcams.com/en/webcam/mexico/distrito-federal/mexico-city/zocalo.html',
+        type: 'iframe'
     },
     {
-        id: 'dubai',
-        name: 'Dubai, UAE',
-        url: 'https://www.skylinewebcams.com/en/webcam/united-arab-emirates/dubai/dubai-burj-khalifa.html',
-        timezone: 4,
-        city: 'Dubai',
-        country: 'UAE',
-        embed: 'https://www.skylinewebcams.com/en/webcam/united-arab-emirates/dubai/dubai-burj-khalifa.html'
+        id: 'cancun',
+        name: 'Cancún, México',
+        timezone: -5,
+        city: 'Cancún',
+        country: 'México',
+        embed: 'https://www.skylinewebcams.com/en/webcam/mexico/quintana-roo/cancun/beach.html',
+        type: 'iframe'
+    },
+    // América del Sur
+    {
+        id: 'buenos-aires',
+        name: 'Buenos Aires, Argentina',
+        timezone: -3,
+        city: 'Buenos Aires',
+        country: 'Argentina',
+        embed: 'https://www.skylinewebcams.com/en/webcam/argentina/buenos-aires/buenos-aires/obelisk.html',
+        type: 'iframe'
+    },
+    {
+        id: 'sao-paulo',
+        name: 'São Paulo, Brazil',
+        timezone: -3,
+        city: 'São Paulo',
+        country: 'Brazil',
+        embed: 'https://www.skylinewebcams.com/en/webcam/brazil/sao-paulo/sao-paulo/paulista-avenue.html',
+        type: 'iframe'
     },
     {
         id: 'rio',
         name: 'Rio de Janeiro, Brazil',
-        url: 'https://www.skylinewebcams.com/en/webcam/brazil/rio-de-janeiro/rio-de-janeiro-copacabana.html',
         timezone: -3,
         city: 'Rio de Janeiro',
         country: 'Brazil',
-        embed: 'https://www.skylinewebcams.com/en/webcam/brazil/rio-de-janeiro/rio-de-janeiro-copacabana.html'
+        embed: 'https://www.skylinewebcams.com/en/webcam/brazil/rio-de-janeiro/rio-de-janeiro/copacabana.html',
+        type: 'iframe'
     },
     {
-        id: 'moscow',
-        name: 'Moscow, Russia',
-        url: 'https://www.skylinewebcams.com/en/webcam/russia/moscow/moscow-red-square.html',
-        timezone: 3,
-        city: 'Moscow',
-        country: 'Russia',
-        embed: 'https://www.skylinewebcams.com/en/webcam/russia/moscow/moscow-red-square.html'
+        id: 'lima',
+        name: 'Lima, Perú',
+        timezone: -5,
+        city: 'Lima',
+        country: 'Perú',
+        embed: 'https://www.skylinewebcams.com/en/webcam/peru/lima/lima/plaza-mayor.html',
+        type: 'iframe'
+    },
+    {
+        id: 'santiago',
+        name: 'Santiago, Chile',
+        timezone: -3,
+        city: 'Santiago',
+        country: 'Chile',
+        embed: 'https://www.skylinewebcams.com/en/webcam/chile/santiago/santiago/plaza-armas.html',
+        type: 'iframe'
+    },
+    {
+        id: 'bogota',
+        name: 'Bogotá, Colombia',
+        timezone: -5,
+        city: 'Bogotá',
+        country: 'Colombia',
+        embed: 'https://www.skylinewebcams.com/en/webcam/colombia/bogota/bogota/plaza-bolivar.html',
+        type: 'iframe'
+    },
+    // Europa
+    {
+        id: 'london',
+        name: 'London, UK',
+        timezone: 0,
+        city: 'London',
+        country: 'UK',
+        embed: 'https://www.earthcam.com/widgets/london/?cam=londonrobo1',
+        type: 'iframe'
+    },
+    {
+        id: 'paris',
+        name: 'Paris, France',
+        timezone: 1,
+        city: 'Paris',
+        country: 'France',
+        embed: 'https://www.earthcam.com/widgets/paris/?cam=parisrobo1',
+        type: 'iframe'
+    },
+    // Asia
+    {
+        id: 'tokyo',
+        name: 'Tokyo, Japan',
+        timezone: 9,
+        city: 'Tokyo',
+        country: 'Japan',
+        embed: 'https://www.earthcam.com/widgets/tokyo/?cam=tokyorobo1',
+        type: 'iframe'
+    },
+    {
+        id: 'sydney',
+        name: 'Sydney, Australia',
+        timezone: 10,
+        city: 'Sydney',
+        country: 'Australia',
+        embed: 'https://www.earthcam.com/widgets/sydney/?cam=sydneyrobo1',
+        type: 'iframe'
     }
 ];
 

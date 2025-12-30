@@ -433,6 +433,36 @@ body {
     width: 100%;
     height: 100%;
     border: none;
+    background: #000;
+}
+
+.webcam-link {
+    display: block;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+}
+
+.webcam-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.webcam-placeholder-icon {
+    font-size: 48px;
+    margin-bottom: 10px;
+}
+
+.webcam-placeholder-text {
+    font-size: 14px;
+    text-align: center;
 }
 
 .webcam-footer {

@@ -70,7 +70,8 @@ const state = {
     globeCamera: null,
     globeRenderer: null,
     globeMesh: null,
-    celebrationLights: []
+    celebrationLights: [],
+    sunLight: null
 };
 
 // ============================================
@@ -218,24 +219,35 @@ function initializeGlobe() {
     // Agregar estrellas de fondo
     createStars();
     
-    // Iluminación principal (simula el sol)
-    const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    sunLight.position.set(5, 3, 5);
+    // Iluminación principal (simula el sol) - posición inicial basada en hora UTC
+    const now = new Date();
+    const hours = now.getUTCHours();
+    const sunLongitude = (hours * 15) - 180; // Sol en el lado opuesto al meridiano actual
+    const sunLongitudeRad = (sunLongitude * Math.PI) / 180;
+    
+    const sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    sunLight.position.set(
+        Math.sin(sunLongitudeRad) * 5,
+        2,
+        Math.cos(sunLongitudeRad) * 5
+    );
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 2048;
     sunLight.shadow.mapSize.height = 2048;
     sunLight.shadow.camera.near = 0.5;
     sunLight.shadow.camera.far = 50;
+    sunLight.shadow.camera.left = -2;
+    sunLight.shadow.camera.right = 2;
+    sunLight.shadow.camera.top = 2;
+    sunLight.shadow.camera.bottom = -2;
     state.globeScene.add(sunLight);
+    state.sunLight = sunLight; // Guardar referencia
     
-    // Luz ambiental suave
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+    // Luz ambiental muy suave (solo para el lado oscuro)
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.2);
     state.globeScene.add(ambientLight);
     
-    // Luz de relleno para el lado oscuro
-    const fillLight = new THREE.DirectionalLight(0x87CEEB, 0.3);
-    fillLight.position.set(-3, -2, -2);
-    state.globeScene.add(fillLight);
+    // No usar luz de relleno para mantener el contraste día/noche
     
     // Agregar puntos de luz dorados para zonas que celebran
     state.celebrationLights = [];
@@ -325,17 +337,38 @@ function drawTimezonesOnGlobe() {
 function animateGlobe() {
     if (!state.globeMesh || !state.globeRenderer || !state.globeScene || !state.globeCamera) return;
     
-    // Rotar el globo lentamente (una rotación completa cada ~52 minutos)
-    state.globeMesh.rotation.y += 0.002;
+    // Calcular rotación real de la Tierra
+    // La Tierra rota 360 grados en 24 horas = 15 grados por hora = 0.0041667 grados por segundo
+    // Pero queremos que sea más visible, así que usaremos una velocidad proporcional
+    const now = new Date();
+    const hours = now.getUTCHours();
+    const minutes = now.getUTCMinutes();
+    const seconds = now.getUTCSeconds();
     
-    // Rotar la luz del sol para simular día/noche
-    const time = Date.now() * 0.0001;
+    // Calcular rotación basada en la hora UTC real
+    // La Tierra rota 15 grados por hora UTC
+    // 0° UTC = meridiano de Greenwich está en el frente
+    const rotationDegrees = (hours * 15) + (minutes * 0.25) + (seconds * 0.0041667);
+    const rotationRadians = (rotationDegrees * Math.PI) / 180;
+    
+    // Rotar el globo para que el meridiano de Greenwich esté en la posición correcta
+    // Ajustar para que el mapa se vea correctamente orientado
+    state.globeMesh.rotation.y = rotationRadians;
+    
+    // Calcular posición del sol para día/noche
+    // El sol está en el lado opuesto al meridiano de Greenwich + hora UTC
+    const sunLongitude = (hours * 15 + minutes * 0.25) - 180; // Sol en el lado opuesto
+    const sunLongitudeRad = (sunLongitude * Math.PI) / 180;
+    
+    // Actualizar posición de la luz del sol
     if (state.globeScene.children) {
         state.globeScene.children.forEach(child => {
-            if (child.type === 'DirectionalLight' && child.position.x > 0) {
-                // Rotar la luz del sol alrededor del globo
-                child.position.x = Math.cos(time) * 5;
-                child.position.z = Math.sin(time) * 5;
+            if (child.type === 'DirectionalLight' && child.castShadow) {
+                // Posicionar el sol basado en la hora UTC real
+                const sunX = Math.sin(sunLongitudeRad) * 5;
+                const sunZ = Math.cos(sunLongitudeRad) * 5;
+                child.position.set(sunX, 2, sunZ);
+                child.lookAt(0, 0, 0); // El sol siempre mira al centro de la Tierra
             }
         });
     }
@@ -961,19 +994,45 @@ function createWebcamCard(webcam, index) {
     const hours = String(localTime.getUTCHours()).padStart(2, '0');
     const minutes = String(localTime.getUTCMinutes()).padStart(2, '0');
     
+    // Crear contenido de la cámara según el tipo
+    let webcamContent = '';
+    if (webcam.type === 'iframe' && webcam.embed) {
+        webcamContent = `
+            <iframe 
+                src="${webcam.embed}" 
+                frameborder="0" 
+                allowfullscreen
+                loading="lazy"
+                allow="autoplay; fullscreen"
+                title="${webcam.name}">
+            </iframe>
+        `;
+    } else if (webcam.url) {
+        // Fallback: usar imagen estática o enlace
+        webcamContent = `
+            <a href="${webcam.url}" target="_blank" class="webcam-link">
+                <div class="webcam-placeholder">
+                    <div class="webcam-placeholder-icon">📹</div>
+                    <div class="webcam-placeholder-text">Ver cámara en vivo</div>
+                </div>
+            </a>
+        `;
+    } else {
+        webcamContent = `
+            <div class="webcam-placeholder">
+                <div class="webcam-placeholder-icon">📹</div>
+                <div class="webcam-placeholder-text">Cámara no disponible</div>
+            </div>
+        `;
+    }
+    
     card.innerHTML = `
         <div class="webcam-header">
             <h3>${webcam.name}</h3>
             <div class="webcam-time">${hours}:${minutes}</div>
         </div>
         <div class="webcam-container">
-            <iframe 
-                src="${webcam.embed || webcam.url}" 
-                frameborder="0" 
-                allowfullscreen
-                loading="lazy"
-                title="${webcam.name}">
-            </iframe>
+            ${webcamContent}
         </div>
         <div class="webcam-footer">
             <span class="webcam-location">📍 ${webcam.city}, ${webcam.country}</span>
