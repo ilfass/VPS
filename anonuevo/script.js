@@ -169,12 +169,14 @@ function initializeMapbox() {
         return;
     }
     
+    // Verificar que el mapa esté disponible (puede tardar en cargar)
+    if (!Highcharts.maps || !Highcharts.maps['custom/world']) {
+        console.warn('⚠️ Mapa del mundo no disponible aún, reintentando...');
+        setTimeout(initializeMapbox, 500); // Reintentar después de 0.5 segundos
+        return;
+    }
+    
     try {
-        // Verificar que el mapa esté disponible
-        if (!Highcharts.maps || !Highcharts.maps['custom/world']) {
-            console.error('❌ Mapa del mundo no disponible');
-            return;
-        }
         
         console.log('🗺️ Inicializando planisferio con Highmaps...');
         console.log('📊 Datos del mapa disponibles:', Object.keys(Highcharts.maps));
