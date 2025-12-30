@@ -2381,65 +2381,85 @@ function startBasicFaceAnimation() {
     // Mejorar animación básica con más movimiento y realismo
     if (!state.avatarCanvas || !state.faceImage) return;
     
-    let lastTime = 0;
-    let mouthOpenness = 0;
-    let eyeBlink = 0;
-    let headTilt = 0;
+    const canvas = state.avatarCanvas;
+    const ctx = state.avatarCtx;
+    const img = state.faceImage;
     
-    const animate = (currentTime) => {
-        if (currentTime - lastTime < 33) {
-            state.animationFrame = requestAnimationFrame(animate);
-            return;
-        }
-        lastTime = currentTime;
+    let animationTime = 0;
+    let lastBlink = 0;
+    let isBlinking = false;
+    let headOffsetX = 0;
+    let headOffsetY = 0;
+    let headRotation = 0;
+    
+    const animate = (timestamp) => {
+        if (!state.avatarCanvas) return;
         
-        const ctx = state.avatarCtx;
-        const canvas = state.avatarCanvas;
-        const img = state.faceImage;
+        animationTime += 0.016; // ~60 FPS
         
         // Limpiar canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Calcular animaciones basadas en si está hablando
+        // Movimiento sutil de la cabeza (respiración y movimiento natural)
+        headOffsetX = Math.sin(animationTime * 0.5) * 2;
+        headOffsetY = Math.cos(animationTime * 0.3) * 1.5;
+        headRotation = Math.sin(animationTime * 0.2) * 1; // Rotación sutil
+        
+        // Movimiento adicional cuando habla
         if (state.aiPresenterActive) {
-            // Animación de boca al hablar
-            mouthOpenness = 0.3 + Math.sin(currentTime / 100) * 0.2;
-            headTilt = Math.sin(currentTime / 500) * 2; // Movimiento sutil de cabeza
-        } else {
-            mouthOpenness = 0;
-            headTilt = 0;
+            headOffsetX += Math.sin(animationTime * 2) * 1;
+            headOffsetY += Math.cos(animationTime * 1.5) * 0.5;
+            headRotation += Math.sin(animationTime * 1.5) * 0.5;
         }
         
-        // Parpadeo ocasional
-        if (Math.random() > 0.98) {
-            eyeBlink = 0.3;
-        } else {
-            eyeBlink *= 0.9;
+        // Parpadeo natural (cada 3-5 segundos)
+        if (timestamp - lastBlink > 3000 + Math.random() * 2000) {
+            isBlinking = true;
+            lastBlink = timestamp;
+            setTimeout(() => {
+                isBlinking = false;
+            }, 150);
         }
         
-        // Dibujar cara con transformaciones
+        // Guardar contexto
         ctx.save();
         
-        // Aplicar transformaciones
+        // Aplicar transformaciones (centro del canvas)
         ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate(headTilt * Math.PI / 180);
-        ctx.scale(1 + mouthOpenness * 0.1, 1 + mouthOpenness * 0.05);
+        ctx.rotate(headRotation * Math.PI / 180);
+        ctx.translate(-canvas.width / 2 + headOffsetX, -canvas.height / 2 + headOffsetY);
         
-        // Dibujar imagen
-        ctx.drawImage(img, -canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
+        // Dibujar imagen con escala sutil para efecto de "respiración"
+        const scale = 1 + Math.sin(animationTime * 0.4) * 0.02;
+        const scaledWidth = canvas.width * scale;
+        const scaledHeight = canvas.height * scale;
+        const offsetX = (canvas.width - scaledWidth) / 2;
+        const offsetY = (canvas.height - scaledHeight) / 2;
         
-        // Aplicar efecto de parpadeo
-        if (eyeBlink > 0) {
-            ctx.fillStyle = `rgba(0, 0, 0, ${eyeBlink})`;
-            ctx.fillRect(-canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height / 3);
+        ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+        
+        // Efecto de parpadeo
+        if (isBlinking) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height / 3);
         }
         
+        // Restaurar contexto
         ctx.restore();
         
+        // Continuar animación
         state.animationFrame = requestAnimationFrame(animate);
     };
     
+    // Iniciar animación
     state.animationFrame = requestAnimationFrame(animate);
+    
+    // Agregar movimiento adicional cuando habla
+    const avatarElement = document.getElementById('presenterAvatar');
+    if (avatarElement) {
+        // Agregar clase para animación CSS adicional
+        avatarElement.classList.add('animated');
+    }
 }
 
 function drawAnimatedFace(ctx, img, face) {
