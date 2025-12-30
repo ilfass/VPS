@@ -181,12 +181,6 @@ function initializeGlobe() {
     // Cargar textura de la Tierra
     const textureLoader = new THREE.TextureLoader();
     
-    // Usar textura de la Tierra desde una URL pública
-    // Textura de alta calidad de la NASA
-    const earthTexture = textureLoader.load(
-        'https://raw.githubusercontent.com/turban/webgl-earth/master/images/2_no_clouds_4k.jpg'
-    );
-    
     // Crear material con textura realista y mejor contraste para día/noche
     // Primero crear material básico para que el globo se vea inmediatamente
     const material = new THREE.MeshPhongMaterial({
@@ -203,18 +197,24 @@ function initializeGlobe() {
     state.globeMesh.castShadow = true;
     state.globeScene.add(state.globeMesh);
     
-    // Actualizar material cuando la textura se cargue
-    earthTexture.onLoad = () => {
-        console.log('✅ Textura de la Tierra cargada');
-        material.map = earthTexture;
-        material.needsUpdate = true;
-    };
-    
-    // Si la textura falla, usar material procedural
-    earthTexture.onError = (err) => {
-        console.warn('⚠️ No se pudo cargar textura de la Tierra, usando material procedural:', err);
-        createProceduralEarth();
-    };
+    // Cargar textura de la Tierra de forma asíncrona
+    // Usar textura de la Tierra desde una URL pública
+    const earthTexture = textureLoader.load(
+        'https://raw.githubusercontent.com/turban/webgl-earth/master/images/2_no_clouds_4k.jpg',
+        // onLoad callback
+        (texture) => {
+            console.log('✅ Textura de la Tierra cargada');
+            material.map = texture;
+            material.needsUpdate = true;
+        },
+        // onProgress callback (opcional)
+        undefined,
+        // onError callback
+        (err) => {
+            console.warn('⚠️ No se pudo cargar textura de la Tierra, usando material procedural:', err);
+            createProceduralEarth();
+        }
+    );
     
     // Dibujar husos horarios en el globo
     drawTimezonesOnGlobe();
