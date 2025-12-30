@@ -1280,17 +1280,11 @@ function initializeBackgroundAudio() {
 // ============================================
 
 function initializeDynamicFeatures() {
-    // Inicializar mensajes dinámicos
-    initializeDynamicMessages();
-    
     // Inicializar estadísticas dinámicas
     initializeDynamicStats();
     
     // Inicializar contador global
     initializeGlobalCountdown();
-    
-    // Cambiar mensaje cada 30 segundos
-    setInterval(updateDynamicMessage, 30000);
     
     // Actualizar estadísticas cada 5 segundos
     setInterval(updateDynamicStats, 5000);
@@ -1299,53 +1293,6 @@ function initializeDynamicFeatures() {
     setInterval(updateGlobalCountdown, 1000);
     
     console.log('✨ Funciones dinámicas inicializadas');
-}
-
-function initializeDynamicMessages() {
-    state.dynamicMessages = [
-        '🎆 ¡Bienvenido al rastreador global del Año Nuevo!',
-        '🌍 Sigue el avance del Año Nuevo alrededor del mundo',
-        '⏰ Cada hora, una nueva región celebra',
-        '🎊 ¡Mira cómo el mundo se ilumina zona por zona!',
-        '🌐 Conectado con personas de todo el planeta',
-        '🎉 El Año Nuevo está llegando... ¿estás listo?',
-        '✨ Cada segundo cuenta hacia la celebración',
-        '🌟 Únete a la celebración global más grande',
-        '🎈 El tiempo vuela cuando te diviertes',
-        '🎪 ¡No te pierdas ni un momento de la fiesta!',
-        '🎁 Cada zona horaria trae nuevas sorpresas',
-        '🎨 El mundo se pinta de colores festivos',
-        '🎵 La música del Año Nuevo resuena por todas partes',
-        '🎭 Cada cultura celebra a su manera',
-        '🎯 Estamos todos juntos en este momento especial',
-        '🎪 La fiesta nunca termina, solo se mueve',
-        '🎊 ¡Mira cómo crece la celebración!',
-        '🎉 Cada minuto, más personas se unen',
-        '🌟 El espíritu del Año Nuevo está en el aire',
-        '🎈 ¡Comparte este momento con el mundo!'
-    ];
-    
-    state.lastMessageChange = Date.now();
-    updateDynamicMessage();
-}
-
-function updateDynamicMessage() {
-    const messageEl = document.getElementById('dynamicMessageText');
-    if (!messageEl || state.dynamicMessages.length === 0) return;
-    
-    // Seleccionar mensaje (rotar en orden, no aleatorio)
-    const newMessage = state.dynamicMessages[state.currentMessageIndex];
-    state.currentMessageIndex = (state.currentMessageIndex + 1) % state.dynamicMessages.length;
-    
-    // Animación de fade
-    messageEl.style.opacity = '0';
-    setTimeout(() => {
-        messageEl.textContent = newMessage;
-        messageEl.style.opacity = '1';
-        
-        // Leer el mensaje con voz
-        speakMessage(newMessage);
-    }, 300);
 }
 
 function speakMessage(message) {
@@ -1814,15 +1761,41 @@ function speakPresenterMessage(message) {
             utterance.voice = bestVoice;
         }
         
-        // Eventos para animar el avatar
+        // Eventos para animar el avatar y sincronizar boca
+        const mouthOverlay = document.getElementById('avatarMouth');
+        
         utterance.onstart = () => {
             state.aiPresenterActive = true;
-            animateMouthWhileSpeaking(message.length * 50);
+            if (mouthOverlay) {
+                mouthOverlay.classList.add('speaking');
+            }
         };
         
         utterance.onend = () => {
             state.aiPresenterActive = false;
-            stopMouthAnimation();
+            if (mouthOverlay) {
+                mouthOverlay.classList.remove('speaking');
+            }
+        };
+        
+        utterance.onerror = () => {
+            state.aiPresenterActive = false;
+            if (mouthOverlay) {
+                mouthOverlay.classList.remove('speaking');
+            }
+        };
+        
+        // Sincronizar boca con pausas y palabras
+        utterance.onboundary = (event) => {
+            if (mouthOverlay && event.name === 'word') {
+                // Pequeña animación en cada palabra
+                mouthOverlay.classList.remove('speaking');
+                setTimeout(() => {
+                    if (state.aiPresenterActive) {
+                        mouthOverlay.classList.add('speaking');
+                    }
+                }, 10);
+            }
         };
         
         window.speechSynthesis.speak(utterance);
