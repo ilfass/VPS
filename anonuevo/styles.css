@@ -463,6 +463,13 @@ body {
 .webcam-placeholder-text {
     font-size: 14px;
     text-align: center;
+    margin-bottom: 5px;
+}
+
+.webcam-placeholder-subtext {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    text-align: center;
 }
 
 .webcam-footer {

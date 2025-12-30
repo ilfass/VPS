@@ -904,7 +904,11 @@ function initializeBackgroundAudio() {
             const playAudio = () => {
                 if (audioEl.paused && audioEl.src) {
                     audioEl.play().catch(err => {
-                        console.log(`No se pudo reproducir ${track.id}:`, err);
+                        // Silenciar errores de audio (es normal que requiera interacción del usuario)
+                        // Solo loguear si es un error diferente
+                        if (err.name !== 'NotAllowedError') {
+                            console.log(`No se pudo reproducir ${track.id}:`, err);
+                        }
                     });
                 }
             };
@@ -986,6 +990,18 @@ function loadDefaultWebcams() {
     });
 }
 
+function createWebcamLink(webcam) {
+    return `
+        <a href="${webcam.url}" target="_blank" rel="noopener noreferrer" class="webcam-link">
+            <div class="webcam-placeholder">
+                <div class="webcam-placeholder-icon">📹</div>
+                <div class="webcam-placeholder-text">Ver cámara en vivo</div>
+                <div class="webcam-placeholder-subtext">${webcam.city}, ${webcam.country}</div>
+            </div>
+        </a>
+    `;
+}
+
 function createWebcamCard(webcam, index) {
     const card = document.createElement('div');
     card.className = 'webcam-card';
@@ -999,27 +1015,23 @@ function createWebcamCard(webcam, index) {
     
     // Crear contenido de la cámara según el tipo
     let webcamContent = '';
-    if (webcam.type === 'iframe' && webcam.embed) {
+    if (webcam.type === 'iframe' && webcam.embed && webcam.embed.startsWith('https://')) {
+        // Intentar usar iframe solo si el embed está disponible y es HTTPS
         webcamContent = `
             <iframe 
                 src="${webcam.embed}" 
                 frameborder="0" 
                 allowfullscreen
                 loading="lazy"
-                allow="autoplay; fullscreen"
-                title="${webcam.name}">
+                allow="autoplay; fullscreen; camera; microphone"
+                title="${webcam.name}"
+                sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                onerror="this.parentElement.innerHTML='<div class=\\'webcam-placeholder\\'><div class=\\'webcam-placeholder-icon\\'>📹</div><div class=\\'webcam-placeholder-text\\'>Cámara no disponible</div></div>'">
             </iframe>
         `;
     } else if (webcam.url) {
-        // Fallback: usar imagen estática o enlace
-        webcamContent = `
-            <a href="${webcam.url}" target="_blank" class="webcam-link">
-                <div class="webcam-placeholder">
-                    <div class="webcam-placeholder-icon">📹</div>
-                    <div class="webcam-placeholder-text">Ver cámara en vivo</div>
-                </div>
-            </a>
-        `;
+        // Usar enlace directo (más confiable que iframes, evita problemas de CORS y Mixed Content)
+        webcamContent = createWebcamLink(webcam);
     } else {
         webcamContent = `
             <div class="webcam-placeholder">

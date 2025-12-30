@@ -68,6 +68,7 @@ const TIMEZONE_CITIES = {
 
 // Cámaras web en vivo de diferentes lugares del mundo
 // Usando servicios públicos de webcams que permiten embed
+// Nota: Algunas cámaras pueden requerir HTTPS o tener restricciones de CORS
 const WEBCAMS = [
     // América del Norte
     {
@@ -76,8 +77,10 @@ const WEBCAMS = [
         timezone: -5,
         city: 'New York',
         country: 'USA',
-        embed: 'https://www.earthcam.com/widgets/timessquare/?cam=tsrobo1',
-        type: 'iframe'
+        url: 'https://www.earthcam.com/usa/newyork/timessquare/?cam=tsrobo1',
+        embed: null, // Earthcam requiere autenticación para embed
+        type: 'link',
+        image: 'https://www.earthcam.com/cams/newyork/timessquare/?cam=tsrobo1'
     },
     {
         id: 'miami',
@@ -85,8 +88,9 @@ const WEBCAMS = [
         timezone: -5,
         city: 'Miami',
         country: 'USA',
-        embed: 'https://www.earthcam.com/widgets/miamibeach/?cam=miamirobo1',
-        type: 'iframe'
+        url: 'https://www.earthcam.com/usa/florida/miamibeach/?cam=miamirobo1',
+        embed: null,
+        type: 'link'
     },
     {
         id: 'los-angeles',
@@ -94,8 +98,9 @@ const WEBCAMS = [
         timezone: -8,
         city: 'Los Angeles',
         country: 'USA',
-        embed: 'https://www.earthcam.com/widgets/hollywood/?cam=hollywoodrobo1',
-        type: 'iframe'
+        url: 'https://www.earthcam.com/usa/california/hollywood/?cam=hollywoodrobo1',
+        embed: null,
+        type: 'link'
     },
     {
         id: 'chicago',
@@ -103,8 +108,9 @@ const WEBCAMS = [
         timezone: -6,
         city: 'Chicago',
         country: 'USA',
-        embed: 'https://www.earthcam.com/widgets/chicago/?cam=chicagorobo1',
-        type: 'iframe'
+        url: 'https://www.earthcam.com/usa/illinois/chicago/?cam=chicagorobo1',
+        embed: null,
+        type: 'link'
     },
     {
         id: 'toronto',
@@ -112,8 +118,9 @@ const WEBCAMS = [
         timezone: -5,
         city: 'Toronto',
         country: 'Canada',
-        embed: 'https://www.earthcam.com/widgets/toronto/?cam=torontorobo1',
-        type: 'iframe'
+        url: 'https://www.earthcam.com/canada/toronto/?cam=torontorobo1',
+        embed: null,
+        type: 'link'
     },
     // América Central y Caribe
     {
@@ -122,8 +129,9 @@ const WEBCAMS = [
         timezone: -6,
         city: 'Ciudad de México',
         country: 'México',
-        embed: 'https://www.skylinewebcams.com/en/webcam/mexico/distrito-federal/mexico-city/zocalo.html',
-        type: 'iframe'
+        url: 'https://www.skylinewebcams.com/en/webcam/mexico/distrito-federal/mexico-city/zocalo.html',
+        embed: null,
+        type: 'link'
     },
     {
         id: 'cancun',
@@ -131,8 +139,9 @@ const WEBCAMS = [
         timezone: -5,
         city: 'Cancún',
         country: 'México',
-        embed: 'https://www.skylinewebcams.com/en/webcam/mexico/quintana-roo/cancun/beach.html',
-        type: 'iframe'
+        url: 'https://www.skylinewebcams.com/en/webcam/mexico/quintana-roo/cancun/beach.html',
+        embed: null,
+        type: 'link'
     },
     // América del Sur
     {
@@ -141,8 +150,9 @@ const WEBCAMS = [
         timezone: -3,
         city: 'Buenos Aires',
         country: 'Argentina',
-        embed: 'https://www.skylinewebcams.com/en/webcam/argentina/buenos-aires/buenos-aires/obelisk.html',
-        type: 'iframe'
+        url: 'https://www.skylinewebcams.com/en/webcam/argentina/buenos-aires/buenos-aires/obelisk.html',
+        embed: null,
+        type: 'link'
     },
     {
         id: 'sao-paulo',
@@ -150,8 +160,9 @@ const WEBCAMS = [
         timezone: -3,
         city: 'São Paulo',
         country: 'Brazil',
-        embed: 'https://www.skylinewebcams.com/en/webcam/brazil/sao-paulo/sao-paulo/paulista-avenue.html',
-        type: 'iframe'
+        url: 'https://www.skylinewebcams.com/en/webcam/brazil/sao-paulo/sao-paulo/paulista-avenue.html',
+        embed: null,
+        type: 'link'
     },
     {
         id: 'rio',
@@ -159,8 +170,9 @@ const WEBCAMS = [
         timezone: -3,
         city: 'Rio de Janeiro',
         country: 'Brazil',
-        embed: 'https://www.skylinewebcams.com/en/webcam/brazil/rio-de-janeiro/rio-de-janeiro/copacabana.html',
-        type: 'iframe'
+        url: 'https://www.skylinewebcams.com/en/webcam/brazil/rio-de-janeiro/rio-de-janeiro/copacabana.html',
+        embed: null,
+        type: 'link'
     },
     {
         id: 'lima',
@@ -168,8 +180,9 @@ const WEBCAMS = [
         timezone: -5,
         city: 'Lima',
         country: 'Perú',
-        embed: 'https://www.skylinewebcams.com/en/webcam/peru/lima/lima/plaza-mayor.html',
-        type: 'iframe'
+        url: 'https://www.skylinewebcams.com/en/webcam/peru/lima/lima/plaza-mayor.html',
+        embed: null,
+        type: 'link'
     },
     {
         id: 'santiago',
@@ -177,8 +190,9 @@ const WEBCAMS = [
         timezone: -3,
         city: 'Santiago',
         country: 'Chile',
-        embed: 'https://www.skylinewebcams.com/en/webcam/chile/santiago/santiago/plaza-armas.html',
-        type: 'iframe'
+        url: 'https://www.skylinewebcams.com/en/webcam/chile/santiago/santiago/plaza-armas.html',
+        embed: null,
+        type: 'link'
     },
     {
         id: 'bogota',
@@ -186,8 +200,29 @@ const WEBCAMS = [
         timezone: -5,
         city: 'Bogotá',
         country: 'Colombia',
-        embed: 'https://www.skylinewebcams.com/en/webcam/colombia/bogota/bogota/plaza-bolivar.html',
-        type: 'iframe'
+        url: 'https://www.skylinewebcams.com/en/webcam/colombia/bogota/bogota/plaza-bolivar.html',
+        embed: null,
+        type: 'link'
+    },
+    {
+        id: 'caracas',
+        name: 'Caracas, Venezuela',
+        timezone: -4,
+        city: 'Caracas',
+        country: 'Venezuela',
+        url: 'https://www.skylinewebcams.com/en/webcam/venezuela/caracas/caracas.html',
+        embed: null,
+        type: 'link'
+    },
+    {
+        id: 'quito',
+        name: 'Quito, Ecuador',
+        timezone: -5,
+        city: 'Quito',
+        country: 'Ecuador',
+        url: 'https://www.skylinewebcams.com/en/webcam/ecuador/quito/quito.html',
+        embed: null,
+        type: 'link'
     },
     // Europa
     {
@@ -196,8 +231,9 @@ const WEBCAMS = [
         timezone: 0,
         city: 'London',
         country: 'UK',
-        embed: 'https://www.earthcam.com/widgets/london/?cam=londonrobo1',
-        type: 'iframe'
+        url: 'https://www.earthcam.com/world/england/london/?cam=londonrobo1',
+        embed: null,
+        type: 'link'
     },
     {
         id: 'paris',
@@ -205,8 +241,9 @@ const WEBCAMS = [
         timezone: 1,
         city: 'Paris',
         country: 'France',
-        embed: 'https://www.earthcam.com/widgets/paris/?cam=parisrobo1',
-        type: 'iframe'
+        url: 'https://www.earthcam.com/world/france/paris/?cam=parisrobo1',
+        embed: null,
+        type: 'link'
     },
     // Asia
     {
@@ -215,8 +252,9 @@ const WEBCAMS = [
         timezone: 9,
         city: 'Tokyo',
         country: 'Japan',
-        embed: 'https://www.earthcam.com/widgets/tokyo/?cam=tokyorobo1',
-        type: 'iframe'
+        url: 'https://www.earthcam.com/world/japan/tokyo/?cam=tokyorobo1',
+        embed: null,
+        type: 'link'
     },
     {
         id: 'sydney',
@@ -224,8 +262,9 @@ const WEBCAMS = [
         timezone: 10,
         city: 'Sydney',
         country: 'Australia',
-        embed: 'https://www.earthcam.com/widgets/sydney/?cam=sydneyrobo1',
-        type: 'iframe'
+        url: 'https://www.earthcam.com/world/australia/sydney/?cam=sydneyrobo1',
+        embed: null,
+        type: 'link'
     }
 ];
 
