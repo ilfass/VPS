@@ -199,24 +199,42 @@ function initializeGlobe() {
     state.globeMesh.castShadow = true;
     state.globeScene.add(state.globeMesh);
     
-    // Cargar textura de la Tierra de forma asíncrona
-    // Usar textura de la Tierra desde una URL pública
-    const earthTexture = textureLoader.load(
+    // Cargar textura de la Tierra de alta calidad con países visibles
+    // Usar múltiples fuentes de textura para mejor compatibilidad
+    const textureUrls = [
         'https://raw.githubusercontent.com/turban/webgl-earth/master/images/2_no_clouds_4k.jpg',
-        // onLoad callback
-        (texture) => {
-            console.log('✅ Textura de la Tierra cargada');
-            material.map = texture;
-            material.needsUpdate = true;
-        },
-        // onProgress callback (opcional)
-        undefined,
-        // onError callback
-        (err) => {
-            console.warn('⚠️ No se pudo cargar textura de la Tierra, usando material procedural:', err);
+        'https://raw.githubusercontent.com/publiclab/mapknitter/master/public/images/earth.jpg',
+        'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'
+    ];
+    
+    let textureIndex = 0;
+    
+    function tryLoadTexture(index) {
+        if (index >= textureUrls.length) {
+            console.warn('⚠️ No se pudo cargar ninguna textura, usando material procedural');
             createProceduralEarth();
+            return;
         }
-    );
+        
+        const earthTexture = textureLoader.load(
+            textureUrls[index],
+            // onLoad callback
+            (texture) => {
+                console.log(`✅ Textura de la Tierra cargada (fuente ${index + 1})`);
+                material.map = texture;
+                material.needsUpdate = true;
+            },
+            // onProgress callback (opcional)
+            undefined,
+            // onError callback
+            (err) => {
+                console.warn(`⚠️ Textura ${index + 1} falló, intentando siguiente...`);
+                tryLoadTexture(index + 1);
+            }
+        );
+    }
+    
+    tryLoadTexture(0);
     
     // Dibujar husos horarios en el globo
     drawTimezonesOnGlobe();
@@ -477,8 +495,48 @@ function initializeWorldMap() {
     const svg = document.querySelector('.world-map');
     if (!svg) return;
     
-    // Limpiar SVG
+    // Limpiar SVG pero mantener defs
+    const defs = svg.querySelector('defs');
     svg.innerHTML = '';
+    if (defs) {
+        svg.appendChild(defs);
+    } else {
+        // Recrear defs si no existen
+        const newDefs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        const dayPattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+        dayPattern.setAttribute('id', 'dayPattern');
+        dayPattern.setAttribute('patternUnits', 'userSpaceOnUse');
+        dayPattern.setAttribute('width', '100');
+        dayPattern.setAttribute('height', '100');
+        const dayRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        dayRect.setAttribute('width', '100');
+        dayRect.setAttribute('height', '100');
+        dayRect.setAttribute('fill', 'rgba(135, 206, 235, 0.1)');
+        dayPattern.appendChild(dayRect);
+        newDefs.appendChild(dayPattern);
+        
+        const nightPattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+        nightPattern.setAttribute('id', 'nightPattern');
+        nightPattern.setAttribute('patternUnits', 'userSpaceOnUse');
+        nightPattern.setAttribute('width', '100');
+        nightPattern.setAttribute('height', '100');
+        const nightRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        nightRect.setAttribute('width', '100');
+        nightRect.setAttribute('height', '100');
+        nightRect.setAttribute('fill', 'rgba(0, 0, 50, 0.3)');
+        nightPattern.appendChild(nightRect);
+        newDefs.appendChild(nightPattern);
+        svg.appendChild(newDefs);
+    }
+    
+    // Dibujar fondo del mapa (océanos)
+    const ocean = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    ocean.setAttribute('x', '0');
+    ocean.setAttribute('y', '0');
+    ocean.setAttribute('width', '1440');
+    ocean.setAttribute('height', '720');
+    ocean.setAttribute('fill', 'rgba(30, 60, 120, 0.3)');
+    svg.appendChild(ocean);
     
     // Dibujar husos horarios basados en meridianos reales
     // Cada huso horario tiene 15 grados de ancho (360° / 24 = 15°)
@@ -498,25 +556,28 @@ function initializeWorldMap() {
         const x = ((meridian + 180) / 360) * 1440;
         const width = (degreesPerZone / 360) * 1440;
         
-        // Crear zona horaria
+        // Crear zona horaria con mejor visibilidad
         const zone = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         zone.setAttribute('class', 'timezone-zone');
         zone.setAttribute('data-offset', offset);
         zone.setAttribute('data-name', `UTC${offset >= 0 ? '+' : ''}${offset}`);
         zone.setAttribute('x', x - width / 2);
-        zone.setAttribute('y', 0);
+        zone.setAttribute('y', '0');
         zone.setAttribute('width', width);
-        zone.setAttribute('height', 720);
-        zone.setAttribute('fill', 'rgba(30, 30, 60, 0.5)');
-        zone.setAttribute('stroke', 'rgba(100, 100, 150, 0.3)');
+        zone.setAttribute('height', '720');
+        zone.setAttribute('fill', 'rgba(50, 50, 80, 0.4)');
+        zone.setAttribute('stroke', 'rgba(150, 150, 200, 0.5)');
         zone.setAttribute('stroke-width', '1');
+        zone.setAttribute('opacity', '0.6');
         
         // Agregar interactividad
         zone.addEventListener('mouseenter', (e) => {
             showTimezoneInfo(offset, e);
+            zone.setAttribute('fill', 'rgba(100, 150, 200, 0.6)');
         });
         zone.addEventListener('mouseleave', () => {
             hideTimezoneInfo();
+            zone.setAttribute('fill', 'rgba(50, 50, 80, 0.4)');
         });
         
         // Agregar tooltip con ciudades
@@ -528,8 +589,11 @@ function initializeWorldMap() {
         svg.appendChild(zone);
     }
     
-    // Dibujar meridianos de referencia
+    // Dibujar meridianos de referencia más visibles
     drawMeridians(svg);
+    
+    // Dibujar países principales (simplificado)
+    drawMainCountries(svg);
     
     updateWorldMap();
 }
@@ -540,14 +604,75 @@ function drawMeridians(svg) {
         const x = ((lon + 180) / 360) * 1440;
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         line.setAttribute('x1', x);
-        line.setAttribute('y1', 0);
+        line.setAttribute('y1', '0');
         line.setAttribute('x2', x);
-        line.setAttribute('y2', 720);
-        line.setAttribute('stroke', 'rgba(255, 255, 255, 0.1)');
+        line.setAttribute('y2', '720');
+        line.setAttribute('stroke', 'rgba(255, 255, 255, 0.2)');
         line.setAttribute('stroke-width', '1');
         line.setAttribute('stroke-dasharray', '5,5');
         svg.appendChild(line);
     }
+}
+
+function drawMainCountries(svg) {
+    // Coordenadas aproximadas de países principales (longitud, latitud)
+    // Usando proyección equirectangular simple
+    const countries = [
+        { name: 'Argentina', lon: -65, lat: -35, color: 'rgba(116, 195, 101, 0.6)' },
+        { name: 'Brasil', lon: -55, lat: -15, color: 'rgba(116, 195, 101, 0.6)' },
+        { name: 'Chile', lon: -70, lat: -30, color: 'rgba(116, 195, 101, 0.6)' },
+        { name: 'México', lon: -100, lat: 23, color: 'rgba(116, 195, 101, 0.6)' },
+        { name: 'Estados Unidos', lon: -95, lat: 38, color: 'rgba(116, 195, 101, 0.6)' },
+        { name: 'España', lon: -3, lat: 40, color: 'rgba(116, 195, 101, 0.6)' },
+        { name: 'Francia', lon: 2, lat: 46, color: 'rgba(116, 195, 101, 0.6)' },
+        { name: 'Rusia', lon: 100, lat: 60, color: 'rgba(116, 195, 101, 0.6)' },
+        { name: 'China', lon: 105, lat: 35, color: 'rgba(116, 195, 101, 0.6)' },
+        { name: 'India', lon: 77, lat: 20, color: 'rgba(116, 195, 101, 0.6)' },
+        { name: 'Japón', lon: 138, lat: 36, color: 'rgba(116, 195, 101, 0.6)' },
+        { name: 'Australia', lon: 135, lat: -25, color: 'rgba(116, 195, 101, 0.6)' }
+    ];
+    
+    countries.forEach(country => {
+        // Convertir coordenadas a posición en el mapa
+        const x = ((country.lon + 180) / 360) * 1440;
+        const y = ((90 - country.lat) / 180) * 720;
+        
+        // Dibujar punto/círculo para el país
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', x);
+        circle.setAttribute('cy', y);
+        circle.setAttribute('r', '8');
+        circle.setAttribute('fill', country.color);
+        circle.setAttribute('stroke', 'rgba(255, 255, 255, 0.8)');
+        circle.setAttribute('stroke-width', '2');
+        circle.setAttribute('class', 'country-marker');
+        circle.setAttribute('data-country', country.name);
+        
+        // Agregar etiqueta de texto
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', x);
+        text.setAttribute('y', y - 15);
+        text.setAttribute('fill', 'rgba(255, 255, 255, 0.9)');
+        text.setAttribute('font-size', '12');
+        text.setAttribute('font-weight', '600');
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('class', 'country-label');
+        text.textContent = country.name;
+        
+        // Hacer Argentina más visible
+        if (country.name === 'Argentina') {
+            circle.setAttribute('r', '12');
+            circle.setAttribute('fill', 'rgba(116, 195, 101, 0.9)');
+            circle.setAttribute('stroke', 'rgba(255, 215, 0, 1)');
+            circle.setAttribute('stroke-width', '3');
+            text.setAttribute('font-size', '14');
+            text.setAttribute('fill', '#ffd700');
+            text.setAttribute('font-weight', '700');
+        }
+        
+        svg.appendChild(circle);
+        svg.appendChild(text);
+    });
 }
 
 function showTimezoneInfo(offset, event) {
