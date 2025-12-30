@@ -209,7 +209,7 @@ function initializeMapbox() {
         // Crear mapa con Highmaps (similar a 24timezones.com)
         state.highmapsChart = Highcharts.mapChart('highmapsPlanisphere', {
             chart: {
-                backgroundColor: '#0a0e27',
+                backgroundColor: 'transparent',
                 map: worldMap,
                 animation: false,
                 height: window.innerHeight,
@@ -232,14 +232,15 @@ function initializeMapbox() {
             plotOptions: {
                 map: {
                     allAreas: true,
-                    nullColor: '#3a4a6e',
-                    borderColor: 'rgba(255, 255, 255, 0.7)',
+                    nullColor: '#1a2a4e', // Color del océano
+                    borderColor: 'rgba(255, 255, 255, 0.8)', // Bordes más visibles
                     borderWidth: 2,
+                    color: '#5a7a9e', // Color de los países
                     states: {
                         hover: {
-                            color: '#6a8aae',
+                            color: '#7a9aae',
                             borderColor: 'rgba(255, 255, 255, 1)',
-                            brightness: 0.2
+                            brightness: 0.3
                         }
                     }
                 }
@@ -248,15 +249,15 @@ function initializeMapbox() {
                 name: 'World',
                 mapData: worldMap,
                 joinBy: null, // No unir con datos, solo mostrar el mapa
-                nullColor: '#2a3a5e',
-                borderColor: 'rgba(255, 255, 255, 0.6)',
-                borderWidth: 1.5,
-                color: '#4a5a7e',
+                nullColor: '#1a2a4e', // Color del océano (más oscuro)
+                borderColor: 'rgba(255, 255, 255, 0.8)', // Bordes más visibles
+                borderWidth: 2,
+                color: '#5a7a9e', // Color de los países (más claro para que se vean)
                 states: {
                     hover: {
-                        color: '#6a8aae',
-                        borderColor: 'rgba(255, 255, 255, 0.9)',
-                        brightness: 0.2
+                        color: '#7a9aae',
+                        borderColor: 'rgba(255, 255, 255, 1)',
+                        brightness: 0.3
                     }
                 },
                 dataLabels: {
