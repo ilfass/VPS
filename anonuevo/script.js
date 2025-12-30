@@ -107,6 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeVisualEffects();
     initializeBackgroundAudio();
     setupMouthSync(); // Configurar sincronización de boca
+    animatePresenterAvatar(); // Inicializar animación facial con IA
     initializeAIPresenter();
     initializeDynamicFeatures();
     initializeUserLocation();
@@ -1770,6 +1771,14 @@ function speakPresenterMessage(message) {
             if (mouthOverlay) {
                 mouthOverlay.classList.add('speaking');
             }
+            // Reiniciar animación facial si está pausada
+            if (!state.animationFrame && state.avatarCanvas) {
+                if (state.faceAnimationModel) {
+                    startFaceAnimation();
+                } else {
+                    startBasicFaceAnimation();
+                }
+            }
         };
         
         utterance.onend = () => {
@@ -1805,10 +1814,238 @@ function speakPresenterMessage(message) {
     }
 }
 
-function animatePresenterAvatar() {
-    // La imagen del usuario ya está cargada, no necesitamos animar ojos
-    // Solo mantener el pulso del avatar
-    console.log('✅ Avatar del presentador inicializado');
+async function animatePresenterAvatar() {
+    console.log('🎭 Inicializando animación facial con IA...');
+    
+    // Inicializar canvas para animación
+    const canvas = document.getElementById('avatarCanvas');
+    const image = document.getElementById('avatarImage');
+    
+    if (!canvas || !image) {
+        console.warn('⚠️ No se encontraron elementos del avatar');
+        return;
+    }
+    
+    state.avatarCanvas = canvas;
+    state.avatarCtx = canvas.getContext('2d');
+    canvas.width = 200;
+    canvas.height = 200;
+    
+    // Cargar imagen
+    state.faceImage = new Image();
+    state.faceImage.crossOrigin = 'anonymous';
+    
+    state.faceImage.onload = async () => {
+        console.log('✅ Imagen del presentador cargada');
+        
+        // Intentar cargar modelo de detección facial
+        try {
+            await initializeFaceAnimation();
+        } catch (error) {
+            console.warn('⚠️ No se pudo cargar modelo de IA, usando animación básica:', error);
+            initializeBasicFaceAnimation();
+        }
+    };
+    
+    state.faceImage.onerror = () => {
+        console.warn('⚠️ Error cargando imagen, usando animación básica');
+        initializeBasicFaceAnimation();
+    };
+    
+    state.faceImage.src = image.src;
+}
+
+async function initializeFaceAnimation() {
+    // Opción 1: Usar TensorFlow.js Face Landmarks Detection
+    try {
+        const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
+        const detectorConfig = {
+            runtime: 'mediapipe',
+            solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh',
+            refineLandmarks: true,
+            maxFaces: 1
+        };
+        
+        state.faceAnimationModel = await faceLandmarksDetection.createDetector(model, detectorConfig);
+        console.log('✅ Modelo de IA facial cargado (TensorFlow.js)');
+        
+        // Iniciar detección y animación
+        startFaceAnimation();
+    } catch (error) {
+        console.warn('⚠️ TensorFlow.js no disponible, usando animación alternativa:', error);
+        initializeBasicFaceAnimation();
+    }
+}
+
+function initializeBasicFaceAnimation() {
+    // Animación básica usando transformaciones CSS y canvas
+    console.log('✅ Usando animación facial básica');
+    startBasicFaceAnimation();
+}
+
+function startFaceAnimation() {
+    if (!state.avatarCanvas || !state.faceImage || !state.faceAnimationModel) {
+        initializeBasicFaceAnimation();
+        return;
+    }
+    
+    let lastTime = 0;
+    
+    const animate = async (currentTime) => {
+        if (currentTime - lastTime < 33) { // ~30 FPS
+            state.animationFrame = requestAnimationFrame(animate);
+            return;
+        }
+        lastTime = currentTime;
+        
+        const ctx = state.avatarCtx;
+        const canvas = state.avatarCanvas;
+        const img = state.faceImage;
+        
+        // Limpiar canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Detectar landmarks faciales
+        try {
+            const faces = await state.faceAnimationModel.estimateFaces(img, {
+                flipHorizontal: false,
+                staticImageMode: false
+            });
+            
+            if (faces.length > 0) {
+                const face = faces[0];
+                state.faceLandmarks = face.keypoints;
+                
+                // Dibujar cara con animación basada en landmarks
+                drawAnimatedFace(ctx, img, face);
+            } else {
+                // Si no detecta cara, dibujar imagen normal
+                drawStaticFace(ctx, img);
+            }
+        } catch (error) {
+            console.warn('Error en detección facial:', error);
+            drawStaticFace(ctx, img);
+        }
+        
+        state.animationFrame = requestAnimationFrame(animate);
+    };
+    
+    state.animationFrame = requestAnimationFrame(animate);
+}
+
+function startBasicFaceAnimation() {
+    if (!state.avatarCanvas || !state.faceImage) return;
+    
+    let lastTime = 0;
+    let mouthOpenness = 0;
+    let eyeBlink = 0;
+    let headTilt = 0;
+    
+    const animate = (currentTime) => {
+        if (currentTime - lastTime < 33) {
+            state.animationFrame = requestAnimationFrame(animate);
+            return;
+        }
+        lastTime = currentTime;
+        
+        const ctx = state.avatarCtx;
+        const canvas = state.avatarCanvas;
+        const img = state.faceImage;
+        
+        // Limpiar canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Calcular animaciones basadas en si está hablando
+        if (state.aiPresenterActive) {
+            // Animación de boca al hablar
+            mouthOpenness = 0.3 + Math.sin(currentTime / 100) * 0.2;
+            headTilt = Math.sin(currentTime / 500) * 2; // Movimiento sutil de cabeza
+        } else {
+            mouthOpenness = 0;
+            headTilt = 0;
+        }
+        
+        // Parpadeo ocasional
+        if (Math.random() > 0.98) {
+            eyeBlink = 0.3;
+        } else {
+            eyeBlink *= 0.9;
+        }
+        
+        // Dibujar cara con transformaciones
+        ctx.save();
+        
+        // Aplicar transformaciones
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(headTilt * Math.PI / 180);
+        ctx.scale(1 + mouthOpenness * 0.1, 1 + mouthOpenness * 0.05);
+        
+        // Dibujar imagen
+        ctx.drawImage(img, -canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
+        
+        // Aplicar efecto de parpadeo
+        if (eyeBlink > 0) {
+            ctx.fillStyle = `rgba(0, 0, 0, ${eyeBlink})`;
+            ctx.fillRect(-canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height / 3);
+        }
+        
+        ctx.restore();
+        
+        state.animationFrame = requestAnimationFrame(animate);
+    };
+    
+    state.animationFrame = requestAnimationFrame(animate);
+}
+
+function drawAnimatedFace(ctx, img, face) {
+    const canvas = state.avatarCanvas;
+    const landmarks = face.keypoints;
+    
+    // Encontrar puntos clave
+    const leftEye = landmarks.find(p => p.name === 'leftEye') || landmarks[33];
+    const rightEye = landmarks.find(p => p.name === 'rightEye') || landmarks[263];
+    const mouth = landmarks.find(p => p.name === 'mouth') || landmarks[13];
+    
+    // Calcular transformaciones basadas en landmarks
+    const eyeDistance = Math.abs(leftEye.x - rightEye.x);
+    const faceCenterX = (leftEye.x + rightEye.x) / 2;
+    const faceCenterY = (leftEye.y + rightEye.y) / 2;
+    
+    // Animación de boca si está hablando
+    let mouthScale = 1;
+    if (state.aiPresenterActive && mouth) {
+        mouthScale = 1 + Math.sin(Date.now() / 100) * 0.15;
+    }
+    
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    
+    // Escalar y posicionar
+    const scale = canvas.width / (eyeDistance * 2.5);
+    ctx.scale(scale, scale);
+    ctx.translate(-faceCenterX, -faceCenterY);
+    
+    // Dibujar imagen
+    ctx.drawImage(img, 0, 0, img.width, img.height);
+    
+    // Aplicar animación de boca
+    if (state.aiPresenterActive && mouth) {
+        ctx.save();
+        ctx.translate(mouth.x, mouth.y);
+        ctx.scale(mouthScale, mouthScale);
+        ctx.translate(-mouth.x, -mouth.y);
+        // Redibujar área de boca con escala
+        const mouthRegion = ctx.getImageData(mouth.x - 20, mouth.y - 10, 40, 20);
+        ctx.putImageData(mouthRegion, mouth.x - 20, mouth.y - 10);
+        ctx.restore();
+    }
+    
+    ctx.restore();
+}
+
+function drawStaticFace(ctx, img) {
+    const canvas = state.avatarCanvas;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 }
 
 function animateMouthWhileSpeaking(duration) {

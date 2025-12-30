@@ -1029,6 +1029,17 @@ body {
     border-radius: 50%;
 }
 
+.avatar-canvas {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    image-rendering: high-quality;
+}
+
 .avatar-mouth-overlay {
     position: absolute;
     bottom: 20%;

@@ -15,6 +15,13 @@
     <!-- Mapbox GL JS para el planisferio -->
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+    <!-- MediaPipe Face Mesh para animación facial -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
+    <!-- TensorFlow.js para animación facial avanzada -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
     <!-- D3.js para el mapa de husos horarios -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/topojson@3"></script>
@@ -176,7 +183,8 @@
             <div class="presenter-content">
                 <div class="presenter-avatar-container">
                     <div class="presenter-avatar" id="presenterAvatar">
-                        <img src="presenter-face.jpg" alt="Presentador" class="avatar-image" id="avatarImage">
+                        <canvas id="avatarCanvas" class="avatar-canvas"></canvas>
+                        <img src="presenter-face.jpg" alt="Presentador" class="avatar-image" id="avatarImage" style="display: none;">
                         <div class="avatar-mouth-overlay" id="avatarMouth">
                             <div class="mouth-shape"></div>
                         </div>
