@@ -170,22 +170,25 @@ function initializeMapbox() {
     }
     
     try {
+        // Verificar que el mapa esté disponible
+        if (!Highcharts.maps || !Highcharts.maps['custom/world']) {
+            console.error('❌ Mapa del mundo no disponible');
+            return;
+        }
+        
+        console.log('🗺️ Inicializando planisferio con Highmaps...');
+        console.log('📊 Datos del mapa disponibles:', Object.keys(Highcharts.maps));
+        
         // Crear mapa con Highmaps (similar a 24timezones.com)
         state.highmapsChart = Highcharts.mapChart('highmapsPlanisphere', {
             chart: {
                 backgroundColor: '#0a0e27',
-                map: 'custom/world',
+                map: Highcharts.maps['custom/world'],
                 animation: false,
                 height: window.innerHeight,
                 width: window.innerWidth,
                 spacing: [0, 0, 0, 0],
                 plotBackgroundColor: 'transparent'
-            },
-            plotOptions: {
-                map: {
-                    allAreas: true,
-                    joinBy: ['iso-a2', 'code']
-                }
             },
             title: {
                 text: ''
@@ -194,35 +197,46 @@ function initializeMapbox() {
                 enabled: false
             },
             colorAxis: {
-                min: 0,
-                max: 1,
-                stops: [
-                    [0, '#1a1a2e'], // Noche
-                    [0.5, '#2a3a5e'], // Amanecer/Atardecer
-                    [1, '#4a6a9e'] // Día
-                ]
+                enabled: false
             },
             legend: {
                 enabled: false
             },
+            plotOptions: {
+                map: {
+                    allAreas: true,
+                    nullColor: '#3a4a6e',
+                    borderColor: 'rgba(255, 255, 255, 0.7)',
+                    borderWidth: 2,
+                    states: {
+                        hover: {
+                            color: '#6a8aae',
+                            borderColor: 'rgba(255, 255, 255, 1)',
+                            brightness: 0.2
+                        }
+                    }
+                }
+            },
             series: [{
                 name: 'World',
                 mapData: Highcharts.maps['custom/world'],
-                data: [],
-                joinBy: ['iso-a2', 'code'],
-                nullColor: '#2a3a5e',
-                borderColor: 'rgba(255, 255, 255, 0.5)',
-                borderWidth: 1.5,
-                color: '#3a4a6e',
+                joinBy: null, // No unir con datos, solo mostrar el mapa
+                nullColor: '#4a5a7e',
+                borderColor: 'rgba(255, 255, 255, 0.7)',
+                borderWidth: 2,
+                color: '#5a6a8e',
                 states: {
                     hover: {
-                        color: '#5a7aae',
-                        borderColor: 'rgba(255, 255, 255, 0.8)',
-                        brightness: 0.1
+                        color: '#7a9aae',
+                        borderColor: 'rgba(255, 255, 255, 1)',
+                        brightness: 0.2
                     }
                 }
             }],
             credits: {
+                enabled: false
+            },
+            accessibility: {
                 enabled: false
             }
         });
