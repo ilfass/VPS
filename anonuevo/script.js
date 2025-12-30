@@ -148,7 +148,101 @@ function detectUserTimezone() {
 }
 
 // ============================================
-// GLOBO TERRÁQUEO 3D
+// MAPBOX PLANISFERIO
+// ============================================
+
+function initializeMapbox() {
+    // Configuración de Mapbox
+    // Nota: En producción, usa tu propia API key de Mapbox
+    // Puedes obtener una gratis en https://account.mapbox.com/
+    mapboxgl.accessToken = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw';
+    
+    const mapContainer = document.getElementById('mapboxGlobe');
+    if (!mapContainer) {
+        console.warn('⚠️ Contenedor de Mapbox no encontrado');
+        return;
+    }
+    
+    try {
+        // Crear mapa de Mapbox con vista de globo
+        state.mapboxMap = new mapboxgl.Map({
+            container: 'mapboxGlobe',
+            style: 'mapbox://styles/mapbox/dark-v11', // Estilo oscuro
+            projection: 'globe', // Proyección de globo 3D
+            center: [state.userLongitude || -65, state.userLatitude || -35], // Centrar en Argentina por defecto
+            zoom: 1.5,
+            pitch: 0,
+            bearing: 0
+        });
+        
+        // Cuando el mapa esté cargado
+        state.mapboxMap.on('load', () => {
+            console.log('✅ Mapbox cargado');
+            
+            // Configurar iluminación para mostrar día/noche
+            state.mapboxMap.setConfigProperty('light', 'anchor', 'viewport');
+            
+            // Centrar en ubicación del usuario si está disponible
+            if (state.userLongitude && state.userLatitude) {
+                state.mapboxMap.flyTo({
+                    center: [state.userLongitude, state.userLatitude],
+                    zoom: 2,
+                    duration: 2000
+                });
+            }
+            
+            // Actualizar rotación del globo basada en hora UTC
+            updateMapboxRotation();
+            setInterval(updateMapboxRotation, 1000);
+        });
+        
+        // Manejar errores
+        state.mapboxMap.on('error', (e) => {
+            console.warn('⚠️ Error de Mapbox, usando globo 3D como respaldo:', e);
+        });
+        
+    } catch (error) {
+        console.warn('⚠️ No se pudo inicializar Mapbox, usando globo 3D:', error);
+    }
+}
+
+function updateMapboxRotation() {
+    if (!state.mapboxMap) return;
+    
+    // Calcular rotación basada en hora UTC
+    const now = new Date();
+    const hours = now.getUTCHours();
+    const minutes = now.getUTCMinutes();
+    const seconds = now.getUTCSeconds();
+    
+    // Rotar el globo para mostrar la hora actual
+    // La Tierra rota 15 grados por hora
+    const rotationDegrees = (hours * 15) + (minutes * 0.25) + (seconds * 0.0041667);
+    
+    // Ajustar bearing para rotar el globo
+    state.mapboxMap.setBearing(rotationDegrees);
+    
+    // Actualizar iluminación para día/noche
+    const sunPosition = calculateSunPosition();
+    if (sunPosition) {
+        state.mapboxMap.setConfigProperty('light', 'position', sunPosition);
+    }
+}
+
+function calculateSunPosition() {
+    const now = new Date();
+    const hours = now.getUTCHours();
+    const minutes = now.getUTCMinutes();
+    
+    // Calcular posición del sol (simplificado)
+    const sunLongitude = (hours * 15 + minutes * 0.25) - 180;
+    const sunLatitude = 0; // El sol está en el ecuador
+    
+    return [sunLongitude, sunLatitude, 100];
+}
+
+// ============================================
+// GLOBO TERRÁQUEO 3D (RESPALDO)
 // ============================================
 
 function initializeGlobe() {
@@ -1578,33 +1672,80 @@ function initializeAIPresenter() {
     const presenterText = document.getElementById('presenterText');
     if (!presenterText) return;
     
+    // Animar avatar
+    animatePresenterAvatar();
+    
     // Empezar con el primer tema
-    presentTopic(0);
+    presentTopicWithAI(0);
     
     // Cambiar de tema cada cierto tiempo
     presenterInterval = setInterval(() => {
         currentTopicIndex = (currentTopicIndex + 1) % PRESENTER_TOPICS.length;
-        presentTopic(currentTopicIndex);
-    }, 45000); // Cambiar cada 45 segundos
+        presentTopicWithAI(currentTopicIndex);
+    }, 50000); // Cambiar cada 50 segundos
     
     console.log('🎙️ Presentador con IA inicializado');
 }
 
-function presentTopic(index) {
+async function presentTopicWithAI(index) {
     const topic = PRESENTER_TOPICS[index];
     const presenterText = document.getElementById('presenterText');
+    const presenterSubtitle = document.getElementById('presenterSubtitle');
     
     if (!presenterText || !topic) return;
     
-    // Actualizar texto con animación
-    presenterText.style.opacity = '0';
-    setTimeout(() => {
-        presenterText.textContent = topic.content;
-        presenterText.style.opacity = '1';
+    // Mostrar que está generando con IA
+    if (presenterSubtitle) {
+        presenterSubtitle.textContent = '🤖 Generando contenido con IA...';
+        presenterSubtitle.style.opacity = '1';
+    }
+    
+    // Generar contenido con IA basado en el contexto actual
+    const context = {
+        currentZone: state.currentZone,
+        nextZone: state.nextZone,
+        celebratedZones: state.celebratedZones ? state.celebratedZones.size : 0,
+        viewersCount: state.viewersCount,
+        countriesCount: state.countriesCount
+    };
+    
+    try {
+        const aiContent = await generateAIContent(context);
         
-        // Leer con voz
-        speakPresenterMessage(topic.content);
-    }, 300);
+        // Actualizar texto con animación
+        presenterText.style.opacity = '0';
+        setTimeout(() => {
+            presenterText.textContent = aiContent;
+            presenterText.style.opacity = '1';
+            
+            if (presenterSubtitle) {
+                presenterSubtitle.textContent = `📝 ${topic.title}`;
+            }
+            
+            // Leer con voz mejorada
+            speakPresenterMessage(aiContent);
+            
+            // Animar boca mientras habla
+            animateMouthWhileSpeaking(aiContent.length * 50); // Duración aproximada
+        }, 300);
+        
+    } catch (error) {
+        console.error('Error generando contenido con IA:', error);
+        // Fallback a contenido predefinido
+        const fallbackContent = getFallbackContent(topic.category);
+        presenterText.textContent = fallbackContent;
+        speakPresenterMessage(fallbackContent);
+    }
+}
+
+function getFallbackContent(category) {
+    const fallbacks = {
+        welcome: '¡Bienvenidos al rastreador global del Año Nuevo! Estamos aquí para seguir juntos el avance de las celebraciones alrededor del mundo.',
+        traditions: 'Cada país tiene sus propias tradiciones fascinantes para celebrar el Año Nuevo. Desde las 12 uvas en España hasta los templos en Japón.',
+        progress: `Ya hemos visto ${state.celebratedZones ? state.celebratedZones.size : 0} zonas horarias celebrar. La próxima zona en celebrar es ${state.nextZone || 'próximamente'}.`,
+        reflection: 'El Año Nuevo es un momento de reflexión, esperanza y nuevos comienzos. Es una oportunidad para dejar atrás lo viejo y abrazar lo nuevo.'
+    };
+    return fallbacks[category] || fallbacks.welcome;
 }
 
 function speakPresenterMessage(message) {
@@ -1613,22 +1754,72 @@ function speakPresenterMessage(message) {
         
         const utterance = new SpeechSynthesisUtterance(message);
         utterance.lang = 'es-ES';
-        utterance.rate = 0.85; // Velocidad más lenta para presentador
-        utterance.pitch = 1.1; // Tono ligeramente más alto
-        utterance.volume = 0.9;
+        utterance.rate = 0.9; // Velocidad natural
+        utterance.pitch = 1.0; // Tono natural
+        utterance.volume = 0.95;
         
+        // Buscar la mejor voz en español
         const voices = window.speechSynthesis.getVoices();
-        const spanishVoice = voices.find(voice => 
+        let bestVoice = voices.find(voice => 
+            voice.lang.startsWith('es') && (voice.name.includes('Neural') || voice.name.includes('Premium'))
+        ) || voices.find(voice => 
             voice.lang.startsWith('es') && voice.name.includes('Female')
         ) || voices.find(voice => voice.lang.startsWith('es'));
         
-        if (spanishVoice) {
-            utterance.voice = spanishVoice;
+        if (bestVoice) {
+            utterance.voice = bestVoice;
         }
+        
+        // Eventos para animar el avatar
+        utterance.onstart = () => {
+            state.aiPresenterActive = true;
+            animateMouthWhileSpeaking(message.length * 50);
+        };
+        
+        utterance.onend = () => {
+            state.aiPresenterActive = false;
+            stopMouthAnimation();
+        };
         
         window.speechSynthesis.speak(utterance);
         
         console.log('🎙️ Presentador habla:', message.substring(0, 50) + '...');
+    }
+}
+
+function animatePresenterAvatar() {
+    const avatar = document.getElementById('presenterAvatar');
+    if (!avatar) return;
+    
+    // Animación de parpadeo
+    setInterval(() => {
+        if (!state.aiPresenterActive) {
+            const eyes = avatar.querySelectorAll('.eye');
+            eyes.forEach(eye => {
+                eye.style.animation = 'blink 0.3s';
+                setTimeout(() => {
+                    eye.style.animation = '';
+                }, 300);
+            });
+        }
+    }, 3000);
+}
+
+function animateMouthWhileSpeaking(duration) {
+    const mouth = document.querySelector('.avatar-mouth');
+    if (!mouth) return;
+    
+    mouth.style.animation = 'mouth-speak 0.3s ease-in-out infinite';
+    
+    setTimeout(() => {
+        stopMouthAnimation();
+    }, duration);
+}
+
+function stopMouthAnimation() {
+    const mouth = document.querySelector('.avatar-mouth');
+    if (mouth) {
+        mouth.style.animation = '';
     }
 }
 
