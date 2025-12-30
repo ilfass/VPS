@@ -81,7 +81,8 @@ const state = {
     lastMessageChange: null,
     lastHourlyBanner: null,
     currentMessageIndex: 0,
-    sunLight: null
+    mapDuplicated: false,
+    highlightedCountries: new Set()
 };
 
 // ============================================
