@@ -79,6 +79,8 @@ const state = {
     countriesCount: 47,
     dynamicMessages: [],
     lastMessageChange: null,
+    lastHourlyBanner: null,
+    currentMessageIndex: 0,
     sunLight: null
 };
 
@@ -369,11 +371,20 @@ function animateGlobe() {
     const rotationRadians = (rotationDegrees * Math.PI) / 180;
     
     // Si tenemos la ubicación del usuario, mantener el globo centrado en su posición
-    if (state.userLongitude !== null) {
-        const userLongitudeRad = (state.userLongitude * Math.PI) / 180;
+    if (state.userLongitude !== null && state.userLongitudeRad !== undefined) {
         // Rotar el globo para mantener la ubicación del usuario centrada
         // Compensar la rotación de la Tierra
-        state.globeMesh.rotation.y = -userLongitudeRad + rotationRadians;
+        state.globeMesh.rotation.y = -state.userLongitudeRad + rotationRadians;
+        
+        // Mantener la cámara centrada en el usuario
+        if (state.globeCamera && state.userLatitudeRad !== undefined) {
+            const cameraDistance = 2.8;
+            const cameraHeight = Math.sin(state.userLatitudeRad) * 0.5;
+            const cameraX = Math.sin(state.userLongitudeRad) * cameraDistance * 0.5;
+            const cameraZ = Math.cos(state.userLongitudeRad) * cameraDistance;
+            state.globeCamera.position.set(cameraX, cameraHeight, cameraZ);
+            state.globeCamera.lookAt(0, 0, 0);
+        }
     } else {
         // Rotación normal sin centrar en usuario
         state.globeMesh.rotation.y = rotationRadians;
@@ -1089,6 +1100,115 @@ function updateGlobalCountdown() {
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
     
     countdownEl.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+// ============================================
+// CARTEL DE HORA EN PUNTO
+// ============================================
+
+function initializeHourlyBanner() {
+    checkHourlyBanner();
+}
+
+function checkHourlyBanner() {
+    const now = new Date();
+    const minutes = now.getMinutes();
+    const hours = now.getHours();
+    
+    // Mostrar cada hora en punto (minutos === 0)
+    if (minutes === 0 && state.lastHourlyBanner !== hours) {
+        showHourlyBanner();
+        state.lastHourlyBanner = hours;
+    }
+}
+
+function showHourlyBanner() {
+    const banner = document.getElementById('hourlyBanner');
+    const subtext = document.getElementById('hourlyBannerSubtext');
+    if (!banner || !subtext) return;
+    
+    // Calcular tiempo restante
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const newYearDate = new Date(currentYear + 1, 0, 1, 0, 0, 0, 0);
+    const firstNewYearUTC = new Date(newYearDate.getTime() - (14 * 60 * 60 * 1000));
+    const diff = firstNewYearUTC - now;
+    
+    const hoursLeft = Math.floor(diff / (1000 * 60 * 60));
+    const daysLeft = Math.floor(hoursLeft / 24);
+    
+    subtext.textContent = `Faltan ${daysLeft} días y ${hoursLeft % 24} horas`;
+    
+    // Mostrar banner
+    banner.classList.add('show');
+    
+    // Leer mensaje con voz
+    const message = `¡Ya falta menos! Faltan ${daysLeft} días y ${hoursLeft % 24} horas para el Año Nuevo`;
+    setTimeout(() => speakMessage(message), 500);
+    
+    // Ocultar después de 5 segundos
+    setTimeout(() => {
+        banner.classList.remove('show');
+    }, 5000);
+}
+
+// ============================================
+// LÍNEA DE TIEMPO
+// ============================================
+
+function initializeTimeline() {
+    const now = new Date();
+    const startDate = document.getElementById('timelineStartDate');
+    if (startDate) {
+        const dateStr = now.toLocaleDateString('es-ES', { 
+            day: 'numeric', 
+            month: 'long', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        startDate.textContent = dateStr;
+    }
+    
+    updateTimeline();
+    setInterval(updateTimeline, 1000);
+}
+
+function updateTimeline() {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const startOfYear = new Date(currentYear, 0, 1, 0, 0, 0, 0);
+    const endOfYear = new Date(2026, 0, 1, 0, 0, 0, 0);
+    
+    const totalTime = endOfYear - startOfYear;
+    const elapsedTime = now - startOfYear;
+    const progress = Math.min(100, (elapsedTime / totalTime) * 100);
+    
+    const person = document.getElementById('timelinePerson');
+    const progressBar = document.getElementById('timelineProgress');
+    
+    if (person && progressBar) {
+        // Posicionar personita
+        person.style.left = `${progress}%`;
+        
+        // Actualizar barra de progreso
+        progressBar.style.width = `${progress}%`;
+        
+        // Hacer la personita más grande a medida que avanza
+        const scale = 1 + (progress / 100) * 0.5; // Crece hasta 1.5x
+        person.style.transform = `translateX(-50%) scale(${scale})`;
+        
+        // Cambiar emoji según el progreso
+        if (progress < 25) {
+            person.querySelector('.person-emoji').textContent = '🚶';
+        } else if (progress < 50) {
+            person.querySelector('.person-emoji').textContent = '🏃';
+        } else if (progress < 75) {
+            person.querySelector('.person-emoji').textContent = '🚀';
+        } else {
+            person.querySelector('.person-emoji').textContent = '🎆';
+        }
+    }
 }
 
 // ============================================
