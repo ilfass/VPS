@@ -282,14 +282,19 @@ function initializeMapbox() {
         });
         
         // Actualizar día/noche, línea de medianoche y rotación del mapa
-        updateHighmapsDayNight();
-        updateMidnightLine();
-        updateMapRotation();
-        setInterval(() => {
+        // Esperar un momento para que el mapa se renderice completamente
+        setTimeout(() => {
             updateHighmapsDayNight();
             updateMidnightLine();
             updateMapRotation();
-        }, 1000);
+            setInterval(() => {
+                if (state.highmapsChart) {
+                    updateHighmapsDayNight();
+                    updateMidnightLine();
+                    updateMapRotation();
+                }
+            }, 1000);
+        }, 500);
         
     } catch (error) {
         console.warn('⚠️ No se pudo inicializar Highmaps:', error);
