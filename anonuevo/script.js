@@ -108,6 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
     animatePresenterAvatar(); // Inicializar animación facial con IA
     initializeAIPresenter();
     initializeDynamicFeatures();
+    initializeTimeline(); // Inicializar línea de tiempo con 365 días
     // initializeUserLocation(); // Función no implementada aún
     
     // Actualizar cada segundo
