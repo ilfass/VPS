@@ -333,13 +333,12 @@ body {
     line-height: 1.4;
 }
 
-/* Panel de Cámaras Web */
-.webcams-panel {
+/* Panel de Estadísticas Dinámicas */
+.dynamic-stats-panel {
     position: absolute;
     top: 20px;
     right: 20px;
-    width: 400px;
-    max-height: 600px;
+    width: 320px;
     background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(10px);
     border-radius: 20px;
@@ -347,6 +346,129 @@ body {
     border: 2px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     z-index: 15;
+}
+
+.dynamic-stats-header {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.dynamic-stats-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.dynamic-stats-content {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.dynamic-stat-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    transition: transform 0.3s, background 0.3s;
+}
+
+.dynamic-stat-item:hover {
+    transform: translateX(5px);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.dynamic-stat-icon {
+    font-size: 32px;
+    width: 50px;
+    text-align: center;
+}
+
+.dynamic-stat-info {
+    flex: 1;
+}
+
+.dynamic-stat-label {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 5px;
+}
+
+.dynamic-stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #60a5fa;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Mensajes Dinámicos */
+.dynamic-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+    pointer-events: none;
+    max-width: 80%;
+    text-align: center;
+}
+
+.dynamic-message-content {
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 20px 40px;
+    border: 2px solid rgba(255, 215, 0, 0.5);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+    font-size: 24px;
+    font-weight: 600;
+    color: #ffd700;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    transition: opacity 0.3s;
+    animation: pulse 3s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 8px 32px rgba(255, 215, 0, 0.3);
+    }
+}
+
+/* Contador Global */
+.global-countdown {
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    text-align: center;
+    border: 2px solid rgba(255, 107, 107, 0.3);
+}
+
+.global-countdown-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+}
+
+.global-countdown-value {
+    font-size: 36px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #ff6b6b;
+    text-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+    letter-spacing: 2px;
 }
 
 .webcams-header {
@@ -725,15 +847,15 @@ body {
         left: 20px;
     }
 
-    .webcams-panel {
+    .dynamic-stats-panel {
         width: calc(100% - 40px);
         right: 20px;
         left: 20px;
-        max-height: 400px;
     }
 
-    .webcams-grid {
-        grid-template-columns: 1fr;
+    .dynamic-message-content {
+        font-size: 18px;
+        padding: 15px 25px;
     }
 
     .countdown-value {

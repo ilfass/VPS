@@ -72,6 +72,13 @@ const state = {
     globeMesh: null,
     celebrationLights: [],
     sunLight: null,
+    userLocation: null,
+    userLatitude: null,
+    userLongitude: null,
+    viewersCount: 1234,
+    countriesCount: 47,
+    dynamicMessages: [],
+    lastMessageChange: null,
     sunLight: null
 };
 
@@ -95,7 +102,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeVisualEffects();
     initializeBackgroundAudio();
     initializeYouTubeChat();
-    initializeWebcams();
+    initializeDynamicFeatures();
+    initializeUserLocation();
     
     // Actualizar cada segundo
     setInterval(updateAll, 1000);
@@ -341,8 +349,6 @@ function animateGlobe() {
     if (!state.globeMesh || !state.globeRenderer || !state.globeScene || !state.globeCamera) return;
     
     // Calcular rotación real de la Tierra
-    // La Tierra rota 360 grados en 24 horas = 15 grados por hora = 0.0041667 grados por segundo
-    // Pero queremos que sea más visible, así que usaremos una velocidad proporcional
     const now = new Date();
     const hours = now.getUTCHours();
     const minutes = now.getUTCMinutes();
@@ -350,28 +356,32 @@ function animateGlobe() {
     
     // Calcular rotación basada en la hora UTC real
     // La Tierra rota 15 grados por hora UTC
-    // 0° UTC = meridiano de Greenwich está en el frente
     const rotationDegrees = (hours * 15) + (minutes * 0.25) + (seconds * 0.0041667);
     const rotationRadians = (rotationDegrees * Math.PI) / 180;
     
-    // Rotar el globo para que el meridiano de Greenwich esté en la posición correcta
-    // Ajustar para que el mapa se vea correctamente orientado
-    state.globeMesh.rotation.y = rotationRadians;
+    // Si tenemos la ubicación del usuario, mantener el globo centrado en su posición
+    if (state.userLongitude !== null) {
+        const userLongitudeRad = (state.userLongitude * Math.PI) / 180;
+        // Rotar el globo para mantener la ubicación del usuario centrada
+        // Compensar la rotación de la Tierra
+        state.globeMesh.rotation.y = -userLongitudeRad + rotationRadians;
+    } else {
+        // Rotación normal sin centrar en usuario
+        state.globeMesh.rotation.y = rotationRadians;
+    }
     
     // Calcular posición del sol para día/noche
-    // El sol está en el lado opuesto al meridiano de Greenwich + hora UTC
-    const sunLongitude = (hours * 15 + minutes * 0.25) - 180; // Sol en el lado opuesto
+    const sunLongitude = (hours * 15 + minutes * 0.25) - 180;
     const sunLongitudeRad = (sunLongitude * Math.PI) / 180;
     
     // Actualizar posición de la luz del sol
     if (state.globeScene.children) {
         state.globeScene.children.forEach(child => {
             if (child.type === 'DirectionalLight' && child.castShadow) {
-                // Posicionar el sol basado en la hora UTC real
                 const sunX = Math.sin(sunLongitudeRad) * 5;
                 const sunZ = Math.cos(sunLongitudeRad) * 5;
                 child.position.set(sunX, 2, sunZ);
-                child.lookAt(0, 0, 0); // El sol siempre mira al centro de la Tierra
+                child.lookAt(0, 0, 0);
             }
         });
     }
@@ -936,138 +946,140 @@ function initializeBackgroundAudio() {
 }
 
 // ============================================
-// CÁMARAS WEB EN VIVO
+// FUNCIONES DINÁMICAS Y DIVERTIDAS
 // ============================================
 
-function initializeWebcams() {
-    const webcamsGrid = document.getElementById('webcamsGrid');
-    if (!webcamsGrid) return;
+function initializeDynamicFeatures() {
+    // Inicializar mensajes dinámicos
+    initializeDynamicMessages();
     
-    // Verificar si WEBCAMS está disponible
-    if (typeof WEBCAMS === 'undefined') {
-        console.warn('⚠️ WEBCAMS no está disponible. Cargando datos por defecto...');
-        loadDefaultWebcams();
+    // Inicializar estadísticas dinámicas
+    initializeDynamicStats();
+    
+    // Inicializar contador global
+    initializeGlobalCountdown();
+    
+    // Cambiar mensaje cada 30 segundos
+    setInterval(updateDynamicMessage, 30000);
+    
+    // Actualizar estadísticas cada 5 segundos
+    setInterval(updateDynamicStats, 5000);
+    
+    // Actualizar contador global cada segundo
+    setInterval(updateGlobalCountdown, 1000);
+    
+    console.log('✨ Funciones dinámicas inicializadas');
+}
+
+function initializeDynamicMessages() {
+    state.dynamicMessages = [
+        '🎆 ¡Bienvenido al rastreador global del Año Nuevo!',
+        '🌍 Sigue el avance del Año Nuevo alrededor del mundo',
+        '⏰ Cada hora, una nueva región celebra',
+        '🎊 ¡Mira cómo el mundo se ilumina zona por zona!',
+        '🌐 Conectado con personas de todo el planeta',
+        '🎉 El Año Nuevo está llegando... ¿estás listo?',
+        '✨ Cada segundo cuenta hacia la celebración',
+        '🌟 Únete a la celebración global más grande',
+        '🎈 El tiempo vuela cuando te diviertes',
+        '🎪 ¡No te pierdas ni un momento de la fiesta!',
+        '🎁 Cada zona horaria trae nuevas sorpresas',
+        '🎨 El mundo se pinta de colores festivos',
+        '🎵 La música del Año Nuevo resuena por todas partes',
+        '🎭 Cada cultura celebra a su manera',
+        '🎯 Estamos todos juntos en este momento especial',
+        '🎪 La fiesta nunca termina, solo se mueve',
+        '🎊 ¡Mira cómo crece la celebración!',
+        '🎉 Cada minuto, más personas se unen',
+        '🌟 El espíritu del Año Nuevo está en el aire',
+        '🎈 ¡Comparte este momento con el mundo!'
+    ];
+    
+    state.lastMessageChange = Date.now();
+    updateDynamicMessage();
+}
+
+function updateDynamicMessage() {
+    const messageEl = document.getElementById('dynamicMessageText');
+    if (!messageEl || state.dynamicMessages.length === 0) return;
+    
+    // Seleccionar mensaje aleatorio
+    const randomIndex = Math.floor(Math.random() * state.dynamicMessages.length);
+    const newMessage = state.dynamicMessages[randomIndex];
+    
+    // Animación de fade
+    messageEl.style.opacity = '0';
+    setTimeout(() => {
+        messageEl.textContent = newMessage;
+        messageEl.style.opacity = '1';
+    }, 300);
+}
+
+function initializeDynamicStats() {
+    // Simular estadísticas dinámicas (en producción, esto vendría de un servidor)
+    updateDynamicStats();
+}
+
+function updateDynamicStats() {
+    // Simular variación en el número de espectadores
+    const baseViewers = 1234;
+    const variation = Math.floor(Math.random() * 200) - 100;
+    state.viewersCount = Math.max(100, baseViewers + variation);
+    
+    // Simular variación en países
+    const baseCountries = 47;
+    const countryVariation = Math.floor(Math.random() * 10) - 5;
+    state.countriesCount = Math.max(20, baseCountries + countryVariation);
+    
+    // Actualizar UI
+    const viewersEl = document.getElementById('viewersCount');
+    if (viewersEl) {
+        viewersEl.textContent = state.viewersCount.toLocaleString();
+    }
+    
+    const countriesEl = document.getElementById('countriesCount');
+    if (countriesEl) {
+        countriesEl.textContent = state.countriesCount;
+    }
+    
+    // Calcular tiempo promedio (simulado)
+    const avgTimeEl = document.getElementById('avgTime');
+    if (avgTimeEl) {
+        const minutes = Math.floor(Math.random() * 30) + 5;
+        const seconds = Math.floor(Math.random() * 60);
+        avgTimeEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+}
+
+function initializeGlobalCountdown() {
+    updateGlobalCountdown();
+}
+
+function updateGlobalCountdown() {
+    const countdownEl = document.getElementById('globalCountdown');
+    if (!countdownEl) return;
+    
+    // Calcular tiempo hasta el primer Año Nuevo (UTC+14)
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const newYearDate = new Date(currentYear + 1, 0, 1, 0, 0, 0, 0); // 1 de enero del próximo año
+    
+    // Ajustar para UTC+14 (el primer lugar en celebrar)
+    // UTC+14 está 14 horas adelante, así que el Año Nuevo llega 14 horas antes en UTC
+    const firstNewYearUTC = new Date(newYearDate.getTime() - (14 * 60 * 60 * 1000));
+    
+    const diff = firstNewYearUTC - now;
+    
+    if (diff <= 0) {
+        countdownEl.textContent = '00:00:00';
         return;
     }
     
-    // Crear grid de cámaras
-    WEBCAMS.forEach((webcam, index) => {
-        const webcamCard = createWebcamCard(webcam, index);
-        webcamsGrid.appendChild(webcamCard);
-    });
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
     
-    // Toggle para mostrar/ocultar panel
-    const toggle = document.getElementById('webcamsToggle');
-    if (toggle) {
-        toggle.addEventListener('click', () => {
-            const grid = document.getElementById('webcamsGrid');
-            if (grid.style.display === 'none') {
-                grid.style.display = 'grid';
-                toggle.textContent = '▼';
-            } else {
-                grid.style.display = 'none';
-                toggle.textContent = '▶';
-            }
-        });
-    }
-    
-    console.log(`📹 ${WEBCAMS.length} cámaras web cargadas`);
-}
-
-function loadDefaultWebcams() {
-    // Cámaras por defecto si no se puede cargar el archivo
-    const defaultWebcams = [
-        { id: 'times-square', name: 'Times Square, New York', timezone: -5, city: 'New York', country: 'USA' },
-        { id: 'london', name: 'London, UK', timezone: 0, city: 'London', country: 'UK' },
-        { id: 'tokyo', name: 'Tokyo, Japan', timezone: 9, city: 'Tokyo', country: 'Japan' },
-        { id: 'sydney', name: 'Sydney, Australia', timezone: 10, city: 'Sydney', country: 'Australia' }
-    ];
-    
-    const webcamsGrid = document.getElementById('webcamsGrid');
-    defaultWebcams.forEach((webcam, index) => {
-        const webcamCard = createWebcamCard(webcam, index);
-        webcamsGrid.appendChild(webcamCard);
-    });
-}
-
-function createWebcamLink(webcam) {
-    return `
-        <a href="${webcam.url}" target="_blank" rel="noopener noreferrer" class="webcam-link">
-            <div class="webcam-placeholder">
-                <div class="webcam-placeholder-icon">📹</div>
-                <div class="webcam-placeholder-text">Ver cámara en vivo</div>
-                <div class="webcam-placeholder-subtext">${webcam.city}, ${webcam.country}</div>
-            </div>
-        </a>
-    `;
-}
-
-function createWebcamCard(webcam, index) {
-    const card = document.createElement('div');
-    card.className = 'webcam-card';
-    card.setAttribute('data-timezone', webcam.timezone);
-    
-    // Calcular hora local de la cámara
-    const now = new Date();
-    const localTime = new Date(now.getTime() + (webcam.timezone * 60 * 60 * 1000));
-    const hours = String(localTime.getUTCHours()).padStart(2, '0');
-    const minutes = String(localTime.getUTCMinutes()).padStart(2, '0');
-    
-    // Crear contenido de la cámara según el tipo
-    let webcamContent = '';
-    if (webcam.type === 'iframe' && webcam.embed && webcam.embed.startsWith('https://')) {
-        // Intentar usar iframe solo si el embed está disponible y es HTTPS
-        webcamContent = `
-            <iframe 
-                src="${webcam.embed}" 
-                frameborder="0" 
-                allowfullscreen
-                loading="lazy"
-                allow="autoplay; fullscreen; camera; microphone"
-                title="${webcam.name}"
-                sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-                onerror="this.parentElement.innerHTML='<div class=\\'webcam-placeholder\\'><div class=\\'webcam-placeholder-icon\\'>📹</div><div class=\\'webcam-placeholder-text\\'>Cámara no disponible</div></div>'">
-            </iframe>
-        `;
-    } else if (webcam.url) {
-        // Usar enlace directo (más confiable que iframes, evita problemas de CORS y Mixed Content)
-        webcamContent = createWebcamLink(webcam);
-    } else {
-        webcamContent = `
-            <div class="webcam-placeholder">
-                <div class="webcam-placeholder-icon">📹</div>
-                <div class="webcam-placeholder-text">Cámara no disponible</div>
-            </div>
-        `;
-    }
-    
-    card.innerHTML = `
-        <div class="webcam-header">
-            <h3>${webcam.name}</h3>
-            <div class="webcam-time">${hours}:${minutes}</div>
-        </div>
-        <div class="webcam-container">
-            ${webcamContent}
-        </div>
-        <div class="webcam-footer">
-            <span class="webcam-location">📍 ${webcam.city}, ${webcam.country}</span>
-            <span class="webcam-timezone">UTC${webcam.timezone >= 0 ? '+' : ''}${webcam.timezone}</span>
-        </div>
-    `;
-    
-    // Actualizar hora cada minuto
-    setInterval(() => {
-        const now = new Date();
-        const localTime = new Date(now.getTime() + (webcam.timezone * 60 * 60 * 1000));
-        const hours = String(localTime.getUTCHours()).padStart(2, '0');
-        const minutes = String(localTime.getUTCMinutes()).padStart(2, '0');
-        const timeEl = card.querySelector('.webcam-time');
-        if (timeEl) {
-            timeEl.textContent = `${hours}:${minutes}`;
-        }
-    }, 60000);
-    
-    return card;
+    countdownEl.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 // ============================================

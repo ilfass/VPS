@@ -97,16 +97,48 @@
                     <div class="stat-value" id="nextZone">UTC+14</div>
                 </div>
             </div>
+
+            <!-- Contador de Tiempo Restante Global -->
+            <div class="global-countdown">
+                <div class="global-countdown-label">⏰ Tiempo hasta el primer Año Nuevo</div>
+                <div class="global-countdown-value" id="globalCountdown">00:00:00</div>
+            </div>
         </div>
 
-        <!-- Panel de Cámaras Web en Vivo -->
-        <div class="webcams-panel" id="webcamsPanel">
-            <div class="webcams-header">
-                <h2>📹 Cámaras en Vivo del Mundo</h2>
-                <button class="webcams-toggle" id="webcamsToggle">▼</button>
+        <!-- Panel de Estadísticas Dinámicas -->
+        <div class="dynamic-stats-panel" id="dynamicStatsPanel">
+            <div class="dynamic-stats-header">
+                <h2>🌍 Estadísticas en Vivo</h2>
             </div>
-            <div class="webcams-grid" id="webcamsGrid">
-                <!-- Las cámaras web se cargarán dinámicamente -->
+            <div class="dynamic-stats-content">
+                <div class="dynamic-stat-item">
+                    <div class="dynamic-stat-icon">👥</div>
+                    <div class="dynamic-stat-info">
+                        <div class="dynamic-stat-label">Personas viendo</div>
+                        <div class="dynamic-stat-value" id="viewersCount">1,234</div>
+                    </div>
+                </div>
+                <div class="dynamic-stat-item">
+                    <div class="dynamic-stat-icon">⏱️</div>
+                    <div class="dynamic-stat-info">
+                        <div class="dynamic-stat-label">Tiempo promedio</div>
+                        <div class="dynamic-stat-value" id="avgTime">12:34</div>
+                    </div>
+                </div>
+                <div class="dynamic-stat-item">
+                    <div class="dynamic-stat-icon">🌐</div>
+                    <div class="dynamic-stat-info">
+                        <div class="dynamic-stat-label">Países conectados</div>
+                        <div class="dynamic-stat-value" id="countriesCount">47</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mensajes Dinámicos Motivacionales -->
+        <div class="dynamic-message" id="dynamicMessage">
+            <div class="dynamic-message-content" id="dynamicMessageText">
+                ¡Bienvenido al rastreador global del Año Nuevo!
             </div>
         </div>
 
