@@ -106,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeVoiceSystem();
     initializeVisualEffects();
     initializeBackgroundAudio();
+    setupMouthSync(); // Configurar sincronización de boca
     initializeAIPresenter();
     initializeDynamicFeatures();
     initializeUserLocation();
@@ -1805,38 +1806,59 @@ function speakPresenterMessage(message) {
 }
 
 function animatePresenterAvatar() {
-    const avatar = document.getElementById('presenterAvatar');
-    if (!avatar) return;
-    
-    // Animación de parpadeo
-    setInterval(() => {
-        if (!state.aiPresenterActive) {
-            const eyes = avatar.querySelectorAll('.eye');
-            eyes.forEach(eye => {
-                eye.style.animation = 'blink 0.3s';
-                setTimeout(() => {
-                    eye.style.animation = '';
-                }, 300);
-            });
-        }
-    }, 3000);
+    // La imagen del usuario ya está cargada, no necesitamos animar ojos
+    // Solo mantener el pulso del avatar
+    console.log('✅ Avatar del presentador inicializado');
 }
 
 function animateMouthWhileSpeaking(duration) {
-    const mouth = document.querySelector('.avatar-mouth');
-    if (!mouth) return;
+    const mouthOverlay = document.getElementById('avatarMouth');
+    if (!mouthOverlay) return;
     
-    mouth.style.animation = 'mouth-speak 0.3s ease-in-out infinite';
+    // Activar animación de boca
+    mouthOverlay.classList.add('speaking');
     
+    // Detener después de la duración
     setTimeout(() => {
         stopMouthAnimation();
     }, duration);
 }
 
 function stopMouthAnimation() {
-    const mouth = document.querySelector('.avatar-mouth');
-    if (mouth) {
-        mouth.style.animation = '';
+    const mouthOverlay = document.getElementById('avatarMouth');
+    if (mouthOverlay) {
+        mouthOverlay.classList.remove('speaking');
+    }
+}
+
+// Sincronizar boca con eventos de speech
+function setupMouthSync() {
+    if ('speechSynthesis' in window) {
+        // Interceptar eventos de speech para sincronización más precisa
+        const originalSpeak = window.speechSynthesis.speak.bind(window.speechSynthesis);
+        window.speechSynthesis.speak = function(utterance) {
+            const mouthOverlay = document.getElementById('avatarMouth');
+            
+            utterance.onstart = function() {
+                if (mouthOverlay) {
+                    mouthOverlay.classList.add('speaking');
+                }
+            };
+            
+            utterance.onend = function() {
+                if (mouthOverlay) {
+                    mouthOverlay.classList.remove('speaking');
+                }
+            };
+            
+            utterance.onerror = function() {
+                if (mouthOverlay) {
+                    mouthOverlay.classList.remove('speaking');
+                }
+            };
+            
+            return originalSpeak(utterance);
+        };
     }
 }
 
