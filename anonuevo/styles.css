@@ -12,7 +12,7 @@ body {
     position: relative;
 }
 
-/* Planisferio con Mapbox */
+/* Planisferio con Highmaps */
 .globe-container {
     position: fixed;
     top: 0;
@@ -24,7 +24,7 @@ body {
     overflow: hidden;
 }
 
-.mapbox-globe {
+.highmaps-planisphere {
     position: absolute;
     top: 0;
     left: 0;
@@ -33,7 +33,7 @@ body {
     z-index: 1;
 }
 
-.mapbox-globe .mapboxgl-canvas {
+.highmaps-planisphere svg {
     width: 100% !important;
     height: 100% !important;
 }

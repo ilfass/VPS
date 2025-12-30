@@ -12,9 +12,10 @@
     <link rel="stylesheet" href="styles.css">
     <!-- Three.js para el globo terráqueo 3D -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- Mapbox GL JS para el planisferio -->
-    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
-    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+    <!-- Highmaps para el planisferio (como 24timezones.com) -->
+    <script src="https://code.highcharts.com/maps/highmaps.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/mapdata/custom/world.js"></script>
     <!-- MediaPipe Face Mesh para animación facial -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
@@ -27,9 +28,9 @@
     <script src="https://cdn.jsdelivr.net/npm/topojson@3"></script>
 </head>
 <body>
-    <!-- Planisferio con Mapbox -->
+    <!-- Planisferio con Highmaps -->
     <div class="globe-container" id="globeContainer">
-        <div id="mapboxGlobe" class="mapbox-globe"></div>
+        <div id="highmapsPlanisphere" class="highmaps-planisphere"></div>
         <!-- Línea central que marca dónde es medianoche (Año Nuevo) -->
         <div class="midnight-line" id="midnightLine"></div>
     </div>

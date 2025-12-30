@@ -94,8 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Detectar zona horaria del usuario
     detectUserTimezone();
     
-    // Inicializar Mapbox (planisferio principal)
-    initializeMapbox();
+    // Inicializar Highmaps (planisferio como 24timezones.com)
+    initializeMapbox(); // Función renombrada pero ahora usa Highmaps
     
     // Inicializar línea de medianoche
     initializeMidnightLine();
