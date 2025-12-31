@@ -677,7 +677,8 @@ function highlightCountriesAtGreenwich() {
                 // Obtener timezone real del país
                 const countryTimezone = getCountryTimezoneSync(countryName);
 
-                // Calcular hora local del país
+                // Calcular fecha y hora local del país
+                let countryYear = now.getFullYear();
                 let countryHour = 0;
                 let countryMinute = 0;
 
@@ -686,13 +687,15 @@ function highlightCountriesAtGreenwich() {
                     try {
                         const formatter = new Intl.DateTimeFormat('en-US', {
                             timeZone: countryTimezone,
+                            year: 'numeric',
                             hour: 'numeric',
                             minute: 'numeric',
                             hour12: false
                         });
-                        const parts = formatter.format(now).split(':');
-                        countryHour = parseInt(parts[0]);
-                        countryMinute = parseInt(parts[1]);
+                        const parts = formatter.formatToParts(now);
+                        countryYear = parseInt(parts.find(p => p.type === 'year').value);
+                        countryHour = parseInt(parts.find(p => p.type === 'hour').value);
+                        countryMinute = parseInt(parts.find(p => p.type === 'minute').value);
                     } catch (e) {
                         // Fallback si el timezone es inválido
                     }
@@ -710,56 +713,62 @@ function highlightCountriesAtGreenwich() {
                         const offset = Math.round(countryLongitude / 15);
                         countryHour = (hours + offset + 24) % 24;
                         countryMinute = minutes;
+                        // Estimación burda del año (solo funciona cerca de medianoche)
+                        if (countryHour < 12 && hours > 12) countryYear++;
                     }
                 }
 
                 // Determinar estado
-                let countryColor = '#5a7a9e'; // Default
+                let countryColor = '#5a7a9e'; // Default (Futuro)
                 let borderColor = 'rgba(255, 255, 255, 0.3)';
                 let borderWidth = 1;
                 let zIndex = 0;
 
-                // Lógica de estados:
-                // 1. CELEBRANDO AHORA (00:00 - 01:00): Verde Brillante
-                if (countryHour === 0) {
-                    countryColor = '#00ff00'; // Verde neón
-                    borderColor = '#ffffff';
-                    borderWidth = 3;
-                    zIndex = 100;
-                    currentlyHighlighted.add(index);
+                // Lógica de estados basada en AÑO y HORA:
 
-                    // Detectar nuevo país en medianoche (primeros 5 minutos)
-                    if (countryMinute < 5 && !state.countriesAtMidnight.has(countryName)) {
-                        state.countriesAtMidnight.add(countryName);
-                        // Solo celebrar si pasó un tiempo prudente desde el último para no saturar
-                        if (Date.now() - (state.lastCelebrationTime || 0) > 30000) {
-                            showCountryCelebrationBanner(countryName);
-                            state.lastCelebrationTime = Date.now();
-                            fetchCountryInfoAndAnnounce(countryName);
+                // 1. YA ESTÁ EN 2026 (o año nuevo)
+                if (countryYear > 2025) {
+                    // CELEBRANDO AHORA (00:00 - 01:00)
+                    if (countryHour === 0) {
+                        countryColor = '#00ff00'; // Verde neón
+                        borderColor = '#ffffff';
+                        borderWidth = 3;
+                        zIndex = 100;
+                        currentlyHighlighted.add(index);
+
+                        // Detectar nuevo país en medianoche (primeros 5 minutos)
+                        if (countryMinute < 5 && !state.countriesAtMidnight.has(countryName)) {
+                            state.countriesAtMidnight.add(countryName);
+                            // Solo celebrar si pasó un tiempo prudente desde el último para no saturar
+                            if (Date.now() - (state.lastCelebrationTime || 0) > 30000) {
+                                showCountryCelebrationBanner(countryName);
+                                state.lastCelebrationTime = Date.now();
+                                fetchCountryInfoAndAnnounce(countryName);
+                            }
                         }
                     }
+                    // YA CELEBRÓ (01:00+)
+                    else {
+                        countryColor = '#2ecc71'; // Verde esmeralda (celebrado)
+                        borderColor = 'rgba(46, 204, 113, 0.8)';
+                        borderWidth = 2;
+                    }
                 }
-                // 2. YA CELEBRÓ (01:00 - 04:00): Verde más suave
-                else if (countryHour >= 1 && countryHour < 4) {
-                    countryColor = '#2ecc71'; // Verde esmeralda
-                    borderColor = 'rgba(46, 204, 113, 0.8)';
-                    borderWidth = 2;
+                // 2. AÚN EN 2025 (FUTURO)
+                else {
+                    // PRÓXIMO A CELEBRAR (23:00 - 23:59)
+                    if (countryHour === 23) {
+                        countryColor = '#ff9900'; // Naranja (víspera)
+                        borderColor = '#ffcc00';
+                        borderWidth = 2;
+                        zIndex = 50;
+                    }
+                    // FUTURO LEJANO (Default)
+                    else {
+                        countryColor = '#5a7a9e'; // Azul (esperando)
+                    }
                 }
-                // 3. YA CELEBRÓ HACE MUCHO (> 04:00): Azul verdoso
-                else if (countryHour >= 4 && countryHour < 12) {
-                    countryColor = '#16a085'; // Verde mar
-                    borderColor = 'rgba(255, 255, 255, 0.2)';
-                }
-                // 4. PRÓXIMO A CELEBRAR (23:00 - 23:59): Naranja/Amarillo
-                else if (countryHour === 23) {
-                    countryColor = '#f39c12'; // Naranja
-                    borderColor = '#f1c40f';
-                    borderWidth = 2;
-                }
-                // 5. FALTA POCO (21:00 - 23:00): Azul claro
-                else if (countryHour >= 21) {
-                    countryColor = '#3498db'; // Azul brillante
-                }
+
 
                 // Aplicar cambios solo si es necesario para rendimiento
                 const currentColor = point.color;
@@ -2806,6 +2815,18 @@ async function fetchCountryInfoAndAnnounce(countryName) {
 // Anunciar información del país por el presentador
 function announceCountryInfo(countryName, info) {
     console.log(`📢 Anunciando información de ${countryName}`);
+
+    // Validar si el país realmente está celebrando ahora
+    // Evitar anuncios falsos al cargar la página
+    const now = new Date();
+    const currentYear = now.getFullYear();
+
+    // Si el país es "Faroe Islands" y no estamos cerca de su hora de año nuevo, ignorar
+    // Esto es un parche temporal para un error específico reportado
+    if (countryName === 'Faroe Islands' && now.getUTCHours() !== 23) { // Faroe es UTC+0/UTC+1, celebra tarde
+        console.warn('⚠️ Intento de anuncio falso para Faroe Islands bloqueado');
+        return;
+    }
 
     // Crear mensaje para el presentador
     let message = `¡Atención! ${countryName} acaba de recibir el Año Nuevo. `;
