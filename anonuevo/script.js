@@ -90,6 +90,7 @@ const state = {
     countryTimezoneCache: new Map(), // Cache de zonas horarias de países
     currentUtterance: null, // Utterance actual para evitar cortes
     isSpeaking: false, // Flag para saber si está hablando
+    pendingMessage: null, // Mensaje pendiente en cola
     worldTimes: new Map() // Cache de horas del mundo
 };
 
@@ -3291,11 +3292,29 @@ function speakPresenterMessage(message) {
         return;
     }
     
-    // Si ya está hablando, esperar a que termine antes de cancelar
+    if (!message || message.trim() === '') {
+        console.warn('⚠️ Mensaje vacío, no se puede leer');
+        return;
+    }
+    
+    console.log('🎙️ speakPresenterMessage llamado con mensaje de', message.length, 'caracteres');
+    
+    // Si ya está hablando, encolar el mensaje
     if (state.isSpeaking && state.currentUtterance) {
+        console.log('⏳ Presentador ocupado, encolando mensaje...');
+        // Guardar mensaje para cuando termine el actual
+        if (!state.pendingMessage) {
+            state.pendingMessage = message;
+        }
         // Esperar a que termine el mensaje actual
+        const originalOnEnd = state.currentUtterance.onend;
         state.currentUtterance.onend = () => {
-            speakPresenterMessage(message);
+            if (originalOnEnd) originalOnEnd();
+            if (state.pendingMessage) {
+                const nextMessage = state.pendingMessage;
+                state.pendingMessage = null;
+                setTimeout(() => speakPresenterMessage(nextMessage), 500);
+            }
         };
         return;
     }
