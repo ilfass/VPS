@@ -99,6 +99,16 @@ const state = {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🎆 Inicializando Año Nuevo Global 2025');
     
+    // Verificar que los elementos del DOM existan
+    const mapContainer = document.getElementById('highmapsPlanisphere');
+    const utcTimeEl = document.getElementById('utcTime');
+    const userTimeEl = document.getElementById('userTime');
+    
+    console.log('📋 Verificando elementos del DOM:');
+    console.log('  - highmapsPlanisphere:', mapContainer ? '✅' : '❌');
+    console.log('  - utcTime:', utcTimeEl ? '✅' : '❌');
+    console.log('  - userTime:', userTimeEl ? '✅' : '❌');
+    
     // Detectar zona horaria del usuario
     detectUserTimezone();
     
@@ -1809,18 +1819,23 @@ function updateTimeDisplay() {
     const userHours = String(now.getHours()).padStart(2, '0');
     const userMinutes = String(now.getMinutes()).padStart(2, '0');
     const userSeconds = String(now.getSeconds()).padStart(2, '0');
-    const userTimeEl = document.getElementById('userTime');
-    if (userTimeEl) {
-        userTimeEl.textContent = `${userHours}:${userMinutes}:${userSeconds}`;
-    }
-    
-    // Fecha del usuario
-    const userDay = now.getDate();
-    const userMonth = now.getMonth();
-    const userYear = now.getFullYear();
-    const userDateEl = document.getElementById('userDate');
-    if (userDateEl) {
-        userDateEl.textContent = `${userDay} de ${monthNames[userMonth]}, ${userYear}`;
+        const userTimeEl = document.getElementById('userTime');
+        if (userTimeEl) {
+            userTimeEl.textContent = `${userHours}:${userMinutes}:${userSeconds}`;
+        } else {
+            console.warn('⚠️ Elemento userTime no encontrado en updateTimeDisplay');
+        }
+        
+        // Fecha del usuario
+        const userDay = now.getDate();
+        const userMonth = now.getMonth();
+        const userYear = now.getFullYear();
+        const userDateEl = document.getElementById('userDate');
+        if (userDateEl) {
+            userDateEl.textContent = `${userDay} de ${monthNames[userMonth]}, ${userYear}`;
+        }
+    } catch (error) {
+        console.error('❌ Error en updateTimeDisplay:', error);
     }
 }
 
