@@ -3284,8 +3284,19 @@ function speakPresenterMessage(message) {
             try {
                 window.speechSynthesis.speak(utterance);
                 console.log('🎙️ Presentador habla:', message.substring(0, 50) + '...');
+
+                // Hack para mantener viva la API (Chrome a veces pausa)
+                if (window.speechSynthesis.paused) {
+                    window.speechSynthesis.resume();
+                }
             } catch (error) {
                 console.error('❌ Error al reproducir voz:', error);
+
+                // Detectar bloqueo de autoplay
+                if (error.name === 'NotAllowedError' || error.message?.includes('user gesture')) {
+                    console.warn('⚠️ Autoplay bloqueado. Esperando interacción...');
+                    addOneTimeInteractionListener();
+                }
             }
         };
 
@@ -3334,6 +3345,10 @@ function speakPresenterMessage(message) {
                         console.log('🎙️ Presentador habla (voz predeterminada):', message.substring(0, 50) + '...');
                     } catch (error) {
                         console.error('❌ Error al reproducir voz:', error);
+                        if (error.name === 'NotAllowedError' || error.message?.includes('user gesture')) {
+                            console.warn('⚠️ Autoplay bloqueado. Esperando interacción...');
+                            addOneTimeInteractionListener();
+                        }
                     }
                 }
             };
@@ -3342,6 +3357,36 @@ function speakPresenterMessage(message) {
         }
     }, 100);
 }
+
+// Listener de interacción única para desbloquear audio
+let audioUnlocked = false;
+function addOneTimeInteractionListener() {
+    if (audioUnlocked) return;
+
+    const unlockAudio = () => {
+        console.log('🔓 Audio desbloqueado por interacción del usuario');
+        audioUnlocked = true;
+
+        // Intentar reanudar o hablar algo vacío para "calentar" el motor
+        if (window.speechSynthesis) {
+            window.speechSynthesis.resume();
+            const emptyUtterance = new SpeechSynthesisUtterance('');
+            window.speechSynthesis.speak(emptyUtterance);
+        }
+
+        // Remover listeners
+        document.removeEventListener('click', unlockAudio);
+        document.removeEventListener('touchstart', unlockAudio);
+        document.removeEventListener('keydown', unlockAudio);
+    };
+
+    document.addEventListener('click', unlockAudio);
+    document.addEventListener('touchstart', unlockAudio);
+    document.addEventListener('keydown', unlockAudio);
+}
+
+// Llamar esto al inicio para estar listos
+addOneTimeInteractionListener();
 
 async function animatePresenterAvatar() {
     console.log('🎭 Inicializando animación facial con IA...');
