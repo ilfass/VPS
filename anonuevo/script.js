@@ -2183,7 +2183,9 @@ function initializeGlobalCountdown() {
     updateGlobalCountdown();
 }
 
+// Actualizar cuenta regresiva global (DESACTIVADO)
 function updateGlobalCountdown() {
+    /*
     const countdownEl = document.getElementById('globalCountdown');
     if (!countdownEl) return;
 
@@ -2208,6 +2210,7 @@ function updateGlobalCountdown() {
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
     countdownEl.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    */
 }
 
 // ============================================
