@@ -3903,11 +3903,13 @@ function updateAll() {
         // Actualizar también el panel del próximo país cada segundo
         if (state.highmapsChart) {
             updateNextCountryPanel();
+            // Forzar iluminación de países cada segundo
+            highlightCountriesAtGreenwich();
         }
     } catch (error) {
         console.warn('⚠️ Error en updateAll:', error);
     }
-    // updateWorldMap se llama cada 5 segundos por separado
+    // updateWorldMap se llama por separado para rotación y día/noche
 }
 
 // ============================================
