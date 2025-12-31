@@ -517,9 +517,9 @@ function updateHighmapsDayNight() {
         // Longitud -180 a +180 se mapea a 0% a 100%
         // INVERTIDO: la sombra debe estar en el lado opuesto al sol (donde es medianoche)
         // El sol está 180 grados opuesto a medianoche
-        const sunLongitude = (midnightLongitude + 180) % 360;
+        let sunLongitude = (midnightLongitude + 180) % 360;
         if (sunLongitude < 0) sunLongitude += 360;
-        const xPosition = ((sunLongitude - 180) / 360) * 100;
+        let xPosition = ((sunLongitude - 180) / 360) * 100;
         if (xPosition < 0) xPosition += 100;
 
         // Ajustar la posición del gradiente para crear el efecto de sombra
