@@ -286,9 +286,12 @@ function initializeMapbox() {
         // Esperar un momento para que el mapa se renderice completamente
         setTimeout(() => {
             if (state.highmapsChart) {
+                // Inicializar efecto día/noche primero
                 updateHighmapsDayNight();
                 updateMidnightLine();
                 updateMapRotation();
+                
+                // Actualizar cada segundo
                 setInterval(() => {
                     if (state.highmapsChart && state.highmapsChart.series && state.highmapsChart.series[0]) {
                         updateHighmapsDayNight();
@@ -297,7 +300,7 @@ function initializeMapbox() {
                     }
                 }, 1000);
             }
-        }, 1000);
+        }, 1500); // Aumentar el tiempo de espera para asegurar que el mapa esté completamente renderizado
         
     } catch (error) {
         console.warn('⚠️ No se pudo inicializar Highmaps:', error);
@@ -307,19 +310,48 @@ function initializeMapbox() {
 function updateHighmapsDayNight() {
     if (!state.highmapsChart) return;
     
-    const now = new Date();
-    const hours = now.getUTCHours();
-    const minutes = now.getUTCMinutes();
-    
-    // Calcular posición del sol (longitud donde es mediodía)
-    const noonLongitude = (hours * 15 + minutes * 0.25) - 180;
-    
-    // Actualizar colores del mapa basados en día/noche
-    // Esto es una simplificación - en un mapa real se calcularía para cada país
-    const series = state.highmapsChart.series[0];
-    if (series) {
-        // Actualizar el mapa con colores de día/noche
-        // Por ahora mantenemos el estilo base
+    try {
+        const now = new Date();
+        const hours = now.getUTCHours();
+        const minutes = now.getUTCMinutes();
+        const seconds = now.getUTCSeconds();
+        
+        // Calcular la longitud donde es medianoche UTC
+        // A las 00:00 UTC: medianoche en 0° (Greenwich)
+        // A las 12:00 UTC: medianoche en 180° (opuesto a Greenwich)
+        // La medianoche se mueve 15 grados por hora hacia el oeste
+        const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+        let midnightLongitude = (totalSeconds / 3600) * 15;
+        
+        // Normalizar a -180 a +180
+        while (midnightLongitude > 180) midnightLongitude -= 360;
+        while (midnightLongitude < -180) midnightLongitude += 360;
+        
+        // Crear o actualizar la sombra de día/noche
+        const container = document.getElementById('highmapsPlanisphere');
+        if (!container) return;
+        
+        let dayNightShadow = document.getElementById('dayNightShadow');
+        if (!dayNightShadow) {
+            dayNightShadow = document.createElement('div');
+            dayNightShadow.id = 'dayNightShadow';
+            container.appendChild(dayNightShadow);
+        }
+        
+        // Convertir longitud a posición X (0% a 100%)
+        // Longitud -180 a +180 se mapea a 0% a 100%
+        const xPosition = ((midnightLongitude + 180) / 360) * 100;
+        
+        // Ajustar la posición del gradiente para crear el efecto de sombra
+        // El gradiente se mueve suavemente según la hora
+        dayNightShadow.style.backgroundPosition = `${xPosition}% 0%`;
+        
+        // Asegurar que la sombra sea visible
+        dayNightShadow.style.display = 'block';
+        dayNightShadow.style.opacity = '1';
+        
+    } catch (error) {
+        console.warn('⚠️ Error al actualizar día/noche:', error);
     }
 }
 
@@ -333,16 +365,16 @@ function updateMapRotation() {
         const minutes = now.getUTCMinutes();
         const seconds = now.getUTCSeconds();
         
-        // Calcular el desplazamiento basado en la hora UTC
-        // El mapa debe desplazarse para que el meridiano de Greenwich (0°) esté en el centro
-        // A las 00:00 UTC, el meridiano de Greenwich está en el centro
-        // A las 12:00 UTC, el meridiano opuesto (180°) está en el centro
-        
-        // Calcular cuántos grados se ha desplazado desde medianoche UTC
-        // A las 00:00 UTC: 0 grados (Greenwich en el centro)
-        // A las 12:00 UTC: 180 grados (Greenwich opuesto en el centro)
+        // Calcular la longitud donde es medianoche UTC
+        // A las 00:00 UTC: medianoche en 0° (Greenwich)
+        // A las 12:00 UTC: medianoche en 180° (opuesto a Greenwich)
+        // La medianoche se mueve 15 grados por hora hacia el oeste
         const totalSeconds = hours * 3600 + minutes * 60 + seconds;
-        const degreesFromMidnight = (totalSeconds / 86400) * 360; // 360 grados en 24 horas
+        let midnightLongitude = (totalSeconds / 3600) * 15;
+        
+        // Normalizar a -180° a +180°
+        while (midnightLongitude > 180) midnightLongitude -= 360;
+        while (midnightLongitude < -180) midnightLongitude += 360;
         
         const container = document.getElementById('highmapsPlanisphere');
         if (container) {
@@ -351,47 +383,26 @@ function updateMapRotation() {
                 const mapWidth = svg.viewBox.baseVal.width || 1000;
                 const screenWidth = window.innerWidth;
                 
-                // El meridiano 0° (Greenwich) está en el centro del mapa original (mapWidth/2)
-                // Necesitamos desplazar el mapa para que el meridiano 0° esté en el centro de la pantalla
-                // A las 00:00 UTC: meridiano 0° debe estar en el centro de la pantalla
-                //   - El meridiano 0° está en mapWidth/2 del mapa
-                //   - El centro de la pantalla está en screenWidth/2
-                //   - Desplazamiento = (mapWidth/2) - (screenWidth/2) = 0 (si el mapa está centrado inicialmente)
+                // El mapa tiene 360 grados de ancho (de -180° a +180°)
+                // El meridiano 0° está en el centro del mapa (mapWidth/2)
+                // Necesitamos desplazar el mapa para que el meridiano de medianoche esté en el centro de la pantalla
                 
-                // A las 12:00 UTC: meridiano 180° debe estar en el centro de la pantalla
-                //   - El meridiano 180° está en 0 del mapa (o mapWidth)
-                //   - Desplazamiento = 0 - (screenWidth/2) = -screenWidth/2
+                // Convertir longitud a posición en el mapa
+                // Longitud -180° a +180° se mapea a 0 a mapWidth
+                const midnightXInMap = ((midnightLongitude + 180) / 360) * mapWidth;
                 
-                // Calcular el desplazamiento en píxeles
-                // El mapa tiene 360 grados de ancho
-                // Cada grado = mapWidth / 360 píxeles
-                // El meridiano 0° está en mapWidth/2
-                // Necesitamos desplazarlo según la hora UTC
-                
-                // A las 00:00 UTC: meridiano 0° en el centro = desplazamiento = 0
-                // A las 12:00 UTC: meridiano 180° en el centro = desplazamiento = -mapWidth/2
-                const pixelOffset = (degreesFromMidnight / 360) * mapWidth;
-                
-                // Calcular el desplazamiento para centrar el meridiano 0°
-                // El meridiano 0° está en mapWidth/2, necesitamos moverlo al centro de la pantalla
-                // Desplazamiento = (mapWidth/2) - pixelOffset - (screenWidth/2)
-                // Simplificado: desplazamiento = (mapWidth - screenWidth)/2 - pixelOffset
-                const offset = (mapWidth - screenWidth) / 2 - pixelOffset;
-                
-                // Aplicar wrap around (mosaico) - cuando el mapa se desplaza más allá del borde,
-                // mostrar el principio nuevamente
-                // Normalizar el offset para que esté en el rango [-mapWidth, mapWidth]
-                let wrappedOffset = offset % mapWidth;
-                if (wrappedOffset < 0) {
-                    wrappedOffset += mapWidth;
-                }
+                // Calcular el desplazamiento necesario para centrar el meridiano de medianoche
+                // El centro del mapa original tiene el meridiano 0° en mapWidth/2
+                // Queremos que el meridiano de medianoche esté en el centro de la pantalla (screenWidth/2)
+                // Por lo tanto: offset = (mapWidth/2 - midnightXInMap) + (screenWidth/2 - mapWidth/2)
+                // Simplificado: offset = screenWidth/2 - midnightXInMap
+                const centerOffset = (screenWidth / 2) - midnightXInMap;
                 
                 // Aplicar transform al SVG
                 svg.style.transformOrigin = 'left center';
-                svg.style.transform = `translateX(${-wrappedOffset}px)`;
+                svg.style.transform = `translateX(${centerOffset}px)`;
                 
-                // Crear efecto de mosaico: duplicar el mapa si es necesario
-                // Si el mapa se desplaza más allá del borde, mostrar el principio nuevamente
+                // Crear efecto de mosaico: duplicar el mapa para continuidad
                 if (!state.mapDuplicated) {
                     // Duplicar el SVG para crear efecto de mosaico continuo
                     const svgClone = svg.cloneNode(true);
@@ -414,27 +425,27 @@ function updateMapRotation() {
                     
                     state.mapDuplicated = true;
                 } else {
-                    // Actualizar las copias también
+                    // Actualizar las copias también para mantener el efecto continuo
                     const cloneRight = document.getElementById('highmapsPlanisphere-clone-right');
                     const cloneLeft = document.getElementById('highmapsPlanisphere-clone-left');
                     if (cloneRight) {
-                        cloneRight.style.transform = `translateX(${-wrappedOffset}px)`;
+                        cloneRight.style.transform = `translateX(${centerOffset}px)`;
                     }
                     if (cloneLeft) {
-                        cloneLeft.style.transform = `translateX(${-wrappedOffset}px)`;
+                        cloneLeft.style.transform = `translateX(${centerOffset}px)`;
                     }
                 }
             }
         }
         
-        // Iluminar países que cruzan el meridiano de Greenwich
+        // Iluminar países que cruzan el meridiano de medianoche (00:00-01:00 UTC)
         highlightCountriesAtGreenwich();
     } catch (error) {
         console.warn('⚠️ Error al rotar el mapa:', error);
     }
 }
 
-// Iluminar países que están en el meridiano de Greenwich (medianoche UTC)
+// Iluminar países que están entre las 00:00 y 01:00 UTC (medianoche UTC)
 function highlightCountriesAtGreenwich() {
     if (!state.highmapsChart) return;
     
@@ -445,9 +456,32 @@ function highlightCountriesAtGreenwich() {
         // Obtener todos los puntos del mapa
         const points = series.points;
         
-        // Calcular la posición central del mapa (donde está el meridiano de Greenwich)
-        const chartWidth = state.highmapsChart.chartWidth || window.innerWidth;
-        const centerX = chartWidth / 2;
+        // Calcular la longitud donde es medianoche UTC
+        const now = new Date();
+        const hours = now.getUTCHours();
+        const minutes = now.getUTCMinutes();
+        const seconds = now.getUTCSeconds();
+        const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+        
+        // La medianoche se mueve 15 grados por hora hacia el oeste
+        // A las 00:00 UTC: medianoche en 0° (Greenwich)
+        // A las 01:00 UTC: medianoche en 15°W
+        let midnightLongitude = (totalSeconds / 3600) * 15;
+        if (midnightLongitude > 180) {
+            midnightLongitude -= 360;
+        }
+        
+        // Rango de longitudes para países entre 00:00 y 01:00 UTC
+        // Esto cubre desde medianoche hasta 1 hora después (15 grados hacia el oeste)
+        const midnightStart = midnightLongitude;
+        const midnightEnd = midnightLongitude - 15; // 15 grados hacia el oeste
+        
+        // Normalizar rangos
+        let startLon = midnightStart;
+        let endLon = midnightEnd;
+        if (endLon < -180) {
+            endLon += 360;
+        }
         
         // Almacenar países iluminados para evitar actualizaciones innecesarias
         if (!state.highlightedCountries) {
@@ -460,32 +494,126 @@ function highlightCountriesAtGreenwich() {
             if (!point || !point.update) return;
             
             try {
-                // Obtener la posición del país en el mapa
-                const pointX = point.plotX || 0;
-                const distanceFromCenter = Math.abs(pointX - centerX);
+                // Obtener las coordenadas geográficas del país
+                let countryLongitude = null;
                 
-                // Si el país está cerca del centro (dentro de 50 píxeles), iluminarlo
-                const isNearCenter = distanceFromCenter < 50;
-                
-                if (isNearCenter) {
-                    currentlyHighlighted.add(index);
+                // Intentar obtener la longitud del país desde diferentes fuentes
+                if (point.properties && point.properties.lon) {
+                    countryLongitude = point.properties.lon;
+                } else if (point.geometry && point.geometry.coordinates) {
+                    // Calcular el centroide del país desde sus coordenadas
+                    const coords = point.geometry.coordinates;
+                    let sumLon = 0;
+                    let count = 0;
                     
-                    // Solo actualizar si no estaba iluminado antes
-                    if (!state.highlightedCountries.has(index)) {
-                        point.update({
-                            color: '#ffd700',
-                            borderColor: 'rgba(255, 215, 0, 1)',
-                            borderWidth: 3
-                        }, false);
+                    const extractLongitude = (arr) => {
+                        if (Array.isArray(arr[0])) {
+                            arr.forEach(sub => extractLongitude(sub));
+                        } else if (arr.length >= 2) {
+                            sumLon += arr[0];
+                            count++;
+                        }
+                    };
+                    
+                    extractLongitude(coords);
+                    if (count > 0) {
+                        countryLongitude = sumLon / count;
                     }
-                } else {
-                    // Solo restaurar si estaba iluminado antes
-                    if (state.highlightedCountries.has(index)) {
-                        point.update({
-                            color: '#5a7a9e',
-                            borderColor: 'rgba(255, 255, 255, 0.8)',
-                            borderWidth: 2
-                        }, false);
+                } else if (point.options && point.options.lon) {
+                    countryLongitude = point.options.lon;
+                }
+                
+                // Si no tenemos longitud, usar plotX como aproximación
+                // Pero necesitamos considerar el desplazamiento del mapa
+                if (countryLongitude === null) {
+                    const chartWidth = state.highmapsChart.chartWidth || window.innerWidth;
+                    const centerX = chartWidth / 2;
+                    const pointX = point.plotX || 0;
+                    
+                    // Obtener el desplazamiento actual del mapa
+                    const container = document.getElementById('highmapsPlanisphere');
+                    let mapOffset = 0;
+                    if (container) {
+                        const svg = container.querySelector('svg');
+                        if (svg && svg.style.transform) {
+                            const transform = svg.style.transform;
+                            const match = transform.match(/translateX\((-?\d+(?:\.\d+)?)px\)/);
+                            if (match) {
+                                mapOffset = parseFloat(match[1]) || 0;
+                            }
+                        }
+                    }
+                    
+                    // Calcular la posición real en la pantalla
+                    const realX = pointX - mapOffset;
+                    const distanceFromCenter = realX - centerX;
+                    
+                    // Aproximar: cada píxel = aproximadamente 360/chartWidth grados
+                    const degreesPerPixel = 360 / chartWidth;
+                    countryLongitude = (distanceFromCenter * degreesPerPixel);
+                }
+                
+                // Normalizar longitud a -180 a +180
+                if (countryLongitude !== null) {
+                    while (countryLongitude > 180) countryLongitude -= 360;
+                    while (countryLongitude < -180) countryLongitude += 360;
+                    
+                    // Verificar si el país está en el rango de medianoche (00:00-01:00 UTC)
+                    // La zona de medianoche es de 15 grados de ancho (1 hora)
+                    // Considerar países que están cerca del meridiano de medianoche
+                    // (dentro de ±7.5 grados, que es media hora a cada lado)
+                    let isInMidnightZone = false;
+                    
+                    // Calcular la distancia más corta al meridiano de medianoche
+                    let distanceToMidnight = Math.abs(countryLongitude - midnightLongitude);
+                    // Considerar el wrap-around en 180°
+                    distanceToMidnight = Math.min(
+                        distanceToMidnight,
+                        Math.abs(countryLongitude - (midnightLongitude + 360)),
+                        Math.abs(countryLongitude - (midnightLongitude - 360))
+                    );
+                    
+                    // Si está dentro de 7.5 grados (media hora) del meridiano de medianoche
+                    if (distanceToMidnight <= 7.5) {
+                        isInMidnightZone = true;
+                    }
+                    
+                    if (isInMidnightZone) {
+                        currentlyHighlighted.add(index);
+                        
+                        // Actualizar siempre para asegurar que el color se aplique
+                        try {
+                            point.update({
+                                color: '#ffd700', // Dorado para países en medianoche
+                                borderColor: 'rgba(255, 215, 0, 1)',
+                                borderWidth: 4
+                            }, false);
+                        } catch (updateError) {
+                            // Si update falla, intentar cambiar el color directamente
+                            if (point.graphic && point.graphic.element) {
+                                point.graphic.element.setAttribute('fill', '#ffd700');
+                                point.graphic.element.setAttribute('stroke', 'rgba(255, 215, 0, 1)');
+                                point.graphic.element.setAttribute('stroke-width', '4');
+                            }
+                        }
+                    } else {
+                        // Solo restaurar si estaba iluminado antes
+                        if (state.highlightedCountries.has(index)) {
+                            try {
+                                point.update({
+                                    color: '#5a7a9e',
+                                    borderColor: 'rgba(255, 255, 255, 0.8)',
+                                    borderWidth: 2
+                                }, false);
+                            } catch (updateError) {
+                                // Si update falla, intentar cambiar el color directamente
+                                if (point.graphic && point.graphic.element) {
+                                    point.graphic.element.setAttribute('fill', '#5a7a9e');
+                                    point.graphic.element.setAttribute('stroke', 'rgba(255, 255, 255, 0.8)');
+                                    point.graphic.element.setAttribute('stroke-width', '2');
+                                }
+                            }
+                        }
                     }
                 }
             } catch (pointError) {
@@ -1799,150 +1927,53 @@ function showHourlyBanner() {
 // ============================================
 
 function initializeTimeline() {
-    const now = new Date();
-    const startOfYear = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
-    const endOfYear = new Date(2026, 0, 1, 0, 0, 0, 0);
-    
-    // Crear los 365 días del año
-    createTimelineDays(startOfYear, endOfYear);
-    
     updateTimeline();
-    setInterval(updateTimeline, 1000);
-}
-
-// Crear los 365 días en la línea de tiempo
-function createTimelineDays(startDate, endDate) {
-    const timelineTrack = document.querySelector('.timeline-track');
-    if (!timelineTrack) return;
-    
-    // Limpiar contenido anterior
-    const existingDays = timelineTrack.querySelectorAll('.timeline-day');
-    existingDays.forEach(day => day.remove());
-    
-    const totalDays = 365;
-    const daysContainer = document.createElement('div');
-    daysContainer.className = 'timeline-days';
-    daysContainer.style.position = 'absolute';
-    daysContainer.style.top = '0';
-    daysContainer.style.left = '0';
-    daysContainer.style.width = '100%';
-    daysContainer.style.height = '100%';
-    
-    for (let i = 0; i < totalDays; i++) {
-        const dayEl = document.createElement('div');
-        dayEl.className = 'timeline-day';
-        dayEl.setAttribute('data-day', i + 1);
-        
-        // Los primeros 362 días son pequeños, los últimos 3 se agrandan
-        if (i < 362) {
-            dayEl.classList.add('day-small');
-        } else {
-            dayEl.classList.add('day-large');
-        }
-        
-        // Posición basada en el día del año
-        const position = (i / totalDays) * 100;
-        dayEl.style.left = `${position}%`;
-        
-        daysContainer.appendChild(dayEl);
-    }
-    
-    timelineTrack.appendChild(daysContainer);
-}
-
-function addTimelineMilestones() {
-    const milestonesContainer = document.getElementById('timelineMilestones');
-    if (!milestonesContainer) return;
-    
-    const milestones = [
-        { progress: 25, emoji: '🌱', label: 'Primavera' },
-        { progress: 50, emoji: '☀️', label: 'Verano' },
-        { progress: 75, emoji: '🍂', label: 'Otoño' },
-        { progress: 90, emoji: '❄️', label: 'Invierno' }
-    ];
-    
-    milestones.forEach(milestone => {
-        const milestoneEl = document.createElement('div');
-        milestoneEl.className = 'timeline-milestone';
-        milestoneEl.style.left = `${milestone.progress}%`;
-        milestoneEl.innerHTML = `
-            <div class="milestone-emoji">${milestone.emoji}</div>
-            <div class="milestone-label">${milestone.label}</div>
-        `;
-        milestonesContainer.appendChild(milestoneEl);
-    });
+    setInterval(updateTimeline, 60000); // Actualizar cada minuto
 }
 
 function updateTimeline() {
+    const start = new Date('2025-01-01T00:00:00');
+    const end = new Date('2026-01-01T00:00:00');
     const now = new Date();
-    const currentYear = now.getFullYear();
-    const startOfYear = new Date(currentYear, 0, 1, 0, 0, 0, 0);
-    const endOfYear = new Date(2026, 0, 1, 0, 0, 0, 0);
+
+    // Cálculos
+    const total = end - start;
+    const elapsed = now - start;
+    let percentage = (elapsed / total) * 100;
+
+    // Limitar entre 0 y 100
+    percentage = Math.max(0, Math.min(percentage, 100));
+
+    // Actualizar Interfaz
+    const progressBar = document.getElementById('timeline-progress');
+    const todaySpan = document.getElementById('today');
+    const title = document.getElementById('timeline-title');
     
-    const totalTime = endOfYear - startOfYear;
-    const elapsedTime = now - startOfYear;
+    if (progressBar) {
+        progressBar.style.width = percentage + '%';
+    }
     
-    // Ajustar progreso: empezar más atrás (dejar atrás algunas horas)
-    // Restar 12 horas para que la personita esté más atrás
-    const hoursBehind = 12;
-    const adjustedElapsedTime = Math.max(0, elapsedTime - (hoursBehind * 60 * 60 * 1000));
-    const progress = Math.min(100, (adjustedElapsedTime / totalTime) * 100);
-    
-    const person = document.getElementById('timelinePerson');
-    const progressBar = document.getElementById('timelineProgress');
-    
-    if (person && progressBar) {
-        // Posicionar personita
-        person.style.left = `${progress}%`;
-        
-        // Actualizar barra de progreso
-        progressBar.style.width = `${progress}%`;
-        
-        // Hacer la personita más grande a medida que avanza
-        const scale = 1 + (progress / 100) * 0.8; // Crece hasta 1.8x
-        person.style.transform = `translateX(-50%) scale(${scale})`;
-        
-        // Cambiar emoji y animación según el progreso
-        const emojiEl = person.querySelector('.person-emoji');
-        if (emojiEl) {
-            if (progress < 10) {
-                emojiEl.textContent = '😴';
-                emojiEl.style.animation = 'person-sleep 2s ease-in-out infinite';
-            } else if (progress < 25) {
-                emojiEl.textContent = '🚶';
-                emojiEl.style.animation = 'person-walk 1s ease-in-out infinite';
-            } else if (progress < 50) {
-                emojiEl.textContent = '🏃';
-                emojiEl.style.animation = 'person-run 0.8s ease-in-out infinite';
-            } else if (progress < 75) {
-                emojiEl.textContent = '🚀';
-                emojiEl.style.animation = 'person-fly 0.5s ease-in-out infinite';
-            } else {
-                emojiEl.textContent = '🎆';
-                emojiEl.style.animation = 'person-celebrate 0.3s ease-in-out infinite';
-            }
-        }
-        
-        // Agregar chispas cuando avanza
-        if (Math.random() > 0.7) {
-            addTimelineSparkle(progress);
-        }
+    if (todaySpan) {
+        todaySpan.innerText = now.toLocaleDateString();
+    }
+
+    // Lógica de Objetivo Cumplido
+    if (percentage >= 100 && title) {
+        title.innerText = "¡BIENVENIDO 2026!";
+        title.style.color = "#ffdd00";
+        lanzarConfetti();
     }
 }
 
-function addTimelineSparkle(position) {
-    const sparklesContainer = document.getElementById('timelineSparkles');
-    if (!sparklesContainer) return;
-    
-    const sparkle = document.createElement('div');
-    sparkle.className = 'timeline-sparkle';
-    sparkle.style.left = `${position}%`;
-    sparkle.textContent = ['✨', '⭐', '💫'][Math.floor(Math.random() * 3)];
-    sparklesContainer.appendChild(sparkle);
-    
-    setTimeout(() => {
-        sparkle.remove();
-    }, 2000);
+function lanzarConfetti() {
+    if (typeof confetti !== 'undefined') {
+        confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#ffffff', '#ffdd00', '#00f2fe']
+        });
+    }
 }
 
 // ============================================

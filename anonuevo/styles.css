@@ -62,6 +62,36 @@ body {
     stroke-width: 2 !important;
 }
 
+/* Efecto de día/noche (sombra que se mueve) */
+#dayNightShadow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
+    background: linear-gradient(to right,
+        rgba(0, 0, 0, 0.95) 0%,
+        rgba(0, 0, 0, 0.9) 5%,
+        rgba(0, 0, 0, 0.7) 10%,
+        rgba(0, 0, 0, 0.4) 20%,
+        rgba(0, 0, 0, 0.1) 30%,
+        rgba(0, 0, 0, 0) 40%,
+        rgba(0, 0, 0, 0) 60%,
+        rgba(0, 0, 0, 0.1) 70%,
+        rgba(0, 0, 0, 0.4) 80%,
+        rgba(0, 0, 0, 0.7) 90%,
+        rgba(0, 0, 0, 0.9) 95%,
+        rgba(0, 0, 0, 0.95) 100%);
+    background-size: 50% 100%;
+    background-repeat: repeat-x;
+    transition: background-position 0.3s linear;
+    mix-blend-mode: multiply;
+    opacity: 0.85;
+    display: block;
+}
+
 @media (max-width: 768px) {
     .highmaps-planisphere {
         min-height: 100vh;
@@ -618,17 +648,18 @@ body {
 .timeline-container {
     position: absolute;
     bottom: 20px;
-    left: 20px;
-    right: 20px;
-    max-width: 90%;
-    margin: 0 auto;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    max-width: 800px;
+    text-align: center;
+    z-index: 15;
     background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(10px);
     border-radius: 20px;
-    padding: 15px;
+    padding: 20px;
     border: 2px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    z-index: 15;
 }
 
 @media (max-width: 768px) {
@@ -636,39 +667,67 @@ body {
         bottom: 10px;
         left: 10px;
         right: 10px;
-        padding: 10px;
+        width: auto;
+        transform: none;
+        padding: 15px;
     }
 }
 
-.timeline-header {
-    margin-bottom: 15px;
-    text-align: center;
-}
-
-.timeline-header h3 {
-    font-size: 18px;
-    font-weight: 600;
-    margin: 0 0 5px 0;
-}
-
-.timeline-subtitle {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.6);
-    font-style: italic;
-}
-
-.timeline-track {
-    position: relative;
-    height: 100px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50px;
-    overflow: visible;
-    margin-top: 20px;
+#timeline-title {
+    font-weight: 300;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+    color: #ffffff;
 }
 
 @media (max-width: 768px) {
-    .timeline-track {
-        height: 60px;
+    #timeline-title {
+        font-size: 1.2rem;
+    }
+}
+
+.timeline-wrapper {
+    position: relative;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    margin-bottom: 20px;
+}
+
+.progress-bar {
+    position: absolute;
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #4facfe, #00f2fe);
+    border-radius: 20px;
+    box-shadow: 0 0 20px #00f2fe;
+    transition: width 1s ease-out;
+}
+
+.dates {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: #888;
+    margin-bottom: 10px;
+}
+
+#current-date-info {
+    margin-top: 10px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #00f2fe;
+    text-shadow: 0 0 10px #00f2fe;
+}
+
+@media (max-width: 768px) {
+    #current-date-info {
+        font-size: 1.2rem;
+    }
+    
+    .dates {
+        font-size: 0.8rem;
     }
 }
 
