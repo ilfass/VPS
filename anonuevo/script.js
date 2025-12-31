@@ -2319,10 +2319,10 @@ function updateNextCountryPanel() {
         
         const points = series.points;
         const now = new Date();
-        const hours = now.getUTCHours();
-        const minutes = now.getUTCMinutes();
-        const seconds = now.getUTCSeconds();
-        const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+        const utcHours = now.getUTCHours();
+        const utcMinutes = now.getUTCMinutes();
+        const utcSeconds = now.getUTCSeconds();
+        const totalSeconds = utcHours * 3600 + utcMinutes * 60 + utcSeconds;
         
         // Calcular la longitud donde es medianoche UTC
         let midnightLongitude = (totalSeconds / 3600) * 15;
@@ -2465,18 +2465,29 @@ function updateNextCountryPanel() {
                     countryMinute = parseInt(parts.find(p => p.type === 'minute').value);
                     countrySecond = parseInt(parts.find(p => p.type === 'second').value);
                 } catch (e) {
+                    console.warn('Error obteniendo timezone para', nextCountry.name, e);
                     // Fallback a cálculo aproximado
                     const countryOffset = Math.round(nextCountry.longitude / 15);
-                    countryHour = (hours + countryOffset + 24) % 24;
-                    countryMinute = minutes;
-                    countrySecond = seconds;
+                    countryHour = (utcHours + countryOffset + 24) % 24;
+                    countryMinute = utcMinutes;
+                    countrySecond = utcSeconds;
                 }
             } else {
                 // Calcular hora aproximada basándose en longitud
                 const countryOffset = Math.round(nextCountry.longitude / 15);
-                countryHour = (hours + countryOffset + 24) % 24;
-                countryMinute = minutes;
-                countrySecond = seconds;
+                countryHour = (utcHours + countryOffset + 24) % 24;
+                countryMinute = utcMinutes;
+                countrySecond = utcSeconds;
+            }
+            
+            // Asegurar que las horas sean válidas
+            if (isNaN(countryHour) || isNaN(countryMinute) || isNaN(countrySecond)) {
+                console.warn('Valores inválidos para hora del país:', nextCountry.name, countryHour, countryMinute, countrySecond);
+                // Usar valores por defecto
+                const countryOffset = Math.round(nextCountry.longitude / 15);
+                countryHour = (utcHours + countryOffset + 24) % 24;
+                countryMinute = utcMinutes;
+                countrySecond = utcSeconds;
             }
             
             // Actualizar elementos
