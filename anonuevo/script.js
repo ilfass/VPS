@@ -138,8 +138,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Verificar mensajes de voz cada minuto
     setInterval(checkVoiceMessage, 60000);
 
-    // Actualizar mapa cada 5 segundos
-    setInterval(updateWorldMap, 5000);
+    // Actualizar mapa cada segundo (más fluido)
+    setInterval(updateWorldMap, 1000);
 
     // Animar globo continuamente
     animateGlobe();
