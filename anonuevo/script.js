@@ -2426,11 +2426,6 @@ function updateNextCountryPanel() {
             // Calcular tiempo hasta medianoche para este país
             // La distancia en grados se convierte a tiempo (15 grados = 1 hora)
             const hoursUntilMidnight = nextCountry.distance / 15;
-            const totalSecondsUntil = hoursUntilMidnight * 3600;
-            
-            const hoursLeft = Math.floor(hoursUntilMidnight);
-            const minutesLeft = Math.floor((hoursUntilMidnight - hoursLeft) * 60);
-            const secondsLeft = Math.floor((totalSecondsUntil - (hoursLeft * 3600) - (minutesLeft * 60)));
             
             // Calcular hora actual del país usando timezone real si es posible
             // Intentar obtener timezone del país desde datos conocidos
