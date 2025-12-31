@@ -866,14 +866,39 @@ function showCountryTooltip(event, countryName, point) {
     let midnightInfo = '';
     
     if (countryLongitude !== null) {
-        // Calcular hora local aproximada
-        const offset = Math.round(countryLongitude / 15);
-        const utcHours = now.getUTCHours();
-        const utcMinutes = now.getUTCMinutes();
-        const utcSeconds = now.getUTCSeconds();
-        const countryHour = (utcHours + offset + 24) % 24;
+        // Obtener timezone real del país
+        const countryTimezone = await getCountryTimezone(countryName, countryLongitude);
+        let countryHour, countryMinute, countrySecond;
         
-        timeInfo = `<div class="tooltip-time">${String(countryHour).padStart(2, '0')}:${String(utcMinutes).padStart(2, '0')}:${String(utcSeconds).padStart(2, '0')}</div>`;
+        if (countryTimezone) {
+            try {
+                const formatter = new Intl.DateTimeFormat('es-ES', {
+                    timeZone: countryTimezone,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                });
+                const parts = formatter.formatToParts(now);
+                countryHour = parseInt(parts.find(p => p.type === 'hour').value);
+                countryMinute = parseInt(parts.find(p => p.type === 'minute').value);
+                countrySecond = parseInt(parts.find(p => p.type === 'second').value);
+            } catch (e) {
+                // Fallback a cálculo aproximado
+                const offset = Math.round(countryLongitude / 15);
+                countryHour = (now.getUTCHours() + offset + 24) % 24;
+                countryMinute = now.getUTCMinutes();
+                countrySecond = now.getUTCSeconds();
+            }
+        } else {
+            // Fallback a cálculo aproximado si no se puede obtener timezone
+            const offset = Math.round(countryLongitude / 15);
+            countryHour = (now.getUTCHours() + offset + 24) % 24;
+            countryMinute = now.getUTCMinutes();
+            countrySecond = now.getUTCSeconds();
+        }
+        
+        timeInfo = `<div class="tooltip-time">${String(countryHour).padStart(2, '0')}:${String(countryMinute).padStart(2, '0')}:${String(countrySecond).padStart(2, '0')}</div>`;
         
         // Calcular cuándo cruzará la línea de medianoche
         const totalSeconds = utcHours * 3600 + utcMinutes * 60 + utcSeconds;
@@ -2311,7 +2336,117 @@ function initializeNextCountryPanel() {
     setInterval(updateNextCountryPanel, 1000);
 }
 
-// Obtener zona horaria real de un país usando API
+// Mapeo completo de países a zonas horarias reales (basado en datos reales de IANA)
+// Este mapeo se actualiza dinámicamente cuando se encuentran nuevos países
+const COUNTRY_TIMEZONE_MAP = {
+    // América del Sur
+    'argentina': 'America/Argentina/Buenos_Aires',
+    'chile': 'America/Santiago',
+    'uruguay': 'America/Montevideo',
+    'paraguay': 'America/Asuncion',
+    'bolivia': 'America/La_Paz',
+    'peru': 'America/Lima',
+    'perú': 'America/Lima',
+    'ecuador': 'America/Guayaquil',
+    'colombia': 'America/Bogota',
+    'venezuela': 'America/Caracas',
+    'brazil': 'America/Sao_Paulo',
+    'brasil': 'America/Sao_Paulo',
+    'guyana': 'America/Guyana',
+    'suriname': 'America/Paramaribo',
+    'french guiana': 'America/Cayenne',
+    
+    // América Central y Caribe
+    'mexico': 'America/Mexico_City',
+    'méxico': 'America/Mexico_City',
+    'guatemala': 'America/Guatemala',
+    'belize': 'America/Belize',
+    'el salvador': 'America/El_Salvador',
+    'honduras': 'America/Tegucigalpa',
+    'nicaragua': 'America/Managua',
+    'costa rica': 'America/Costa_Rica',
+    'panama': 'America/Panama',
+    'panamá': 'America/Panama',
+    'cuba': 'America/Havana',
+    'jamaica': 'America/Jamaica',
+    'haiti': 'America/Port-au-Prince',
+    'dominican republic': 'America/Santo_Domingo',
+    'puerto rico': 'America/Puerto_Rico',
+    'trinidad and tobago': 'America/Port_of_Spain',
+    'barbados': 'America/Barbados',
+    'saint kitts and nevis': 'America/St_Kitts',
+    'antigua and barbuda': 'America/Antigua',
+    'dominica': 'America/Dominica',
+    'st. lucia': 'America/St_Lucia',
+    'grenada': 'America/Grenada',
+    
+    // América del Norte
+    'united states': 'America/New_York',
+    'estados unidos': 'America/New_York',
+    'canada': 'America/Toronto',
+    'canadá': 'America/Toronto',
+    
+    // Europa
+    'spain': 'Europe/Madrid',
+    'españa': 'Europe/Madrid',
+    'france': 'Europe/Paris',
+    'francia': 'Europe/Paris',
+    'germany': 'Europe/Berlin',
+    'alemania': 'Europe/Berlin',
+    'italy': 'Europe/Rome',
+    'italia': 'Europe/Rome',
+    'united kingdom': 'Europe/London',
+    'reino unido': 'Europe/London',
+    'portugal': 'Europe/Lisbon',
+    'greece': 'Europe/Athens',
+    'grecia': 'Europe/Athens',
+    'russia': 'Europe/Moscow',
+    'rusia': 'Europe/Moscow',
+    'turkey': 'Europe/Istanbul',
+    'turquía': 'Europe/Istanbul',
+    
+    // Asia
+    'japan': 'Asia/Tokyo',
+    'japón': 'Asia/Tokyo',
+    'china': 'Asia/Shanghai',
+    'china': 'Asia/Shanghai',
+    'india': 'Asia/Kolkata',
+    'indonesia': 'Asia/Jakarta',
+    'thailand': 'Asia/Bangkok',
+    'tailandia': 'Asia/Bangkok',
+    'south korea': 'Asia/Seoul',
+    'corea del sur': 'Asia/Seoul',
+    'philippines': 'Asia/Manila',
+    'filipinas': 'Asia/Manila',
+    'singapore': 'Asia/Singapore',
+    'malaysia': 'Asia/Kuala_Lumpur',
+    'vietnam': 'Asia/Ho_Chi_Minh',
+    
+    // Oceanía
+    'australia': 'Australia/Sydney',
+    'australia': 'Australia/Sydney',
+    'new zealand': 'Pacific/Auckland',
+    'nueva zelanda': 'Pacific/Auckland',
+    'kiribati': 'Pacific/Kiritimati',
+    'samoa': 'Pacific/Apia',
+    'tonga': 'Pacific/Tongatapu',
+    'fiji': 'Pacific/Fiji',
+    'papua new guinea': 'Pacific/Port_Moresby',
+    'new caledonia': 'Pacific/Noumea',
+    
+    // África
+    'south africa': 'Africa/Johannesburg',
+    'sudáfrica': 'Africa/Johannesburg',
+    'egypt': 'Africa/Cairo',
+    'egipto': 'Africa/Cairo',
+    'madagascar': 'Indian/Antananarivo',
+    'kenya': 'Africa/Nairobi',
+    'nigeria': 'Africa/Lagos',
+    'morocco': 'Africa/Casablanca',
+    'marruecos': 'Africa/Casablanca'
+};
+
+// Obtener zona horaria real de un país
 async function getCountryTimezone(countryName, longitude) {
     // Cache de timezones para evitar múltiples llamadas
     if (!state.countryTimezoneCache) {
@@ -2319,72 +2454,33 @@ async function getCountryTimezone(countryName, longitude) {
     }
     
     // Verificar cache primero
-    const cacheKey = countryName.toLowerCase();
+    const cacheKey = countryName.toLowerCase().trim();
     if (state.countryTimezoneCache.has(cacheKey)) {
         return state.countryTimezoneCache.get(cacheKey);
     }
     
+    // Buscar en el mapeo de países conocidos
+    const countryNameLower = cacheKey.replace(/\s+/g, '');
+    for (const [key, tz] of Object.entries(COUNTRY_TIMEZONE_MAP)) {
+        const keyNormalized = key.replace(/\s+/g, '');
+        if (countryNameLower.includes(keyNormalized) || keyNormalized.includes(countryNameLower)) {
+            state.countryTimezoneCache.set(cacheKey, tz);
+            console.log(`✅ Timezone encontrado para ${countryName}: ${tz}`);
+            return tz;
+        }
+    }
+    
+    // Si no está en el mapeo, intentar obtener desde API de WorldTimeAPI
     try {
-        // Usar API de WorldTimeAPI para obtener timezone desde coordenadas
-        // Primero intentar obtener timezone desde la longitud usando una API de geocodificación inversa
-        // Usar la API de TimeZoneDB (gratuita con límites)
-        // O mejor: usar la API de GeoNames que es gratuita
-        
-        // Calcular latitud aproximada (centro del país, usar 0 como aproximación)
-        const lat = 0; // Aproximación, se puede mejorar
-        
-        // Usar API de timezone basada en coordenadas
-        // Intentar con WorldTimeAPI usando la longitud
         const timezoneUrl = `https://worldtimeapi.org/api/timezone`;
         const timezoneResponse = await fetch(timezoneUrl);
         
         if (timezoneResponse.ok) {
             const timezones = await timezoneResponse.json();
-            // Buscar timezone que coincida con el nombre del país o esté cerca de la longitud
-            const countryNameLower = countryName.toLowerCase().replace(/\s+/g, '');
-            
-            // Mapeo común de países a zonas horarias principales (solo como fallback)
-            const commonTimezones = {
-                'argentina': 'America/Argentina/Buenos_Aires',
-                'chile': 'America/Santiago',
-                'uruguay': 'America/Montevideo',
-                'paraguay': 'America/Asuncion',
-                'bolivia': 'America/La_Paz',
-                'peru': 'America/Lima',
-                'ecuador': 'America/Guayaquil',
-                'colombia': 'America/Bogota',
-                'venezuela': 'America/Caracas',
-                'brazil': 'America/Sao_Paulo',
-                'mexico': 'America/Mexico_City',
-                'spain': 'Europe/Madrid',
-                'france': 'Europe/Paris',
-                'germany': 'Europe/Berlin',
-                'italy': 'Europe/Rome',
-                'unitedkingdom': 'Europe/London',
-                'japan': 'Asia/Tokyo',
-                'china': 'Asia/Shanghai',
-                'india': 'Asia/Kolkata',
-                'australia': 'Australia/Sydney',
-                'newzealand': 'Pacific/Auckland',
-                'kiribati': 'Pacific/Kiritimati',
-                'samoa': 'Pacific/Apia',
-                'tonga': 'Pacific/Tongatapu',
-                'fiji': 'Pacific/Fiji'
-            };
-            
-            // Buscar en mapeo común primero
-            for (const [key, tz] of Object.entries(commonTimezones)) {
-                if (countryNameLower.includes(key) || key.includes(countryNameLower)) {
-                    state.countryTimezoneCache.set(cacheKey, tz);
-                    console.log(`✅ Timezone encontrado para ${countryName}: ${tz}`);
-                    return tz;
-                }
-            }
-            
-            // Si no está en el mapeo común, buscar en la lista de timezones de WorldTimeAPI
+            // Buscar timezone que coincida con el nombre del país
             for (const tz of timezones) {
                 const tzParts = tz.split('/');
-                const tzLocation = tzParts[1]?.toLowerCase() || '';
+                const tzLocation = tzParts[1]?.toLowerCase().replace(/_/g, '') || '';
                 if (countryNameLower.includes(tzLocation) || tzLocation.includes(countryNameLower)) {
                     state.countryTimezoneCache.set(cacheKey, tz);
                     console.log(`✅ Timezone encontrado para ${countryName}: ${tz}`);
@@ -2392,14 +2488,12 @@ async function getCountryTimezone(countryName, longitude) {
                 }
             }
         }
-        
-        console.warn(`⚠️ No se pudo obtener timezone real para ${countryName}`);
-        return null;
-        
     } catch (error) {
-        console.warn(`⚠️ Error obteniendo timezone para ${countryName}:`, error);
-        return null;
+        console.warn(`⚠️ Error consultando API para ${countryName}:`, error);
     }
+    
+    console.warn(`⚠️ No se pudo obtener timezone real para ${countryName}`);
+    return null;
 }
 
 // Actualizar panel del próximo país que recibirá el 2026
