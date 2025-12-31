@@ -2530,32 +2530,6 @@ async function getCountryTimezone(countryName, longitude) {
     
     return null;
 }
-    
-    // Si no está en el mapeo, intentar obtener desde API de WorldTimeAPI
-    try {
-        const timezoneUrl = `https://worldtimeapi.org/api/timezone`;
-        const timezoneResponse = await fetch(timezoneUrl);
-        
-        if (timezoneResponse.ok) {
-            const timezones = await timezoneResponse.json();
-            // Buscar timezone que coincida con el nombre del país
-            for (const tz of timezones) {
-                const tzParts = tz.split('/');
-                const tzLocation = tzParts[1]?.toLowerCase().replace(/_/g, '') || '';
-                if (countryNameLower.includes(tzLocation) || tzLocation.includes(countryNameLower)) {
-                    state.countryTimezoneCache.set(cacheKey, tz);
-                    console.log(`✅ Timezone encontrado para ${countryName}: ${tz}`);
-                    return tz;
-                }
-            }
-        }
-    } catch (error) {
-        console.warn(`⚠️ Error consultando API para ${countryName}:`, error);
-    }
-    
-    console.warn(`⚠️ No se pudo obtener timezone real para ${countryName}`);
-    return null;
-}
 
 // Actualizar panel del próximo país que recibirá el 2026
 async function updateNextCountryPanel() {
