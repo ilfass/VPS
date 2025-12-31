@@ -748,13 +748,18 @@ function highlightCountriesAtGreenwich() {
                             state.countriesAtMidnight.add(countryName);
                             
                             // Mostrar cartel festivo solo si no es el mismo país que acabamos de celebrar
-                            // Y solo si realmente está en medianoche (muy cerca, dentro de 5 minutos)
+                            // Y solo si realmente está en medianoche exacta (dentro de 5 minutos)
                             if (state.lastCelebratedCountry !== countryName && distanceToMidnight <= 1.25) {
-                                showCountryCelebrationBanner(countryName);
-                                state.lastCelebratedCountry = countryName;
-                                
-                                // Obtener información del país y hacer que el presentador la lea
-                                fetchCountryInfoAndAnnounce(countryName);
+                                // Verificar que realmente está cruzando medianoche (no un falso positivo)
+                                const timeSinceLastCelebration = Date.now() - (state.lastCelebrationTime || 0);
+                                if (timeSinceLastCelebration > 30000) { // Al menos 30 segundos desde la última celebración
+                                    showCountryCelebrationBanner(countryName);
+                                    state.lastCelebratedCountry = countryName;
+                                    state.lastCelebrationTime = Date.now();
+                                    
+                                    // Obtener información del país y hacer que el presentador la lea
+                                    fetchCountryInfoAndAnnounce(countryName);
+                                }
                             }
                         }
                         
