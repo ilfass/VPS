@@ -3674,8 +3674,16 @@ function escapeHtml(text) {
 // ============================================
 
 function updateAll() {
-    updateTimeDisplay();
-    updateCountdown();
+    try {
+        updateTimeDisplay();
+        updateCountdown();
+        // Actualizar también el panel del próximo país cada segundo
+        if (state.highmapsChart) {
+            updateNextCountryPanel();
+        }
+    } catch (error) {
+        console.warn('⚠️ Error en updateAll:', error);
+    }
     // updateWorldMap se llama cada 5 segundos por separado
 }
 
