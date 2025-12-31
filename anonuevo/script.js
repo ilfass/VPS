@@ -117,6 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeDynamicFeatures();
     initializeTimeline(); // Inicializar línea de tiempo con 365 días
     initializeWorldTimes(); // Inicializar obtención de horas del mundo
+    initializeNextCountryPanel(); // Inicializar panel del próximo país
     // initializeUserLocation(); // Función no implementada aún
     
     // Actualizar cada segundo
@@ -447,6 +448,9 @@ function updateMapRotation() {
         
         // Iluminar países que cruzan el meridiano de medianoche (00:00-01:00 UTC)
         highlightCountriesAtGreenwich();
+        
+        // Actualizar panel del próximo país
+        updateNextCountryPanel();
     } catch (error) {
         console.warn('⚠️ Error al rotar el mapa:', error);
     }
