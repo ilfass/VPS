@@ -1608,6 +1608,124 @@ body {
     color: #ff4444;
 }
 
+/* Cartel Festivo de Celebración de País */
+.country-celebration-banner {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    z-index: 1000;
+    background: linear-gradient(135deg, #ff6b6b 0%, #ffd93d 50%, #6bcf7f 100%);
+    padding: 40px 60px;
+    border-radius: 30px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 100px rgba(255, 215, 0, 0.8);
+    border: 5px solid #ffd700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: celebrationPulse 0.5s ease-out forwards, celebrationShake 0.5s ease-in-out infinite;
+    max-width: 90%;
+}
+
+.country-celebration-banner.show {
+    animation: celebrationShow 0.5s ease-out forwards, celebrationPulse 0.5s ease-in-out infinite;
+}
+
+.celebration-content {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    text-align: center;
+}
+
+.celebration-emoji {
+    font-size: 80px;
+    animation: celebrationBounce 1s ease-in-out infinite;
+}
+
+.celebration-text {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.celebration-country {
+    font-size: 48px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+    animation: celebrationGlow 1s ease-in-out infinite;
+}
+
+.celebration-message {
+    font-size: 32px;
+    color: #fff;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    font-weight: 600;
+}
+
+@keyframes celebrationShow {
+    0% {
+        transform: translate(-50%, -50%) scale(0) rotate(-180deg);
+        opacity: 0;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.1) rotate(0deg);
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+@keyframes celebrationPulse {
+    0%, 100% {
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 100px rgba(255, 215, 0, 0.8);
+    }
+    50% {
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 150px rgba(255, 215, 0, 1);
+    }
+}
+
+@keyframes celebrationShake {
+    0%, 100% {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+    25% {
+        transform: translate(-50%, -50%) rotate(-2deg);
+    }
+    75% {
+        transform: translate(-50%, -50%) rotate(2deg);
+    }
+}
+
+@keyframes celebrationBounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-20px);
+    }
+}
+
+@keyframes celebrationGlow {
+    0%, 100% {
+        text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 0.5);
+    }
+    50% {
+        text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 255, 255, 1);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .info-panel {
@@ -1643,6 +1761,81 @@ body {
 
     .countdown-unit .number {
         font-size: 32px;
+    }
+    
+    .country-celebration-banner {
+        padding: 20px 30px;
+        border-radius: 20px;
+        border-width: 3px;
+    }
+    
+    .celebration-content {
+        gap: 15px;
+        flex-direction: column;
+    }
+    
+    .celebration-emoji {
+        font-size: 50px;
+    }
+    
+    .celebration-country {
+        font-size: 28px;
+    }
+    
+    .celebration-message {
+        font-size: 20px;
+    }
+    
+    .timeline-container {
+        width: calc(100% - 20px) !important;
+        padding: 15px !important;
+    }
+    
+    .ai-presenter-panel {
+        width: calc(100% - 20px) !important;
+        max-width: none !important;
+    }
+    
+    .presenter-content {
+        flex-direction: column;
+    }
+    
+    .presenter-avatar-container {
+        margin-bottom: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .info-panel {
+        padding: 15px;
+    }
+    
+    .time-display {
+        padding: 15px;
+    }
+    
+    .time-value {
+        font-size: 32px;
+    }
+    
+    .countdown-unit .number {
+        font-size: 24px;
+    }
+    
+    .country-celebration-banner {
+        padding: 15px 20px;
+    }
+    
+    .celebration-country {
+        font-size: 24px;
+    }
+    
+    .celebration-message {
+        font-size: 16px;
+    }
+    
+    .celebration-emoji {
+        font-size: 40px;
     }
 }
 

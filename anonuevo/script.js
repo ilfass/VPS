@@ -82,7 +82,12 @@ const state = {
     lastHourlyBanner: null,
     currentMessageIndex: 0,
     mapDuplicated: false,
-    highlightedCountries: new Set()
+    highlightedCountries: new Set(),
+    countriesAtMidnight: new Set(), // Países que están en medianoche
+    lastCelebratedCountry: null, // Último país que celebró
+    countryInfoCache: new Map(), // Cache de información de países
+    currentUtterance: null, // Utterance actual para evitar cortes
+    isSpeaking: false // Flag para saber si está hablando
 };
 
 // ============================================
@@ -578,8 +583,25 @@ function highlightCountriesAtGreenwich() {
                         isInMidnightZone = true;
                     }
                     
+                    // Obtener nombre del país
+                    const countryName = point.name || point.properties?.name || point.options?.name || 'País desconocido';
+                    
                     if (isInMidnightZone) {
                         currentlyHighlighted.add(index);
+                        
+                        // Detectar si es un país nuevo que acaba de llegar a medianoche
+                        if (!state.countriesAtMidnight.has(countryName)) {
+                            state.countriesAtMidnight.add(countryName);
+                            
+                            // Mostrar cartel festivo solo si no es el mismo país que acabamos de celebrar
+                            if (state.lastCelebratedCountry !== countryName) {
+                                showCountryCelebrationBanner(countryName);
+                                state.lastCelebratedCountry = countryName;
+                                
+                                // Obtener información del país y hacer que el presentador la lea
+                                fetchCountryInfoAndAnnounce(countryName);
+                            }
+                        }
                         
                         // Actualizar siempre para asegurar que el color se aplique
                         try {
@@ -597,6 +619,10 @@ function highlightCountriesAtGreenwich() {
                             }
                         }
                     } else {
+                        // Remover de países en medianoche si ya no está
+                        if (state.countriesAtMidnight.has(countryName)) {
+                            state.countriesAtMidnight.delete(countryName);
+                        }
                         // Solo restaurar si estaba iluminado antes
                         if (state.highlightedCountries.has(index)) {
                             try {
@@ -1928,15 +1954,16 @@ function showHourlyBanner() {
 
 function initializeTimeline() {
     updateTimeline();
-    setInterval(updateTimeline, 60000); // Actualizar cada minuto
+    // Actualizar cada segundo para que sea más interactiva y precisa
+    setInterval(updateTimeline, 1000);
 }
 
 function updateTimeline() {
-    const start = new Date('2025-01-01T00:00:00');
-    const end = new Date('2026-01-01T00:00:00');
+    const start = new Date('2025-01-01T00:00:00Z'); // UTC
+    const end = new Date('2026-01-01T00:00:00Z'); // UTC - exactamente a las 00:00 UTC
     const now = new Date();
 
-    // Cálculos
+    // Cálculos precisos
     const total = end - start;
     const elapsed = now - start;
     let percentage = (elapsed / total) * 100;
@@ -1951,17 +1978,32 @@ function updateTimeline() {
     
     if (progressBar) {
         progressBar.style.width = percentage + '%';
+        // Agregar transición suave
+        progressBar.style.transition = 'width 0.5s ease-out';
     }
     
     if (todaySpan) {
-        todaySpan.innerText = now.toLocaleDateString();
+        todaySpan.innerText = now.toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
     }
 
-    // Lógica de Objetivo Cumplido
-    if (percentage >= 100 && title) {
+    // Lógica de Objetivo Cumplido - exactamente a las 00:00 UTC del 2026
+    const timeUntil2026 = end - now;
+    if (timeUntil2026 <= 0 && title && percentage >= 100) {
         title.innerText = "¡BIENVENIDO 2026!";
         title.style.color = "#ffdd00";
+        title.style.animation = "pulse 1s infinite";
         lanzarConfetti();
+    } else if (timeUntil2026 > 0 && timeUntil2026 <= 86400000) {
+        // Últimas 24 horas - mostrar cuenta regresiva
+        const hours = Math.floor(timeUntil2026 / 3600000);
+        const minutes = Math.floor((timeUntil2026 % 3600000) / 60000);
+        if (title) {
+            title.innerHTML = `Camino al 2026<br><small style="font-size: 0.6em; opacity: 0.8;">Faltan ${hours}h ${minutes}m</small>`;
+        }
     }
 }
 
@@ -1974,6 +2016,119 @@ function lanzarConfetti() {
             colors: ['#ffffff', '#ffdd00', '#00f2fe']
         });
     }
+}
+
+// Mostrar cartel festivo cuando un país llega a medianoche
+function showCountryCelebrationBanner(countryName) {
+    const banner = document.getElementById('countryCelebrationBanner');
+    const countryEl = document.getElementById('celebrationCountry');
+    const messageEl = document.getElementById('celebrationMessage');
+    
+    if (!banner || !countryEl || !messageEl) return;
+    
+    // Actualizar texto
+    countryEl.textContent = countryName;
+    messageEl.textContent = 'acaba de llegar al 2026';
+    
+    // Mostrar banner con animación
+    banner.style.display = 'flex';
+    banner.classList.add('show');
+    
+    // Vibración de la pantalla (si está disponible)
+    if (navigator.vibrate) {
+        navigator.vibrate([200, 100, 200, 100, 200]);
+    }
+    
+    // Efecto de confetti
+    lanzarConfetti();
+    
+    // Ocultar después de 5 segundos
+    setTimeout(() => {
+        banner.classList.remove('show');
+        setTimeout(() => {
+            banner.style.display = 'none';
+        }, 500);
+    }, 5000);
+}
+
+// Scraper de información de países usando Wikipedia API
+async function fetchCountryInfoAndAnnounce(countryName) {
+    // Verificar cache primero
+    if (state.countryInfoCache && state.countryInfoCache.has(countryName)) {
+        const cachedInfo = state.countryInfoCache.get(countryName);
+        announceCountryInfo(countryName, cachedInfo);
+        return;
+    }
+    
+    try {
+        // Usar Wikipedia API para obtener información del país
+        const searchUrl = `https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(countryName)}`;
+        
+        const response = await fetch(searchUrl);
+        if (!response.ok) throw new Error('Error en la búsqueda');
+        
+        const data = await response.json();
+        
+        // Extraer información relevante
+        const countryInfo = {
+            name: data.title || countryName,
+            description: data.extract || '',
+            capital: data.content_urls?.desktop?.page || '',
+            flag: data.thumbnail?.source || ''
+        };
+        
+        // Guardar en cache
+        if (!state.countryInfoCache) {
+            state.countryInfoCache = new Map();
+        }
+        state.countryInfoCache.set(countryName, countryInfo);
+        
+        // Anunciar información
+        announceCountryInfo(countryName, countryInfo);
+        
+    } catch (error) {
+        console.warn('⚠️ Error obteniendo información del país:', error);
+        // Usar información genérica
+        const genericInfo = {
+            name: countryName,
+            description: `${countryName} es un país que acaba de recibir el Año Nuevo. Cada país tiene sus propias tradiciones y formas únicas de celebrar este momento especial.`,
+            capital: '',
+            flag: ''
+        };
+        announceCountryInfo(countryName, genericInfo);
+    }
+}
+
+// Anunciar información del país por el presentador
+function announceCountryInfo(countryName, info) {
+    // Esperar a que termine de hablar si está hablando
+    if (state.isSpeaking) {
+        setTimeout(() => announceCountryInfo(countryName, info), 2000);
+        return;
+    }
+    
+    // Crear mensaje para el presentador
+    let message = `¡${countryName} acaba de llegar al 2026! `;
+    
+    if (info.description) {
+        // Tomar las primeras 2-3 oraciones de la descripción
+        const sentences = info.description.split('.').filter(s => s.trim().length > 20);
+        const relevantSentences = sentences.slice(0, 2).join('. ');
+        if (relevantSentences) {
+            message += relevantSentences + '. ';
+        }
+    }
+    
+    message += `¡Feliz Año Nuevo a todos en ${countryName}!`;
+    
+    // Actualizar texto del presentador
+    const presenterText = document.getElementById('presenterText');
+    if (presenterText) {
+        presenterText.textContent = message;
+    }
+    
+    // Hacer que el presentador lea el mensaje
+    speakPresenterMessage(message);
 }
 
 // ============================================
@@ -2274,6 +2429,15 @@ function speakPresenterMessage(message) {
         return;
     }
     
+    // Si ya está hablando, esperar a que termine antes de cancelar
+    if (state.isSpeaking && state.currentUtterance) {
+        // Esperar a que termine el mensaje actual
+        state.currentUtterance.onend = () => {
+            speakPresenterMessage(message);
+        };
+        return;
+    }
+    
     // Cancelar cualquier mensaje anterior
     window.speechSynthesis.cancel();
     
@@ -2281,9 +2445,13 @@ function speakPresenterMessage(message) {
     setTimeout(() => {
         const utterance = new SpeechSynthesisUtterance(message);
         utterance.lang = 'es-ES';
-        utterance.rate = 0.85; // Velocidad más lenta para mejor comprensión
-        utterance.pitch = 0.75; // Voz más grave (0.5-2.0, más bajo = más grave)
+        utterance.rate = 0.8; // Velocidad más lenta para mejor comprensión
+        utterance.pitch = 0.6; // Voz más grave (más masculina)
         utterance.volume = 1.0; // Volumen máximo
+        
+        // Guardar referencia para evitar cortes
+        state.currentUtterance = utterance;
+        state.isSpeaking = true;
         
         // Cargar voces si no están disponibles
         const loadVoices = () => {
@@ -2294,14 +2462,23 @@ function speakPresenterMessage(message) {
                 return;
             }
             
-            // Buscar la mejor voz en español (preferir voces masculinas/graves)
+            // Buscar la mejor voz masculina en español
+            // Prioridad: voces con "Male", "Masculino", "Hombre", o que no tengan "Female"
             let bestVoice = voices.find(voice => 
-                voice.lang.startsWith('es') && (voice.name.includes('Neural') || voice.name.includes('Premium')) && 
-                (voice.name.includes('Male') || voice.name.includes('Masculino') || !voice.name.includes('Female'))
+                voice.lang.startsWith('es') && (
+                    voice.name.toLowerCase().includes('male') || 
+                    voice.name.toLowerCase().includes('masculino') ||
+                    voice.name.toLowerCase().includes('hombre') ||
+                    voice.name.toLowerCase().includes('varon')
+                ) && !voice.name.toLowerCase().includes('female')
             ) || voices.find(voice => 
-                voice.lang.startsWith('es') && (voice.name.includes('Male') || voice.name.includes('Masculino'))
+                voice.lang.startsWith('es') && 
+                !voice.name.toLowerCase().includes('female') &&
+                !voice.name.toLowerCase().includes('femenino') &&
+                !voice.name.toLowerCase().includes('mujer')
             ) || voices.find(voice => 
-                voice.lang.startsWith('es') && !voice.name.includes('Female')
+                voice.lang.startsWith('es') && 
+                (voice.name.includes('Neural') || voice.name.includes('Premium'))
             ) || voices.find(voice => voice.lang.startsWith('es'));
             
             if (bestVoice) {
@@ -2332,10 +2509,21 @@ function speakPresenterMessage(message) {
             
             utterance.onend = () => {
                 state.aiPresenterActive = false;
+                state.isSpeaking = false;
+                state.currentUtterance = null;
                 if (mouthOverlay) {
                     mouthOverlay.classList.remove('speaking');
                 }
-                console.log('✅ Presentador terminó de hablar');
+                console.log('✅ Presentador terminó de hablar completamente');
+            };
+            
+            // Asegurar que se complete el mensaje incluso si hay pausas
+            utterance.onpause = () => {
+                console.log('⏸️ Voz pausada, reanudando...');
+                // Reanudar automáticamente si se pausa
+                if (state.isSpeaking) {
+                    window.speechSynthesis.resume();
+                }
             };
             
             utterance.onerror = (event) => {
@@ -2395,9 +2583,17 @@ function speakPresenterMessage(message) {
                     };
                     utterance.onend = () => {
                         state.aiPresenterActive = false;
+                        state.isSpeaking = false;
+                        state.currentUtterance = null;
                         const mouthOverlay = document.getElementById('avatarMouth');
                         if (mouthOverlay) {
                             mouthOverlay.classList.remove('speaking');
+                        }
+                    };
+                    
+                    utterance.onpause = () => {
+                        if (state.isSpeaking) {
+                            window.speechSynthesis.resume();
                         }
                     };
                     try {
