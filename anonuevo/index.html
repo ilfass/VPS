@@ -129,6 +129,9 @@
             
             <div class="timeline-wrapper">
                 <div class="progress-bar" id="timeline-progress"></div>
+                <div class="timeline-person" id="timelinePerson">
+                    <div class="person-walking">🚶</div>
+                </div>
             </div>
 
             <div class="dates">
@@ -148,10 +151,17 @@
             <div class="presenter-content">
                 <div class="presenter-avatar-container">
                     <div class="presenter-avatar" id="presenterAvatar">
-                        <canvas id="avatarCanvas" class="avatar-canvas"></canvas>
-                        <img src="presenter-face.jpg" alt="Presentador" class="avatar-image" id="avatarImage" style="display: none;">
-                        <div class="avatar-mouth-overlay" id="avatarMouth">
-                            <div class="mouth-shape"></div>
+                        <div class="animated-presenter">
+                            <div class="presenter-head">
+                                <div class="presenter-face">
+                                    <div class="presenter-eyes">
+                                        <div class="eye left-eye"></div>
+                                        <div class="eye right-eye"></div>
+                                    </div>
+                                    <div class="presenter-mouth" id="avatarMouth"></div>
+                                </div>
+                            </div>
+                            <div class="presenter-body"></div>
                         </div>
                     </div>
                     <div class="avatar-pulse"></div>

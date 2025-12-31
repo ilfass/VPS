@@ -87,7 +87,8 @@ const state = {
     lastCelebratedCountry: null, // Último país que celebró
     countryInfoCache: new Map(), // Cache de información de países
     currentUtterance: null, // Utterance actual para evitar cortes
-    isSpeaking: false // Flag para saber si está hablando
+    isSpeaking: false, // Flag para saber si está hablando
+    worldTimes: new Map() // Cache de horas del mundo
 };
 
 // ============================================
@@ -115,6 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeAIPresenter();
     initializeDynamicFeatures();
     initializeTimeline(); // Inicializar línea de tiempo con 365 días
+    initializeWorldTimes(); // Inicializar obtención de horas del mundo
     // initializeUserLocation(); // Función no implementada aún
     
     // Actualizar cada segundo
@@ -1968,18 +1970,25 @@ function updateTimeline() {
     const elapsed = now - start;
     let percentage = (elapsed / total) * 100;
 
-    // Limitar entre 0 y 100
-    percentage = Math.max(0, Math.min(percentage, 100));
+    // Limitar entre 0 y 100 - NO completar hasta llegar al 2026
+    percentage = Math.max(0, Math.min(percentage, 99.99)); // Máximo 99.99% hasta llegar exactamente al 2026
 
     // Actualizar Interfaz
     const progressBar = document.getElementById('timeline-progress');
     const todaySpan = document.getElementById('today');
     const title = document.getElementById('timeline-title');
+    const timelinePerson = document.getElementById('timelinePerson');
     
     if (progressBar) {
         progressBar.style.width = percentage + '%';
         // Agregar transición suave
         progressBar.style.transition = 'width 0.5s ease-out';
+    }
+    
+    // Actualizar posición de la persona animada
+    if (timelinePerson) {
+        timelinePerson.style.left = percentage + '%';
+        timelinePerson.style.transition = 'left 0.5s ease-out';
     }
     
     if (todaySpan) {
@@ -1992,7 +2001,14 @@ function updateTimeline() {
 
     // Lógica de Objetivo Cumplido - exactamente a las 00:00 UTC del 2026
     const timeUntil2026 = end - now;
-    if (timeUntil2026 <= 0 && title && percentage >= 100) {
+    if (timeUntil2026 <= 0 && title) {
+        // Completar la barra al llegar al 2026
+        if (progressBar) {
+            progressBar.style.width = '100%';
+        }
+        if (timelinePerson) {
+            timelinePerson.style.left = '100%';
+        }
         title.innerText = "¡BIENVENIDO 2026!";
         title.style.color = "#ffdd00";
         title.style.animation = "pulse 1s infinite";
@@ -2016,6 +2032,71 @@ function lanzarConfetti() {
             colors: ['#ffffff', '#ffdd00', '#00f2fe']
         });
     }
+}
+
+// Inicializar obtención de horas del mundo (similar a 24timezones.com)
+function initializeWorldTimes() {
+    // Actualizar horas del mundo cada minuto
+    updateWorldTimes();
+    setInterval(updateWorldTimes, 60000); // Actualizar cada minuto
+}
+
+// Obtener horas del mundo desde diferentes zonas horarias
+async function updateWorldTimes() {
+    const cities = [
+        { name: 'Lima', timezone: 'America/Lima' },
+        { name: 'Buenos Aires', timezone: 'America/Argentina/Buenos_Aires' },
+        { name: 'Brasilia', timezone: 'America/Sao_Paulo' },
+        { name: 'Madrid', timezone: 'Europe/Madrid' },
+        { name: 'Moscú', timezone: 'Europe/Moscow' },
+        { name: 'Doha', timezone: 'Asia/Qatar' },
+        { name: 'Tokio', timezone: 'Asia/Tokyo' },
+        { name: 'Sídney', timezone: 'Australia/Sydney' },
+        { name: 'Nueva York', timezone: 'America/New_York' },
+        { name: 'Los Ángeles', timezone: 'America/Los_Angeles' },
+        { name: 'Londres', timezone: 'Europe/London' },
+        { name: 'París', timezone: 'Europe/Paris' }
+    ];
+    
+    // Calcular horas basándose en UTC y offsets (más confiable que API externa)
+    const now = new Date();
+    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+    
+    cities.forEach(city => {
+        try {
+            // Usar Intl.DateTimeFormat para obtener hora local de cada ciudad
+            const formatter = new Intl.DateTimeFormat('es-ES', {
+                timeZone: city.timezone,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            
+            const localTime = formatter.format(now);
+            state.worldTimes.set(city.name, {
+                time: localTime,
+                timezone: city.timezone,
+                city: city.name
+            });
+        } catch (error) {
+            console.warn(`⚠️ Error obteniendo hora para ${city.name}:`, error);
+        }
+    });
+    
+    // También guardar UTC
+    const utcFormatter = new Intl.DateTimeFormat('es-ES', {
+        timeZone: 'UTC',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
+    state.worldTimes.set('UTC', {
+        time: utcFormatter.format(now),
+        timezone: 'UTC',
+        city: 'UTC'
+    });
 }
 
 // Mostrar cartel festivo cuando un país llega a medianoche
