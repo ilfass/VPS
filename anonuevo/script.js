@@ -443,20 +443,12 @@ function initializeMapbox() {
                 updateMidnightLine();
                 updateMapRotation();
                 
-                // Actualizar cada minuto para desplazamiento lento del mapa
+                // Actualizar mapa, día/noche y línea de medianoche cada segundo
                 setInterval(() => {
                     if (state.highmapsChart && state.highmapsChart.series && state.highmapsChart.series[0]) {
                         updateHighmapsDayNight();
                         updateMidnightLine();
-                        updateMapRotation();
-                    }
-                }, 60000); // Actualizar cada minuto para desplazamiento lento
-                
-                // Actualizar día/noche y línea de medianoche cada segundo (para animaciones suaves)
-                setInterval(() => {
-                    if (state.highmapsChart && state.highmapsChart.series && state.highmapsChart.series[0]) {
-                        updateHighmapsDayNight();
-                        updateMidnightLine();
+                        updateMapRotation(); // Actualizar rotación cada segundo para seguir la hora
                     }
                 }, 1000);
             }
@@ -560,7 +552,7 @@ function updateMapRotation() {
                 
                 // Aplicar transform al SVG con transición suave
                 svg.style.transformOrigin = 'left center';
-                svg.style.transition = 'transform 60s linear'; // Transición de 60 segundos para movimiento suave
+                svg.style.transition = 'transform 1s ease-out'; // Transición suave de 1 segundo
                 svg.style.transform = `translateX(${centerOffset}px)`;
                 
                 // Crear efecto de mosaico: duplicar el mapa para continuidad
@@ -590,11 +582,11 @@ function updateMapRotation() {
                     const cloneRight = document.getElementById('highmapsPlanisphere-clone-right');
                     const cloneLeft = document.getElementById('highmapsPlanisphere-clone-left');
                     if (cloneRight) {
-                        cloneRight.style.transition = 'transform 60s linear';
+                        cloneRight.style.transition = 'transform 1s ease-out';
                         cloneRight.style.transform = `translateX(${centerOffset}px)`;
                     }
                     if (cloneLeft) {
-                        cloneLeft.style.transition = 'transform 60s linear';
+                        cloneLeft.style.transition = 'transform 1s ease-out';
                         cloneLeft.style.transform = `translateX(${centerOffset}px)`;
                     }
                 }
@@ -739,10 +731,10 @@ function highlightCountriesAtGreenwich() {
                         Math.abs(countryLongitude - (midnightLongitude - 360))
                     );
                     
-                    // Verificar si el país está realmente en medianoche (00:00-00:30 UTC)
-                    // Solo considerar países que están muy cerca del meridiano de medianoche (dentro de 3.75 grados = 15 minutos)
-                    // Esto evita falsos positivos como Madagascar
-                    if (distanceToMidnight <= 3.75) {
+                    // Verificar si el país está en medianoche (00:00-01:00 UTC)
+                    // Considerar países dentro de 7.5 grados (30 minutos) del meridiano de medianoche
+                    // Esto cubre países que están entre 00:00 y 01:00 UTC
+                    if (distanceToMidnight <= 7.5) {
                         isInMidnightZone = true;
                     }
                     
@@ -2679,34 +2671,43 @@ async function fetchCountryInfoAndAnnounce(countryName) {
 
 // Anunciar información del país por el presentador
 function announceCountryInfo(countryName, info) {
-    // Esperar a que termine de hablar si está hablando
-    if (state.isSpeaking) {
-        setTimeout(() => announceCountryInfo(countryName, info), 2000);
-        return;
-    }
+    console.log(`📢 Anunciando información de ${countryName}`);
     
     // Crear mensaje para el presentador
-    let message = `¡${countryName} acaba de llegar al 2026! `;
+    let message = `¡Atención! ${countryName} acaba de recibir el Año Nuevo. `;
     
-    if (info.description) {
+    if (info && typeof info === 'object' && info.description) {
         // Tomar las primeras 2-3 oraciones de la descripción
         const sentences = info.description.split('.').filter(s => s.trim().length > 20);
         const relevantSentences = sentences.slice(0, 2).join('. ');
         if (relevantSentences) {
             message += relevantSentences + '. ';
         }
+    } else if (typeof info === 'string') {
+        // Si info es un string directo
+        message += info;
     }
     
-    message += `¡Feliz Año Nuevo a todos en ${countryName}!`;
+    message += ` ¡Feliz Año Nuevo a todos en ${countryName}!`;
     
-    // Actualizar texto del presentador
+    console.log(`📝 Mensaje del presentador: ${message.substring(0, 100)}...`);
+    
+    // Actualizar texto del presentador si existe
     const presenterText = document.getElementById('presenterText');
     if (presenterText) {
         presenterText.textContent = message;
     }
     
     // Hacer que el presentador lea el mensaje
-    speakPresenterMessage(message);
+    // Si está hablando, esperar un poco y reintentar
+    if (state.isSpeaking) {
+        console.log('⏳ Presentador ocupado, esperando...');
+        setTimeout(() => {
+            speakPresenterMessage(message);
+        }, 3000);
+    } else {
+        speakPresenterMessage(message);
+    }
 }
 
 // ============================================
