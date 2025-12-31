@@ -923,6 +923,9 @@ function showCountryTooltip(event, countryName, point) {
         timeInfo = `<div class="tooltip-time">${String(countryHour).padStart(2, '0')}:${String(countryMinute).padStart(2, '0')}:${String(countrySecond).padStart(2, '0')}</div>`;
         
         // Calcular cuándo cruzará la línea de medianoche
+        const utcHours = now.getUTCHours();
+        const utcMinutes = now.getUTCMinutes();
+        const utcSeconds = now.getUTCSeconds();
         const totalSeconds = utcHours * 3600 + utcMinutes * 60 + utcSeconds;
         const midnightLongitude = (totalSeconds / 3600) * 15;
         let normalizedMidnight = midnightLongitude;
