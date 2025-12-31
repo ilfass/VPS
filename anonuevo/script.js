@@ -848,7 +848,7 @@ function highlightCountriesAtGreenwich() {
                         state.countriesAtMidnight.delete(countryName);
                     }
                     
-                    // Aplicar color al país
+                    // Aplicar color al país - FORZAR con múltiples métodos
                     try {
                         point.update({
                             color: countryColor,
@@ -856,12 +856,25 @@ function highlightCountriesAtGreenwich() {
                             borderWidth: borderWidth
                         }, false);
                     } catch (updateError) {
-                        // Si update falla, intentar cambiar el color directamente
-                        if (point.graphic && point.graphic.element) {
-                            point.graphic.element.setAttribute('fill', countryColor);
-                            point.graphic.element.setAttribute('stroke', borderColor);
-                            point.graphic.element.setAttribute('stroke-width', borderWidth.toString());
-                        }
+                        console.warn(`⚠️ Error en point.update para ${countryName}:`, updateError);
+                    }
+                    
+                    // Método 2: Cambiar directamente en el elemento SVG (más confiable)
+                    if (point.graphic && point.graphic.element) {
+                        const element = point.graphic.element;
+                        element.setAttribute('fill', countryColor);
+                        element.setAttribute('stroke', borderColor);
+                        element.setAttribute('stroke-width', borderWidth.toString());
+                        element.style.fill = countryColor;
+                        element.style.stroke = borderColor;
+                        element.style.strokeWidth = borderWidth + 'px';
+                    }
+                    
+                    // Método 3: Cambiar en las opciones del punto
+                    if (point.options) {
+                        point.options.color = countryColor;
+                        point.options.borderColor = borderColor;
+                        point.options.borderWidth = borderWidth;
                     }
                 }
             } catch (pointError) {
