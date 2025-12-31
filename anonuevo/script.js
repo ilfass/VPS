@@ -745,23 +745,21 @@ function highlightCountriesAtGreenwich() {
                         currentlyHighlighted.add(index);
                         
                         // Detectar si es un país nuevo que acaba de llegar a medianoche
-                        // Solo mostrar cartel si realmente está en medianoche (dentro de 15 minutos)
-                        if (!state.countriesAtMidnight.has(countryName) && distanceToMidnight <= 1.25) {
+                        // Mostrar cartel y activar presentador cuando está en medianoche (dentro de 7.5 grados = 30 minutos)
+                        if (!state.countriesAtMidnight.has(countryName) && distanceToMidnight <= 7.5) {
                             state.countriesAtMidnight.add(countryName);
                             
-                            // Mostrar cartel festivo solo si no es el mismo país que acabamos de celebrar
-                            // Y solo si realmente está en medianoche exacta (dentro de 5 minutos)
-                            if (state.lastCelebratedCountry !== countryName && distanceToMidnight <= 1.25) {
-                                // Verificar que realmente está cruzando medianoche (no un falso positivo)
-                                const timeSinceLastCelebration = Date.now() - (state.lastCelebrationTime || 0);
-                                if (timeSinceLastCelebration > 30000) { // Al menos 30 segundos desde la última celebración
-                                    showCountryCelebrationBanner(countryName);
-                                    state.lastCelebratedCountry = countryName;
-                                    state.lastCelebrationTime = Date.now();
-                                    
-                                    // Obtener información del país y hacer que el presentador la lea
-                                    fetchCountryInfoAndAnnounce(countryName);
-                                }
+                            // Mostrar cartel festivo y activar presentador
+                            // Verificar que realmente está cruzando medianoche (no un falso positivo)
+                            const timeSinceLastCelebration = Date.now() - (state.lastCelebrationTime || 0);
+                            if (timeSinceLastCelebration > 60000) { // Al menos 1 minuto desde la última celebración
+                                console.log(`🎆 País en medianoche detectado: ${countryName} (distancia: ${distanceToMidnight.toFixed(2)} grados)`);
+                                showCountryCelebrationBanner(countryName);
+                                state.lastCelebratedCountry = countryName;
+                                state.lastCelebrationTime = Date.now();
+                                
+                                // Obtener información del país y hacer que el presentador la lea
+                                fetchCountryInfoAndAnnounce(countryName);
                             }
                         }
                         
