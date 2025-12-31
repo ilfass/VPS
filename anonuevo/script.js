@@ -2492,7 +2492,12 @@ function updateNextCountryPanel() {
             
             // Actualizar elementos
             nameEl.textContent = nextCountry.name;
-            timeEl.textContent = `${String(countryHour).padStart(2, '0')}:${String(countryMinute).padStart(2, '0')}:${String(countrySecond).padStart(2, '0')}`;
+            
+            // Formatear hora con valores seguros
+            const hourStr = String(Math.floor(countryHour)).padStart(2, '0');
+            const minuteStr = String(Math.floor(countryMinute)).padStart(2, '0');
+            const secondStr = String(Math.floor(countrySecond)).padStart(2, '0');
+            timeEl.textContent = `${hourStr}:${minuteStr}:${secondStr}`;
             
             // Calcular tiempo hasta medianoche más preciso
             const totalSecondsUntil = Math.floor(hoursUntilMidnight * 3600);
