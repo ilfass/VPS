@@ -646,11 +646,13 @@ body {
 
 /* Línea de Tiempo */
 .timeline-container {
-    position: absolute;
-    bottom: 20px;
+    position: fixed;
+    bottom: 10px;
     left: 50%;
     transform: translateX(-50%);
     width: 80%;
+    max-width: 800px;
+    z-index: 100;
     max-width: 800px;
     text-align: center;
     z-index: 15;
@@ -675,9 +677,9 @@ body {
 
 #timeline-title {
     font-weight: 300;
-    letter-spacing: 2px;
-    margin-bottom: 20px;
-    font-size: 1.5rem;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
     color: #ffffff;
 }
 
@@ -689,10 +691,10 @@ body {
 
 .timeline-wrapper {
     position: relative;
-    height: 12px;
+    height: 6px;
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    margin-bottom: 20px;
+    border-radius: 10px;
+    margin-bottom: 10px;
 }
 
 .progress-bar {

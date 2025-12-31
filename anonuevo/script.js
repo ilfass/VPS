@@ -783,7 +783,7 @@ function highlightCountriesAtGreenwich() {
                     );
                     
                     // Ya están en 2026 (ya pasaron medianoche, entre 00:00 y 01:00 local)
-                    if (countryHour === 0 || (countryHour === 0 && countryMinute < 60)) {
+                    if (countryHour === 0 && countryMinute < 60) {
                         // Verificar si realmente está en la zona de medianoche
                         if (distanceToMidnight <= 7.5) {
                             countryColor = '#00ff00'; // Verde brillante para países que ya están en 2026
@@ -814,6 +814,14 @@ function highlightCountriesAtGreenwich() {
                             borderWidth = 3;
                             countryStatus = 'celebrated';
                         }
+                    }
+                    // Ya pasaron medianoche (hora local > 0 y < 24)
+                    else if (countryHour > 0 && countryHour < 24) {
+                        // Ya pasó medianoche pero hace más de 1 hora
+                        countryColor = '#90ee90'; // Verde claro para países que ya están en 2026
+                        borderColor = 'rgba(144, 238, 144, 0.8)';
+                        borderWidth = 3;
+                        countryStatus = 'celebrated';
                     }
                     // Están por llegar (próximas 2-3 horas)
                     else if (hoursUntilMidnight <= 3 && hoursUntilMidnight > 0) {
@@ -2101,8 +2109,59 @@ const AUDIO_CONFIG = {
     ]
 };
 
+// Variable global para el reproductor de YouTube
+let youtubePlayer = null;
+
+// Inicializar reproductor de YouTube cuando la API esté lista
+function onYouTubeIframeAPIReady() {
+    console.log('🎵 YouTube IFrame API lista');
+    // El reproductor se inicializará en initializeBackgroundAudio
+}
+
 function initializeBackgroundAudio() {
-    // Inicializar cada pista de audio
+    // Inicializar reproductor de YouTube para música de fondo
+    const playerContainer = document.getElementById('backgroundMusicPlayer');
+    if (playerContainer && typeof YT !== 'undefined' && YT.Player) {
+        try {
+            youtubePlayer = new YT.Player('backgroundMusicPlayer', {
+                height: '0',
+                width: '0',
+                playerVars: {
+                    'autoplay': 1,
+                    'loop': 1,
+                    'playlist': 'UCDg4eJJdvNAX2az-Bi7aBkA', // ID del canal de YouTube Music
+                    'controls': 0,
+                    'modestbranding': 1,
+                    'rel': 0,
+                    'showinfo': 0
+                },
+                events: {
+                    'onReady': function(event) {
+                        console.log('🎵 Reproductor de YouTube listo');
+                        // Intentar reproducir música (puede requerir interacción del usuario)
+                        event.target.setVolume(30); // Volumen al 30%
+                    },
+                    'onStateChange': function(event) {
+                        if (event.data === YT.PlayerState.ENDED) {
+                            // Si termina, reproducir siguiente canción
+                            event.target.nextVideo();
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.warn('⚠️ No se pudo inicializar reproductor de YouTube:', error);
+            // Fallback a audio HTML5 si YouTube falla
+            initializeHTML5Audio();
+        }
+    } else {
+        console.warn('⚠️ YouTube IFrame API no disponible, usando audio HTML5');
+        initializeHTML5Audio();
+    }
+}
+
+function initializeHTML5Audio() {
+    // Inicializar cada pista de audio HTML5 como fallback
     AUDIO_CONFIG.tracks.forEach((track, index) => {
         const audioEl = document.getElementById(track.id);
         if (!audioEl) return;
@@ -3101,9 +3160,11 @@ function initializeAIPresenter() {
     
     // Cambiar de tema cada cierto tiempo (más frecuente para que hable más)
     presenterInterval = setInterval(() => {
-        currentTopicIndex = (currentTopicIndex + 1) % PRESENTER_TOPICS.length;
-        presentTopicWithAI(currentTopicIndex);
-    }, 30000); // Cambiar cada 30 segundos para que hable más
+        if (!state.isSpeaking) {
+            currentTopicIndex = (currentTopicIndex + 1) % PRESENTER_TOPICS.length;
+            presentTopicWithAI(currentTopicIndex);
+        }
+    }, 20000); // Cambiar cada 20 segundos para que hable más frecuentemente
     
     console.log('🎙️ Presentador con IA inicializado');
 }
