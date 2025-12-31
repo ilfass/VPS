@@ -866,8 +866,8 @@ function showCountryTooltip(event, countryName, point) {
     let midnightInfo = '';
     
     if (countryLongitude !== null) {
-        // Obtener timezone real del país
-        const countryTimezone = await getCountryTimezone(countryName, countryLongitude);
+        // Obtener timezone real del país (síncrono)
+        const countryTimezone = getCountryTimezoneSync(countryName);
         let countryHour, countryMinute, countrySecond;
         
         if (countryTimezone) {
