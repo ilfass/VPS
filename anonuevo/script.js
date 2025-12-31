@@ -85,6 +85,7 @@ const state = {
     highlightedCountries: new Set(),
     countriesAtMidnight: new Set(), // Países que están en medianoche
     lastCelebratedCountry: null, // Último país que celebró
+    lastCelebrationTime: 0, // Timestamp de la última celebración
     countryInfoCache: new Map(), // Cache de información de países
     currentUtterance: null, // Utterance actual para evitar cortes
     isSpeaking: false, // Flag para saber si está hablando
@@ -224,7 +225,30 @@ function initializeMapbox() {
                 height: window.innerHeight,
                 width: window.innerWidth,
                 spacing: [0, 0, 0, 0],
-                plotBackgroundColor: 'transparent'
+                plotBackgroundColor: 'transparent',
+                events: {
+                    load: function() {
+                        // Agregar tooltips personalizados después de cargar
+                        const series = this.series[0];
+                        if (series && series.points) {
+                            series.points.forEach(point => {
+                                if (point.graphic && point.graphic.element) {
+                                    const element = point.graphic.element;
+                                    const countryName = point.name || point.properties?.name || point.options?.name || 'País desconocido';
+                                    
+                                    // Agregar tooltip personalizado
+                                    element.addEventListener('mouseenter', (e) => {
+                                        showCountryTooltip(e, countryName, point);
+                                    });
+                                    
+                                    element.addEventListener('mouseleave', () => {
+                                        hideCountryTooltip();
+                                    });
+                                }
+                            });
+                        }
+                    }
+                }
             },
             title: {
                 text: ''
@@ -237,6 +261,84 @@ function initializeMapbox() {
             },
             legend: {
                 enabled: false
+            },
+            tooltip: {
+                enabled: true,
+                useHTML: true,
+                formatter: function() {
+                    const countryName = this.point.name || this.point.properties?.name || 'País desconocido';
+                    const now = new Date();
+                    
+                    // Calcular hora aproximada del país basándose en su longitud
+                    let countryLongitude = null;
+                    if (this.point.properties && this.point.properties.lon) {
+                        countryLongitude = this.point.properties.lon;
+                    } else if (this.point.geometry && this.point.geometry.coordinates) {
+                        const coords = this.point.geometry.coordinates;
+                        let sumLon = 0;
+                        let count = 0;
+                        const extractLongitude = (arr) => {
+                            if (Array.isArray(arr[0])) {
+                                arr.forEach(sub => extractLongitude(sub));
+                            } else if (arr.length >= 2) {
+                                sumLon += arr[0];
+                                count++;
+                            }
+                        };
+                        extractLongitude(coords);
+                        if (count > 0) {
+                            countryLongitude = sumLon / count;
+                        }
+                    }
+                    
+                    let timeInfo = '';
+                    let midnightInfo = '';
+                    
+                    if (countryLongitude !== null) {
+                        // Normalizar longitud
+                        while (countryLongitude > 180) countryLongitude -= 360;
+                        while (countryLongitude < -180) countryLongitude += 360;
+                        
+                        // Calcular offset UTC aproximado (cada 15 grados = 1 hora)
+                        const offset = Math.round(countryLongitude / 15);
+                        const utcHours = now.getUTCHours();
+                        const utcMinutes = now.getUTCMinutes();
+                        const countryHour = (utcHours + offset + 24) % 24;
+                        
+                        timeInfo = `<strong>Hora local:</strong> ${String(countryHour).padStart(2, '0')}:${String(utcMinutes).padStart(2, '0')}`;
+                        
+                        // Calcular cuándo cruzará la línea de medianoche
+                        const midnightLongitude = (now.getUTCHours() * 15 + now.getUTCMinutes() * 0.25);
+                        let normalizedMidnight = midnightLongitude;
+                        while (normalizedMidnight > 180) normalizedMidnight -= 360;
+                        while (normalizedMidnight < -180) normalizedMidnight += 360;
+                        
+                        let distanceToMidnight = normalizedMidnight - countryLongitude;
+                        if (distanceToMidnight < 0) distanceToMidnight += 360;
+                        if (distanceToMidnight > 180) distanceToMidnight = 360 - distanceToMidnight;
+                        
+                        const hoursUntilMidnight = distanceToMidnight / 15;
+                        if (hoursUntilMidnight > 0 && hoursUntilMidnight < 24) {
+                            const h = Math.floor(hoursUntilMidnight);
+                            const m = Math.floor((hoursUntilMidnight - h) * 60);
+                            midnightInfo = `<br><strong>Cruzara medianoche en:</strong> ${h}h ${m}m`;
+                        } else if (hoursUntilMidnight <= 0.5) {
+                            midnightInfo = `<br><strong>Estado:</strong> En medianoche ahora`;
+                        }
+                    }
+                    
+                    return `<div style="padding: 10px;">
+                        <strong style="font-size: 16px;">${countryName}</strong><br>
+                        ${timeInfo}
+                        ${midnightInfo}
+                    </div>`;
+                },
+                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                borderColor: '#00f2fe',
+                borderRadius: 8,
+                style: {
+                    color: '#fff'
+                }
             },
             plotOptions: {
                 map: {
@@ -251,7 +353,8 @@ function initializeMapbox() {
                             borderColor: 'rgba(255, 255, 255, 1)',
                             brightness: 0.3
                         }
-                    }
+                    },
+                    cursor: 'pointer'
                 }
             },
             series: [{
@@ -283,6 +386,37 @@ function initializeMapbox() {
         
         console.log('✅ Highmaps planisferio cargado');
         
+        // Agregar tooltips personalizados después de que el mapa se renderice
+        setTimeout(() => {
+            if (state.highmapsChart && state.highmapsChart.series && state.highmapsChart.series[0]) {
+                const series = state.highmapsChart.series[0];
+                if (series.points) {
+                    series.points.forEach(point => {
+                        if (point.graphic && point.graphic.element) {
+                            const element = point.graphic.element;
+                            const countryName = point.name || point.properties?.name || point.options?.name || 'País desconocido';
+                            
+                            // Agregar event listeners para tooltip
+                            element.addEventListener('mouseenter', (e) => {
+                                showCountryTooltip(e, countryName, point);
+                            });
+                            
+                            element.addEventListener('mousemove', (e) => {
+                                if (countryTooltip) {
+                                    countryTooltip.style.left = (e.clientX + 15) + 'px';
+                                    countryTooltip.style.top = (e.clientY - 15) + 'px';
+                                }
+                            });
+                            
+                            element.addEventListener('mouseleave', () => {
+                                hideCountryTooltip();
+                            });
+                        }
+                    });
+                }
+            }
+        }, 2000);
+        
         // Ajustar tamaño cuando cambie la ventana
         window.addEventListener('resize', () => {
             if (state.highmapsChart) {
@@ -299,12 +433,20 @@ function initializeMapbox() {
                 updateMidnightLine();
                 updateMapRotation();
                 
-                // Actualizar cada segundo
+                // Actualizar cada minuto para desplazamiento lento del mapa
                 setInterval(() => {
                     if (state.highmapsChart && state.highmapsChart.series && state.highmapsChart.series[0]) {
                         updateHighmapsDayNight();
                         updateMidnightLine();
                         updateMapRotation();
+                    }
+                }, 60000); // Actualizar cada minuto para desplazamiento lento
+                
+                // Actualizar día/noche y línea de medianoche cada segundo (para animaciones suaves)
+                setInterval(() => {
+                    if (state.highmapsChart && state.highmapsChart.series && state.highmapsChart.series[0]) {
+                        updateHighmapsDayNight();
+                        updateMidnightLine();
                     }
                 }, 1000);
             }
@@ -406,8 +548,9 @@ function updateMapRotation() {
                 // Simplificado: offset = screenWidth/2 - midnightXInMap
                 const centerOffset = (screenWidth / 2) - midnightXInMap;
                 
-                // Aplicar transform al SVG
+                // Aplicar transform al SVG con transición suave
                 svg.style.transformOrigin = 'left center';
+                svg.style.transition = 'transform 60s linear'; // Transición de 60 segundos para movimiento suave
                 svg.style.transform = `translateX(${centerOffset}px)`;
                 
                 // Crear efecto de mosaico: duplicar el mapa para continuidad
@@ -437,9 +580,11 @@ function updateMapRotation() {
                     const cloneRight = document.getElementById('highmapsPlanisphere-clone-right');
                     const cloneLeft = document.getElementById('highmapsPlanisphere-clone-left');
                     if (cloneRight) {
+                        cloneRight.style.transition = 'transform 60s linear';
                         cloneRight.style.transform = `translateX(${centerOffset}px)`;
                     }
                     if (cloneLeft) {
+                        cloneLeft.style.transition = 'transform 60s linear';
                         cloneLeft.style.transform = `translateX(${centerOffset}px)`;
                     }
                 }
@@ -584,8 +729,10 @@ function highlightCountriesAtGreenwich() {
                         Math.abs(countryLongitude - (midnightLongitude - 360))
                     );
                     
-                    // Si está dentro de 7.5 grados (media hora) del meridiano de medianoche
-                    if (distanceToMidnight <= 7.5) {
+                    // Verificar si el país está realmente en medianoche (00:00-00:30 UTC)
+                    // Solo considerar países que están muy cerca del meridiano de medianoche (dentro de 3.75 grados = 15 minutos)
+                    // Esto evita falsos positivos como Madagascar
+                    if (distanceToMidnight <= 3.75) {
                         isInMidnightZone = true;
                     }
                     
@@ -596,11 +743,13 @@ function highlightCountriesAtGreenwich() {
                         currentlyHighlighted.add(index);
                         
                         // Detectar si es un país nuevo que acaba de llegar a medianoche
-                        if (!state.countriesAtMidnight.has(countryName)) {
+                        // Solo mostrar cartel si realmente está en medianoche (dentro de 15 minutos)
+                        if (!state.countriesAtMidnight.has(countryName) && distanceToMidnight <= 1.25) {
                             state.countriesAtMidnight.add(countryName);
                             
                             // Mostrar cartel festivo solo si no es el mismo país que acabamos de celebrar
-                            if (state.lastCelebratedCountry !== countryName) {
+                            // Y solo si realmente está en medianoche (muy cerca, dentro de 5 minutos)
+                            if (state.lastCelebratedCountry !== countryName && distanceToMidnight <= 1.25) {
                                 showCountryCelebrationBanner(countryName);
                                 state.lastCelebratedCountry = countryName;
                                 
@@ -662,6 +811,102 @@ function highlightCountriesAtGreenwich() {
         }
     } catch (error) {
         console.warn('⚠️ Error al iluminar países:', error);
+    }
+}
+
+// Tooltip personalizado para países
+let countryTooltip = null;
+
+function showCountryTooltip(event, countryName, point) {
+    // Crear tooltip si no existe
+    if (!countryTooltip) {
+        countryTooltip = document.createElement('div');
+        countryTooltip.id = 'countryTooltip';
+        countryTooltip.className = 'country-tooltip';
+        document.body.appendChild(countryTooltip);
+    }
+    
+    const now = new Date();
+    let countryLongitude = null;
+    
+    // Obtener longitud del país
+    if (point.properties && point.properties.lon) {
+        countryLongitude = point.properties.lon;
+    } else if (point.geometry && point.geometry.coordinates) {
+        const coords = point.geometry.coordinates;
+        let sumLon = 0;
+        let count = 0;
+        const extractLongitude = (arr) => {
+            if (Array.isArray(arr[0])) {
+                arr.forEach(sub => extractLongitude(sub));
+            } else if (arr.length >= 2) {
+                sumLon += arr[0];
+                count++;
+            }
+        };
+        extractLongitude(coords);
+        if (count > 0) {
+            countryLongitude = sumLon / count;
+        }
+    }
+    
+    // Normalizar longitud
+    if (countryLongitude !== null) {
+        while (countryLongitude > 180) countryLongitude -= 360;
+        while (countryLongitude < -180) countryLongitude += 360;
+    }
+    
+    let timeInfo = '';
+    let midnightInfo = '';
+    
+    if (countryLongitude !== null) {
+        // Calcular hora local aproximada
+        const offset = Math.round(countryLongitude / 15);
+        const utcHours = now.getUTCHours();
+        const utcMinutes = now.getUTCMinutes();
+        const utcSeconds = now.getUTCSeconds();
+        const countryHour = (utcHours + offset + 24) % 24;
+        
+        timeInfo = `<div class="tooltip-time">${String(countryHour).padStart(2, '0')}:${String(utcMinutes).padStart(2, '0')}:${String(utcSeconds).padStart(2, '0')}</div>`;
+        
+        // Calcular cuándo cruzará la línea de medianoche
+        const totalSeconds = utcHours * 3600 + utcMinutes * 60 + utcSeconds;
+        const midnightLongitude = (totalSeconds / 3600) * 15;
+        let normalizedMidnight = midnightLongitude;
+        while (normalizedMidnight > 180) normalizedMidnight -= 360;
+        while (normalizedMidnight < -180) normalizedMidnight += 360;
+        
+        let distanceToMidnight = normalizedMidnight - countryLongitude;
+        if (distanceToMidnight < 0) distanceToMidnight += 360;
+        if (distanceToMidnight > 180) distanceToMidnight = 360 - distanceToMidnight;
+        
+        const hoursUntilMidnight = distanceToMidnight / 15;
+        
+        if (hoursUntilMidnight > 0 && hoursUntilMidnight < 24) {
+            const h = Math.floor(hoursUntilMidnight);
+            const m = Math.floor((hoursUntilMidnight - h) * 60);
+            const s = Math.floor((hoursUntilMidnight - h - m/60) * 3600) % 60;
+            midnightInfo = `<div class="tooltip-midnight">Cruzará medianoche en: ${h}h ${m}m ${s}s</div>`;
+        } else if (hoursUntilMidnight <= 0.5) {
+            midnightInfo = `<div class="tooltip-midnight active">¡En medianoche ahora!</div>`;
+        }
+    }
+    
+    countryTooltip.innerHTML = `
+        <div class="tooltip-country-name">${countryName}</div>
+        ${timeInfo}
+        ${midnightInfo}
+    `;
+    
+    // Posicionar tooltip cerca del cursor
+    countryTooltip.style.left = (event.clientX + 15) + 'px';
+    countryTooltip.style.top = (event.clientY - 15) + 'px';
+    countryTooltip.style.display = 'block';
+}
+
+function hideCountryTooltip() {
+    if (countryTooltip) {
+        countryTooltip.style.display = 'none';
     }
 }
 
@@ -2128,13 +2373,18 @@ function updateNextCountryPanel() {
                 if (distance > 180) distance = 360 - distance;
                 
                 // El próximo país debe estar entre 7.5 y 60 grados al oeste (30 minutos a 4 horas)
+                // Excluir países que ya están en medianoche o muy cerca
                 if (distance > 7.5 && distance < 60 && distance < minDistance) {
-                    minDistance = distance;
-                    nextCountry = {
-                        name: point.name || point.properties?.name || point.options?.name || 'País desconocido',
-                        longitude: countryLongitude,
-                        distance: distance
-                    };
+                    // Verificar que el país no esté ya en medianoche (dentro de 3.75 grados = 15 minutos)
+                    const isCurrentlyAtMidnight = distance <= 3.75;
+                    if (!isCurrentlyAtMidnight) {
+                        minDistance = distance;
+                        nextCountry = {
+                            name: point.name || point.properties?.name || point.options?.name || 'País desconocido',
+                            longitude: countryLongitude,
+                            distance: distance
+                        };
+                    }
                 }
             } catch (error) {
                 // Ignorar errores en países individuales
@@ -2159,22 +2409,87 @@ function updateNextCountryPanel() {
             const minutesLeft = Math.floor((hoursUntilMidnight - hoursLeft) * 60);
             const secondsLeft = Math.floor((totalSecondsUntil - (hoursLeft * 3600) - (minutesLeft * 60)));
             
-            // Calcular hora actual del país (aproximada)
-            const countryOffset = Math.round(nextCountry.longitude / 15);
-            const countryHour = (hours + countryOffset) % 24;
-            const countryMinute = minutes;
-            const countrySecond = seconds;
+            // Calcular hora actual del país usando timezone real si es posible
+            // Intentar obtener timezone del país desde datos conocidos
+            let countryTimezone = null;
+            const countryNameLower = nextCountry.name.toLowerCase();
+            
+            // Mapeo de países a timezones conocidos
+            const countryTimezones = {
+                'saint kitts and nevis': 'America/St_Kitts',
+                'antigua and barbuda': 'America/Antigua',
+                'dominica': 'America/Dominica',
+                'barbados': 'America/Barbados',
+                'trinidad and tobago': 'America/Port_of_Spain',
+                'guyana': 'America/Guyana',
+                'venezuela': 'America/Caracas',
+                'colombia': 'America/Bogota',
+                'panama': 'America/Panama',
+                'costa rica': 'America/Costa_Rica',
+                'nicaragua': 'America/Managua',
+                'honduras': 'America/Tegucigalpa',
+                'el salvador': 'America/El_Salvador',
+                'guatemala': 'America/Guatemala',
+                'belize': 'America/Belize',
+                'mexico': 'America/Mexico_City',
+                'madagascar': 'Indian/Antananarivo'
+            };
+            
+            // Buscar timezone del país
+            for (const [key, tz] of Object.entries(countryTimezones)) {
+                if (countryNameLower.includes(key) || key.includes(countryNameLower)) {
+                    countryTimezone = tz;
+                    break;
+                }
+            }
+            
+            let countryHour, countryMinute, countrySecond;
+            
+            if (countryTimezone) {
+                // Usar timezone real
+                try {
+                    const formatter = new Intl.DateTimeFormat('es-ES', {
+                        timeZone: countryTimezone,
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    });
+                    const parts = formatter.formatToParts(now);
+                    countryHour = parseInt(parts.find(p => p.type === 'hour').value);
+                    countryMinute = parseInt(parts.find(p => p.type === 'minute').value);
+                    countrySecond = parseInt(parts.find(p => p.type === 'second').value);
+                } catch (e) {
+                    // Fallback a cálculo aproximado
+                    const countryOffset = Math.round(nextCountry.longitude / 15);
+                    countryHour = (hours + countryOffset + 24) % 24;
+                    countryMinute = minutes;
+                    countrySecond = seconds;
+                }
+            } else {
+                // Calcular hora aproximada basándose en longitud
+                const countryOffset = Math.round(nextCountry.longitude / 15);
+                countryHour = (hours + countryOffset + 24) % 24;
+                countryMinute = minutes;
+                countrySecond = seconds;
+            }
             
             // Actualizar elementos
             nameEl.textContent = nextCountry.name;
             timeEl.textContent = `${String(countryHour).padStart(2, '0')}:${String(countryMinute).padStart(2, '0')}:${String(countrySecond).padStart(2, '0')}`;
             
-            if (hoursLeft > 0) {
-                countdownEl.textContent = `Faltan: ${hoursLeft}h ${minutesLeft}m ${secondsLeft}s`;
-            } else if (minutesLeft > 0) {
-                countdownEl.textContent = `Faltan: ${minutesLeft}m ${secondsLeft}s`;
+            // Calcular tiempo hasta medianoche más preciso
+            const totalSecondsUntil = Math.floor(hoursUntilMidnight * 3600);
+            const h = Math.floor(totalSecondsUntil / 3600);
+            const m = Math.floor((totalSecondsUntil % 3600) / 60);
+            const s = totalSecondsUntil % 60;
+            
+            if (h > 0) {
+                countdownEl.textContent = `Faltan: ${h}h ${m}m ${s}s`;
+            } else if (m > 0) {
+                countdownEl.textContent = `Faltan: ${m}m ${s}s`;
             } else {
-                countdownEl.textContent = `Faltan: ${secondsLeft}s`;
+                countdownEl.textContent = `Faltan: ${s}s`;
             }
             
             panel.style.display = 'block';
