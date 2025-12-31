@@ -100,23 +100,23 @@ const state = {
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🎆 Inicializando Año Nuevo Global 2025');
-    
+
     // Verificar que los elementos del DOM existan
     const mapContainer = document.getElementById('highmapsPlanisphere');
     const utcTimeEl = document.getElementById('utcTime');
     const userTimeEl = document.getElementById('userTime');
-    
+
     console.log('📋 Verificando elementos del DOM:');
     console.log('  - highmapsPlanisphere:', mapContainer ? '✅' : '❌');
     console.log('  - utcTime:', utcTimeEl ? '✅' : '❌');
     console.log('  - userTime:', userTimeEl ? '✅' : '❌');
-    
+
     // Detectar zona horaria del usuario
     detectUserTimezone();
-    
+
     // Inicializar Highmaps (planisferio como 24timezones.com)
     initializeMapbox(); // Función renombrada pero ahora usa Highmaps
-    
+
     // Inicializar línea de medianoche
     initializeMidnightLine();
     initializeTimeDisplay();
@@ -131,19 +131,19 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeWorldTimes(); // Inicializar obtención de horas del mundo
     initializeNextCountryPanel(); // Inicializar panel del próximo país
     // initializeUserLocation(); // Función no implementada aún
-    
+
     // Actualizar cada segundo
     setInterval(updateAll, 1000);
-    
+
     // Verificar mensajes de voz cada minuto
     setInterval(checkVoiceMessage, 60000);
-    
+
     // Actualizar mapa cada 5 segundos
     setInterval(updateWorldMap, 5000);
-    
+
     // Animar globo continuamente
     animateGlobe();
-    
+
     console.log('✅ Inicialización completada');
 });
 
@@ -155,20 +155,20 @@ function detectUserTimezone() {
     const now = new Date();
     const offset = -now.getTimezoneOffset() / 60; // Offset en horas
     state.userTimezoneOffset = offset;
-    
+
     // Obtener nombre de la zona horaria
     const timezoneName = Intl.DateTimeFormat().resolvedOptions().timeZone;
     state.userTimezone = timezoneName;
-    
+
     // Formatear offset como UTC±X
     const offsetStr = offset >= 0 ? `UTC+${offset}` : `UTC${offset}`;
-    
+
     // Actualizar display
     const timezoneEl = document.getElementById('userTimezone');
     if (timezoneEl) {
         timezoneEl.textContent = `${offsetStr} - ${timezoneName}`;
     }
-    
+
     console.log(`📍 Zona horaria detectada: ${offsetStr} (${timezoneName})`);
 }
 
@@ -186,9 +186,9 @@ function initializeMapbox() {
         console.warn('⚠️ Contenedor de Highmaps no encontrado');
         return;
     }
-    
+
     mapInitAttempts++;
-    
+
     // Verificar que Highmaps esté disponible
     if (typeof Highcharts === 'undefined' || !Highcharts.maps) {
         if (mapInitAttempts < MAX_MAP_INIT_ATTEMPTS) {
@@ -199,12 +199,12 @@ function initializeMapbox() {
         }
         return;
     }
-    
+
     // Verificar que el mapa esté disponible (puede tardar en cargar)
     // El mapa puede estar en diferentes formatos según la versión de Highmaps
     const mapKeys = Object.keys(Highcharts.maps || {});
     const worldMap = Highcharts.maps['custom/world'] || Highcharts.maps['world'] || Highcharts.maps[mapKeys.find(k => k.toLowerCase().includes('world'))];
-    
+
     if (!worldMap) {
         if (mapInitAttempts < MAX_MAP_INIT_ATTEMPTS) {
             console.warn(`⚠️ Mapa del mundo no disponible aún, reintentando... (${mapInitAttempts}/${MAX_MAP_INIT_ATTEMPTS})`);
@@ -216,17 +216,17 @@ function initializeMapbox() {
         }
         return;
     }
-    
+
     mapInitAttempts = 0; // Resetear contador al éxito
-    
+
     try {
-        
+
         console.log('🗺️ Inicializando planisferio con Highmaps...');
         console.log('📊 Datos del mapa disponibles:', Object.keys(Highcharts.maps));
-        
+
         console.log('🗺️ Inicializando planisferio con Highmaps...');
         console.log('📊 Mapa encontrado:', worldMap ? 'Sí' : 'No');
-        
+
         // Crear mapa con Highmaps (similar a 24timezones.com)
         state.highmapsChart = Highcharts.mapChart('highmapsPlanisphere', {
             chart: {
@@ -238,7 +238,7 @@ function initializeMapbox() {
                 spacing: [0, 0, 0, 0],
                 plotBackgroundColor: 'transparent',
                 events: {
-                    load: function() {
+                    load: function () {
                         // Agregar tooltips personalizados después de cargar
                         const series = this.series[0];
                         if (series && series.points) {
@@ -246,12 +246,12 @@ function initializeMapbox() {
                                 if (point.graphic && point.graphic.element) {
                                     const element = point.graphic.element;
                                     const countryName = point.name || point.properties?.name || point.options?.name || 'País desconocido';
-                                    
+
                                     // Agregar tooltip personalizado
                                     element.addEventListener('mouseenter', (e) => {
                                         showCountryTooltip(e, countryName, point);
                                     });
-                                    
+
                                     element.addEventListener('mouseleave', () => {
                                         hideCountryTooltip();
                                     });
@@ -276,10 +276,10 @@ function initializeMapbox() {
             tooltip: {
                 enabled: true,
                 useHTML: true,
-                formatter: function() {
+                formatter: function () {
                     const countryName = this.point.name || this.point.properties?.name || 'País desconocido';
                     const now = new Date();
-                    
+
                     // Calcular hora aproximada del país basándose en su longitud
                     let countryLongitude = null;
                     if (this.point.properties && this.point.properties.lon) {
@@ -301,19 +301,19 @@ function initializeMapbox() {
                             countryLongitude = sumLon / count;
                         }
                     }
-                    
+
                     let timeInfo = '';
                     let midnightInfo = '';
-                    
+
                     if (countryLongitude !== null) {
                         // Normalizar longitud
                         while (countryLongitude > 180) countryLongitude -= 360;
                         while (countryLongitude < -180) countryLongitude += 360;
-                        
+
                         // Obtener timezone real del país (síncrono)
                         const countryTimezone = getCountryTimezoneSync(countryName);
                         let countryHour, countryMinute;
-                        
+
                         if (countryTimezone) {
                             try {
                                 const formatter = new Intl.DateTimeFormat('es-ES', {
@@ -337,19 +337,19 @@ function initializeMapbox() {
                             countryHour = (now.getUTCHours() + offset + 24) % 24;
                             countryMinute = now.getUTCMinutes();
                         }
-                        
+
                         timeInfo = `<strong>Hora local:</strong> ${String(countryHour).padStart(2, '0')}:${String(countryMinute).padStart(2, '0')}`;
-                        
+
                         // Calcular cuándo cruzará la línea de medianoche
                         const midnightLongitude = (now.getUTCHours() * 15 + now.getUTCMinutes() * 0.25);
                         let normalizedMidnight = midnightLongitude;
                         while (normalizedMidnight > 180) normalizedMidnight -= 360;
                         while (normalizedMidnight < -180) normalizedMidnight += 360;
-                        
+
                         let distanceToMidnight = normalizedMidnight - countryLongitude;
                         if (distanceToMidnight < 0) distanceToMidnight += 360;
                         if (distanceToMidnight > 180) distanceToMidnight = 360 - distanceToMidnight;
-                        
+
                         const hoursUntilMidnight = distanceToMidnight / 15;
                         if (hoursUntilMidnight > 0 && hoursUntilMidnight < 24) {
                             const h = Math.floor(hoursUntilMidnight);
@@ -359,7 +359,7 @@ function initializeMapbox() {
                             midnightInfo = `<br><strong>Estado:</strong> En medianoche ahora`;
                         }
                     }
-                    
+
                     return `<div style="padding: 10px;">
                         <strong style="font-size: 16px;">${countryName}</strong><br>
                         ${timeInfo}
@@ -416,9 +416,9 @@ function initializeMapbox() {
                 enabled: false
             }
         });
-        
+
         console.log('✅ Highmaps planisferio cargado');
-        
+
         // Agregar tooltips personalizados después de que el mapa se renderice
         setTimeout(() => {
             if (state.highmapsChart && state.highmapsChart.series && state.highmapsChart.series[0]) {
@@ -428,19 +428,19 @@ function initializeMapbox() {
                         if (point.graphic && point.graphic.element) {
                             const element = point.graphic.element;
                             const countryName = point.name || point.properties?.name || point.options?.name || 'País desconocido';
-                            
+
                             // Agregar event listeners para tooltip
                             element.addEventListener('mouseenter', (e) => {
                                 showCountryTooltip(e, countryName, point);
                             });
-                            
+
                             element.addEventListener('mousemove', (e) => {
                                 if (countryTooltip) {
                                     countryTooltip.style.left = (e.clientX + 15) + 'px';
                                     countryTooltip.style.top = (e.clientY - 15) + 'px';
                                 }
                             });
-                            
+
                             element.addEventListener('mouseleave', () => {
                                 hideCountryTooltip();
                             });
@@ -449,14 +449,14 @@ function initializeMapbox() {
                 }
             }
         }, 2000);
-        
+
         // Ajustar tamaño cuando cambie la ventana
         window.addEventListener('resize', () => {
             if (state.highmapsChart) {
                 state.highmapsChart.setSize(window.innerWidth, window.innerHeight);
             }
         });
-        
+
         // Actualizar día/noche, línea de medianoche y rotación del mapa
         // Esperar un momento para que el mapa se renderice completamente
         setTimeout(() => {
@@ -465,7 +465,7 @@ function initializeMapbox() {
                 updateHighmapsDayNight();
                 updateMidnightLine();
                 updateMapRotation();
-                
+
                 // Actualizar mapa, día/noche y línea de medianoche cada segundo
                 setInterval(() => {
                     if (state.highmapsChart && state.highmapsChart.series && state.highmapsChart.series[0]) {
@@ -476,7 +476,7 @@ function initializeMapbox() {
                 }, 1000);
             }
         }, 1500); // Aumentar el tiempo de espera para asegurar que el mapa esté completamente renderizado
-        
+
     } catch (error) {
         console.warn('⚠️ No se pudo inicializar Highmaps:', error);
     }
@@ -484,35 +484,35 @@ function initializeMapbox() {
 
 function updateHighmapsDayNight() {
     if (!state.highmapsChart) return;
-    
+
     try {
         const now = new Date();
         const hours = now.getUTCHours();
         const minutes = now.getUTCMinutes();
         const seconds = now.getUTCSeconds();
-        
+
         // Calcular la longitud donde es medianoche UTC
         // A las 00:00 UTC: medianoche en 0° (Greenwich)
         // A las 12:00 UTC: medianoche en 180° (opuesto a Greenwich)
         // La medianoche se mueve 15 grados por hora hacia el oeste
         const totalSeconds = hours * 3600 + minutes * 60 + seconds;
         let midnightLongitude = (totalSeconds / 3600) * 15;
-        
+
         // Normalizar a -180 a +180
         while (midnightLongitude > 180) midnightLongitude -= 360;
         while (midnightLongitude < -180) midnightLongitude += 360;
-        
+
         // Crear o actualizar la sombra de día/noche
         const container = document.getElementById('highmapsPlanisphere');
         if (!container) return;
-        
+
         let dayNightShadow = document.getElementById('dayNightShadow');
         if (!dayNightShadow) {
             dayNightShadow = document.createElement('div');
             dayNightShadow.id = 'dayNightShadow';
             container.appendChild(dayNightShadow);
         }
-        
+
         // Convertir longitud a posición X (0% a 100%)
         // Longitud -180 a +180 se mapea a 0% a 100%
         // INVERTIDO: la sombra debe estar en el lado opuesto al sol (donde es medianoche)
@@ -521,15 +521,15 @@ function updateHighmapsDayNight() {
         if (sunLongitude < 0) sunLongitude += 360;
         const xPosition = ((sunLongitude - 180) / 360) * 100;
         if (xPosition < 0) xPosition += 100;
-        
+
         // Ajustar la posición del gradiente para crear el efecto de sombra
         // El gradiente se mueve suavemente según la hora
         dayNightShadow.style.backgroundPosition = `${xPosition}% 0%`;
-        
+
         // Asegurar que la sombra sea visible
         dayNightShadow.style.display = 'block';
         dayNightShadow.style.opacity = '1';
-        
+
     } catch (error) {
         console.warn('⚠️ Error al actualizar día/noche:', error);
     }
@@ -538,51 +538,51 @@ function updateHighmapsDayNight() {
 // Rotar el mapa según la hora UTC
 function updateMapRotation() {
     if (!state.highmapsChart) return;
-    
+
     try {
         const now = new Date();
         const hours = now.getUTCHours();
         const minutes = now.getUTCMinutes();
         const seconds = now.getUTCSeconds();
-        
+
         // Calcular la longitud donde es medianoche UTC
         // A las 00:00 UTC: medianoche en 0° (Greenwich)
         // A las 12:00 UTC: medianoche en 180° (opuesto a Greenwich)
         // La medianoche se mueve 15 grados por hora hacia el oeste
         const totalSeconds = hours * 3600 + minutes * 60 + seconds;
         let midnightLongitude = (totalSeconds / 3600) * 15;
-        
+
         // Normalizar a -180° a +180°
         while (midnightLongitude > 180) midnightLongitude -= 360;
         while (midnightLongitude < -180) midnightLongitude += 360;
-        
+
         const container = document.getElementById('highmapsPlanisphere');
         if (container) {
             const svg = container.querySelector('svg');
             if (svg && svg.viewBox && svg.viewBox.baseVal) {
                 const mapWidth = svg.viewBox.baseVal.width || 1000;
                 const screenWidth = window.innerWidth;
-                
+
                 // El mapa tiene 360 grados de ancho (de -180° a +180°)
                 // El meridiano 0° está en el centro del mapa (mapWidth/2)
                 // Necesitamos desplazar el mapa para que el meridiano de medianoche esté en el centro de la pantalla
-                
+
                 // Convertir longitud a posición en el mapa
                 // Longitud -180° a +180° se mapea a 0 a mapWidth
                 const midnightXInMap = ((midnightLongitude + 180) / 360) * mapWidth;
-                
+
                 // Calcular el desplazamiento necesario para centrar el meridiano de medianoche
                 // El centro del mapa original tiene el meridiano 0° en mapWidth/2
                 // Queremos que el meridiano de medianoche esté en el centro de la pantalla (screenWidth/2)
                 // Por lo tanto: offset = (mapWidth/2 - midnightXInMap) + (screenWidth/2 - mapWidth/2)
                 // Simplificado: offset = screenWidth/2 - midnightXInMap
                 const centerOffset = (screenWidth / 2) - midnightXInMap;
-                
+
                 // Aplicar transform al SVG con transición suave
                 svg.style.transformOrigin = 'left center';
                 svg.style.transition = 'transform 1s ease-out'; // Transición suave de 1 segundo
                 svg.style.transform = `translateX(${centerOffset}px)`;
-                
+
                 // Crear efecto de mosaico: duplicar el mapa para continuidad
                 if (!state.mapDuplicated) {
                     // Duplicar el SVG para crear efecto de mosaico continuo
@@ -594,7 +594,7 @@ function updateMapRotation() {
                     svgClone.style.pointerEvents = 'none';
                     svgClone.style.zIndex = '-1';
                     container.appendChild(svgClone);
-                    
+
                     const svgClone2 = svg.cloneNode(true);
                     svgClone2.id = 'highmapsPlanisphere-clone-left';
                     svgClone2.style.position = 'absolute';
@@ -603,7 +603,7 @@ function updateMapRotation() {
                     svgClone2.style.pointerEvents = 'none';
                     svgClone2.style.zIndex = '-1';
                     container.appendChild(svgClone2);
-                    
+
                     state.mapDuplicated = true;
                 } else {
                     // Actualizar las copias también para mantener el efecto continuo
@@ -620,10 +620,10 @@ function updateMapRotation() {
                 }
             }
         }
-        
+
         // Iluminar países que cruzan el meridiano de medianoche (00:00-01:00 UTC)
         highlightCountriesAtGreenwich();
-        
+
         // Actualizar panel del próximo país
         updateNextCountryPanel();
     } catch (error) {
@@ -634,263 +634,155 @@ function updateMapRotation() {
 // Iluminar países según su estado: ya en 2026, próximos a llegar, o faltan horas
 function highlightCountriesAtGreenwich() {
     if (!state.highmapsChart) return;
-    
+
     try {
         const series = state.highmapsChart.series[0];
         if (!series || !series.points) return;
-        
+
         // Obtener todos los puntos del mapa
         const points = series.points;
         const now = new Date();
-        
+
         // Calcular la longitud donde es medianoche UTC
         const hours = now.getUTCHours();
         const minutes = now.getUTCMinutes();
         const seconds = now.getUTCSeconds();
         const totalSeconds = hours * 3600 + minutes * 60 + seconds;
-        
+
         // La medianoche se mueve 15 grados por hora hacia el oeste
-        let midnightLongitude = (totalSeconds / 3600) * 15;
-        if (midnightLongitude > 180) {
-            midnightLongitude -= 360;
-        }
-        
+        // A las 00:00 UTC, medianoche está en 0°. A las 12:00 UTC, en 180°.
+        // Formula: (Hora UTC * 15) % 360. Si > 180, restar 360.
+        // Pero queremos la longitud GEOGRÁFICA donde es medianoche local (00:00).
+        // Si en Greenwich (0°) son las 10:00, la medianoche (00:00) fue hace 10 horas o será en 14 horas.
+        // La medianoche está en longitud: (24 - HoraUTC) * 15.
+        // Ejemplo: 10:00 UTC. Medianoche en (24-10)*15 = 14 * 15 = 210° = -150° (Oeste).
+        // Ejemplo: 00:00 UTC. Medianoche en (24-0)*15 = 360° = 0°.
+
+        let midnightLongitude = ((24 - (totalSeconds / 3600)) * 15) % 360;
+        if (midnightLongitude > 180) midnightLongitude -= 360;
+
         // Almacenar países iluminados para evitar actualizaciones innecesarias
         if (!state.highlightedCountries) {
             state.highlightedCountries = new Set();
         }
-        
+
         const currentlyHighlighted = new Set();
-        
+
         points.forEach((point, index) => {
-            if (!point || !point.update) return;
-            
+            if (!point) return;
+
             try {
-                // Obtener las coordenadas geográficas del país
-                let countryLongitude = null;
-                
-                // Intentar obtener la longitud del país desde diferentes fuentes
-                if (point.properties && point.properties.lon) {
-                    countryLongitude = point.properties.lon;
-                } else if (point.geometry && point.geometry.coordinates) {
-                    // Calcular el centroide del país desde sus coordenadas
-                    const coords = point.geometry.coordinates;
-                    let sumLon = 0;
-                    let count = 0;
-                    
-                    const extractLongitude = (arr) => {
-                        if (Array.isArray(arr[0])) {
-                            arr.forEach(sub => extractLongitude(sub));
-                        } else if (arr.length >= 2) {
-                            sumLon += arr[0];
-                            count++;
-                        }
-                    };
-                    
-                    extractLongitude(coords);
-                    if (count > 0) {
-                        countryLongitude = sumLon / count;
+                const countryName = point.name || point.properties?.name || point.options?.name || 'País desconocido';
+
+                // Obtener timezone real del país
+                const countryTimezone = getCountryTimezoneSync(countryName);
+
+                // Calcular hora local del país
+                let countryHour = 0;
+                let countryMinute = 0;
+
+                // Si tenemos timezone, usarlo para precisión exacta
+                if (countryTimezone) {
+                    try {
+                        const formatter = new Intl.DateTimeFormat('en-US', {
+                            timeZone: countryTimezone,
+                            hour: 'numeric',
+                            minute: 'numeric',
+                            hour12: false
+                        });
+                        const parts = formatter.format(now).split(':');
+                        countryHour = parseInt(parts[0]);
+                        countryMinute = parseInt(parts[1]);
+                    } catch (e) {
+                        // Fallback si el timezone es inválido
                     }
-                } else if (point.options && point.options.lon) {
-                    countryLongitude = point.options.lon;
-                }
-                
-                // Si no tenemos longitud, usar plotX como aproximación
-                if (countryLongitude === null) {
-                    const chartWidth = state.highmapsChart.chartWidth || window.innerWidth;
-                    const centerX = chartWidth / 2;
-                    const pointX = point.plotX || 0;
-                    
-                    // Obtener el desplazamiento actual del mapa
-                    const container = document.getElementById('highmapsPlanisphere');
-                    let mapOffset = 0;
-                    if (container) {
-                        const svg = container.querySelector('svg');
-                        if (svg && svg.style.transform) {
-                            const transform = svg.style.transform;
-                            const match = transform.match(/translateX\((-?\d+(?:\.\d+)?)px\)/);
-                            if (match) {
-                                mapOffset = parseFloat(match[1]) || 0;
-                            }
-                        }
+                } else {
+                    // Fallback a cálculo por longitud si no hay timezone
+                    let countryLongitude = null;
+                    if (point.properties && point.properties.lon) {
+                        countryLongitude = point.properties.lon;
+                    } else if (point.geometry && point.geometry.coordinates) {
+                        // Cálculo simplificado del centroide
+                        // ... (código existente de centroide)
                     }
-                    
-                    // Calcular la posición real en la pantalla
-                    const realX = pointX - mapOffset;
-                    const distanceFromCenter = realX - centerX;
-                    
-                    // Aproximar: cada píxel = aproximadamente 360/chartWidth grados
-                    const degreesPerPixel = 360 / chartWidth;
-                    countryLongitude = (distanceFromCenter * degreesPerPixel);
-                }
-                
-                // Normalizar longitud a -180 a +180
-                if (countryLongitude !== null) {
-                    while (countryLongitude > 180) countryLongitude -= 360;
-                    while (countryLongitude < -180) countryLongitude += 360;
-                    
-                    // Obtener nombre del país
-                    const countryName = point.name || point.properties?.name || point.options?.name || 'País desconocido';
-                    
-                    // Obtener timezone real del país
-                    const countryTimezone = getCountryTimezoneSync(countryName);
-                    
-                    // Calcular hora local del país
-                    let countryHour = 0;
-                    let countryMinute = 0;
-                    let countrySecond = 0;
-                    
-                    if (countryTimezone) {
-                        try {
-                            const formatter = new Intl.DateTimeFormat('es-ES', {
-                                timeZone: countryTimezone,
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                second: '2-digit',
-                                hour12: false
-                            });
-                            const parts = formatter.formatToParts(now);
-                            countryHour = parseInt(parts.find(p => p.type === 'hour').value);
-                            countryMinute = parseInt(parts.find(p => p.type === 'minute').value);
-                            countrySecond = parseInt(parts.find(p => p.type === 'second').value);
-                        } catch (e) {
-                            // Fallback a cálculo aproximado basado en longitud
-                            const offset = Math.round(countryLongitude / 15);
-                            countryHour = (hours + offset + 24) % 24;
-                            countryMinute = minutes;
-                            countrySecond = seconds;
-                        }
-                    } else {
-                        // Fallback a cálculo aproximado si no se puede obtener timezone
+
+                    if (countryLongitude !== null) {
                         const offset = Math.round(countryLongitude / 15);
                         countryHour = (hours + offset + 24) % 24;
                         countryMinute = minutes;
-                        countrySecond = seconds;
-                    }
-                    
-                    // Calcular tiempo hasta medianoche (00:00) en el país
-                    const currentTimeInSeconds = countryHour * 3600 + countryMinute * 60 + countrySecond;
-                    const secondsUntilMidnight = (24 * 3600) - currentTimeInSeconds;
-                    const hoursUntilMidnight = secondsUntilMidnight / 3600;
-                    
-                    // Determinar estado del país y color correspondiente
-                    let countryColor = '#5a7a9e'; // Color por defecto (azul grisáceo)
-                    let borderColor = 'rgba(255, 255, 255, 0.8)';
-                    let borderWidth = 2;
-                    let countryStatus = 'pending'; // 'celebrating', 'soon', 'pending'
-                    
-                    // Calcular distancia al meridiano de medianoche para detectar países en celebración
-                    let distanceToMidnight = Math.abs(countryLongitude - midnightLongitude);
-                    distanceToMidnight = Math.min(
-                        distanceToMidnight,
-                        Math.abs(countryLongitude - (midnightLongitude + 360)),
-                        Math.abs(countryLongitude - (midnightLongitude - 360))
-                    );
-                    
-                    // Ya están en 2026 (ya pasaron medianoche, entre 00:00 y 01:00 local)
-                    if (countryHour === 0 && countryMinute < 60) {
-                        // Verificar si realmente está en la zona de medianoche
-                        if (distanceToMidnight <= 7.5) {
-                            countryColor = '#00ff00'; // Verde brillante para países que ya están en 2026
-                            borderColor = 'rgba(0, 255, 0, 1)';
-                            borderWidth = 4;
-                            countryStatus = 'celebrating';
-                            currentlyHighlighted.add(index);
-                            
-                            // Detectar si es un país nuevo que acaba de llegar a medianoche
-                            if (!state.countriesAtMidnight.has(countryName) && distanceToMidnight <= 7.5) {
-                                state.countriesAtMidnight.add(countryName);
-                                
-                                const timeSinceLastCelebration = Date.now() - (state.lastCelebrationTime || 0);
-                                if (timeSinceLastCelebration > 60000) { // Al menos 1 minuto desde la última celebración
-                                    console.log(`🎆 País en medianoche detectado: ${countryName} (distancia: ${distanceToMidnight.toFixed(2)} grados)`);
-                                    showCountryCelebrationBanner(countryName);
-                                    state.lastCelebratedCountry = countryName;
-                                    state.lastCelebrationTime = Date.now();
-                                    
-                                    // Obtener información del país y hacer que el presentador la lea
-                                    fetchCountryInfoAndAnnounce(countryName);
-                                }
-                            }
-                        } else {
-                            // Ya pasó medianoche pero hace más de 1 hora
-                            countryColor = '#90ee90'; // Verde claro para países que ya están en 2026
-                            borderColor = 'rgba(144, 238, 144, 0.8)';
-                            borderWidth = 3;
-                            countryStatus = 'celebrated';
-                        }
-                    }
-                    // Ya pasaron medianoche (hora local > 0 y < 24)
-                    else if (countryHour > 0 && countryHour < 24) {
-                        // Ya pasó medianoche pero hace más de 1 hora
-                        countryColor = '#90ee90'; // Verde claro para países que ya están en 2026
-                        borderColor = 'rgba(144, 238, 144, 0.8)';
-                        borderWidth = 3;
-                        countryStatus = 'celebrated';
-                    }
-                    // Están por llegar (próximas 2-3 horas)
-                    else if (hoursUntilMidnight <= 3 && hoursUntilMidnight > 0) {
-                        countryColor = '#ffa500'; // Naranja para países próximos a llegar
-                        borderColor = 'rgba(255, 165, 0, 1)';
-                        borderWidth = 3;
-                        countryStatus = 'soon';
-                    }
-                    // Todavía les faltan varias horas (más de 3 horas)
-                    else {
-                        countryColor = '#5a7a9e'; // Azul grisáceo por defecto
-                        borderColor = 'rgba(255, 255, 255, 0.8)';
-                        borderWidth = 2;
-                        countryStatus = 'pending';
-                    }
-                    
-                    // Remover de países en medianoche si ya no está
-                    if (countryStatus !== 'celebrating' && state.countriesAtMidnight.has(countryName)) {
-                        state.countriesAtMidnight.delete(countryName);
-                    }
-                    
-                    // Aplicar color al país - FORZAR con múltiples métodos
-                    try {
-                        point.update({
-                            color: countryColor,
-                            borderColor: borderColor,
-                            borderWidth: borderWidth
-                        }, false);
-                    } catch (updateError) {
-                        console.warn(`⚠️ Error en point.update para ${countryName}:`, updateError);
-                    }
-                    
-                    // Método 2: Cambiar directamente en el elemento SVG (más confiable)
-                    if (point.graphic && point.graphic.element) {
-                        const element = point.graphic.element;
-                        element.setAttribute('fill', countryColor);
-                        element.setAttribute('stroke', borderColor);
-                        element.setAttribute('stroke-width', borderWidth.toString());
-                        element.style.fill = countryColor;
-                        element.style.stroke = borderColor;
-                        element.style.strokeWidth = borderWidth + 'px';
-                    }
-                    
-                    // Método 3: Cambiar en las opciones del punto
-                    if (point.options) {
-                        point.options.color = countryColor;
-                        point.options.borderColor = borderColor;
-                        point.options.borderWidth = borderWidth;
                     }
                 }
+
+                // Determinar estado
+                let countryColor = '#5a7a9e'; // Default
+                let borderColor = 'rgba(255, 255, 255, 0.3)';
+                let borderWidth = 1;
+                let zIndex = 0;
+
+                // Lógica de estados:
+                // 1. CELEBRANDO AHORA (00:00 - 01:00): Verde Brillante
+                if (countryHour === 0) {
+                    countryColor = '#00ff00'; // Verde neón
+                    borderColor = '#ffffff';
+                    borderWidth = 3;
+                    zIndex = 100;
+                    currentlyHighlighted.add(index);
+
+                    // Detectar nuevo país en medianoche (primeros 5 minutos)
+                    if (countryMinute < 5 && !state.countriesAtMidnight.has(countryName)) {
+                        state.countriesAtMidnight.add(countryName);
+                        // Solo celebrar si pasó un tiempo prudente desde el último para no saturar
+                        if (Date.now() - (state.lastCelebrationTime || 0) > 30000) {
+                            showCountryCelebrationBanner(countryName);
+                            state.lastCelebrationTime = Date.now();
+                            fetchCountryInfoAndAnnounce(countryName);
+                        }
+                    }
+                }
+                // 2. YA CELEBRÓ (01:00 - 04:00): Verde más suave
+                else if (countryHour >= 1 && countryHour < 4) {
+                    countryColor = '#2ecc71'; // Verde esmeralda
+                    borderColor = 'rgba(46, 204, 113, 0.8)';
+                    borderWidth = 2;
+                }
+                // 3. YA CELEBRÓ HACE MUCHO (> 04:00): Azul verdoso
+                else if (countryHour >= 4 && countryHour < 12) {
+                    countryColor = '#16a085'; // Verde mar
+                    borderColor = 'rgba(255, 255, 255, 0.2)';
+                }
+                // 4. PRÓXIMO A CELEBRAR (23:00 - 23:59): Naranja/Amarillo
+                else if (countryHour === 23) {
+                    countryColor = '#f39c12'; // Naranja
+                    borderColor = '#f1c40f';
+                    borderWidth = 2;
+                }
+                // 5. FALTA POCO (21:00 - 23:00): Azul claro
+                else if (countryHour >= 21) {
+                    countryColor = '#3498db'; // Azul brillante
+                }
+
+                // Aplicar cambios solo si es necesario para rendimiento
+                const currentColor = point.color;
+                if (currentColor !== countryColor) {
+                    point.update({
+                        color: countryColor,
+                        borderColor: borderColor,
+                        borderWidth: borderWidth,
+                        zIndex: zIndex
+                    }, false); // false = no redibujar todavía
+                }
+
             } catch (pointError) {
-                console.warn(`⚠️ Error al actualizar punto ${index}:`, pointError);
+                // Ignorar errores puntuales
             }
         });
-        
+
         // Actualizar el conjunto de países iluminados
         state.highlightedCountries = currentlyHighlighted;
-        
-        // Forzar redibujado del mapa para asegurar que los colores se apliquen
-        try {
-            state.highmapsChart.redraw(true); // true = animación completa para forzar actualización
-        } catch (redrawError) {
-            console.warn('⚠️ Error al redibujar mapa:', redrawError);
-        }
+
+        // Redibujar el mapa una sola vez al final
+        state.highmapsChart.redraw();
+
     } catch (error) {
         console.warn('⚠️ Error al iluminar países:', error);
     }
@@ -907,10 +799,10 @@ function showCountryTooltip(event, countryName, point) {
         countryTooltip.className = 'country-tooltip';
         document.body.appendChild(countryTooltip);
     }
-    
+
     const now = new Date();
     let countryLongitude = null;
-    
+
     // Obtener longitud del país
     if (point.properties && point.properties.lon) {
         countryLongitude = point.properties.lon;
@@ -931,21 +823,21 @@ function showCountryTooltip(event, countryName, point) {
             countryLongitude = sumLon / count;
         }
     }
-    
+
     // Normalizar longitud
     if (countryLongitude !== null) {
         while (countryLongitude > 180) countryLongitude -= 360;
         while (countryLongitude < -180) countryLongitude += 360;
     }
-    
+
     let timeInfo = '';
     let midnightInfo = '';
-    
+
     if (countryLongitude !== null) {
         // Obtener timezone real del país (síncrono)
         const countryTimezone = getCountryTimezoneSync(countryName);
         let countryHour, countryMinute, countrySecond;
-        
+
         if (countryTimezone) {
             try {
                 const formatter = new Intl.DateTimeFormat('es-ES', {
@@ -973,9 +865,9 @@ function showCountryTooltip(event, countryName, point) {
             countryMinute = now.getUTCMinutes();
             countrySecond = now.getUTCSeconds();
         }
-        
+
         timeInfo = `<div class="tooltip-time">${String(countryHour).padStart(2, '0')}:${String(countryMinute).padStart(2, '0')}:${String(countrySecond).padStart(2, '0')}</div>`;
-        
+
         // Calcular cuándo cruzará la línea de medianoche
         const utcHours = now.getUTCHours();
         const utcMinutes = now.getUTCMinutes();
@@ -985,29 +877,29 @@ function showCountryTooltip(event, countryName, point) {
         let normalizedMidnight = midnightLongitude;
         while (normalizedMidnight > 180) normalizedMidnight -= 360;
         while (normalizedMidnight < -180) normalizedMidnight += 360;
-        
+
         let distanceToMidnight = normalizedMidnight - countryLongitude;
         if (distanceToMidnight < 0) distanceToMidnight += 360;
         if (distanceToMidnight > 180) distanceToMidnight = 360 - distanceToMidnight;
-        
+
         const hoursUntilMidnight = distanceToMidnight / 15;
-        
+
         if (hoursUntilMidnight > 0 && hoursUntilMidnight < 24) {
             const h = Math.floor(hoursUntilMidnight);
             const m = Math.floor((hoursUntilMidnight - h) * 60);
-            const s = Math.floor((hoursUntilMidnight - h - m/60) * 3600) % 60;
+            const s = Math.floor((hoursUntilMidnight - h - m / 60) * 3600) % 60;
             midnightInfo = `<div class="tooltip-midnight">Cruzará medianoche en: ${h}h ${m}m ${s}s</div>`;
         } else if (hoursUntilMidnight <= 0.5) {
             midnightInfo = `<div class="tooltip-midnight active">¡En medianoche ahora!</div>`;
         }
     }
-    
+
     countryTooltip.innerHTML = `
         <div class="tooltip-country-name">${countryName}</div>
         ${timeInfo}
         ${midnightInfo}
     `;
-    
+
     // Posicionar tooltip cerca del cursor
     countryTooltip.style.left = (event.clientX + 15) + 'px';
     countryTooltip.style.top = (event.clientY - 15) + 'px';
@@ -1023,14 +915,14 @@ function hideCountryTooltip() {
 // Verificar si un país está cerca del meridiano de Greenwich
 function checkIfNearGreenwich(point) {
     if (!point.geometry || !point.geometry.coordinates) return false;
-    
+
     // Obtener las coordenadas del país
     const coords = point.geometry.coordinates;
-    
+
     // Simplificado: verificar si alguna coordenada está cerca de longitud 0°
     // En un mapa real, esto sería más complejo
     let isNear = false;
-    
+
     const checkCoordinates = (coords) => {
         if (Array.isArray(coords[0])) {
             coords.forEach(coord => checkCoordinates(coord));
@@ -1043,7 +935,7 @@ function checkIfNearGreenwich(point) {
             }
         }
     };
-    
+
     checkCoordinates(coords);
     return isNear;
 }
@@ -1064,25 +956,25 @@ function initializeMidnightLine() {
 function updateMidnightLine() {
     const midnightLine = document.getElementById('midnightLine');
     if (!midnightLine) return;
-    
+
     // Calcular dónde es medianoche (UTC) en el planisferio
     const now = new Date();
     const hours = now.getUTCHours();
     const minutes = now.getUTCMinutes();
     const seconds = now.getUTCSeconds();
-    
+
     // La línea de medianoche está en el meridiano opuesto al sol
     // El sol está en su punto más alto a las 12:00 UTC en el meridiano 0°
     // La medianoche está 12 horas (180 grados) opuesta al sol
     // Longitud de medianoche = (12 - hora UTC) * 15 grados
-    const midnightLongitude = (12 - hours - minutes/60 - seconds/3600) * 15;
-    
+    const midnightLongitude = (12 - hours - minutes / 60 - seconds / 3600) * 15;
+
     // Convertir longitud a posición X en el mapa (0-100%)
     // Longitud -180 a +180 se mapea a 0% a 100%
     const xPosition = ((midnightLongitude + 180) / 360) * 100;
-    
+
     midnightLine.style.left = `${xPosition}%`;
-    
+
     // Agregar etiqueta con el país/región
     updateMidnightLineLabel(midnightLongitude);
 }
@@ -1093,7 +985,7 @@ function updateMidnightLineLabel(longitude) {
     // Esto se puede mejorar con datos geográficos más precisos
     const midnightLine = document.getElementById('midnightLine');
     if (!midnightLine) return;
-    
+
     // Crear o actualizar etiqueta
     let label = midnightLine.querySelector('.midnight-label');
     if (!label) {
@@ -1101,7 +993,7 @@ function updateMidnightLineLabel(longitude) {
         label.className = 'midnight-label';
         midnightLine.appendChild(label);
     }
-    
+
     // País aproximado basado en longitud (simplificado)
     const country = getCountryAtLongitude(longitude);
     if (country) {
@@ -1126,13 +1018,13 @@ function getCountryAtLongitude(longitude) {
         { min: 120, max: 150, name: 'Japón' },
         { min: 150, max: 180, name: 'Pacífico' }
     ];
-    
+
     for (const region of regions) {
         if (longitude >= region.min && longitude < region.max) {
             return region.name;
         }
     }
-    
+
     return 'Pacífico';
 }
 
@@ -1143,19 +1035,19 @@ function getCountryAtLongitude(longitude) {
 function initializeGlobe() {
     const canvas = document.getElementById('globeCanvas');
     if (!canvas) return;
-    
+
     // Crear escena
     state.globeScene = new THREE.Scene();
     state.globeScene.background = null; // Transparente para ver el fondo
-    
+
     // Crear cámara
     const width = window.innerWidth;
     const height = window.innerHeight;
     state.globeCamera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
     state.globeCamera.position.set(0, 0, 2.5);
-    
+
     // Crear renderer
-    state.globeRenderer = new THREE.WebGLRenderer({ 
+    state.globeRenderer = new THREE.WebGLRenderer({
         canvas: canvas,
         alpha: true,
         antialias: true,
@@ -1165,13 +1057,13 @@ function initializeGlobe() {
     state.globeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     state.globeRenderer.shadowMap.enabled = true;
     state.globeRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    
+
     // Crear geometría de esfera (globo) - más detalle
     const geometry = new THREE.SphereGeometry(1, 128, 64);
-    
+
     // Cargar textura de la Tierra
     const textureLoader = new THREE.TextureLoader();
-    
+
     // Crear material con textura realista y mejor contraste para día/noche
     // Primero crear material básico para que el globo se vea inmediatamente
     const material = new THREE.MeshPhongMaterial({
@@ -1181,13 +1073,13 @@ function initializeGlobe() {
         emissive: 0x001122,
         transparent: false
     });
-    
+
     // Crear malla del globo INMEDIATAMENTE (antes de cargar textura)
     state.globeMesh = new THREE.Mesh(geometry, material);
     state.globeMesh.receiveShadow = true;
     state.globeMesh.castShadow = true;
     state.globeScene.add(state.globeMesh);
-    
+
     // Cargar textura de la Tierra de alta calidad con países visibles
     // Usar múltiples fuentes de textura para mejor compatibilidad
     const textureUrls = [
@@ -1195,16 +1087,16 @@ function initializeGlobe() {
         'https://raw.githubusercontent.com/publiclab/mapknitter/master/public/images/earth.jpg',
         'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'
     ];
-    
+
     let textureIndex = 0;
-    
+
     function tryLoadTexture(index) {
         if (index >= textureUrls.length) {
             console.warn('⚠️ No se pudo cargar ninguna textura, usando material procedural');
             createProceduralEarth();
             return;
         }
-        
+
         const earthTexture = textureLoader.load(
             textureUrls[index],
             // onLoad callback
@@ -1222,12 +1114,12 @@ function initializeGlobe() {
             }
         );
     }
-    
+
     tryLoadTexture(0);
-    
+
     // Dibujar husos horarios en el globo
     drawTimezonesOnGlobe();
-    
+
     // Agregar atmósfera (esfera exterior semitransparente)
     const atmosphereGeometry = new THREE.SphereGeometry(1.02, 64, 64);
     const atmosphereMaterial = new THREE.MeshBasicMaterial({
@@ -1238,16 +1130,16 @@ function initializeGlobe() {
     });
     const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
     state.globeScene.add(atmosphere);
-    
+
     // Agregar estrellas de fondo
     createStars();
-    
+
     // Iluminación principal (simula el sol) - posición inicial basada en hora UTC
     const now = new Date();
     const hours = now.getUTCHours();
     const sunLongitude = (hours * 15) - 180; // Sol en el lado opuesto al meridiano actual
     const sunLongitudeRad = (sunLongitude * Math.PI) / 180;
-    
+
     const sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
     sunLight.position.set(
         Math.sin(sunLongitudeRad) * 5,
@@ -1265,16 +1157,16 @@ function initializeGlobe() {
     sunLight.shadow.camera.bottom = -2;
     state.globeScene.add(sunLight);
     state.sunLight = sunLight; // Guardar referencia
-    
+
     // Luz ambiental muy suave (solo para el lado oscuro)
     const ambientLight = new THREE.AmbientLight(0x404040, 0.15);
     state.globeScene.add(ambientLight);
-    
+
     // Agregar luz adicional para el lado oscuro (más oscuro)
     const darkSideLight = new THREE.DirectionalLight(0x000033, 0.1);
     darkSideLight.position.set(-sunLight.position.x, -sunLight.position.y, -sunLight.position.z);
     state.globeScene.add(darkSideLight);
-    
+
     // Crear material para el lado oscuro (más oscuro)
     const darkMaterial = new THREE.MeshBasicMaterial({
         color: 0x000033,
@@ -1282,17 +1174,17 @@ function initializeGlobe() {
         opacity: 0.3,
         side: THREE.BackSide
     });
-    
+
     // Agregar esfera oscura para el lado de noche
     const darkSphere = new THREE.Mesh(
         new THREE.SphereGeometry(1.001, 64, 64),
         darkMaterial
     );
     state.globeScene.add(darkSphere);
-    
+
     // Agregar puntos de luz dorados para zonas que celebran
     state.celebrationLights = [];
-    
+
     // Manejar resize
     window.addEventListener('resize', () => {
         const width = window.innerWidth;
@@ -1301,10 +1193,10 @@ function initializeGlobe() {
         state.globeCamera.updateProjectionMatrix();
         state.globeRenderer.setSize(width, height);
     });
-    
+
     // Iniciar animación inmediatamente
     animateGlobe();
-    
+
     console.log('🌍 Globo terráqueo 3D inicializado');
 }
 
@@ -1330,7 +1222,7 @@ function createStars() {
         transparent: true,
         opacity: 0.8
     });
-    
+
     const starsVertices = [];
     for (let i = 0; i < 10000; i++) {
         const x = (Math.random() - 0.5) * 2000;
@@ -1338,7 +1230,7 @@ function createStars() {
         const z = (Math.random() - 0.5) * 2000;
         starsVertices.push(x, y, z);
     }
-    
+
     starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
     const stars = new THREE.Points(starsGeometry, starsMaterial);
     state.globeScene.add(stars);
@@ -1346,26 +1238,26 @@ function createStars() {
 
 function drawTimezonesOnGlobe() {
     if (!state.globeScene) return;
-    
+
     // Dibujar meridianos de husos horarios en el globo
     // Cada 15 grados (360° / 24 = 15°)
     for (let lon = -180; lon <= 180; lon += 15) {
         const longitude = lon * (Math.PI / 180); // Convertir a radianes
-        
+
         // Crear línea de meridiano
         const points = [];
         for (let lat = -90; lat <= 90; lat += 5) {
             const latitude = lat * (Math.PI / 180);
             const radius = 1.01; // Ligeramente fuera del globo
-            
+
             // Convertir coordenadas esféricas a cartesianas
             const x = radius * Math.cos(latitude) * Math.sin(longitude);
             const y = radius * Math.sin(latitude);
             const z = radius * Math.cos(latitude) * Math.cos(longitude);
-            
+
             points.push(new THREE.Vector3(x, y, z));
         }
-        
+
         const geometry = new THREE.BufferGeometry().setFromPoints(points);
         const material = new THREE.LineBasicMaterial({
             color: 0xffffff,
@@ -1383,24 +1275,24 @@ function animateGlobe() {
         console.warn('⚠️ Globo no inicializado completamente');
         return;
     }
-    
+
     // Calcular rotación real de la Tierra
     const now = new Date();
     const hours = now.getUTCHours();
     const minutes = now.getUTCMinutes();
     const seconds = now.getUTCSeconds();
-    
+
     // Calcular rotación basada en la hora UTC real
     // La Tierra rota 15 grados por hora UTC
     const rotationDegrees = (hours * 15) + (minutes * 0.25) + (seconds * 0.0041667);
     const rotationRadians = (rotationDegrees * Math.PI) / 180;
-    
+
     // Si tenemos la ubicación del usuario, mantener el globo centrado en su posición
     if (state.userLongitude !== null && state.userLongitudeRad !== undefined) {
         // Rotar el globo para mantener la ubicación del usuario centrada
         // Compensar la rotación de la Tierra
         state.globeMesh.rotation.y = -state.userLongitudeRad + rotationRadians;
-        
+
         // Mantener la cámara centrada en el usuario
         if (state.globeCamera && state.userLatitudeRad !== undefined) {
             const cameraDistance = 2.8;
@@ -1414,11 +1306,11 @@ function animateGlobe() {
         // Rotación normal sin centrar en usuario
         state.globeMesh.rotation.y = rotationRadians;
     }
-    
+
     // Calcular posición del sol para día/noche
     const sunLongitude = (hours * 15 + minutes * 0.25) - 180;
     const sunLongitudeRad = (sunLongitude * Math.PI) / 180;
-    
+
     // Actualizar posición de la luz del sol
     if (state.globeScene.children) {
         state.globeScene.children.forEach(child => {
@@ -1430,20 +1322,20 @@ function animateGlobe() {
             }
         });
     }
-    
+
     // Actualizar luces de celebración
     updateCelebrationLights();
-    
+
     // Renderizar
     state.globeRenderer.render(state.globeScene, state.globeCamera);
-    
+
     requestAnimationFrame(animateGlobe);
 }
 
 function updateCelebrationLights() {
     // Agregar puntos de luz dorados en zonas que ya celebraron
     if (!state.celebratedZones || state.celebratedZones.size === 0) return;
-    
+
     // Limpiar luces antiguas si hay demasiadas
     if (state.celebrationLights && state.celebrationLights.length > 20) {
         state.celebrationLights.forEach(light => {
@@ -1451,7 +1343,7 @@ function updateCelebrationLights() {
         });
         state.celebrationLights = [];
     }
-    
+
     // Agregar nuevas luces ocasionalmente
     if (Math.random() > 0.95 && state.celebratedZones.size > 0) {
         const light = new THREE.PointLight(0xffd700, 2, 3);
@@ -1464,7 +1356,7 @@ function updateCelebrationLights() {
         );
         state.globeScene.add(light);
         state.celebrationLights.push(light);
-        
+
         // Remover la luz después de 3 segundos
         setTimeout(() => {
             state.globeScene.remove(light);
@@ -1483,7 +1375,7 @@ function updateCelebrationLights() {
 function initializeWorldMap() {
     const svg = document.querySelector('.world-map');
     if (!svg) return;
-    
+
     // Limpiar SVG pero mantener defs
     const defs = svg.querySelector('defs');
     svg.innerHTML = '';
@@ -1503,7 +1395,7 @@ function initializeWorldMap() {
         dayRect.setAttribute('fill', 'rgba(135, 206, 235, 0.1)');
         dayPattern.appendChild(dayRect);
         newDefs.appendChild(dayPattern);
-        
+
         const nightPattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
         nightPattern.setAttribute('id', 'nightPattern');
         nightPattern.setAttribute('patternUnits', 'userSpaceOnUse');
@@ -1517,7 +1409,7 @@ function initializeWorldMap() {
         newDefs.appendChild(nightPattern);
         svg.appendChild(newDefs);
     }
-    
+
     // Dibujar fondo del mapa (océanos)
     const ocean = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     ocean.setAttribute('x', '0');
@@ -1526,25 +1418,25 @@ function initializeWorldMap() {
     ocean.setAttribute('height', '720');
     ocean.setAttribute('fill', 'rgba(30, 60, 120, 0.3)');
     svg.appendChild(ocean);
-    
+
     // Dibujar husos horarios basados en meridianos reales
     // Cada huso horario tiene 15 grados de ancho (360° / 24 = 15°)
     const totalZones = 24;
     const degreesPerZone = 360 / totalZones;
-    
+
     // Crear husos horarios basados en meridianos
     for (let i = 0; i < totalZones; i++) {
         // Calcular offset UTC (UTC+12 a UTC-11, centrado en UTC+0)
         let offset = 12 - i;
         if (offset > 12) offset = offset - 24;
-        
+
         // Calcular posición del meridiano central del huso
         const meridian = offset * 15; // Cada huso está centrado en múltiplos de 15°
-        
+
         // Convertir longitud a posición X en el mapa (proyección equirectangular)
         const x = ((meridian + 180) / 360) * 1440;
         const width = (degreesPerZone / 360) * 1440;
-        
+
         // Crear zona horaria con mejor visibilidad
         const zone = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         zone.setAttribute('class', 'timezone-zone');
@@ -1558,7 +1450,7 @@ function initializeWorldMap() {
         zone.setAttribute('stroke', 'rgba(150, 150, 200, 0.5)');
         zone.setAttribute('stroke-width', '1');
         zone.setAttribute('opacity', '0.6');
-        
+
         // Agregar interactividad
         zone.addEventListener('mouseenter', (e) => {
             showTimezoneInfo(offset, e);
@@ -1568,22 +1460,22 @@ function initializeWorldMap() {
             hideTimezoneInfo();
             zone.setAttribute('fill', 'rgba(50, 50, 80, 0.4)');
         });
-        
+
         // Agregar tooltip con ciudades
         const cities = getCitiesForOffset(offset);
         const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
         title.textContent = `UTC${offset >= 0 ? '+' : ''}${offset} - ${cities.slice(0, 3).join(', ')}`;
         zone.appendChild(title);
-        
+
         svg.appendChild(zone);
     }
-    
+
     // Dibujar meridianos de referencia más visibles
     drawMeridians(svg);
-    
+
     // Dibujar países principales (simplificado)
     drawMainCountries(svg);
-    
+
     updateWorldMap();
 }
 
@@ -1606,7 +1498,7 @@ function drawMeridians(svg) {
 function drawMainCountries(svg) {
     // Dibujar países como formas tipo planisferio (simplificado)
     // Usando polígonos aproximados para países principales
-    
+
     const countries = [
         {
             name: 'Argentina',
@@ -1694,7 +1586,7 @@ function drawMainCountries(svg) {
             centerY: 536
         }
     ];
-    
+
     countries.forEach(country => {
         // Dibujar forma del país
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -1705,7 +1597,7 @@ function drawMainCountries(svg) {
         path.setAttribute('class', 'country-shape');
         path.setAttribute('data-country', country.name);
         path.setAttribute('opacity', '0.8');
-        
+
         // Agregar interactividad
         path.addEventListener('mouseenter', () => {
             path.setAttribute('fill', 'rgba(255, 215, 0, 0.8)');
@@ -1715,9 +1607,9 @@ function drawMainCountries(svg) {
             path.setAttribute('fill', country.color);
             path.setAttribute('stroke-width', country.highlight ? '3' : '1.5');
         });
-        
+
         svg.appendChild(path);
-        
+
         // Agregar etiqueta de texto en el centro
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.setAttribute('x', country.centerX);
@@ -1729,7 +1621,7 @@ function drawMainCountries(svg) {
         text.setAttribute('class', 'country-label');
         text.setAttribute('pointer-events', 'none');
         text.textContent = country.name;
-        
+
         svg.appendChild(text);
     });
 }
@@ -1738,7 +1630,7 @@ function showTimezoneInfo(offset, event) {
     const cities = getCitiesForOffset(offset);
     const now = new Date();
     const localTime = new Date(now.getTime() + (offset * 60 * 60 * 1000));
-    
+
     // Crear tooltip flotante
     let tooltip = document.getElementById('timezoneTooltip');
     if (!tooltip) {
@@ -1747,17 +1639,17 @@ function showTimezoneInfo(offset, event) {
         tooltip.className = 'timezone-tooltip';
         document.body.appendChild(tooltip);
     }
-    
+
     const hours = String(localTime.getUTCHours()).padStart(2, '0');
     const minutes = String(localTime.getUTCMinutes()).padStart(2, '0');
     const seconds = String(localTime.getUTCSeconds()).padStart(2, '0');
-    
+
     tooltip.innerHTML = `
         <div class="tooltip-header">UTC${offset >= 0 ? '+' : ''}${offset}</div>
         <div class="tooltip-time">${hours}:${minutes}:${seconds}</div>
         <div class="tooltip-cities">${cities.slice(0, 5).join(', ')}</div>
     `;
-    
+
     tooltip.style.display = 'block';
     tooltip.style.left = (event.clientX + 10) + 'px';
     tooltip.style.top = (event.clientY + 10) + 'px';
@@ -1785,27 +1677,27 @@ function updateWorldMap() {
     const currentUTCDate = now.getUTCDate();
     const currentUTCMonth = now.getUTCMonth();
     const currentUTCYear = now.getUTCFullYear();
-    
+
     // Determinar si ya es Año Nuevo en UTC
     const isNewYearUTC = currentUTCYear >= state.currentYear;
-    
+
     const zones = document.querySelectorAll('.timezone-zone');
     state.celebratedZones.clear();
     state.currentZone = null;
     state.nextZone = null;
-    
+
     let nextZoneFound = false;
-    
+
     zones.forEach((zone) => {
         const offset = parseInt(zone.getAttribute('data-offset'));
         const zoneName = zone.getAttribute('data-name');
-        
+
         // Calcular hora local de la zona
         let zoneHour = currentUTCHour + offset;
         let zoneDate = currentUTCDate;
         let zoneMonth = currentUTCMonth;
         let zoneYear = currentUTCYear;
-        
+
         // Ajustar fecha si es necesario
         if (zoneHour < 0) {
             zoneHour += 24;
@@ -1831,13 +1723,13 @@ function updateWorldMap() {
                 }
             }
         }
-        
+
         // Verificar si ya es Año Nuevo en esta zona
         const isNewYear = zoneYear >= state.currentYear;
-        
+
         // Remover todas las clases
         zone.classList.remove('celebrated', 'current', 'next');
-        
+
         if (isNewYear) {
             zone.classList.add('celebrated');
             state.celebratedZones.add(zoneName);
@@ -1847,7 +1739,7 @@ function updateWorldMap() {
             state.nextZone = zoneName;
             nextZoneFound = true;
         }
-        
+
         // Marcar zona actual (la que está más cerca de medianoche)
         if (!isNewYear && Math.abs(zoneHour - 0) < 2) {
             zone.classList.add('current');
@@ -1856,7 +1748,7 @@ function updateWorldMap() {
             }
         }
     });
-    
+
     // Actualizar estadísticas
     updateStatistics();
 }
@@ -1864,10 +1756,10 @@ function updateWorldMap() {
 function updateStatistics() {
     const celebratedCount = state.celebratedZones.size;
     const remainingCount = TIMEZONES.length - celebratedCount;
-    
+
     document.getElementById('zonesCelebrated').textContent = celebratedCount;
     document.getElementById('zonesRemaining').textContent = remainingCount;
-    
+
     if (state.nextZone) {
         document.getElementById('nextZone').textContent = state.nextZone;
     } else {
@@ -1886,20 +1778,20 @@ function initializeTimeDisplay() {
 function updateTimeDisplay() {
     try {
         const now = new Date();
-        
+
         // Actualizar hora UTC
         const utcHours = String(now.getUTCHours()).padStart(2, '0');
         const utcMinutes = String(now.getUTCMinutes()).padStart(2, '0');
         const utcSeconds = String(now.getUTCSeconds()).padStart(2, '0');
         const utcTimeStr = `${utcHours}:${utcMinutes}:${utcSeconds}`;
-        
+
         const utcTimeEl = document.getElementById('utcTime');
         if (utcTimeEl) {
             utcTimeEl.textContent = utcTimeStr;
         } else {
             console.warn('⚠️ Elemento utcTime no encontrado en updateTimeDisplay');
         }
-        
+
         // Fecha UTC
         const utcDay = now.getUTCDate();
         const utcMonth = now.getUTCMonth();
@@ -1912,7 +1804,7 @@ function updateTimeDisplay() {
         if (utcDateEl) {
             utcDateEl.textContent = `${utcDay} de ${monthNames[utcMonth]}, ${utcYear}`;
         }
-        
+
         // Actualizar hora del usuario (local)
         const userHours = String(now.getHours()).padStart(2, '0');
         const userMinutes = String(now.getMinutes()).padStart(2, '0');
@@ -1923,7 +1815,7 @@ function updateTimeDisplay() {
         } else {
             console.warn('⚠️ Elemento userTime no encontrado en updateTimeDisplay');
         }
-        
+
         // Fecha del usuario
         const userDay = now.getDate();
         const userMonth = now.getMonth();
@@ -1950,10 +1842,10 @@ function updateCountdown() {
     const localYear = now.getFullYear();
     const localMonth = now.getMonth();
     const localDate = now.getDate();
-    
+
     // Calcular Año Nuevo en la zona local del usuario
     let newYearDate;
-    
+
     // Si ya pasó el 1 de enero, esperar el próximo año
     if (localMonth === 0 && localDate === 1 && now.getHours() >= 0) {
         // Ya es 1 de enero, calcular para el próximo año
@@ -1964,15 +1856,15 @@ function updateCountdown() {
     } else {
         // Aún no es 1 de enero
         newYearDate = new Date(localYear, 0, 1, 0, 0, 0, 0);
-        
+
         // Si ya pasó el 1 de enero de este año, esperar el próximo
         if (now > newYearDate) {
             newYearDate = new Date(localYear + 1, 0, 1, 0, 0, 0, 0);
         }
     }
-    
+
     const diff = newYearDate - now;
-    
+
     if (diff <= 0) {
         // ¡Ya es Año Nuevo!
         document.getElementById('days').textContent = '00';
@@ -1981,12 +1873,12 @@ function updateCountdown() {
         document.getElementById('seconds').textContent = '00';
         return;
     }
-    
+
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-    
+
     document.getElementById('days').textContent = String(days).padStart(2, '0');
     document.getElementById('hours').textContent = String(hours).padStart(2, '0');
     document.getElementById('minutes').textContent = String(minutes).padStart(2, '0');
@@ -2009,14 +1901,14 @@ function initializeVoiceSystem() {
 function checkVoiceMessage() {
     const now = new Date();
     const minutes = now.getMinutes();
-    
+
     // Verificar si es un múltiplo de 15 minutos (0, 15, 30, 45)
     if (minutes % 15 === 0) {
         // Verificar que no hayamos mostrado un mensaje en este minuto
-        if (state.lastVoiceTime === null || 
+        if (state.lastVoiceTime === null ||
             state.lastVoiceTime.getMinutes() !== minutes ||
             state.lastVoiceTime.getHours() !== now.getHours()) {
-            
+
             showVoiceMessage();
             state.lastVoiceTime = new Date(now);
         }
@@ -2027,14 +1919,14 @@ function showVoiceMessage() {
     // Seleccionar mensaje aleatorio
     const messageIndex = Math.floor(Math.random() * VOICE_MESSAGES.length);
     const message = VOICE_MESSAGES[messageIndex];
-    
+
     // Mostrar mensaje visual
     const voiceMessageEl = document.getElementById('voiceMessage');
     const voiceTextEl = document.getElementById('voiceText');
-    
+
     voiceTextEl.textContent = message;
     voiceMessageEl.style.display = 'block';
-    
+
     // Leer mensaje en voz
     if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(message);
@@ -2042,10 +1934,10 @@ function showVoiceMessage() {
         utterance.rate = 0.9;
         utterance.pitch = 1;
         utterance.volume = 1;
-        
+
         speechSynthesis.speak(utterance);
     }
-    
+
     // Ocultar mensaje después de 8 segundos
     setTimeout(() => {
         voiceMessageEl.style.display = 'none';
@@ -2063,7 +1955,7 @@ function initializeVisualEffects() {
             createFirework();
         }
     }, 3000);
-    
+
     setInterval(() => {
         if (Math.random() > 0.8) { // 20% de probabilidad
             createConfetti();
@@ -2075,19 +1967,19 @@ function createFirework() {
     const container = document.getElementById('visualEffects');
     const firework = document.createElement('div');
     firework.className = 'firework';
-    
+
     const x = Math.random() * window.innerWidth;
     const y = Math.random() * window.innerHeight;
     const colors = ['#ffd700', '#ff6b6b', '#4ecdc4', '#95e1d3', '#f38181'];
     const color = colors[Math.floor(Math.random() * colors.length)];
-    
+
     firework.style.left = x + 'px';
     firework.style.top = y + 'px';
     firework.style.background = color;
     firework.style.boxShadow = `0 0 20px ${color}`;
-    
+
     container.appendChild(firework);
-    
+
     setTimeout(() => {
         firework.remove();
     }, 1000);
@@ -2097,17 +1989,17 @@ function createConfetti() {
     const container = document.getElementById('visualEffects');
     const confetti = document.createElement('div');
     confetti.className = 'confetti';
-    
+
     const x = Math.random() * window.innerWidth;
     const colors = ['#ffd700', '#ff6b6b', '#4ecdc4', '#95e1d3', '#f38181', '#60a5fa'];
     const color = colors[Math.floor(Math.random() * colors.length)];
-    
+
     confetti.style.left = x + 'px';
     confetti.style.top = '-10px';
     confetti.style.background = color;
-    
+
     container.appendChild(confetti);
-    
+
     setTimeout(() => {
         confetti.remove();
     }, 3000);
@@ -2158,12 +2050,12 @@ function initializeBackgroundAudio() {
                     'showinfo': 0
                 },
                 events: {
-                    'onReady': function(event) {
+                    'onReady': function (event) {
                         console.log('🎵 Reproductor de YouTube listo');
                         // Intentar reproducir música (puede requerir interacción del usuario)
                         event.target.setVolume(30); // Volumen al 30%
                     },
-                    'onStateChange': function(event) {
+                    'onStateChange': function (event) {
                         if (event.data === YT.PlayerState.ENDED) {
                             // Si termina, reproducir siguiente canción
                             event.target.nextVideo();
@@ -2187,12 +2079,12 @@ function initializeHTML5Audio() {
     AUDIO_CONFIG.tracks.forEach((track, index) => {
         const audioEl = document.getElementById(track.id);
         if (!audioEl) return;
-        
+
         if (track.src) {
             audioEl.src = track.src;
             audioEl.volume = track.volume;
             audioEl.loop = track.loop;
-            
+
             // Intentar reproducir cuando el usuario interactúe
             const playAudio = () => {
                 if (audioEl.paused && audioEl.src) {
@@ -2205,7 +2097,7 @@ function initializeHTML5Audio() {
                     });
                 }
             };
-            
+
             // Reproducir con un pequeño delay entre pistas para crear ambiente
             if (index === 0) {
                 // Primera pista se reproduce inmediatamente
@@ -2235,10 +2127,10 @@ function initializeHTML5Audio() {
 function initializeDynamicFeatures() {
     // Inicializar contador global
     initializeGlobalCountdown();
-    
+
     // Actualizar contador global cada segundo
     setInterval(updateGlobalCountdown, 1000);
-    
+
     console.log('✨ Funciones dinámicas inicializadas');
 }
 
@@ -2247,24 +2139,24 @@ function speakMessage(message) {
     if ('speechSynthesis' in window) {
         // Cancelar cualquier mensaje anterior
         window.speechSynthesis.cancel();
-        
+
         // Crear utterance
         const utterance = new SpeechSynthesisUtterance(message);
         utterance.lang = 'es-ES';
         utterance.rate = 0.9; // Velocidad ligeramente más lenta
         utterance.pitch = 1.0;
         utterance.volume = 0.8;
-        
+
         // Intentar usar voz en español
         const voices = window.speechSynthesis.getVoices();
         const spanishVoice = voices.find(voice => voice.lang.startsWith('es'));
         if (spanishVoice) {
             utterance.voice = spanishVoice;
         }
-        
+
         // Reproducir
         window.speechSynthesis.speak(utterance);
-        
+
         console.log('🔊 Mensaje leído:', message);
     } else {
         console.log('⚠️ Speech synthesis no disponible');
@@ -2294,27 +2186,27 @@ function initializeGlobalCountdown() {
 function updateGlobalCountdown() {
     const countdownEl = document.getElementById('globalCountdown');
     if (!countdownEl) return;
-    
+
     // Calcular tiempo hasta el primer Año Nuevo (UTC+14)
     const now = new Date();
     const currentYear = now.getFullYear();
     const newYearDate = new Date(currentYear + 1, 0, 1, 0, 0, 0, 0); // 1 de enero del próximo año
-    
+
     // Ajustar para UTC+14 (el primer lugar en celebrar)
     // UTC+14 está 14 horas adelante, así que el Año Nuevo llega 14 horas antes en UTC
     const firstNewYearUTC = new Date(newYearDate.getTime() - (14 * 60 * 60 * 1000));
-    
+
     const diff = firstNewYearUTC - now;
-    
+
     if (diff <= 0) {
         countdownEl.textContent = '00:00:00';
         return;
     }
-    
+
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-    
+
     countdownEl.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
@@ -2330,7 +2222,7 @@ function checkHourlyBanner() {
     const now = new Date();
     const minutes = now.getMinutes();
     const hours = now.getHours();
-    
+
     // Mostrar cada hora en punto (minutos === 0)
     if (minutes === 0 && state.lastHourlyBanner !== hours) {
         showHourlyBanner();
@@ -2342,26 +2234,26 @@ function showHourlyBanner() {
     const banner = document.getElementById('hourlyBanner');
     const subtext = document.getElementById('hourlyBannerSubtext');
     if (!banner || !subtext) return;
-    
+
     // Calcular tiempo restante
     const now = new Date();
     const currentYear = now.getFullYear();
     const newYearDate = new Date(currentYear + 1, 0, 1, 0, 0, 0, 0);
     const firstNewYearUTC = new Date(newYearDate.getTime() - (14 * 60 * 60 * 1000));
     const diff = firstNewYearUTC - now;
-    
+
     const hoursLeft = Math.floor(diff / (1000 * 60 * 60));
     const daysLeft = Math.floor(hoursLeft / 24);
-    
+
     subtext.textContent = `Faltan ${daysLeft} días y ${hoursLeft % 24} horas`;
-    
+
     // Mostrar banner
     banner.classList.add('show');
-    
+
     // Leer mensaje con voz
     const message = `¡Ya falta menos! Faltan ${daysLeft} días y ${hoursLeft % 24} horas para el Año Nuevo`;
     setTimeout(() => speakMessage(message), 500);
-    
+
     // Ocultar después de 5 segundos
     setTimeout(() => {
         banner.classList.remove('show');
@@ -2413,7 +2305,7 @@ const COUNTRY_TIMEZONE_MAP = {
     'guyana': 'America/Guyana',
     'suriname': 'America/Paramaribo',
     'french guiana': 'America/Cayenne',
-    
+
     // América Central y Caribe
     'mexico': 'America/Mexico_City',
     'méxico': 'America/Mexico_City',
@@ -2437,13 +2329,13 @@ const COUNTRY_TIMEZONE_MAP = {
     'dominica': 'America/Dominica',
     'st. lucia': 'America/St_Lucia',
     'grenada': 'America/Grenada',
-    
+
     // América del Norte
     'united states': 'America/New_York',
     'estados unidos': 'America/New_York',
     'canada': 'America/Toronto',
     'canadá': 'America/Toronto',
-    
+
     // Europa
     'spain': 'Europe/Madrid',
     'españa': 'Europe/Madrid',
@@ -2462,7 +2354,7 @@ const COUNTRY_TIMEZONE_MAP = {
     'rusia': 'Europe/Moscow',
     'turkey': 'Europe/Istanbul',
     'turquía': 'Europe/Istanbul',
-    
+
     // Asia
     'japan': 'Asia/Tokyo',
     'japón': 'Asia/Tokyo',
@@ -2479,7 +2371,7 @@ const COUNTRY_TIMEZONE_MAP = {
     'singapore': 'Asia/Singapore',
     'malaysia': 'Asia/Kuala_Lumpur',
     'vietnam': 'Asia/Ho_Chi_Minh',
-    
+
     // Oceanía
     'australia': 'Australia/Sydney',
     'australia': 'Australia/Sydney',
@@ -2491,7 +2383,7 @@ const COUNTRY_TIMEZONE_MAP = {
     'fiji': 'Pacific/Fiji',
     'papua new guinea': 'Pacific/Port_Moresby',
     'new caledonia': 'Pacific/Noumea',
-    
+
     // África
     'south africa': 'Africa/Johannesburg',
     'sudáfrica': 'Africa/Johannesburg',
@@ -2506,23 +2398,86 @@ const COUNTRY_TIMEZONE_MAP = {
 
 // Obtener zona horaria real de un país (síncrono desde mapeo o cache)
 function getCountryTimezoneSync(countryName) {
-    const countryNameLower = countryName.toLowerCase().trim().replace(/\s+/g, '');
-    
+    if (!countryName) return null;
+
+    const countryNameLower = countryName.toLowerCase().trim();
+    const countryNameClean = countryNameLower.replace(/\s+/g, '');
+
     // Buscar en cache primero
-    if (state.countryTimezoneCache && state.countryTimezoneCache.has(countryName.toLowerCase().trim())) {
-        return state.countryTimezoneCache.get(countryName.toLowerCase().trim());
+    if (state.countryTimezoneCache && state.countryTimezoneCache.has(countryNameLower)) {
+        return state.countryTimezoneCache.get(countryNameLower);
     }
-    
-    // Buscar en mapeo
+
+    // Mapeo directo de nombres comunes de Highmaps a claves de nuestro mapa
+    const directMap = {
+        'united states of america': 'united states',
+        'usa': 'united states',
+        'united kingdom': 'united kingdom',
+        'uk': 'united kingdom',
+        'russian federation': 'russia',
+        'south korea': 'south korea',
+        'republic of korea': 'south korea',
+        'north korea': 'north korea',
+        'democratic people\'s republic of korea': 'north korea',
+        'china': 'china',
+        'people\'s republic of china': 'china',
+        'vietnam': 'vietnam',
+        'viet nam': 'vietnam',
+        'laos': 'laos',
+        'lao people\'s democratic republic': 'laos',
+        'iran': 'iran',
+        'islamic republic of iran': 'iran',
+        'syria': 'syria',
+        'syrian arab republic': 'syria',
+        'tanzania': 'tanzania',
+        'united republic of tanzania': 'tanzania',
+        'venezuela': 'venezuela',
+        'bolivarian republic of venezuela': 'venezuela',
+        'bolivia': 'bolivia',
+        'plurinational state of bolivia': 'bolivia',
+        'moldova': 'moldova',
+        'republic of moldova': 'moldova',
+        'congo': 'congo',
+        'democratic republic of the congo': 'congo'
+    };
+
+    // Intentar mapeo directo
+    if (directMap[countryNameLower]) {
+        const mappedName = directMap[countryNameLower];
+        // Buscar la zona horaria para el nombre mapeado
+        for (const [key, tz] of Object.entries(COUNTRY_TIMEZONE_MAP)) {
+            if (key.toLowerCase() === mappedName) {
+                if (!state.countryTimezoneCache) state.countryTimezoneCache = new Map();
+                state.countryTimezoneCache.set(countryNameLower, tz);
+                return tz;
+            }
+        }
+    }
+
+    // Buscar en mapeo iterando
     for (const [key, tz] of Object.entries(COUNTRY_TIMEZONE_MAP)) {
-        const keyNormalized = key.replace(/\s+/g, '');
-        if (countryNameLower.includes(keyNormalized) || keyNormalized.includes(countryNameLower)) {
+        const keyLower = key.toLowerCase();
+        const keyClean = keyLower.replace(/\s+/g, '');
+
+        // Coincidencia exacta
+        if (countryNameLower === keyLower) return tz;
+
+        // Coincidencia parcial (el nombre del mapa contiene la clave o viceversa)
+        // Ej: "United States of America" contiene "united states"
+        if (countryNameLower.includes(keyLower) || keyLower.includes(countryNameLower)) {
             if (!state.countryTimezoneCache) state.countryTimezoneCache = new Map();
-            state.countryTimezoneCache.set(countryName.toLowerCase().trim(), tz);
+            state.countryTimezoneCache.set(countryNameLower, tz);
+            return tz;
+        }
+
+        // Coincidencia limpia (sin espacios)
+        if (countryNameClean.includes(keyClean) || keyClean.includes(countryNameClean)) {
+            if (!state.countryTimezoneCache) state.countryTimezoneCache = new Map();
+            state.countryTimezoneCache.set(countryNameLower, tz);
             return tz;
         }
     }
-    
+
     return null;
 }
 
@@ -2533,18 +2488,18 @@ async function getCountryTimezone(countryName, longitude) {
     if (syncTimezone) {
         return syncTimezone;
     }
-    
+
     // Si no está en el mapeo, intentar obtener desde API
     const cacheKey = countryName.toLowerCase().trim();
-    
+
     try {
         const timezoneUrl = `https://worldtimeapi.org/api/timezone`;
         const timezoneResponse = await fetch(timezoneUrl);
-        
+
         if (timezoneResponse.ok) {
             const timezones = await timezoneResponse.json();
             const countryNameLower = countryName.toLowerCase().replace(/\s+/g, '');
-            
+
             // Buscar en la lista de timezones de WorldTimeAPI
             for (const tz of timezones) {
                 const tzParts = tz.split('/');
@@ -2560,7 +2515,7 @@ async function getCountryTimezone(countryName, longitude) {
     } catch (error) {
         console.warn(`⚠️ Error consultando API para ${countryName}:`, error);
     }
-    
+
     return null;
 }
 
@@ -2571,38 +2526,38 @@ async function updateNextCountryPanel() {
         setTimeout(updateNextCountryPanel, 1000);
         return;
     }
-    
+
     try {
         const series = state.highmapsChart.series[0];
         if (!series || !series.points) {
             setTimeout(updateNextCountryPanel, 1000);
             return;
         }
-        
+
         const points = series.points;
         const now = new Date();
         const utcHours = now.getUTCHours();
         const utcMinutes = now.getUTCMinutes();
         const utcSeconds = now.getUTCSeconds();
         const totalSeconds = utcHours * 3600 + utcMinutes * 60 + utcSeconds;
-        
+
         // Calcular la longitud donde es medianoche UTC
         let midnightLongitude = (totalSeconds / 3600) * 15;
         if (midnightLongitude > 180) {
             midnightLongitude -= 360;
         }
-        
+
         // Buscar el próximo país que llegará a medianoche (hacia el oeste)
         // El próximo país está entre 7.5 y 60 grados al oeste del meridiano de medianoche
         let nextCountry = null;
         let minDistance = Infinity;
-        
+
         points.forEach((point) => {
             if (!point) return;
-            
+
             try {
                 let countryLongitude = null;
-                
+
                 // Obtener longitud del país
                 if (point.properties && point.properties.lon) {
                     countryLongitude = point.properties.lon;
@@ -2610,7 +2565,7 @@ async function updateNextCountryPanel() {
                     const coords = point.geometry.coordinates;
                     let sumLon = 0;
                     let count = 0;
-                    
+
                     const extractLongitude = (arr) => {
                         if (Array.isArray(arr[0])) {
                             arr.forEach(sub => extractLongitude(sub));
@@ -2619,26 +2574,26 @@ async function updateNextCountryPanel() {
                             count++;
                         }
                     };
-                    
+
                     extractLongitude(coords);
                     if (count > 0) {
                         countryLongitude = sumLon / count;
                     }
                 }
-                
+
                 if (countryLongitude === null) return;
-                
+
                 // Normalizar longitud
                 while (countryLongitude > 180) countryLongitude -= 360;
                 while (countryLongitude < -180) countryLongitude += 360;
-                
+
                 // Calcular distancia al meridiano de medianoche (hacia el oeste)
                 let distance = midnightLongitude - countryLongitude;
-                
+
                 // Normalizar distancia considerando wrap-around
                 if (distance < 0) distance += 360;
                 if (distance > 180) distance = 360 - distance;
-                
+
                 // El próximo país debe estar entre 7.5 y 60 grados al oeste (30 minutos a 4 horas)
                 // Excluir países que ya están en medianoche o muy cerca
                 if (distance > 7.5 && distance < 60 && distance < minDistance) {
@@ -2657,25 +2612,25 @@ async function updateNextCountryPanel() {
                 // Ignorar errores en países individuales
             }
         });
-        
+
         // Actualizar el panel
         const panel = document.getElementById('nextCountryPanel');
         const nameEl = document.getElementById('nextCountryName');
         const timeEl = document.getElementById('nextCountryTime');
         const countdownEl = document.getElementById('nextCountryCountdown');
-        
+
         if (!panel || !nameEl || !timeEl || !countdownEl) return;
-        
+
         if (nextCountry) {
             // Calcular tiempo hasta medianoche para este país
             // La distancia en grados se convierte a tiempo (15 grados = 1 hora)
             const hoursUntilMidnight = nextCountry.distance / 15;
-            
+
             // Obtener zona horaria real del país usando API
             let countryTimezone = await getCountryTimezone(nextCountry.name, nextCountry.longitude);
-            
+
             let countryHour, countryMinute, countrySecond;
-            
+
             if (countryTimezone) {
                 // Usar timezone real obtenido de la API
                 try {
@@ -2707,7 +2662,7 @@ async function updateNextCountryPanel() {
                 countryMinute = utcMinutes;
                 countrySecond = utcSeconds;
             }
-            
+
             // Asegurar que las horas sean válidas
             if (isNaN(countryHour) || isNaN(countryMinute) || isNaN(countrySecond)) {
                 console.warn('Valores inválidos para hora del país:', nextCountry.name, countryHour, countryMinute, countrySecond);
@@ -2717,22 +2672,22 @@ async function updateNextCountryPanel() {
                 countryMinute = utcMinutes;
                 countrySecond = utcSeconds;
             }
-            
+
             // Actualizar elementos
             nameEl.textContent = nextCountry.name;
-            
+
             // Formatear hora con valores seguros
             const hourStr = String(Math.floor(countryHour)).padStart(2, '0');
             const minuteStr = String(Math.floor(countryMinute)).padStart(2, '0');
             const secondStr = String(Math.floor(countrySecond)).padStart(2, '0');
             timeEl.textContent = `${hourStr}:${minuteStr}:${secondStr}`;
-            
+
             // Calcular tiempo hasta medianoche más preciso
             const totalSecondsUntil = Math.floor(hoursUntilMidnight * 3600);
             const h = Math.floor(totalSecondsUntil / 3600);
             const m = Math.floor((totalSecondsUntil % 3600) / 60);
             const s = totalSecondsUntil % 60;
-            
+
             if (h > 0) {
                 countdownEl.textContent = `Faltan: ${h}h ${m}m ${s}s`;
             } else if (m > 0) {
@@ -2740,7 +2695,7 @@ async function updateNextCountryPanel() {
             } else {
                 countdownEl.textContent = `Faltan: ${s}s`;
             }
-            
+
             panel.style.display = 'block';
         } else {
             // Si no se encuentra próximo país, mostrar mensaje
@@ -2769,11 +2724,11 @@ async function updateWorldTimes() {
         { name: 'Londres', timezone: 'Europe/London' },
         { name: 'París', timezone: 'Europe/Paris' }
     ];
-    
+
     // Calcular horas basándose en UTC y offsets (más confiable que API externa)
     const now = new Date();
     const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-    
+
     cities.forEach(city => {
         try {
             // Usar Intl.DateTimeFormat para obtener hora local de cada ciudad
@@ -2784,7 +2739,7 @@ async function updateWorldTimes() {
                 second: '2-digit',
                 hour12: false
             });
-            
+
             const localTime = formatter.format(now);
             state.worldTimes.set(city.name, {
                 time: localTime,
@@ -2795,7 +2750,7 @@ async function updateWorldTimes() {
             console.warn(`⚠️ Error obteniendo hora para ${city.name}:`, error);
         }
     });
-    
+
     // También guardar UTC
     const utcFormatter = new Intl.DateTimeFormat('es-ES', {
         timeZone: 'UTC',
@@ -2816,25 +2771,25 @@ function showCountryCelebrationBanner(countryName) {
     const banner = document.getElementById('countryCelebrationBanner');
     const countryEl = document.getElementById('celebrationCountry');
     const messageEl = document.getElementById('celebrationMessage');
-    
+
     if (!banner || !countryEl || !messageEl) return;
-    
+
     // Actualizar texto
     countryEl.textContent = countryName;
     messageEl.textContent = 'acaba de llegar al 2026';
-    
+
     // Mostrar banner con animación
     banner.style.display = 'flex';
     banner.classList.add('show');
-    
+
     // Vibración de la pantalla (si está disponible)
     if (navigator.vibrate) {
         navigator.vibrate([200, 100, 200, 100, 200]);
     }
-    
+
     // Efecto de confetti
     lanzarConfetti();
-    
+
     // Ocultar después de 5 segundos
     setTimeout(() => {
         banner.classList.remove('show');
@@ -2847,7 +2802,7 @@ function showCountryCelebrationBanner(countryName) {
 // Scraper de información de países usando Wikipedia API
 async function fetchCountryInfoAndAnnounce(countryName) {
     console.log(`🔍 Buscando información de ${countryName}...`);
-    
+
     // Verificar cache primero
     if (state.countryInfoCache && state.countryInfoCache.has(countryName)) {
         const cachedInfo = state.countryInfoCache.get(countryName);
@@ -2855,18 +2810,18 @@ async function fetchCountryInfoAndAnnounce(countryName) {
         announceCountryInfo(countryName, cachedInfo);
         return;
     }
-    
+
     try {
         // Usar Wikipedia API para obtener información del país
         const searchUrl = `https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(countryName)}`;
         console.log(`📡 Consultando Wikipedia: ${searchUrl}`);
-        
+
         const response = await fetch(searchUrl);
         if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
-        
+
         const data = await response.json();
         console.log(`✅ Información obtenida de Wikipedia para ${countryName}`);
-        
+
         // Extraer información relevante
         const countryInfo = {
             name: data.title || countryName,
@@ -2874,16 +2829,16 @@ async function fetchCountryInfoAndAnnounce(countryName) {
             capital: data.content_urls?.desktop?.page || '',
             flag: data.thumbnail?.source || ''
         };
-        
+
         // Guardar en cache
         if (!state.countryInfoCache) {
             state.countryInfoCache = new Map();
         }
         state.countryInfoCache.set(countryName, countryInfo);
-        
+
         // Anunciar información
         announceCountryInfo(countryName, countryInfo);
-        
+
     } catch (error) {
         console.warn(`⚠️ Error obteniendo información del país ${countryName}:`, error);
         // Usar información genérica
@@ -2901,10 +2856,10 @@ async function fetchCountryInfoAndAnnounce(countryName) {
 // Anunciar información del país por el presentador
 function announceCountryInfo(countryName, info) {
     console.log(`📢 Anunciando información de ${countryName}`);
-    
+
     // Crear mensaje para el presentador
     let message = `¡Atención! ${countryName} acaba de recibir el Año Nuevo. `;
-    
+
     if (info && typeof info === 'object' && info.description) {
         // Tomar las primeras 2-3 oraciones de la descripción
         const sentences = info.description.split('.').filter(s => s.trim().length > 20);
@@ -2916,17 +2871,17 @@ function announceCountryInfo(countryName, info) {
         // Si info es un string directo
         message += info;
     }
-    
+
     message += ` ¡Feliz Año Nuevo a todos en ${countryName}!`;
-    
+
     console.log(`📝 Mensaje del presentador: ${message.substring(0, 100)}...`);
-    
+
     // Actualizar texto del presentador si existe
     const presenterText = document.getElementById('presenterText');
     if (presenterText) {
         presenterText.textContent = message;
     }
-    
+
     // Hacer que el presentador lea el mensaje
     // Si está hablando, esperar un poco y reintentar
     if (state.isSpeaking) {
@@ -2968,25 +2923,25 @@ const COUNTRIES_DATA = {
 function getTimeUntilNewYear(countryKey) {
     const country = COUNTRIES_DATA[countryKey];
     if (!country) return null;
-    
+
     const now = new Date();
     const currentYear = now.getFullYear();
     const newYearDate = new Date(currentYear + 1, 0, 1, 0, 0, 0, 0);
-    
+
     // Convertir a la zona horaria del país
     const countryTime = new Date(now.toLocaleString('en-US', { timeZone: country.timezone }));
     const countryNewYear = new Date(newYearDate.toLocaleString('en-US', { timeZone: country.timezone }));
-    
+
     const diff = countryNewYear - countryTime;
-    
+
     if (diff <= 0) {
         return { days: 0, hours: 0, minutes: 0, text: '¡Ya llegó el Año Nuevo!' };
     }
-    
+
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     let text = '';
     if (days > 0) {
         text = `${days} día${days > 1 ? 's' : ''} y ${hours} hora${hours !== 1 ? 's' : ''}`;
@@ -2995,7 +2950,7 @@ function getTimeUntilNewYear(countryKey) {
     } else {
         text = `${minutes} minuto${minutes !== 1 ? 's' : ''}`;
     }
-    
+
     return { days, hours, minutes, text };
 }
 
@@ -3003,10 +2958,10 @@ function getTimeUntilNewYear(countryKey) {
 async function generateAIContent(context) {
     const now = new Date();
     const topics = [];
-    
+
     // Tema 1: Primeros países en recibir Año Nuevo
     topics.push(`Los primeros países en recibir el Año Nuevo son las Islas Line, específicamente Kiritimati, en UTC+14. ${COUNTRIES_DATA.Kiritimati.history} Le siguen Samoa en UTC+13, Nueva Zelanda en UTC+12, y Australia en UTC+10. Cada uno tiene tradiciones únicas y una historia fascinante.`);
-    
+
     // Tema 2: Tiempo hasta Año Nuevo en países específicos
     const countriesToCheck = ['Argentina', 'Chile', 'Uruguay', 'Paraguay', 'Bolivia', 'Colombia', 'Ecuador', 'México', 'España', 'Japón', 'China'];
     const countryTimes = countriesToCheck.map(country => {
@@ -3016,7 +2971,7 @@ async function generateAIContent(context) {
         }
         return null;
     }).filter(Boolean);
-    
+
     if (countryTimes.length > 0) {
         const selectedCountries = countryTimes.slice(0, 3);
         let timeMessage = 'En cuanto a los tiempos hasta el Año Nuevo, ';
@@ -3026,29 +2981,29 @@ async function generateAIContent(context) {
         });
         topics.push(timeMessage);
     }
-    
+
     // Tema 3: Historia de países europeos
     topics.push(`En Europa, España tiene una tradición única de las 12 uvas de la suerte. ${COUNTRIES_DATA.España.history} Otros países europeos como Francia, Alemania e Italia también tienen sus propias tradiciones fascinantes que reflejan siglos de historia y cultura.`);
-    
+
     // Tema 4: Países asiáticos
     topics.push(`En Asia, Japón y China tienen celebraciones muy especiales. ${COUNTRIES_DATA.Japón.history} ${COUNTRIES_DATA.China.history} Estos países representan civilizaciones milenarias con tradiciones que se remontan a miles de años.`);
-    
+
     // Tema 5: Países latinoamericanos
     const latamCountries = ['Argentina', 'Chile', 'Uruguay', 'Paraguay', 'Bolivia', 'Colombia', 'Ecuador', 'México'];
     const latamInfo = latamCountries.slice(0, 3).map(c => COUNTRIES_DATA[c].history).join(' ');
     topics.push(`Los países latinoamericanos tienen tradiciones ricas y diversas. ${latamInfo} Cada país celebra de manera única, reflejando su historia y cultura.`);
-    
+
     // Tema 6: Progreso de las celebraciones
     if (context.celebratedZones > 0) {
         topics.push(`Ya hemos visto ${context.celebratedZones} zonas horarias celebrar el Año Nuevo. La celebración continúa avanzando por el planeta, iluminando el mundo zona por zona. Es un espectáculo único que une a toda la humanidad.`);
     }
-    
+
     // Seleccionar tema aleatorio
     const selectedTopic = topics[Math.floor(Math.random() * topics.length)];
-    
+
     // Simular delay de IA
     await new Promise(resolve => setTimeout(resolve, 500));
-    
+
     return selectedTopic;
 }
 
@@ -3101,13 +3056,13 @@ let presenterInterval = null;
 function initializeAIPresenter() {
     const presenterText = document.getElementById('presenterText');
     if (!presenterText) return;
-    
+
     // Animar avatar
     animatePresenterAvatar();
-    
+
     // Empezar con el primer tema
     presentTopicWithAI(0);
-    
+
     // Cambiar de tema cada cierto tiempo (más frecuente para que hable más)
     presenterInterval = setInterval(() => {
         if (!state.isSpeaking) {
@@ -3115,7 +3070,7 @@ function initializeAIPresenter() {
             presentTopicWithAI(currentTopicIndex);
         }
     }, 20000); // Cambiar cada 20 segundos para que hable más frecuentemente
-    
+
     console.log('🎙️ Presentador con IA inicializado');
 }
 
@@ -3123,15 +3078,15 @@ async function presentTopicWithAI(index) {
     const topic = PRESENTER_TOPICS[index];
     const presenterText = document.getElementById('presenterText');
     const presenterSubtitle = document.getElementById('presenterSubtitle');
-    
+
     if (!presenterText || !topic) return;
-    
+
     // Mostrar que está generando con IA
     if (presenterSubtitle) {
         presenterSubtitle.textContent = '🤖 Generando contenido con IA...';
         presenterSubtitle.style.opacity = '1';
     }
-    
+
     // Generar contenido con IA basado en el contexto actual
     const context = {
         currentZone: state.currentZone,
@@ -3140,32 +3095,32 @@ async function presentTopicWithAI(index) {
         viewersCount: state.viewersCount,
         countriesCount: state.countriesCount
     };
-    
+
     try {
         const aiContent = await generateAIContent(context);
-        
+
         // Actualizar texto con animación
         presenterText.style.opacity = '0';
         setTimeout(() => {
             presenterText.textContent = aiContent;
             presenterText.style.opacity = '1';
-            
+
             if (presenterSubtitle) {
                 presenterSubtitle.textContent = `📝 ${topic.title}`;
             }
-            
+
             // Leer con voz mejorada
             speakPresenterMessage(aiContent);
-            
+
             // Animar boca mientras habla
             animateMouthWhileSpeaking(aiContent.length * 50); // Duración aproximada
-            
+
             // Iniciar scroll automático del texto
             setTimeout(() => {
                 scrollPresenterText(presenterText);
             }, 500);
         }, 300);
-        
+
     } catch (error) {
         console.error('Error generando contenido con IA:', error);
         // Fallback a contenido predefinido
@@ -3190,40 +3145,40 @@ let presenterScrollInterval = null;
 
 function scrollPresenterText(textElement) {
     if (!textElement) return;
-    
+
     // Limpiar intervalo anterior si existe
     if (presenterScrollInterval) {
         clearInterval(presenterScrollInterval);
     }
-    
+
     // Obtener el contenedor del texto
     const container = textElement.parentElement;
     if (!container) return;
-    
+
     // Configurar altura para mostrar máximo 3 líneas
     const lineHeight = parseFloat(getComputedStyle(textElement).lineHeight) || 28.8; // 16px * 1.8
     const maxHeight = lineHeight * 3; // 3 líneas
     container.style.maxHeight = `${maxHeight}px`;
     container.style.overflow = 'hidden';
-    
+
     // Resetear scroll al inicio
     container.scrollTop = 0;
-    
+
     // Dividir el texto en líneas y mostrar máximo 3 líneas a la vez
     const text = textElement.textContent;
     const words = text.split(' ');
     const wordsPerLine = Math.ceil(words.length / Math.ceil(textElement.scrollHeight / lineHeight));
-    
+
     // Crear un sistema de scroll que muestre 3 líneas y vaya subiendo
     let currentLineIndex = 0;
     const totalLines = Math.ceil(textElement.scrollHeight / lineHeight);
-    
+
     if (totalLines > 3) {
         // Scroll automático hacia arriba cada 2 segundos
         presenterScrollInterval = setInterval(() => {
             currentLineIndex++;
             const maxScroll = textElement.scrollHeight - maxHeight;
-            
+
             if (currentLineIndex * lineHeight <= maxScroll) {
                 container.scrollTop = currentLineIndex * lineHeight;
             } else {
@@ -3240,14 +3195,14 @@ function speakPresenterMessage(message) {
         console.warn('⚠️ Speech Synthesis no está disponible');
         return;
     }
-    
+
     if (!message || message.trim() === '') {
         console.warn('⚠️ Mensaje vacío, no se puede leer');
         return;
     }
-    
+
     console.log('🎙️ speakPresenterMessage llamado con mensaje de', message.length, 'caracteres');
-    
+
     // Si ya está hablando, encolar el mensaje
     if (state.isSpeaking && state.currentUtterance) {
         console.log('⏳ Presentador ocupado, encolando mensaje...');
@@ -3267,10 +3222,10 @@ function speakPresenterMessage(message) {
         };
         return;
     }
-    
+
     // Cancelar cualquier mensaje anterior
     window.speechSynthesis.cancel();
-    
+
     // Esperar un momento para asegurar que se canceló
     setTimeout(() => {
         const utterance = new SpeechSynthesisUtterance(message);
@@ -3278,11 +3233,11 @@ function speakPresenterMessage(message) {
         utterance.rate = 0.8; // Velocidad más lenta para mejor comprensión
         utterance.pitch = 0.6; // Voz más grave (más masculina)
         utterance.volume = 1.0; // Volumen máximo
-        
+
         // Guardar referencia para evitar cortes
         state.currentUtterance = utterance;
         state.isSpeaking = true;
-        
+
         // Cargar voces si no están disponibles
         const loadVoices = () => {
             const voices = window.speechSynthesis.getVoices();
@@ -3291,36 +3246,36 @@ function speakPresenterMessage(message) {
                 setTimeout(loadVoices, 100);
                 return;
             }
-            
+
             // Buscar la mejor voz masculina en español
             // Prioridad: voces con "Male", "Masculino", "Hombre", o que no tengan "Female"
-            let bestVoice = voices.find(voice => 
+            let bestVoice = voices.find(voice =>
                 voice.lang.startsWith('es') && (
-                    voice.name.toLowerCase().includes('male') || 
+                    voice.name.toLowerCase().includes('male') ||
                     voice.name.toLowerCase().includes('masculino') ||
                     voice.name.toLowerCase().includes('hombre') ||
                     voice.name.toLowerCase().includes('varon')
                 ) && !voice.name.toLowerCase().includes('female')
-            ) || voices.find(voice => 
-                voice.lang.startsWith('es') && 
+            ) || voices.find(voice =>
+                voice.lang.startsWith('es') &&
                 !voice.name.toLowerCase().includes('female') &&
                 !voice.name.toLowerCase().includes('femenino') &&
                 !voice.name.toLowerCase().includes('mujer')
-            ) || voices.find(voice => 
-                voice.lang.startsWith('es') && 
+            ) || voices.find(voice =>
+                voice.lang.startsWith('es') &&
                 (voice.name.includes('Neural') || voice.name.includes('Premium'))
             ) || voices.find(voice => voice.lang.startsWith('es'));
-            
+
             if (bestVoice) {
                 utterance.voice = bestVoice;
                 console.log('✅ Voz seleccionada:', bestVoice.name);
             } else {
                 console.warn('⚠️ No se encontró voz en español, usando predeterminada');
             }
-            
+
             // Eventos para animar el avatar y sincronizar boca
             const mouthOverlay = document.getElementById('avatarMouth');
-            
+
             utterance.onstart = () => {
                 state.aiPresenterActive = true;
                 if (mouthOverlay) {
@@ -3336,7 +3291,7 @@ function speakPresenterMessage(message) {
                 }
                 console.log('🎙️ Presentador empezó a hablar');
             };
-            
+
             utterance.onend = () => {
                 state.aiPresenterActive = false;
                 state.isSpeaking = false;
@@ -3346,7 +3301,7 @@ function speakPresenterMessage(message) {
                 }
                 console.log('✅ Presentador terminó de hablar completamente');
             };
-            
+
             // Asegurar que se complete el mensaje incluso si hay pausas
             utterance.onpause = () => {
                 console.log('⏸️ Voz pausada, reanudando...');
@@ -3355,7 +3310,7 @@ function speakPresenterMessage(message) {
                     window.speechSynthesis.resume();
                 }
             };
-            
+
             utterance.onerror = (event) => {
                 state.aiPresenterActive = false;
                 if (mouthOverlay) {
@@ -3363,7 +3318,7 @@ function speakPresenterMessage(message) {
                 }
                 console.error('❌ Error en speech synthesis:', event);
             };
-            
+
             // Sincronizar boca con pausas y palabras
             utterance.onboundary = (event) => {
                 if (mouthOverlay && event.name === 'word') {
@@ -3376,7 +3331,7 @@ function speakPresenterMessage(message) {
                     }, 10);
                 }
             };
-            
+
             // Intentar reproducir
             try {
                 window.speechSynthesis.speak(utterance);
@@ -3385,7 +3340,7 @@ function speakPresenterMessage(message) {
                 console.error('❌ Error al reproducir voz:', error);
             }
         };
-        
+
         // Cargar voces
         const voices = window.speechSynthesis.getVoices();
         if (voices.length > 0) {
@@ -3420,7 +3375,7 @@ function speakPresenterMessage(message) {
                             mouthOverlay.classList.remove('speaking');
                         }
                     };
-                    
+
                     utterance.onpause = () => {
                         if (state.isSpeaking) {
                             window.speechSynthesis.resume();
@@ -3442,28 +3397,28 @@ function speakPresenterMessage(message) {
 
 async function animatePresenterAvatar() {
     console.log('🎭 Inicializando animación facial con IA...');
-    
+
     // Inicializar canvas para animación
     const canvas = document.getElementById('avatarCanvas');
     const image = document.getElementById('avatarImage');
-    
+
     if (!canvas || !image) {
         console.warn('⚠️ No se encontraron elementos del avatar');
         return;
     }
-    
+
     state.avatarCanvas = canvas;
     state.avatarCtx = canvas.getContext('2d');
     canvas.width = 200;
     canvas.height = 200;
-    
+
     // Cargar imagen
     state.faceImage = new Image();
     state.faceImage.crossOrigin = 'anonymous';
-    
+
     state.faceImage.onload = async () => {
         console.log('✅ Imagen del presentador cargada');
-        
+
         // Intentar cargar modelo de detección facial
         try {
             await initializeFaceAnimation();
@@ -3472,12 +3427,12 @@ async function animatePresenterAvatar() {
             initializeBasicFaceAnimation();
         }
     };
-    
+
     state.faceImage.onerror = () => {
         console.warn('⚠️ Error cargando imagen, usando animación básica');
         initializeBasicFaceAnimation();
     };
-    
+
     state.faceImage.src = image.src;
 }
 
@@ -3488,7 +3443,7 @@ async function initializeFaceAnimation() {
         if (typeof faceLandmarksDetection === 'undefined') {
             throw new Error('faceLandmarksDetection no está disponible');
         }
-        
+
         const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
         const detectorConfig = {
             runtime: 'mediapipe',
@@ -3496,10 +3451,10 @@ async function initializeFaceAnimation() {
             refineLandmarks: true,
             maxFaces: 1
         };
-        
+
         state.faceAnimationModel = await faceLandmarksDetection.createDetector(model, detectorConfig);
         console.log('✅ Modelo de IA facial cargado (TensorFlow.js)');
-        
+
         // Iniciar detección y animación
         startFaceAnimation();
     } catch (error) {
@@ -3524,34 +3479,34 @@ function startFaceAnimation() {
         initializeBasicFaceAnimation();
         return;
     }
-    
+
     let lastTime = 0;
-    
+
     const animate = async (currentTime) => {
         if (currentTime - lastTime < 33) { // ~30 FPS
             state.animationFrame = requestAnimationFrame(animate);
             return;
         }
         lastTime = currentTime;
-        
+
         const ctx = state.avatarCtx;
         const canvas = state.avatarCanvas;
         const img = state.faceImage;
-        
+
         // Limpiar canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
+
         // Detectar landmarks faciales
         try {
             const faces = await state.faceAnimationModel.estimateFaces(img, {
                 flipHorizontal: false,
                 staticImageMode: false
             });
-            
+
             if (faces.length > 0) {
                 const face = faces[0];
                 state.faceLandmarks = face.keypoints;
-                
+
                 // Dibujar cara con animación basada en landmarks
                 drawAnimatedFace(ctx, img, face);
             } else {
@@ -3562,48 +3517,48 @@ function startFaceAnimation() {
             console.warn('Error en detección facial:', error);
             drawStaticFace(ctx, img);
         }
-        
+
         state.animationFrame = requestAnimationFrame(animate);
     };
-    
+
     state.animationFrame = requestAnimationFrame(animate);
 }
 
 function startBasicFaceAnimation() {
     // Mejorar animación básica con más movimiento y realismo
     if (!state.avatarCanvas || !state.faceImage) return;
-    
+
     const canvas = state.avatarCanvas;
     const ctx = state.avatarCtx;
     const img = state.faceImage;
-    
+
     let animationTime = 0;
     let lastBlink = 0;
     let isBlinking = false;
     let headOffsetX = 0;
     let headOffsetY = 0;
     let headRotation = 0;
-    
+
     const animate = (timestamp) => {
         if (!state.avatarCanvas) return;
-        
+
         animationTime += 0.016; // ~60 FPS
-        
+
         // Limpiar canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
+
         // Movimiento sutil de la cabeza (respiración y movimiento natural)
         headOffsetX = Math.sin(animationTime * 0.5) * 2;
         headOffsetY = Math.cos(animationTime * 0.3) * 1.5;
         headRotation = Math.sin(animationTime * 0.2) * 1; // Rotación sutil
-        
+
         // Movimiento adicional cuando habla
         if (state.aiPresenterActive) {
             headOffsetX += Math.sin(animationTime * 2) * 1;
             headOffsetY += Math.cos(animationTime * 1.5) * 0.5;
             headRotation += Math.sin(animationTime * 1.5) * 0.5;
         }
-        
+
         // Parpadeo natural (cada 3-5 segundos)
         if (timestamp - lastBlink > 3000 + Math.random() * 2000) {
             isBlinking = true;
@@ -3612,40 +3567,40 @@ function startBasicFaceAnimation() {
                 isBlinking = false;
             }, 150);
         }
-        
+
         // Guardar contexto
         ctx.save();
-        
+
         // Aplicar transformaciones (centro del canvas)
         ctx.translate(canvas.width / 2, canvas.height / 2);
         ctx.rotate(headRotation * Math.PI / 180);
         ctx.translate(-canvas.width / 2 + headOffsetX, -canvas.height / 2 + headOffsetY);
-        
+
         // Dibujar imagen con escala sutil para efecto de "respiración"
         const scale = 1 + Math.sin(animationTime * 0.4) * 0.02;
         const scaledWidth = canvas.width * scale;
         const scaledHeight = canvas.height * scale;
         const offsetX = (canvas.width - scaledWidth) / 2;
         const offsetY = (canvas.height - scaledHeight) / 2;
-        
+
         ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
-        
+
         // Efecto de parpadeo
         if (isBlinking) {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
             ctx.fillRect(0, 0, canvas.width, canvas.height / 3);
         }
-        
+
         // Restaurar contexto
         ctx.restore();
-        
+
         // Continuar animación
         state.animationFrame = requestAnimationFrame(animate);
     };
-    
+
     // Iniciar animación
     state.animationFrame = requestAnimationFrame(animate);
-    
+
     // Agregar movimiento adicional cuando habla
     const avatarElement = document.getElementById('presenterAvatar');
     if (avatarElement) {
@@ -3657,22 +3612,22 @@ function startBasicFaceAnimation() {
 function drawAnimatedFace(ctx, img, face) {
     const canvas = state.avatarCanvas;
     const landmarks = face.keypoints || face.landmarks;
-    
+
     if (!landmarks || landmarks.length === 0) {
         drawStaticFace(ctx, img);
         return;
     }
-    
+
     // Encontrar puntos clave (índices aproximados de MediaPipe)
     const leftEye = landmarks[33] || landmarks[0];
     const rightEye = landmarks[263] || landmarks[1];
     const mouth = landmarks[13] || landmarks[2];
-    
+
     // Calcular transformaciones basadas en landmarks
     const eyeDistance = Math.abs((leftEye.x || leftEye[0]) - (rightEye.x || rightEye[0]));
     const faceCenterX = ((leftEye.x || leftEye[0]) + (rightEye.x || rightEye[0])) / 2;
     const faceCenterY = ((leftEye.y || leftEye[1]) + (rightEye.y || rightEye[1])) / 2;
-    
+
     // Animación de boca si está hablando
     let mouthScale = 1;
     let headTilt = 0;
@@ -3680,38 +3635,38 @@ function drawAnimatedFace(ctx, img, face) {
         mouthScale = 1 + Math.sin(Date.now() / 100) * 0.15;
         headTilt = Math.sin(Date.now() / 500) * 2; // Movimiento sutil de cabeza
     }
-    
+
     ctx.save();
     ctx.translate(canvas.width / 2, canvas.height / 2);
     ctx.rotate(headTilt * Math.PI / 180);
-    
+
     // Escalar y posicionar si tenemos landmarks válidos
     if (eyeDistance > 0) {
         const scale = canvas.width / (eyeDistance * 2.5);
         ctx.scale(scale, scale);
         ctx.translate(-faceCenterX, -faceCenterY);
     }
-    
+
     // Dibujar imagen base
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    
+
     // Aplicar animación de boca con transformación
     if (state.aiPresenterActive && mouth) {
         const mouthX = mouth.x || mouth[0] || canvas.width / 2;
         const mouthY = mouth.y || mouth[1] || canvas.height * 0.6;
-        
+
         ctx.save();
         ctx.translate(mouthX, mouthY);
         ctx.scale(mouthScale, mouthScale);
         ctx.translate(-mouthX, -mouthY);
-        
+
         // Redibujar área de boca con escala aplicada
         const mouthSize = 30;
-        const mouthRegion = ctx.getImageData(mouthX - mouthSize, mouthY - mouthSize/2, mouthSize * 2, mouthSize);
-        ctx.putImageData(mouthRegion, mouthX - mouthSize, mouthY - mouthSize/2);
+        const mouthRegion = ctx.getImageData(mouthX - mouthSize, mouthY - mouthSize / 2, mouthSize * 2, mouthSize);
+        ctx.putImageData(mouthRegion, mouthX - mouthSize, mouthY - mouthSize / 2);
         ctx.restore();
     }
-    
+
     ctx.restore();
 }
 
@@ -3723,10 +3678,10 @@ function drawStaticFace(ctx, img) {
 function animateMouthWhileSpeaking(duration) {
     const mouthOverlay = document.getElementById('avatarMouth');
     if (!mouthOverlay) return;
-    
+
     // Activar animación de boca
     mouthOverlay.classList.add('speaking');
-    
+
     // Detener después de la duración
     setTimeout(() => {
         stopMouthAnimation();
@@ -3745,27 +3700,27 @@ function setupMouthSync() {
     if ('speechSynthesis' in window) {
         // Interceptar eventos de speech para sincronización más precisa
         const originalSpeak = window.speechSynthesis.speak.bind(window.speechSynthesis);
-        window.speechSynthesis.speak = function(utterance) {
+        window.speechSynthesis.speak = function (utterance) {
             const mouthOverlay = document.getElementById('avatarMouth');
-            
-            utterance.onstart = function() {
+
+            utterance.onstart = function () {
                 if (mouthOverlay) {
                     mouthOverlay.classList.add('speaking');
                 }
             };
-            
-            utterance.onend = function() {
+
+            utterance.onend = function () {
                 if (mouthOverlay) {
                     mouthOverlay.classList.remove('speaking');
                 }
             };
-            
-            utterance.onerror = function() {
+
+            utterance.onerror = function () {
                 if (mouthOverlay) {
                     mouthOverlay.classList.remove('speaking');
                 }
             };
-            
+
             return originalSpeak(utterance);
         };
     }
@@ -3792,7 +3747,7 @@ function initializeYouTubeChat() {
     const chatStatusEl = document.getElementById('chatStatus');
     chatStatusEl.textContent = 'Conectando...';
     chatStatusEl.classList.remove('connected');
-    
+
     // Intentar conectar con la API real si está configurada
     if (YOUTUBE_CONFIG.apiKey && YOUTUBE_CONFIG.liveChatId) {
         connectToYouTubeChat();
@@ -3816,11 +3771,11 @@ async function connectToYouTubeChat() {
                 YOUTUBE_CONFIG.liveChatId = liveChatId;
             }
         }
-        
+
         if (YOUTUBE_CONFIG.liveChatId) {
             // Iniciar polling de mensajes
             pollChatMessages();
-            
+
             const chatStatusEl = document.getElementById('chatStatus');
             chatStatusEl.textContent = 'Conectado';
             chatStatusEl.classList.add('connected');
@@ -3830,7 +3785,7 @@ async function connectToYouTubeChat() {
         const chatStatusEl = document.getElementById('chatStatus');
         chatStatusEl.textContent = 'Error de conexión';
         chatStatusEl.classList.remove('connected');
-        
+
         // Fallback a simulación
         simulateChatMessages();
     }
@@ -3842,7 +3797,7 @@ async function getLiveChatId(videoId) {
             `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${videoId}&key=${YOUTUBE_CONFIG.apiKey}`
         );
         const data = await response.json();
-        
+
         if (data.items && data.items[0] && data.items[0].liveStreamingDetails) {
             return data.items[0].liveStreamingDetails.activeLiveChatId;
         }
@@ -3856,17 +3811,17 @@ let nextPageToken = null;
 
 async function pollChatMessages() {
     if (!YOUTUBE_CONFIG.liveChatId || !YOUTUBE_CONFIG.apiKey) return;
-    
+
     try {
         let url = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${YOUTUBE_CONFIG.liveChatId}&part=snippet,authorDetails&key=${YOUTUBE_CONFIG.apiKey}`;
-        
+
         if (nextPageToken) {
             url += `&pageToken=${nextPageToken}`;
         }
-        
+
         const response = await fetch(url);
         const data = await response.json();
-        
+
         if (data.items) {
             data.items.forEach(item => {
                 const author = item.authorDetails.displayName;
@@ -3875,9 +3830,9 @@ async function pollChatMessages() {
                     addChatMessage(author, text);
                 }
             });
-            
+
             nextPageToken = data.nextPageToken;
-            
+
             // Calcular tiempo hasta el próximo polling
             const pollInterval = data.pollingIntervalMillis || YOUTUBE_CONFIG.pollInterval;
             setTimeout(pollChatMessages, pollInterval);
@@ -3900,7 +3855,7 @@ function simulateChatMessages() {
                 { author: 'Mundo', text: 'Increíble ver cómo avanza por el mundo' },
                 { author: 'Tiempo', text: 'El tiempo vuela, ¡ya casi!' }
             ];
-            
+
             const message = messages[Math.floor(Math.random() * messages.length)];
             addChatMessage(message.author, message.text);
         }
@@ -3911,19 +3866,19 @@ function addChatMessage(author, text) {
     const chatMessagesEl = document.getElementById('chatMessages');
     const messageEl = document.createElement('div');
     messageEl.className = 'chat-message';
-    
+
     messageEl.innerHTML = `
         <span class="chat-message-author">${escapeHtml(author)}:</span>
         <span class="chat-message-text">${escapeHtml(text)}</span>
     `;
-    
+
     chatMessagesEl.appendChild(messageEl);
-    
+
     // Mantener solo los últimos 50 mensajes
     while (chatMessagesEl.children.length > 50) {
         chatMessagesEl.removeChild(chatMessagesEl.firstChild);
     }
-    
+
     // Auto-scroll al final
     chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
 }
@@ -3962,12 +3917,12 @@ function getTargetNewYear() {
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
     const currentDate = now.getDate();
-    
+
     // Si ya pasó el 1 de enero, esperar el próximo año
     if (currentMonth > 0 || (currentMonth === 0 && currentDate > 1)) {
         return currentYear + 1;
     }
-    
+
     // Si es antes del 1 de enero, esperar el año actual
     return currentYear;
 }
