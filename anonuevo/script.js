@@ -2701,9 +2701,11 @@ function announceCountryInfo(countryName, info) {
     if (state.isSpeaking) {
         console.log('⏳ Presentador ocupado, esperando...');
         setTimeout(() => {
+            console.log('🎙️ Reintentando hablar después de espera...');
             speakPresenterMessage(message);
         }, 3000);
     } else {
+        console.log('🎙️ Llamando a speakPresenterMessage...');
         speakPresenterMessage(message);
     }
 }
