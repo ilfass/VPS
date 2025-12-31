@@ -626,7 +626,7 @@ function updateMapRotation() {
     }
 }
 
-// Iluminar países que están entre las 00:00 y 01:00 UTC (medianoche UTC)
+// Iluminar países según su estado: ya en 2026, próximos a llegar, o faltan horas
 function highlightCountriesAtGreenwich() {
     if (!state.highmapsChart) return;
     
@@ -636,32 +636,18 @@ function highlightCountriesAtGreenwich() {
         
         // Obtener todos los puntos del mapa
         const points = series.points;
+        const now = new Date();
         
         // Calcular la longitud donde es medianoche UTC
-        const now = new Date();
         const hours = now.getUTCHours();
         const minutes = now.getUTCMinutes();
         const seconds = now.getUTCSeconds();
         const totalSeconds = hours * 3600 + minutes * 60 + seconds;
         
         // La medianoche se mueve 15 grados por hora hacia el oeste
-        // A las 00:00 UTC: medianoche en 0° (Greenwich)
-        // A las 01:00 UTC: medianoche en 15°W
         let midnightLongitude = (totalSeconds / 3600) * 15;
         if (midnightLongitude > 180) {
             midnightLongitude -= 360;
-        }
-        
-        // Rango de longitudes para países entre 00:00 y 01:00 UTC
-        // Esto cubre desde medianoche hasta 1 hora después (15 grados hacia el oeste)
-        const midnightStart = midnightLongitude;
-        const midnightEnd = midnightLongitude - 15; // 15 grados hacia el oeste
-        
-        // Normalizar rangos
-        let startLon = midnightStart;
-        let endLon = midnightEnd;
-        if (endLon < -180) {
-            endLon += 360;
         }
         
         // Almacenar países iluminados para evitar actualizaciones innecesarias
@@ -705,7 +691,6 @@ function highlightCountriesAtGreenwich() {
                 }
                 
                 // Si no tenemos longitud, usar plotX como aproximación
-                // Pero necesitamos considerar el desplazamiento del mapa
                 if (countryLongitude === null) {
                     const chartWidth = state.highmapsChart.chartWidth || window.innerWidth;
                     const centerX = chartWidth / 2;
@@ -739,89 +724,130 @@ function highlightCountriesAtGreenwich() {
                     while (countryLongitude > 180) countryLongitude -= 360;
                     while (countryLongitude < -180) countryLongitude += 360;
                     
-                    // Verificar si el país está en el rango de medianoche (00:00-01:00 UTC)
-                    // La zona de medianoche es de 15 grados de ancho (1 hora)
-                    // Considerar países que están cerca del meridiano de medianoche
-                    // (dentro de ±7.5 grados, que es media hora a cada lado)
-                    let isInMidnightZone = false;
+                    // Obtener nombre del país
+                    const countryName = point.name || point.properties?.name || point.options?.name || 'País desconocido';
                     
-                    // Calcular la distancia más corta al meridiano de medianoche
+                    // Obtener timezone real del país
+                    const countryTimezone = getCountryTimezoneSync(countryName);
+                    
+                    // Calcular hora local del país
+                    let countryHour = 0;
+                    let countryMinute = 0;
+                    let countrySecond = 0;
+                    
+                    if (countryTimezone) {
+                        try {
+                            const formatter = new Intl.DateTimeFormat('es-ES', {
+                                timeZone: countryTimezone,
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                                hour12: false
+                            });
+                            const parts = formatter.formatToParts(now);
+                            countryHour = parseInt(parts.find(p => p.type === 'hour').value);
+                            countryMinute = parseInt(parts.find(p => p.type === 'minute').value);
+                            countrySecond = parseInt(parts.find(p => p.type === 'second').value);
+                        } catch (e) {
+                            // Fallback a cálculo aproximado basado en longitud
+                            const offset = Math.round(countryLongitude / 15);
+                            countryHour = (hours + offset + 24) % 24;
+                            countryMinute = minutes;
+                            countrySecond = seconds;
+                        }
+                    } else {
+                        // Fallback a cálculo aproximado si no se puede obtener timezone
+                        const offset = Math.round(countryLongitude / 15);
+                        countryHour = (hours + offset + 24) % 24;
+                        countryMinute = minutes;
+                        countrySecond = seconds;
+                    }
+                    
+                    // Calcular tiempo hasta medianoche (00:00) en el país
+                    const currentTimeInSeconds = countryHour * 3600 + countryMinute * 60 + countrySecond;
+                    const secondsUntilMidnight = (24 * 3600) - currentTimeInSeconds;
+                    const hoursUntilMidnight = secondsUntilMidnight / 3600;
+                    
+                    // Determinar estado del país y color correspondiente
+                    let countryColor = '#5a7a9e'; // Color por defecto (azul grisáceo)
+                    let borderColor = 'rgba(255, 255, 255, 0.8)';
+                    let borderWidth = 2;
+                    let countryStatus = 'pending'; // 'celebrating', 'soon', 'pending'
+                    
+                    // Calcular distancia al meridiano de medianoche para detectar países en celebración
                     let distanceToMidnight = Math.abs(countryLongitude - midnightLongitude);
-                    // Considerar el wrap-around en 180°
                     distanceToMidnight = Math.min(
                         distanceToMidnight,
                         Math.abs(countryLongitude - (midnightLongitude + 360)),
                         Math.abs(countryLongitude - (midnightLongitude - 360))
                     );
                     
-                    // Verificar si el país está en medianoche (00:00-01:00 UTC)
-                    // Considerar países dentro de 7.5 grados (30 minutos) del meridiano de medianoche
-                    // Esto cubre países que están entre 00:00 y 01:00 UTC
-                    if (distanceToMidnight <= 7.5) {
-                        isInMidnightZone = true;
-                    }
-                    
-                    // Obtener nombre del país
-                    const countryName = point.name || point.properties?.name || point.options?.name || 'País desconocido';
-                    
-                    if (isInMidnightZone) {
-                        currentlyHighlighted.add(index);
-                        
-                        // Detectar si es un país nuevo que acaba de llegar a medianoche
-                        // Mostrar cartel y activar presentador cuando está en medianoche (dentro de 7.5 grados = 30 minutos)
-                        if (!state.countriesAtMidnight.has(countryName) && distanceToMidnight <= 7.5) {
-                            state.countriesAtMidnight.add(countryName);
+                    // Ya están en 2026 (ya pasaron medianoche, entre 00:00 y 01:00 local)
+                    if (countryHour === 0 || (countryHour === 0 && countryMinute < 60)) {
+                        // Verificar si realmente está en la zona de medianoche
+                        if (distanceToMidnight <= 7.5) {
+                            countryColor = '#00ff00'; // Verde brillante para países que ya están en 2026
+                            borderColor = 'rgba(0, 255, 0, 1)';
+                            borderWidth = 4;
+                            countryStatus = 'celebrating';
+                            currentlyHighlighted.add(index);
                             
-                            // Mostrar cartel festivo y activar presentador
-                            // Verificar que realmente está cruzando medianoche (no un falso positivo)
-                            const timeSinceLastCelebration = Date.now() - (state.lastCelebrationTime || 0);
-                            if (timeSinceLastCelebration > 60000) { // Al menos 1 minuto desde la última celebración
-                                console.log(`🎆 País en medianoche detectado: ${countryName} (distancia: ${distanceToMidnight.toFixed(2)} grados)`);
-                                showCountryCelebrationBanner(countryName);
-                                state.lastCelebratedCountry = countryName;
-                                state.lastCelebrationTime = Date.now();
+                            // Detectar si es un país nuevo que acaba de llegar a medianoche
+                            if (!state.countriesAtMidnight.has(countryName) && distanceToMidnight <= 7.5) {
+                                state.countriesAtMidnight.add(countryName);
                                 
-                                // Obtener información del país y hacer que el presentador la lea
-                                fetchCountryInfoAndAnnounce(countryName);
-                            }
-                        }
-                        
-                        // Actualizar siempre para asegurar que el color se aplique
-                        try {
-                            point.update({
-                                color: '#ffd700', // Dorado para países en medianoche
-                                borderColor: 'rgba(255, 215, 0, 1)',
-                                borderWidth: 4
-                            }, false);
-                        } catch (updateError) {
-                            // Si update falla, intentar cambiar el color directamente
-                            if (point.graphic && point.graphic.element) {
-                                point.graphic.element.setAttribute('fill', '#ffd700');
-                                point.graphic.element.setAttribute('stroke', 'rgba(255, 215, 0, 1)');
-                                point.graphic.element.setAttribute('stroke-width', '4');
-                            }
-                        }
-                    } else {
-                        // Remover de países en medianoche si ya no está
-                        if (state.countriesAtMidnight.has(countryName)) {
-                            state.countriesAtMidnight.delete(countryName);
-                        }
-                        // Solo restaurar si estaba iluminado antes
-                        if (state.highlightedCountries.has(index)) {
-                            try {
-                                point.update({
-                                    color: '#5a7a9e',
-                                    borderColor: 'rgba(255, 255, 255, 0.8)',
-                                    borderWidth: 2
-                                }, false);
-                            } catch (updateError) {
-                                // Si update falla, intentar cambiar el color directamente
-                                if (point.graphic && point.graphic.element) {
-                                    point.graphic.element.setAttribute('fill', '#5a7a9e');
-                                    point.graphic.element.setAttribute('stroke', 'rgba(255, 255, 255, 0.8)');
-                                    point.graphic.element.setAttribute('stroke-width', '2');
+                                const timeSinceLastCelebration = Date.now() - (state.lastCelebrationTime || 0);
+                                if (timeSinceLastCelebration > 60000) { // Al menos 1 minuto desde la última celebración
+                                    console.log(`🎆 País en medianoche detectado: ${countryName} (distancia: ${distanceToMidnight.toFixed(2)} grados)`);
+                                    showCountryCelebrationBanner(countryName);
+                                    state.lastCelebratedCountry = countryName;
+                                    state.lastCelebrationTime = Date.now();
+                                    
+                                    // Obtener información del país y hacer que el presentador la lea
+                                    fetchCountryInfoAndAnnounce(countryName);
                                 }
                             }
+                        } else {
+                            // Ya pasó medianoche pero hace más de 1 hora
+                            countryColor = '#90ee90'; // Verde claro para países que ya están en 2026
+                            borderColor = 'rgba(144, 238, 144, 0.8)';
+                            borderWidth = 3;
+                            countryStatus = 'celebrated';
+                        }
+                    }
+                    // Están por llegar (próximas 2-3 horas)
+                    else if (hoursUntilMidnight <= 3 && hoursUntilMidnight > 0) {
+                        countryColor = '#ffa500'; // Naranja para países próximos a llegar
+                        borderColor = 'rgba(255, 165, 0, 1)';
+                        borderWidth = 3;
+                        countryStatus = 'soon';
+                    }
+                    // Todavía les faltan varias horas (más de 3 horas)
+                    else {
+                        countryColor = '#5a7a9e'; // Azul grisáceo por defecto
+                        borderColor = 'rgba(255, 255, 255, 0.8)';
+                        borderWidth = 2;
+                        countryStatus = 'pending';
+                    }
+                    
+                    // Remover de países en medianoche si ya no está
+                    if (countryStatus !== 'celebrating' && state.countriesAtMidnight.has(countryName)) {
+                        state.countriesAtMidnight.delete(countryName);
+                    }
+                    
+                    // Aplicar color al país
+                    try {
+                        point.update({
+                            color: countryColor,
+                            borderColor: borderColor,
+                            borderWidth: borderWidth
+                        }, false);
+                    } catch (updateError) {
+                        // Si update falla, intentar cambiar el color directamente
+                        if (point.graphic && point.graphic.element) {
+                            point.graphic.element.setAttribute('fill', countryColor);
+                            point.graphic.element.setAttribute('stroke', borderColor);
+                            point.graphic.element.setAttribute('stroke-width', borderWidth.toString());
                         }
                     }
                 }
@@ -833,10 +859,8 @@ function highlightCountriesAtGreenwich() {
         // Actualizar el conjunto de países iluminados
         state.highlightedCountries = currentlyHighlighted;
         
-        // Redibujar el mapa solo si hay cambios
-        if (currentlyHighlighted.size > 0 || state.highlightedCountries.size > 0) {
-            state.highmapsChart.redraw(false);
-        }
+        // Redibujar el mapa
+        state.highmapsChart.redraw(false);
     } catch (error) {
         console.warn('⚠️ Error al iluminar países:', error);
     }
