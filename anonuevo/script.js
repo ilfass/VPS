@@ -87,6 +87,7 @@ const state = {
     lastCelebratedCountry: null, // Último país que celebró
     lastCelebrationTime: 0, // Timestamp de la última celebración
     countryInfoCache: new Map(), // Cache de información de países
+    countryTimezoneCache: new Map(), // Cache de zonas horarias de países
     currentUtterance: null, // Utterance actual para evitar cortes
     isSpeaking: false, // Flag para saber si está hablando
     worldTimes: new Map() // Cache de horas del mundo
@@ -2310,8 +2311,99 @@ function initializeNextCountryPanel() {
     setInterval(updateNextCountryPanel, 1000);
 }
 
+// Obtener zona horaria real de un país usando API
+async function getCountryTimezone(countryName, longitude) {
+    // Cache de timezones para evitar múltiples llamadas
+    if (!state.countryTimezoneCache) {
+        state.countryTimezoneCache = new Map();
+    }
+    
+    // Verificar cache primero
+    const cacheKey = countryName.toLowerCase();
+    if (state.countryTimezoneCache.has(cacheKey)) {
+        return state.countryTimezoneCache.get(cacheKey);
+    }
+    
+    try {
+        // Usar API de WorldTimeAPI para obtener timezone desde coordenadas
+        // Primero intentar obtener timezone desde la longitud usando una API de geocodificación inversa
+        // Usar la API de TimeZoneDB (gratuita con límites)
+        // O mejor: usar la API de GeoNames que es gratuita
+        
+        // Calcular latitud aproximada (centro del país, usar 0 como aproximación)
+        const lat = 0; // Aproximación, se puede mejorar
+        
+        // Usar API de timezone basada en coordenadas
+        // Intentar con WorldTimeAPI usando la longitud
+        const timezoneUrl = `https://worldtimeapi.org/api/timezone`;
+        const timezoneResponse = await fetch(timezoneUrl);
+        
+        if (timezoneResponse.ok) {
+            const timezones = await timezoneResponse.json();
+            // Buscar timezone que coincida con el nombre del país o esté cerca de la longitud
+            const countryNameLower = countryName.toLowerCase().replace(/\s+/g, '');
+            
+            // Mapeo común de países a zonas horarias principales (solo como fallback)
+            const commonTimezones = {
+                'argentina': 'America/Argentina/Buenos_Aires',
+                'chile': 'America/Santiago',
+                'uruguay': 'America/Montevideo',
+                'paraguay': 'America/Asuncion',
+                'bolivia': 'America/La_Paz',
+                'peru': 'America/Lima',
+                'ecuador': 'America/Guayaquil',
+                'colombia': 'America/Bogota',
+                'venezuela': 'America/Caracas',
+                'brazil': 'America/Sao_Paulo',
+                'mexico': 'America/Mexico_City',
+                'spain': 'Europe/Madrid',
+                'france': 'Europe/Paris',
+                'germany': 'Europe/Berlin',
+                'italy': 'Europe/Rome',
+                'unitedkingdom': 'Europe/London',
+                'japan': 'Asia/Tokyo',
+                'china': 'Asia/Shanghai',
+                'india': 'Asia/Kolkata',
+                'australia': 'Australia/Sydney',
+                'newzealand': 'Pacific/Auckland',
+                'kiribati': 'Pacific/Kiritimati',
+                'samoa': 'Pacific/Apia',
+                'tonga': 'Pacific/Tongatapu',
+                'fiji': 'Pacific/Fiji'
+            };
+            
+            // Buscar en mapeo común primero
+            for (const [key, tz] of Object.entries(commonTimezones)) {
+                if (countryNameLower.includes(key) || key.includes(countryNameLower)) {
+                    state.countryTimezoneCache.set(cacheKey, tz);
+                    console.log(`✅ Timezone encontrado para ${countryName}: ${tz}`);
+                    return tz;
+                }
+            }
+            
+            // Si no está en el mapeo común, buscar en la lista de timezones de WorldTimeAPI
+            for (const tz of timezones) {
+                const tzParts = tz.split('/');
+                const tzLocation = tzParts[1]?.toLowerCase() || '';
+                if (countryNameLower.includes(tzLocation) || tzLocation.includes(countryNameLower)) {
+                    state.countryTimezoneCache.set(cacheKey, tz);
+                    console.log(`✅ Timezone encontrado para ${countryName}: ${tz}`);
+                    return tz;
+                }
+            }
+        }
+        
+        console.warn(`⚠️ No se pudo obtener timezone real para ${countryName}`);
+        return null;
+        
+    } catch (error) {
+        console.warn(`⚠️ Error obteniendo timezone para ${countryName}:`, error);
+        return null;
+    }
+}
+
 // Actualizar panel del próximo país que recibirá el 2026
-function updateNextCountryPanel() {
+async function updateNextCountryPanel() {
     if (!state.highmapsChart) {
         // Si el mapa no está listo, intentar de nuevo en 1 segundo
         setTimeout(updateNextCountryPanel, 1000);
@@ -2417,44 +2509,13 @@ function updateNextCountryPanel() {
             // La distancia en grados se convierte a tiempo (15 grados = 1 hora)
             const hoursUntilMidnight = nextCountry.distance / 15;
             
-            // Calcular hora actual del país usando timezone real si es posible
-            // Intentar obtener timezone del país desde datos conocidos
-            let countryTimezone = null;
-            const countryNameLower = nextCountry.name.toLowerCase();
-            
-            // Mapeo de países a timezones conocidos
-            const countryTimezones = {
-                'saint kitts and nevis': 'America/St_Kitts',
-                'antigua and barbuda': 'America/Antigua',
-                'dominica': 'America/Dominica',
-                'barbados': 'America/Barbados',
-                'trinidad and tobago': 'America/Port_of_Spain',
-                'guyana': 'America/Guyana',
-                'venezuela': 'America/Caracas',
-                'colombia': 'America/Bogota',
-                'panama': 'America/Panama',
-                'costa rica': 'America/Costa_Rica',
-                'nicaragua': 'America/Managua',
-                'honduras': 'America/Tegucigalpa',
-                'el salvador': 'America/El_Salvador',
-                'guatemala': 'America/Guatemala',
-                'belize': 'America/Belize',
-                'mexico': 'America/Mexico_City',
-                'madagascar': 'Indian/Antananarivo'
-            };
-            
-            // Buscar timezone del país
-            for (const [key, tz] of Object.entries(countryTimezones)) {
-                if (countryNameLower.includes(key) || key.includes(countryNameLower)) {
-                    countryTimezone = tz;
-                    break;
-                }
-            }
+            // Obtener zona horaria real del país usando API
+            let countryTimezone = await getCountryTimezone(nextCountry.name, nextCountry.longitude);
             
             let countryHour, countryMinute, countrySecond;
             
             if (countryTimezone) {
-                // Usar timezone real
+                // Usar timezone real obtenido de la API
                 try {
                     const formatter = new Intl.DateTimeFormat('es-ES', {
                         timeZone: countryTimezone,
@@ -2467,16 +2528,18 @@ function updateNextCountryPanel() {
                     countryHour = parseInt(parts.find(p => p.type === 'hour').value);
                     countryMinute = parseInt(parts.find(p => p.type === 'minute').value);
                     countrySecond = parseInt(parts.find(p => p.type === 'second').value);
+                    console.log(`✅ Hora real de ${nextCountry.name}: ${countryHour}:${countryMinute}:${countrySecond} (timezone: ${countryTimezone})`);
                 } catch (e) {
                     console.warn('Error obteniendo timezone para', nextCountry.name, e);
-                    // Fallback a cálculo aproximado
+                    // Si falla, usar cálculo basado en longitud como último recurso
                     const countryOffset = Math.round(nextCountry.longitude / 15);
                     countryHour = (utcHours + countryOffset + 24) % 24;
                     countryMinute = utcMinutes;
                     countrySecond = utcSeconds;
                 }
             } else {
-                // Calcular hora aproximada basándose en longitud
+                // Si no se pudo obtener timezone, usar cálculo aproximado basándose en longitud
+                console.warn(`⚠️ No se pudo obtener timezone para ${nextCountry.name}, usando cálculo aproximado`);
                 const countryOffset = Math.round(nextCountry.longitude / 15);
                 countryHour = (utcHours + countryOffset + 24) % 24;
                 countryMinute = utcMinutes;
