@@ -2045,6 +2045,150 @@ function initializeWorldTimes() {
     setInterval(updateWorldTimes, 60000); // Actualizar cada minuto
 }
 
+// Inicializar panel del próximo país
+function initializeNextCountryPanel() {
+    updateNextCountryPanel();
+    // Actualizar cada segundo para mostrar cuenta regresiva en tiempo real
+    setInterval(updateNextCountryPanel, 1000);
+}
+
+// Actualizar panel del próximo país que recibirá el 2026
+function updateNextCountryPanel() {
+    if (!state.highmapsChart) {
+        // Si el mapa no está listo, intentar de nuevo en 1 segundo
+        setTimeout(updateNextCountryPanel, 1000);
+        return;
+    }
+    
+    try {
+        const series = state.highmapsChart.series[0];
+        if (!series || !series.points) {
+            setTimeout(updateNextCountryPanel, 1000);
+            return;
+        }
+        
+        const points = series.points;
+        const now = new Date();
+        const hours = now.getUTCHours();
+        const minutes = now.getUTCMinutes();
+        const seconds = now.getUTCSeconds();
+        const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+        
+        // Calcular la longitud donde es medianoche UTC
+        let midnightLongitude = (totalSeconds / 3600) * 15;
+        if (midnightLongitude > 180) {
+            midnightLongitude -= 360;
+        }
+        
+        // Buscar el próximo país que llegará a medianoche (hacia el oeste)
+        // El próximo país está entre 7.5 y 60 grados al oeste del meridiano de medianoche
+        let nextCountry = null;
+        let minDistance = Infinity;
+        
+        points.forEach((point) => {
+            if (!point) return;
+            
+            try {
+                let countryLongitude = null;
+                
+                // Obtener longitud del país
+                if (point.properties && point.properties.lon) {
+                    countryLongitude = point.properties.lon;
+                } else if (point.geometry && point.geometry.coordinates) {
+                    const coords = point.geometry.coordinates;
+                    let sumLon = 0;
+                    let count = 0;
+                    
+                    const extractLongitude = (arr) => {
+                        if (Array.isArray(arr[0])) {
+                            arr.forEach(sub => extractLongitude(sub));
+                        } else if (arr.length >= 2) {
+                            sumLon += arr[0];
+                            count++;
+                        }
+                    };
+                    
+                    extractLongitude(coords);
+                    if (count > 0) {
+                        countryLongitude = sumLon / count;
+                    }
+                }
+                
+                if (countryLongitude === null) return;
+                
+                // Normalizar longitud
+                while (countryLongitude > 180) countryLongitude -= 360;
+                while (countryLongitude < -180) countryLongitude += 360;
+                
+                // Calcular distancia al meridiano de medianoche (hacia el oeste)
+                let distance = midnightLongitude - countryLongitude;
+                
+                // Normalizar distancia considerando wrap-around
+                if (distance < 0) distance += 360;
+                if (distance > 180) distance = 360 - distance;
+                
+                // El próximo país debe estar entre 7.5 y 60 grados al oeste (30 minutos a 4 horas)
+                if (distance > 7.5 && distance < 60 && distance < minDistance) {
+                    minDistance = distance;
+                    nextCountry = {
+                        name: point.name || point.properties?.name || point.options?.name || 'País desconocido',
+                        longitude: countryLongitude,
+                        distance: distance
+                    };
+                }
+            } catch (error) {
+                // Ignorar errores en países individuales
+            }
+        });
+        
+        // Actualizar el panel
+        const panel = document.getElementById('nextCountryPanel');
+        const nameEl = document.getElementById('nextCountryName');
+        const timeEl = document.getElementById('nextCountryTime');
+        const countdownEl = document.getElementById('nextCountryCountdown');
+        
+        if (!panel || !nameEl || !timeEl || !countdownEl) return;
+        
+        if (nextCountry) {
+            // Calcular tiempo hasta medianoche para este país
+            // La distancia en grados se convierte a tiempo (15 grados = 1 hora)
+            const hoursUntilMidnight = nextCountry.distance / 15;
+            const totalSecondsUntil = hoursUntilMidnight * 3600;
+            
+            const hoursLeft = Math.floor(hoursUntilMidnight);
+            const minutesLeft = Math.floor((hoursUntilMidnight - hoursLeft) * 60);
+            const secondsLeft = Math.floor((totalSecondsUntil - (hoursLeft * 3600) - (minutesLeft * 60)));
+            
+            // Calcular hora actual del país (aproximada)
+            const countryOffset = Math.round(nextCountry.longitude / 15);
+            const countryHour = (hours + countryOffset) % 24;
+            const countryMinute = minutes;
+            const countrySecond = seconds;
+            
+            // Actualizar elementos
+            nameEl.textContent = nextCountry.name;
+            timeEl.textContent = `${String(countryHour).padStart(2, '0')}:${String(countryMinute).padStart(2, '0')}:${String(countrySecond).padStart(2, '0')}`;
+            
+            if (hoursLeft > 0) {
+                countdownEl.textContent = `Faltan: ${hoursLeft}h ${minutesLeft}m ${secondsLeft}s`;
+            } else if (minutesLeft > 0) {
+                countdownEl.textContent = `Faltan: ${minutesLeft}m ${secondsLeft}s`;
+            } else {
+                countdownEl.textContent = `Faltan: ${secondsLeft}s`;
+            }
+            
+            panel.style.display = 'block';
+        } else {
+            // Si no se encuentra próximo país, mostrar mensaje
+            nameEl.textContent = 'Buscando próximo país...';
+            timeEl.textContent = '--:--:--';
+            countdownEl.textContent = 'Calculando...';
+        }
+    } catch (error) {
+        console.warn('⚠️ Error al actualizar panel del próximo país:', error);
+    }
+}
+
 // Obtener horas del mundo desde diferentes zonas horarias
 async function updateWorldTimes() {
     const cities = [
