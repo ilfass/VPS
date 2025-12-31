@@ -2530,186 +2530,131 @@ async function updateNextCountryPanel() {
         return;
     }
 
-    try {
-        const series = state.highmapsChart.series[0];
-        if (!series || !series.points) {
-            setTimeout(updateNextCountryPanel, 1000);
-            return;
-        }
+    // Actualizar panel del próximo país (Basado en Zonas Horarias, no geometría)
+    function updateNextCountryPanel() {
+        try {
+            const nextCountryNameEl = document.getElementById('nextCountryName');
+            const timeUntilNextEl = document.getElementById('timeUntilNext');
 
-        const points = series.points;
-        const now = new Date();
-        const utcHours = now.getUTCHours();
-        const utcMinutes = now.getUTCMinutes();
-        const utcSeconds = now.getUTCSeconds();
-        const totalSeconds = utcHours * 3600 + utcMinutes * 60 + utcSeconds;
+            if (!nextCountryNameEl || !timeUntilNextEl) return;
 
-        // Calcular la longitud donde es medianoche UTC
-        let midnightLongitude = (totalSeconds / 3600) * 15;
-        if (midnightLongitude > 180) {
-            midnightLongitude -= 360;
-        }
+            const now = new Date();
+            const currentYear = now.getFullYear();
 
-        // Buscar el próximo país que llegará a medianoche (hacia el oeste)
-        // El próximo país está entre 7.5 y 60 grados al oeste del meridiano de medianoche
-        let nextCountry = null;
-        let minDistance = Infinity;
+            // Encontrar la próxima zona horaria que llegará a medianoche
+            // Iteramos sobre todas las zonas horarias conocidas para ver cuál es la siguiente
+            // que tendrá las 00:00:00
 
-        points.forEach((point) => {
-            if (!point) return;
+            let minTimeRemaining = Infinity;
+            let nextZoneName = null;
+            let nextZoneId = null;
 
-            try {
-                let countryLongitude = null;
+            // Lista de zonas horarias representativas (simplificada para rendimiento)
+            // Se asume que COUNTRY_TIMEZONE_MAP tiene las zonas correctas
+            const uniqueZones = new Set(Object.values(COUNTRY_TIMEZONE_MAP));
 
-                // Obtener longitud del país
-                if (point.properties && point.properties.lon) {
-                    countryLongitude = point.properties.lon;
-                } else if (point.geometry && point.geometry.coordinates) {
-                    const coords = point.geometry.coordinates;
-                    let sumLon = 0;
-                    let count = 0;
-
-                    const extractLongitude = (arr) => {
-                        if (Array.isArray(arr[0])) {
-                            arr.forEach(sub => extractLongitude(sub));
-                        } else if (arr.length >= 2) {
-                            sumLon += arr[0];
-                            count++;
-                        }
-                    };
-
-                    extractLongitude(coords);
-                    if (count > 0) {
-                        countryLongitude = sumLon / count;
-                    }
-                }
-
-                if (countryLongitude === null) return;
-
-                // Normalizar longitud
-                while (countryLongitude > 180) countryLongitude -= 360;
-                while (countryLongitude < -180) countryLongitude += 360;
-
-                // Calcular distancia al meridiano de medianoche (hacia el oeste)
-                let distance = midnightLongitude - countryLongitude;
-
-                // Normalizar distancia considerando wrap-around
-                if (distance < 0) distance += 360;
-                if (distance > 180) distance = 360 - distance;
-
-                // El próximo país debe estar entre 7.5 y 60 grados al oeste (30 minutos a 4 horas)
-                // Excluir países que ya están en medianoche o muy cerca
-                if (distance > 7.5 && distance < 60 && distance < minDistance) {
-                    // Verificar que el país no esté ya en medianoche (dentro de 3.75 grados = 15 minutos)
-                    const isCurrentlyAtMidnight = distance <= 3.75;
-                    if (!isCurrentlyAtMidnight) {
-                        minDistance = distance;
-                        nextCountry = {
-                            name: point.name || point.properties?.name || point.options?.name || 'País desconocido',
-                            longitude: countryLongitude,
-                            distance: distance
-                        };
-                    }
-                }
-            } catch (error) {
-                // Ignorar errores en países individuales
-            }
-        });
-
-        // Actualizar el panel
-        const panel = document.getElementById('nextCountryPanel');
-        const nameEl = document.getElementById('nextCountryName');
-        const timeEl = document.getElementById('nextCountryTime');
-        const countdownEl = document.getElementById('nextCountryCountdown');
-
-        if (!panel || !nameEl || !timeEl || !countdownEl) return;
-
-        if (nextCountry) {
-            // Calcular tiempo hasta medianoche para este país
-            // La distancia en grados se convierte a tiempo (15 grados = 1 hora)
-            const hoursUntilMidnight = nextCountry.distance / 15;
-
-            // Obtener zona horaria real del país usando API
-            let countryTimezone = await getCountryTimezone(nextCountry.name, nextCountry.longitude);
-
-            let countryHour, countryMinute, countrySecond;
-
-            if (countryTimezone) {
-                // Usar timezone real obtenido de la API
+            uniqueZones.forEach(timezone => {
                 try {
-                    const formatter = new Intl.DateTimeFormat('es-ES', {
-                        timeZone: countryTimezone,
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        hour12: false
-                    });
-                    const parts = formatter.formatToParts(now);
-                    countryHour = parseInt(parts.find(p => p.type === 'hour').value);
-                    countryMinute = parseInt(parts.find(p => p.type === 'minute').value);
-                    countrySecond = parseInt(parts.find(p => p.type === 'second').value);
-                    console.log(`✅ Hora real de ${nextCountry.name}: ${countryHour}:${countryMinute}:${countrySecond} (timezone: ${countryTimezone})`);
+                    // Obtener hora actual en esa zona
+                    const zoneDateString = now.toLocaleString('en-US', { timeZone: timezone });
+                    const zoneDate = new Date(zoneDateString);
+
+                    // Si ya es 2026 (o año nuevo), ignorar
+                    if (zoneDate.getFullYear() > currentYear) return;
+
+                    // Calcular tiempo hasta la próxima medianoche
+                    const nextMidnight = new Date(zoneDate);
+                    nextMidnight.setHours(24, 0, 0, 0); // Próxima medianoche local
+
+                    const msUntilMidnight = nextMidnight - zoneDate;
+
+                    // Si falta menos de 24 horas y es el menor tiempo encontrado
+                    if (msUntilMidnight > 0 && msUntilMidnight < minTimeRemaining) {
+                        minTimeRemaining = msUntilMidnight;
+                        nextZoneId = timezone;
+                    }
                 } catch (e) {
-                    console.warn('Error obteniendo timezone para', nextCountry.name, e);
-                    // Si falla, usar cálculo basado en longitud como último recurso
-                    const countryOffset = Math.round(nextCountry.longitude / 15);
-                    countryHour = (utcHours + countryOffset + 24) % 24;
-                    countryMinute = utcMinutes;
-                    countrySecond = utcSeconds;
+                    // Zona inválida, ignorar
                 }
+            });
+
+            if (nextZoneId) {
+                // Encontrar países en esta zona
+                const countriesInZone = Object.entries(COUNTRY_TIMEZONE_MAP)
+                    .filter(([country, tz]) => tz === nextZoneId)
+                    .map(([country]) => country.charAt(0).toUpperCase() + country.slice(1)) // Capitalizar
+                    .slice(0, 3); // Tomar solo los primeros 3
+
+                let displayName = countriesInZone.join(', ');
+                if (countriesInZone.length < 1) displayName = nextZoneId.split('/')[1].replace(/_/g, ' ');
+
+                // Formatear tiempo restante
+                const totalSeconds = Math.floor(minTimeRemaining / 1000);
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+
+                const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+                // Actualizar UI
+                nextCountryNameEl.textContent = displayName;
+                timeUntilNextEl.textContent = timeString;
+
+                // Actualizar estado global
+                state.nextZone = displayName;
+
             } else {
-                // Si no se pudo obtener timezone, usar cálculo aproximado basándose en longitud
-                console.warn(`⚠️ No se pudo obtener timezone para ${nextCountry.name}, usando cálculo aproximado`);
-                const countryOffset = Math.round(nextCountry.longitude / 15);
-                countryHour = (utcHours + countryOffset + 24) % 24;
-                countryMinute = utcMinutes;
-                countrySecond = utcSeconds;
+                nextCountryNameEl.textContent = "Todo el mundo ha celebrado";
+                timeUntilNextEl.textContent = "--:--:--";
             }
 
-            // Asegurar que las horas sean válidas
-            if (isNaN(countryHour) || isNaN(countryMinute) || isNaN(countrySecond)) {
-                console.warn('Valores inválidos para hora del país:', nextCountry.name, countryHour, countryMinute, countrySecond);
-                // Usar valores por defecto
-                const countryOffset = Math.round(nextCountry.longitude / 15);
-                countryHour = (utcHours + countryOffset + 24) % 24;
-                countryMinute = utcMinutes;
-                countrySecond = utcSeconds;
-            }
-
-            // Actualizar elementos
-            nameEl.textContent = nextCountry.name;
-
-            // Formatear hora con valores seguros
-            const hourStr = String(Math.floor(countryHour)).padStart(2, '0');
-            const minuteStr = String(Math.floor(countryMinute)).padStart(2, '0');
-            const secondStr = String(Math.floor(countrySecond)).padStart(2, '0');
-            timeEl.textContent = `${hourStr}:${minuteStr}:${secondStr}`;
-
-            // Calcular tiempo hasta medianoche más preciso
-            const totalSecondsUntil = Math.floor(hoursUntilMidnight * 3600);
-            const h = Math.floor(totalSecondsUntil / 3600);
-            const m = Math.floor((totalSecondsUntil % 3600) / 60);
-            const s = totalSecondsUntil % 60;
-
-            if (h > 0) {
-                countdownEl.textContent = `Faltan: ${h}h ${m}m ${s}s`;
-            } else if (m > 0) {
-                countdownEl.textContent = `Faltan: ${m}m ${s}s`;
-            } else {
-                countdownEl.textContent = `Faltan: ${s}s`;
-            }
-
-            panel.style.display = 'block';
-        } else {
-            // Si no se encuentra próximo país, mostrar mensaje
-            nameEl.textContent = 'Buscando próximo país...';
-            timeEl.textContent = '--:--:--';
-            countdownEl.textContent = 'Calculando...';
+        } catch (error) {
+            console.warn('⚠️ Error actualizando panel de próximo país:', error);
         }
-    } catch (error) {
-        console.warn('⚠️ Error al actualizar panel del próximo país:', error);
     }
+    // Si no se pudo obtener timezone, usar cálculo aproximado basándose en longitud
+    console.warn(`⚠️ No se pudo obtener timezone para ${nextCountry.name}, usando cálculo aproximado`);
+    const countryOffset = Math.round(nextCountry.longitude / 15);
+    countryHour = (utcHours + countryOffset + 24) % 24;
+    countryMinute = utcMinutes;
+    countrySecond = utcSeconds;
 }
+
+// Asegurar que las horas sean válidas
+if (isNaN(countryHour) || isNaN(countryMinute) || isNaN(countrySecond)) {
+    console.warn('Valores inválidos para hora del país:', nextCountry.name, countryHour, countryMinute, countrySecond);
+    // Usar valores por defecto
+    const countryOffset = Math.round(nextCountry.longitude / 15);
+    countryHour = (utcHours + countryOffset + 24) % 24;
+    countryMinute = utcMinutes;
+    countrySecond = utcSeconds;
+}
+
+// Actualizar elementos
+nameEl.textContent = nextCountry.name;
+
+// Formatear hora con valores seguros
+const hourStr = String(Math.floor(countryHour)).padStart(2, '0');
+const minuteStr = String(Math.floor(countryMinute)).padStart(2, '0');
+const secondStr = String(Math.floor(countrySecond)).padStart(2, '0');
+timeEl.textContent = `${hourStr}:${minuteStr}:${secondStr}`;
+
+// Calcular tiempo hasta medianoche más preciso
+const totalSecondsUntil = Math.floor(hoursUntilMidnight * 3600);
+const h = Math.floor(totalSecondsUntil / 3600);
+const m = Math.floor((totalSecondsUntil % 3600) / 60);
+const s = totalSecondsUntil % 60;
+
+if (h > 0) {
+    countdownEl.textContent = `Faltan: ${h}h ${m}m ${s}s`;
+} else if (m > 0) {
+    countdownEl.textContent = `Faltan: ${m}m ${s}s`;
+} else {
+    countdownEl.textContent = `Faltan: ${s}s`;
+}
+panel.style.display = 'block';
+
+
 
 // Obtener horas del mundo desde diferentes zonas horarias
 async function updateWorldTimes() {
