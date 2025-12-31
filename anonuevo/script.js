@@ -2603,21 +2603,23 @@ async function updateNextCountryPanel() {
                 // Actualizar estado global
                 state.nextZone = displayName;
 
+                // Actualizar también la tarjeta de estadísticas si existe
+                const statNextZone = document.getElementById('nextZone');
+                if (statNextZone) {
+                    statNextZone.textContent = displayName;
+                }
+
             } else {
                 nextCountryNameEl.textContent = "Todo el mundo ha celebrado";
                 timeUntilNextEl.textContent = "--:--:--";
+                const statNextZone = document.getElementById('nextZone');
+                if (statNextZone) statNextZone.textContent = "Fin";
             }
 
         } catch (error) {
             console.warn('⚠️ Error actualizando panel de próximo país:', error);
         }
     }
-    // Si no se pudo obtener timezone, usar cálculo aproximado basándose en longitud
-    console.warn(`⚠️ No se pudo obtener timezone para ${nextCountry.name}, usando cálculo aproximado`);
-    const countryOffset = Math.round(nextCountry.longitude / 15);
-    countryHour = (utcHours + countryOffset + 24) % 24;
-    countryMinute = utcMinutes;
-    countrySecond = utcSeconds;
 }
 
 // Asegurar que las horas sean válidas
