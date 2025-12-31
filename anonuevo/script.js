@@ -310,13 +310,35 @@ function initializeMapbox() {
                         while (countryLongitude > 180) countryLongitude -= 360;
                         while (countryLongitude < -180) countryLongitude += 360;
                         
-                        // Calcular offset UTC aproximado (cada 15 grados = 1 hora)
-                        const offset = Math.round(countryLongitude / 15);
-                        const utcHours = now.getUTCHours();
-                        const utcMinutes = now.getUTCMinutes();
-                        const countryHour = (utcHours + offset + 24) % 24;
+                        // Obtener timezone real del país (síncrono)
+                        const countryTimezone = getCountryTimezoneSync(countryName);
+                        let countryHour, countryMinute;
                         
-                        timeInfo = `<strong>Hora local:</strong> ${String(countryHour).padStart(2, '0')}:${String(utcMinutes).padStart(2, '0')}`;
+                        if (countryTimezone) {
+                            try {
+                                const formatter = new Intl.DateTimeFormat('es-ES', {
+                                    timeZone: countryTimezone,
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hour12: false
+                                });
+                                const parts = formatter.formatToParts(now);
+                                countryHour = parseInt(parts.find(p => p.type === 'hour').value);
+                                countryMinute = parseInt(parts.find(p => p.type === 'minute').value);
+                            } catch (e) {
+                                // Fallback a cálculo aproximado
+                                const offset = Math.round(countryLongitude / 15);
+                                countryHour = (now.getUTCHours() + offset + 24) % 24;
+                                countryMinute = now.getUTCMinutes();
+                            }
+                        } else {
+                            // Fallback a cálculo aproximado si no se puede obtener timezone
+                            const offset = Math.round(countryLongitude / 15);
+                            countryHour = (now.getUTCHours() + offset + 24) % 24;
+                            countryMinute = now.getUTCMinutes();
+                        }
+                        
+                        timeInfo = `<strong>Hora local:</strong> ${String(countryHour).padStart(2, '0')}:${String(countryMinute).padStart(2, '0')}`;
                         
                         // Calcular cuándo cruzará la línea de medianoche
                         const midnightLongitude = (now.getUTCHours() * 15 + now.getUTCMinutes() * 0.25);
