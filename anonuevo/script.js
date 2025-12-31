@@ -128,7 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
     animatePresenterAvatar(); // Inicializar animación facial con IA
     initializeAIPresenter();
     initializeDynamicFeatures();
-    initializeTimeline(); // Inicializar línea de tiempo con 365 días
     initializeWorldTimes(); // Inicializar obtención de horas del mundo
     initializeNextCountryPanel(); // Inicializar panel del próximo país
     // initializeUserLocation(); // Función no implementada aún
@@ -516,7 +515,12 @@ function updateHighmapsDayNight() {
         
         // Convertir longitud a posición X (0% a 100%)
         // Longitud -180 a +180 se mapea a 0% a 100%
-        const xPosition = ((midnightLongitude + 180) / 360) * 100;
+        // INVERTIDO: la sombra debe estar en el lado opuesto al sol (donde es medianoche)
+        // El sol está 180 grados opuesto a medianoche
+        const sunLongitude = (midnightLongitude + 180) % 360;
+        if (sunLongitude < 0) sunLongitude += 360;
+        const xPosition = ((sunLongitude - 180) / 360) * 100;
+        if (xPosition < 0) xPosition += 100;
         
         // Ajustar la posición del gradiente para crear el efecto de sombra
         // El gradiente se mueve suavemente según la hora
@@ -868,8 +872,12 @@ function highlightCountriesAtGreenwich() {
         // Actualizar el conjunto de países iluminados
         state.highlightedCountries = currentlyHighlighted;
         
-        // Redibujar el mapa
-        state.highmapsChart.redraw(false);
+        // Forzar redibujado del mapa para asegurar que los colores se apliquen
+        try {
+            state.highmapsChart.redraw(true); // true = animación completa para forzar actualización
+        } catch (redrawError) {
+            console.warn('⚠️ Error al redibujar mapa:', redrawError);
+        }
     } catch (error) {
         console.warn('⚠️ Error al iluminar países:', error);
     }
@@ -2347,78 +2355,6 @@ function showHourlyBanner() {
     }, 5000);
 }
 
-// ============================================
-// LÍNEA DE TIEMPO
-// ============================================
-
-function initializeTimeline() {
-    updateTimeline();
-    // Actualizar cada segundo para que sea más interactiva y precisa
-    setInterval(updateTimeline, 1000);
-}
-
-function updateTimeline() {
-    const start = new Date('2025-01-01T00:00:00Z'); // UTC
-    const end = new Date('2026-01-01T00:00:00Z'); // UTC - exactamente a las 00:00 UTC
-    const now = new Date();
-
-    // Cálculos precisos
-    const total = end - start;
-    const elapsed = now - start;
-    let percentage = (elapsed / total) * 100;
-
-    // Limitar entre 0 y 100 - NO completar hasta llegar al 2026
-    percentage = Math.max(0, Math.min(percentage, 99.99)); // Máximo 99.99% hasta llegar exactamente al 2026
-
-    // Actualizar Interfaz
-    const progressBar = document.getElementById('timeline-progress');
-    const todaySpan = document.getElementById('today');
-    const title = document.getElementById('timeline-title');
-    const timelinePerson = document.getElementById('timelinePerson');
-    
-    if (progressBar) {
-        progressBar.style.width = percentage + '%';
-        // Agregar transición suave
-        progressBar.style.transition = 'width 0.5s ease-out';
-    }
-    
-    // Actualizar posición de la persona animada
-    if (timelinePerson) {
-        timelinePerson.style.left = percentage + '%';
-        timelinePerson.style.transition = 'left 0.5s ease-out';
-    }
-    
-    if (todaySpan) {
-        todaySpan.innerText = now.toLocaleDateString('es-ES', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-    }
-
-    // Lógica de Objetivo Cumplido - exactamente a las 00:00 UTC del 2026
-    const timeUntil2026 = end - now;
-    if (timeUntil2026 <= 0 && title) {
-        // Completar la barra al llegar al 2026
-        if (progressBar) {
-            progressBar.style.width = '100%';
-        }
-        if (timelinePerson) {
-            timelinePerson.style.left = '100%';
-        }
-        title.innerText = "¡BIENVENIDO 2026!";
-        title.style.color = "#ffdd00";
-        title.style.animation = "pulse 1s infinite";
-        lanzarConfetti();
-    } else if (timeUntil2026 > 0 && timeUntil2026 <= 86400000) {
-        // Últimas 24 horas - mostrar cuenta regresiva
-        const hours = Math.floor(timeUntil2026 / 3600000);
-        const minutes = Math.floor((timeUntil2026 % 3600000) / 60000);
-        if (title) {
-            title.innerHTML = `Camino al 2026<br><small style="font-size: 0.6em; opacity: 0.8;">Faltan ${hours}h ${minutes}m</small>`;
-        }
-    }
-}
 
 function lanzarConfetti() {
     if (typeof confetti !== 'undefined') {
