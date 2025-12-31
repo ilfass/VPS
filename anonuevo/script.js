@@ -2446,29 +2446,65 @@ const COUNTRY_TIMEZONE_MAP = {
     'marruecos': 'Africa/Casablanca'
 };
 
-// Obtener zona horaria real de un país
-async function getCountryTimezone(countryName, longitude) {
-    // Cache de timezones para evitar múltiples llamadas
-    if (!state.countryTimezoneCache) {
-        state.countryTimezoneCache = new Map();
+// Obtener zona horaria real de un país (síncrono desde mapeo o cache)
+function getCountryTimezoneSync(countryName) {
+    const countryNameLower = countryName.toLowerCase().trim().replace(/\s+/g, '');
+    
+    // Buscar en cache primero
+    if (state.countryTimezoneCache && state.countryTimezoneCache.has(countryName.toLowerCase().trim())) {
+        return state.countryTimezoneCache.get(countryName.toLowerCase().trim());
     }
     
-    // Verificar cache primero
-    const cacheKey = countryName.toLowerCase().trim();
-    if (state.countryTimezoneCache.has(cacheKey)) {
-        return state.countryTimezoneCache.get(cacheKey);
-    }
-    
-    // Buscar en el mapeo de países conocidos
-    const countryNameLower = cacheKey.replace(/\s+/g, '');
+    // Buscar en mapeo
     for (const [key, tz] of Object.entries(COUNTRY_TIMEZONE_MAP)) {
         const keyNormalized = key.replace(/\s+/g, '');
         if (countryNameLower.includes(keyNormalized) || keyNormalized.includes(countryNameLower)) {
-            state.countryTimezoneCache.set(cacheKey, tz);
-            console.log(`✅ Timezone encontrado para ${countryName}: ${tz}`);
+            if (!state.countryTimezoneCache) state.countryTimezoneCache = new Map();
+            state.countryTimezoneCache.set(countryName.toLowerCase().trim(), tz);
             return tz;
         }
     }
+    
+    return null;
+}
+
+// Obtener zona horaria real de un país usando API (async para países no mapeados)
+async function getCountryTimezone(countryName, longitude) {
+    // Primero intentar síncrono desde mapeo
+    const syncTimezone = getCountryTimezoneSync(countryName);
+    if (syncTimezone) {
+        return syncTimezone;
+    }
+    
+    // Si no está en el mapeo, intentar obtener desde API
+    const cacheKey = countryName.toLowerCase().trim();
+    
+    try {
+        const timezoneUrl = `https://worldtimeapi.org/api/timezone`;
+        const timezoneResponse = await fetch(timezoneUrl);
+        
+        if (timezoneResponse.ok) {
+            const timezones = await timezoneResponse.json();
+            const countryNameLower = countryName.toLowerCase().replace(/\s+/g, '');
+            
+            // Buscar en la lista de timezones de WorldTimeAPI
+            for (const tz of timezones) {
+                const tzParts = tz.split('/');
+                const tzLocation = tzParts[1]?.toLowerCase().replace(/_/g, '') || '';
+                if (countryNameLower.includes(tzLocation) || tzLocation.includes(countryNameLower)) {
+                    if (!state.countryTimezoneCache) state.countryTimezoneCache = new Map();
+                    state.countryTimezoneCache.set(cacheKey, tz);
+                    console.log(`✅ Timezone encontrado para ${countryName}: ${tz}`);
+                    return tz;
+                }
+            }
+        }
+    } catch (error) {
+        console.warn(`⚠️ Error consultando API para ${countryName}:`, error);
+    }
+    
+    return null;
+}
     
     // Si no está en el mapeo, intentar obtener desde API de WorldTimeAPI
     try {
