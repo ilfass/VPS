@@ -1789,36 +1789,39 @@ function initializeTimeDisplay() {
 }
 
 function updateTimeDisplay() {
-    const now = new Date();
-    
-    // Actualizar hora UTC
-    const utcHours = String(now.getUTCHours()).padStart(2, '0');
-    const utcMinutes = String(now.getUTCMinutes()).padStart(2, '0');
-    const utcSeconds = String(now.getUTCSeconds()).padStart(2, '0');
-    const utcTimeStr = `${utcHours}:${utcMinutes}:${utcSeconds}`;
-    
-    const utcTimeEl = document.getElementById('utcTime');
-    if (utcTimeEl) {
-        utcTimeEl.textContent = utcTimeStr;
-    }
-    
-    // Fecha UTC
-    const utcDay = now.getUTCDate();
-    const utcMonth = now.getUTCMonth();
-    const utcYear = now.getUTCFullYear();
-    const monthNames = [
-        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
-    const utcDateEl = document.getElementById('utcDate');
-    if (utcDateEl) {
-        utcDateEl.textContent = `${utcDay} de ${monthNames[utcMonth]}, ${utcYear}`;
-    }
-    
-    // Actualizar hora del usuario (local)
-    const userHours = String(now.getHours()).padStart(2, '0');
-    const userMinutes = String(now.getMinutes()).padStart(2, '0');
-    const userSeconds = String(now.getSeconds()).padStart(2, '0');
+    try {
+        const now = new Date();
+        
+        // Actualizar hora UTC
+        const utcHours = String(now.getUTCHours()).padStart(2, '0');
+        const utcMinutes = String(now.getUTCMinutes()).padStart(2, '0');
+        const utcSeconds = String(now.getUTCSeconds()).padStart(2, '0');
+        const utcTimeStr = `${utcHours}:${utcMinutes}:${utcSeconds}`;
+        
+        const utcTimeEl = document.getElementById('utcTime');
+        if (utcTimeEl) {
+            utcTimeEl.textContent = utcTimeStr;
+        } else {
+            console.warn('⚠️ Elemento utcTime no encontrado en updateTimeDisplay');
+        }
+        
+        // Fecha UTC
+        const utcDay = now.getUTCDate();
+        const utcMonth = now.getUTCMonth();
+        const utcYear = now.getUTCFullYear();
+        const monthNames = [
+            'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+        ];
+        const utcDateEl = document.getElementById('utcDate');
+        if (utcDateEl) {
+            utcDateEl.textContent = `${utcDay} de ${monthNames[utcMonth]}, ${utcYear}`;
+        }
+        
+        // Actualizar hora del usuario (local)
+        const userHours = String(now.getHours()).padStart(2, '0');
+        const userMinutes = String(now.getMinutes()).padStart(2, '0');
+        const userSeconds = String(now.getSeconds()).padStart(2, '0');
         const userTimeEl = document.getElementById('userTime');
         if (userTimeEl) {
             userTimeEl.textContent = `${userHours}:${userMinutes}:${userSeconds}`;
