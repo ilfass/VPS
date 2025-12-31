@@ -2621,9 +2621,12 @@ function showCountryCelebrationBanner(countryName) {
 
 // Scraper de información de países usando Wikipedia API
 async function fetchCountryInfoAndAnnounce(countryName) {
+    console.log(`🔍 Buscando información de ${countryName}...`);
+    
     // Verificar cache primero
     if (state.countryInfoCache && state.countryInfoCache.has(countryName)) {
         const cachedInfo = state.countryInfoCache.get(countryName);
+        console.log(`✅ Información en cache para ${countryName}`);
         announceCountryInfo(countryName, cachedInfo);
         return;
     }
@@ -2631,11 +2634,13 @@ async function fetchCountryInfoAndAnnounce(countryName) {
     try {
         // Usar Wikipedia API para obtener información del país
         const searchUrl = `https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(countryName)}`;
+        console.log(`📡 Consultando Wikipedia: ${searchUrl}`);
         
         const response = await fetch(searchUrl);
-        if (!response.ok) throw new Error('Error en la búsqueda');
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
         
         const data = await response.json();
+        console.log(`✅ Información obtenida de Wikipedia para ${countryName}`);
         
         // Extraer información relevante
         const countryInfo = {
@@ -2655,7 +2660,7 @@ async function fetchCountryInfoAndAnnounce(countryName) {
         announceCountryInfo(countryName, countryInfo);
         
     } catch (error) {
-        console.warn('⚠️ Error obteniendo información del país:', error);
+        console.warn(`⚠️ Error obteniendo información del país ${countryName}:`, error);
         // Usar información genérica
         const genericInfo = {
             name: countryName,
@@ -2663,6 +2668,7 @@ async function fetchCountryInfoAndAnnounce(countryName) {
             capital: '',
             flag: ''
         };
+        console.log(`📢 Usando información genérica para ${countryName}`);
         announceCountryInfo(countryName, genericInfo);
     }
 }
