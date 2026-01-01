@@ -352,6 +352,14 @@ html {
     /* Highlight */
 }
 
+.active-country {
+    fill: #f59e0b !important;
+    /* Amber highlight */
+    stroke: #fff !important;
+    stroke-width: 1px !important;
+    z-index: 10;
+}
+
 .ocean {
     fill: #0f172a;
     /* Océano oscuro */
