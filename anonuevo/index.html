@@ -4,246 +4,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="google-adsense-account" content="ca-pub-2913558400341127">
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2913558400341127"
-        crossorigin="anonymous"></script>
-    <title>🎆 Año Nuevo Global 2025 | Rastreador en Vivo</title>
+    <title>Fabián de Haro | En Vivo</title>
     <meta name="description"
-        content="Sigue el avance del Año Nuevo por el mundo en tiempo real. Mapa global con franjas horarias, cuenta regresiva y transmisión en vivo.">
-    <link rel="icon"
-        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎆</text></svg>">
+        content="Transmisiones diarias en vivo con Fabián de Haro. Noticias, tecnología y actualidad.">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <link rel="stylesheet" href="styles.css">
-    <!-- Three.js para el globo terráqueo 3D -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- Highmaps para el planisferio (como 24timezones.com) -->
-    <script src="https://code.highcharts.com/maps/highmaps.js"></script>
-    <script src="https://code.highcharts.com/maps/modules/exporting.js"></script>
-    <script src="https://code.highcharts.com/mapdata/custom/world.js"></script>
-    <!-- MediaPipe Face Mesh para animación facial -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
-    <!-- TensorFlow.js para animación facial avanzada -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
-    <!-- D3.js para el mapa de husos horarios -->
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/topojson@3"></script>
-    <!-- Canvas Confetti para efectos de celebración -->
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <!-- YouTube IFrame API -->
-    <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 
 <body>
-    <!-- Reproductor de audio de fondo (oculto) -->
-    <div id="backgroundMusicPlayer" style="display: none;"></div>
-    <!-- Planisferio con Highmaps -->
-    <div class="globe-container" id="globeContainer">
-        <div id="highmapsPlanisphere" class="highmaps-planisphere"></div>
-        <!-- Línea central que marca dónde es medianoche (Año Nuevo) -->
-        <div class="midnight-line" id="midnightLine"></div>
+    <div class="background-effects">
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
     </div>
 
-    <!-- Overlay de Información -->
-    <div class="overlay-container">
-        <!-- Panel Principal de Información -->
-        <div class="info-panel">
-            <div class="info-header">
-                <h1>🎆 Año Nuevo Global 2025</h1>
-                <div class="status-indicator">
-                    <span class="status-dot" id="statusDot"></span>
-                    <span class="status-text" id="statusText">EN VIVO</span>
-                </div>
-            </div>
-
-            <!-- Hora del Usuario -->
-            <div class="time-display user-time">
-                <div class="time-label">Tu Hora Local</div>
-                <div class="time-value" id="userTime">00:00:00</div>
-                <div class="time-date" id="userDate">1 de Enero, 2025</div>
-                <div class="time-zone" id="userTimezone">UTC+0</div>
-            </div>
-
-            <!-- Hora Actual UTC -->
-            <div class="time-display">
-                <div class="time-label">Hora Actual (UTC)</div>
-                <div class="time-value" id="utcTime">00:00:00</div>
-                <div class="time-date" id="utcDate">1 de Enero, 2025</div>
-            </div>
-
-            <!-- Cuenta Regresiva Local -->
-            <div class="countdown-display">
-                <div class="countdown-label">Tiempo hasta Año Nuevo (Tu Zona)</div>
-                <div class="countdown-value" id="localCountdown">
-                    <span class="countdown-unit">
-                        <span class="number" id="days">00</span>
-                        <span class="label">Días</span>
-                    </span>
-                    <span class="countdown-separator">:</span>
-                    <span class="countdown-unit">
-                        <span class="number" id="hours">00</span>
-                        <span class="label">Horas</span>
-                    </span>
-                    <span class="countdown-separator">:</span>
-                    <span class="countdown-unit">
-                        <span class="number" id="minutes">00</span>
-                        <span class="label">Min</span>
-                    </span>
-                    <span class="countdown-separator">:</span>
-                    <span class="countdown-unit">
-                        <span class="number" id="seconds">00</span>
-                        <span class="label">Seg</span>
-                    </span>
-                </div>
-            </div>
-
-            <!-- Estadísticas -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">Zonas que ya celebraron</div>
-                    <div class="stat-value" id="zonesCelebrated">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Zonas por celebrar</div>
-                    <div class="stat-value" id="zonesRemaining">26</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Próxima zona</div>
-                    <div class="stat-value" id="nextZone">UTC+14</div>
-                </div>
-            </div>
-
-            <!-- Contador de Tiempo Restante Global -->
-            <!-- Contador de Tiempo Restante Global (ELIMINADO) -->
-            <!-- <div class="global-countdown">
-                <div class="global-countdown-label">⏰ Tiempo hasta el primer Año Nuevo</div>
-                <div class="global-countdown-value" id="globalCountdown">00:00:00</div>
-            </div> -->
+    <header class="site-header">
+        <div class="logo-container">
+            <i class="fa-solid fa-tower-broadcast logo-icon"></i>
+            <span class="logo-text">FABIÁN<span class="highlight">LIVE</span></span>
         </div>
-
-
-
-        <!-- Cartel de Hora en Punto -->
-        <div class="hourly-banner" id="hourlyBanner">
-            <div class="hourly-banner-content">
-                <div class="hourly-banner-text">¡YA FALTA MENOS!</div>
-                <div class="hourly-banner-subtext" id="hourlyBannerSubtext"></div>
-            </div>
+        <div class="live-status" id="liveStatus">
+            <span class="status-dot"></span>
+            <span class="status-text">OFFLINE</span>
         </div>
+    </header>
 
-
-        <!-- Presentador con IA -->
-        <div class="ai-presenter-panel" id="aiPresenterPanel">
-            <div class="presenter-header">
-                <h2>🎙️ Presentador en Vivo</h2>
-                <div class="presenter-status" id="presenterStatus">En el aire</div>
-            </div>
-            <div class="presenter-content">
-                <div class="presenter-avatar-container">
-                    <div class="presenter-avatar" id="presenterAvatar">
-                        <div class="animated-presenter">
-                            <div class="presenter-head">
-                                <div class="presenter-face">
-                                    <div class="presenter-eyes">
-                                        <div class="eye left-eye"></div>
-                                        <div class="eye right-eye"></div>
-                                    </div>
-                                    <div class="presenter-mouth" id="avatarMouth"></div>
-                                </div>
-                            </div>
-                            <div class="presenter-body"></div>
-                        </div>
+    <main class="main-content">
+        <section class="hero-section">
+            <div class="video-container">
+                <!-- Placeholder for YouTube Embed -->
+                <div class="video-placeholder" id="videoPlaceholder">
+                    <div class="placeholder-content">
+                        <i class="fa-brands fa-youtube play-icon"></i>
+                        <h2>Próxima Transmisión</h2>
+                        <p id="nextStreamTime">Hoy a las 20:00 ARG</p>
+                        <a href="https://www.youtube.com/@fabiandeharo" target="_blank" class="cta-button">
+                            Ir al Canal
+                        </a>
                     </div>
-                    <div class="avatar-pulse"></div>
-                </div>
-                <div class="presenter-text-container">
-                    <div class="presenter-text" id="presenterText">
-                        Bienvenidos al rastreador global del Año Nuevo...
-                    </div>
-                    <div class="presenter-subtitle" id="presenterSubtitle">Generando contenido con IA...</div>
+                    <iframe id="youtubePlayer" src="" frameborder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowfullscreen style="display: none;"></iframe>
                 </div>
             </div>
-        </div>
 
-        <!-- Mensaje de Voz en Off -->
-        <div class="voice-message" id="voiceMessage" style="display: none;">
-            <div class="voice-content">
-                <div class="voice-icon">🎤</div>
-                <div class="voice-text" id="voiceText"></div>
-            </div>
-        </div>
+            <div class="stream-info">
+                <h1>Actualidad y Tecnología</h1>
+                <p class="stream-description">
+                    Únete a la conversación diaria. Analizamos las noticias más importantes del mundo tecnológico y la
+                    actualidad global.
+                </p>
 
-        <!-- Juegos Visuales -->
-        <div class="visual-effects" id="visualEffects">
-            <!-- Efectos visuales dinámicos -->
-        </div>
-
-        <!-- Cartel Festivo de Celebración de País -->
-        <div class="country-celebration-banner" id="countryCelebrationBanner" style="display: none;">
-            <div class="celebration-content">
-                <div class="celebration-emoji">🎆</div>
-                <div class="celebration-text">
-                    <div class="celebration-country" id="celebrationCountry">País</div>
-                    <div class="celebration-message" id="celebrationMessage">acaba de llegar al 2026</div>
+                <div class="social-links">
+                    <a href="#" class="social-btn youtube"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="#" class="social-btn twitter"><i class="fa-brands fa-x-twitter"></i></a>
+                    <a href="#" class="social-btn instagram"><i class="fa-brands fa-instagram"></i></a>
                 </div>
-                <div class="celebration-emoji">🎆</div>
             </div>
-        </div>
+        </section>
 
-        <!-- Recuadro del Próximo País -->
-        <div class="next-country-panel" id="nextCountryPanel">
-            <div class="next-country-header">
-                <span class="next-country-icon">⏰</span>
-                <span class="next-country-title">Próximo en recibir 2026</span>
+        <section class="schedule-section">
+            <h2><i class="fa-regular fa-calendar"></i> Próximos Eventos</h2>
+            <div class="schedule-grid">
+                <div class="schedule-card active">
+                    <div class="card-time">HOY 20:00</div>
+                    <div class="card-title">Resumen Semanal Tech</div>
+                    <div class="card-status">En Breve</div>
+                </div>
+                <div class="schedule-card">
+                    <div class="card-time">MAÑANA 20:00</div>
+                    <div class="card-title">Análisis de Mercado</div>
+                    <div class="card-status">Programado</div>
+                </div>
+                <div class="schedule-card">
+                    <div class="card-time">VIERNES 21:00</div>
+                    <div class="card-title">Preguntas y Respuestas</div>
+                    <div class="card-status">Programado</div>
+                </div>
             </div>
-            <div class="next-country-content">
-                <div class="next-country-name" id="nextCountryName">Cargando...</div>
-                <div class="next-country-time" id="nextCountryTime">--:--:--</div>
-                <div class="next-country-countdown" id="nextCountryCountdown">Faltan: --</div>
-            </div>
-        </div>
+        </section>
+    </main>
 
-        <!-- Gran Cuenta Regresiva Final (Overlay) -->
-        <div class="big-final-countdown" id="bigFinalCountdown" style="display: none;">
-            <div class="big-countdown-content">
-                <div class="big-countdown-label">PRÓXIMO AÑO NUEVO EN</div>
-                <div class="big-countdown-country" id="bigCountdownCountry">País</div>
-                <div class="big-countdown-timer" id="bigCountdownTimer">00:00</div>
-            </div>
-        </div>
+    <footer class="site-footer">
+        <p>&copy; 2026 Fabián de Haro. Todos los derechos reservados.</p>
+    </footer>
 
-        <!-- Footer -->
-        <footer class="site-footer">
-            <div class="footer-content">
-                <span>🎆 Transmisión en Vivo - Año Nuevo Global 2025</span>
-                <a href="https://www.youtube.com/@fabiandeharo" target="_blank" class="youtube-link">
-                    📺 Suscríbete en YouTube
-                </a>
-            </div>
-        </footer>
-    </div>
-
-    <!-- Audio de Fondo - Múltiples pistas -->
-    <audio id="backgroundAudio1" loop>
-        <!-- Audio principal -->
-    </audio>
-    <audio id="backgroundAudio2" loop>
-        <!-- Audio secundario -->
-    </audio>
-    <audio id="backgroundAudio3" loop>
-        <!-- Audio adicional -->
-    </audio>
-
-    <script src="timezones-data.js"></script>
     <script src="script.js"></script>
-
-    <!-- Nuevas Funcionalidades (Modularizadas) -->
-    <link rel="stylesheet" href="features/celebrated-list.css">
-    <link rel="stylesheet" href="features/share.css">
-    <script src="features/celebrated-list.js"></script>
-    <script src="features/share.js"></script>
-    <script src="features/post-event.js"></script>
 </body>
 
 </html>
