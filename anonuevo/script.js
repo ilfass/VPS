@@ -2544,18 +2544,11 @@ function updateNextCountryPanel() {
         if (!nextCountryNameEl || !timeUntilNextEl) return;
 
         const now = new Date();
-        const currentYear = now.getFullYear();
-
-        // Encontrar la próxima zona horaria que llegará a medianoche
-        // Iteramos sobre todas las zonas horarias conocidas para ver cuál es la siguiente
-        // que tendrá las 00:00:00
 
         let minTimeRemaining = Infinity;
-        let nextZoneName = null;
         let nextZoneId = null;
 
-        // Lista de zonas horarias representativas (simplificada para rendimiento)
-        // Se asume que COUNTRY_TIMEZONE_MAP tiene las zonas correctas
+        // Lista de zonas horarias
         const uniqueZones = new Set(Object.values(COUNTRY_TIMEZONE_MAP));
 
         uniqueZones.forEach(timezone => {
@@ -2564,120 +2557,118 @@ function updateNextCountryPanel() {
                 const zoneDateString = now.toLocaleString('en-US', { timeZone: timezone });
                 const zoneDate = new Date(zoneDateString);
 
-                // Lógica de emergencia: Buscar la próxima medianoche más cercana
-                // Eliminamos la restricción de fecha para que funcione en UTC-3 (Argentina)
-                // aunque en UTC ya sea 1 de Enero.
-
+                // Calcular próxima medianoche (00:00:00 del día siguiente)
                 const nextMidnight = new Date(zoneDate);
                 nextMidnight.setHours(24, 0, 0, 0);
 
                 const msUntilMidnight = nextMidnight - zoneDate;
 
-                // Si es positivo y menor que el actual mínimo
+                // Buscamos el evento más cercano en el futuro (pero dentro de las próximas 24h)
                 if (msUntilMidnight > 0 && msUntilMidnight < minTimeRemaining) {
                     minTimeRemaining = msUntilMidnight;
                     nextZoneId = timezone;
                 }
             } catch (e) {
-                // Zona inválida, ignorar
+                // Ignorar zonas inválidas
             }
         });
 
+        let displayName = "Cargando...";
+
+        // Si encontramos una zona
         if (nextZoneId) {
             // Encontrar países en esta zona
             const countriesInZone = Object.entries(COUNTRY_TIMEZONE_MAP)
                 .filter(([country, tz]) => tz === nextZoneId)
-                .map(([country]) => country.charAt(0).toUpperCase() + country.slice(1)) // Capitalizar
-                .slice(0, 3); // Tomar solo los primeros 3
+                .map(([country]) => country.charAt(0).toUpperCase() + country.slice(1))
+                .slice(0, 3);
 
-            let displayName = countriesInZone.join(', ');
+            displayName = countriesInZone.join(', ');
             if (countriesInZone.length < 1) displayName = nextZoneId.split('/')[1].replace(/_/g, ' ');
-
-            // Formatear tiempo restante
-            const totalSeconds = Math.floor(minTimeRemaining / 1000);
-            const hours = Math.floor(totalSeconds / 3600);
-            const minutes = Math.floor((totalSeconds % 3600) / 60);
-            const seconds = totalSeconds % 60;
-
-            const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-
-            // Actualizar UI
-            nextCountryNameEl.textContent = displayName;
-            timeUntilNextEl.textContent = timeString;
-
-            // Actualizar estado global
-            state.nextZone = displayName;
-
-            // Actualizar también la tarjeta de estadísticas si existe
-            const statNextZone = document.getElementById('nextZone');
-            if (statNextZone) {
-                statNextZone.textContent = displayName;
-            }
-
-            // --- Lógica de Gran Cuenta Regresiva y Voz ---
-            const bigCountdownEl = document.getElementById('bigFinalCountdown');
-            const bigTimerEl = document.getElementById('bigCountdownTimer');
-            const bigCountryEl = document.getElementById('bigCountdownCountry');
-
-            if (bigCountdownEl && bigTimerEl && bigCountryEl) {
-                // Mostrar si falta menos de 20 minutos (1200000 ms)
-                if (minTimeRemaining <= 1200000 && minTimeRemaining > 0) {
-                    bigCountdownEl.style.display = 'flex';
-                    bigCountryEl.textContent = displayName;
-
-                    // Formato MM:SS para el timer grande
-                    const mStr = minutes.toString().padStart(2, '0');
-                    const sStr = seconds.toString().padStart(2, '0');
-                    bigTimerEl.textContent = `${mStr}:${sStr}`;
-
-                    // --- Lógica de Voz ---
-                    // Inicializar estado si no existe
-                    if (typeof state.lastCountdownMinute === 'undefined') state.lastCountdownMinute = -1;
-                    if (typeof state.lastCountdownSecond === 'undefined') state.lastCountdownSecond = -1;
-
-                    // 1. Minutos restantes (cada vez que cambia el minuto)
-                    if (state.lastCountdownMinute !== minutes) {
-                        state.lastCountdownMinute = minutes;
-                        if (minutes > 0) {
-                            // Variar mensajes
-                            const messages = [
-                                `Faltan ${minutes} minutos para el Año Nuevo en ${displayName}`,
-                                `Solo quedan ${minutes} minutos para recibir el 2026 en ${displayName}`,
-                                `Atención, ${minutes} minutos restantes`
-                            ];
-                            const msg = messages[Math.floor(Math.random() * messages.length)];
-                            speakMessage(msg);
-                        } else {
-                            speakMessage(`¡Atención! Menos de un minuto para el Año Nuevo en ${displayName}`);
-                        }
-                    }
-
-                    // 2. Últimos 30 segundos (segundo a segundo)
-                    if (minutes === 0 && seconds <= 30 && state.lastCountdownSecond !== seconds) {
-                        state.lastCountdownSecond = seconds;
-                        if (seconds > 10) {
-                            // Solo decir cada 5 o 10 segundos si falta más de 10
-                            if (seconds % 5 === 0) speakMessage(`${seconds} segundos`);
-                        } else if (seconds > 0) {
-                            // Cuenta regresiva final segundo a segundo
-                            speakMessage(`${seconds}`);
-                        } else {
-                            speakMessage(`¡Feliz Año Nuevo ${displayName}!`);
-                            lanzarConfetti();
-                        }
-                    }
-
-                } else {
-                    bigCountdownEl.style.display = 'none';
-                    state.lastCountdownMinute = -1;
-                }
-            }
-
         } else {
-            nextCountryNameEl.textContent = "Todo el mundo ha celebrado";
-            timeUntilNextEl.textContent = "--:--:--";
-            const statNextZone = document.getElementById('nextZone');
-            if (statNextZone) statNextZone.textContent = "Fin";
+            // FALLBACK: Si no se encuentra nada, apuntar a la próxima hora en punto
+            // Esto asegura que el contador SIEMPRE funcione
+            const nextHour = new Date();
+            nextHour.setHours(nextHour.getHours() + 1, 0, 0, 0);
+            minTimeRemaining = nextHour - now;
+            displayName = "Próximo Año Nuevo";
+            nextZoneId = "Global";
+        }
+
+        // Formatear tiempo restante
+        const totalSeconds = Math.floor(minTimeRemaining / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+
+        const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+        // Actualizar UI
+        nextCountryNameEl.textContent = displayName;
+        timeUntilNextEl.textContent = timeString;
+
+        // Actualizar estado global
+        state.nextZone = displayName;
+
+        // Actualizar también la tarjeta de estadísticas si existe
+        const statNextZone = document.getElementById('nextZone');
+        if (statNextZone) {
+            statNextZone.textContent = displayName;
+        }
+
+        // --- Lógica de Gran Cuenta Regresiva y Voz ---
+        const bigCountdownEl = document.getElementById('bigFinalCountdown');
+        const bigTimerEl = document.getElementById('bigCountdownTimer');
+        const bigCountryEl = document.getElementById('bigCountdownCountry');
+
+        if (bigCountdownEl && bigTimerEl && bigCountryEl) {
+            // Mostrar si falta menos de 20 minutos (1200000 ms)
+            if (minTimeRemaining <= 1200000 && minTimeRemaining > 0) {
+                bigCountdownEl.style.display = 'flex';
+                bigCountryEl.textContent = displayName;
+
+                // Formato MM:SS para el timer grande
+                const mStr = minutes.toString().padStart(2, '0');
+                const sStr = seconds.toString().padStart(2, '0');
+                bigTimerEl.textContent = `${mStr}:${sStr}`;
+
+                // --- Lógica de Voz ---
+                if (typeof state.lastCountdownMinute === 'undefined') state.lastCountdownMinute = -1;
+                if (typeof state.lastCountdownSecond === 'undefined') state.lastCountdownSecond = -1;
+
+                // 1. Minutos restantes
+                if (state.lastCountdownMinute !== minutes) {
+                    state.lastCountdownMinute = minutes;
+                    if (minutes > 0) {
+                        const messages = [
+                            `Faltan ${minutes} minutos para el Año Nuevo en ${displayName}`,
+                            `Solo quedan ${minutes} minutos para recibir el 2026 en ${displayName}`,
+                            `Atención, ${minutes} minutos restantes`
+                        ];
+                        const msg = messages[Math.floor(Math.random() * messages.length)];
+                        speakMessage(msg);
+                    } else {
+                        speakMessage(`¡Atención! Menos de un minuto para el Año Nuevo en ${displayName}`);
+                    }
+                }
+
+                // 2. Últimos 30 segundos
+                if (minutes === 0 && seconds <= 30 && state.lastCountdownSecond !== seconds) {
+                    state.lastCountdownSecond = seconds;
+                    if (seconds > 10) {
+                        if (seconds % 5 === 0) speakMessage(`${seconds} segundos`);
+                    } else if (seconds > 0) {
+                        speakMessage(`${seconds}`);
+                    } else {
+                        speakMessage(`¡Feliz Año Nuevo ${displayName}!`);
+                        lanzarConfetti();
+                    }
+                }
+
+            } else {
+                bigCountdownEl.style.display = 'none';
+                state.lastCountdownMinute = -1;
+            }
         }
 
     } catch (error) {
