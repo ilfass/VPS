@@ -727,6 +727,18 @@ function highlightCountriesAtGreenwich() {
 
                 // Lógica de estados basada en AÑO y HORA:
 
+                // MODIFICACIÓN SOLICITADA: Oscurecer todo excepto Argentina
+                if (countryName.toLowerCase() === 'argentina') {
+                    countryColor = '#00f2fe'; // Cian brillante para Argentina
+                    borderColor = '#ffffff';
+                    borderWidth = 2;
+                    zIndex = 100;
+                } else {
+                    countryColor = '#1a2a4e'; // Azul muy oscuro para el resto
+                    borderColor = 'rgba(255, 255, 255, 0.1)'; // Bordes sutiles
+                }
+
+                /* LÓGICA ORIGINAL COMENTADA TEMPORALMENTE
                 // 1. YA ESTÁ EN 2026 (o año nuevo)
                 if (countryYear > 2025) {
                     // CELEBRANDO AHORA (00:00 - 01:00)
@@ -769,6 +781,7 @@ function highlightCountriesAtGreenwich() {
                         countryColor = '#5a7a9e'; // Azul (esperando)
                     }
                 }
+                */
 
 
                 // Aplicar cambios solo si es necesario para rendimiento
