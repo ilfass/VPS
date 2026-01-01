@@ -13,7 +13,7 @@ export const WORLD_MAP_SVG = `
     <rect width="2000" height="1000" fill="url(#oceanGradient)"/>
     
     <!-- Land Masses (Simplified for performance and aesthetics) -->
-    <g fill="#334155" stroke="none">
+    <g class="land-masses" fill="#334155" stroke="none">
         <!-- North America -->
         <path d="M350,150 L550,150 L600,300 L500,450 L400,400 L300,300 Z M 300,100 L 900,100 L 800, 400 L 200, 200 Z" opacity="0.1" /> 
         <!-- Note: Real path data would be too long for this snippet. 

@@ -27,8 +27,8 @@ export default class MapaMode {
                 </div>
 
                 <div class="map-info-overlay">
-                    <div class="map-title">TIEMPO REAL GLOBAL</div>
-                    <div class="map-time" id="map-time-display">00:00:00 UTC</div>
+                    <div class="map-title">MAPA MUNDIAL – DÍA Y NOCHE EN TIEMPO REAL</div>
+                    <div class="map-time" id="map-time-display">00:00 UTC</div>
                 </div>
             </div>
         `;
@@ -48,9 +48,10 @@ export default class MapaMode {
     update(now) {
         if (!this.nightPath) return;
 
-        // Actualizar reloj
-        const utcTime = now.toISOString().split('T')[1].split('.')[0];
-        this.timeDisplay.textContent = `${utcTime} UTC`;
+        // Actualizar reloj (Formato HH:MM)
+        const hours = String(now.getUTCHours()).padStart(2, '0');
+        const minutes = String(now.getUTCMinutes()).padStart(2, '0');
+        this.timeDisplay.textContent = `${hours}:${minutes} UTC`;
 
         // Calcular posición del sol y sombra cada minuto (o cada tick para suavidad)
         // Para rendimiento, podríamos limitar esto, pero el cálculo es rápido.

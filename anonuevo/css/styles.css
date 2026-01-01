@@ -155,6 +155,7 @@ html {
 }
 
 /* MODO MAPA */
+/* MODO MAPA */
 .map-mode-container {
     width: 100%;
     height: 100%;
@@ -176,6 +177,16 @@ html {
     display: block;
 }
 
+/* Mejora de contraste para continentes */
+.land-masses path {
+    fill: #475569;
+    /* Más claro que el fondo */
+    stroke: #64748b;
+    /* Borde sutil */
+    stroke-width: 0.5;
+    transition: fill 0.3s ease;
+}
+
 .night-overlay {
     position: absolute;
     top: 0;
@@ -184,46 +195,56 @@ html {
     height: 100%;
     pointer-events: none;
     mix-blend-mode: multiply;
-    /* Multiplicar para oscurecer el mapa base */
+    opacity: 0.85;
+    /* Más oscuro para evidenciar la noche */
 }
 
 .sun-marker {
     position: absolute;
-    width: 40px;
-    height: 40px;
-    font-size: 30px;
-    line-height: 40px;
+    width: 50px;
+    /* Un poco más grande */
+    height: 50px;
+    font-size: 35px;
+    line-height: 50px;
     text-align: center;
     transform: translate(-50%, -50%);
-    filter: drop-shadow(0 0 10px rgba(255, 200, 0, 0.8));
+    filter: drop-shadow(0 0 15px rgba(255, 200, 0, 0.9));
     transition: top 1s linear, left 1s linear;
-    /* Movimiento suave */
     z-index: 10;
 }
 
 .map-info-overlay {
     position: absolute;
-    bottom: 30px;
-    left: 30px;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(10px);
-    padding: 15px 25px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    /* Centrado abajo */
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(15px);
+    padding: 20px 40px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
     z-index: 20;
+    text-align: center;
+    min-width: 400px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .map-title {
-    font-size: 0.9rem;
+    font-size: 1.2rem;
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 2px;
+    letter-spacing: 3px;
     margin-bottom: 5px;
+    font-weight: 600;
 }
 
 .map-time {
-    font-size: 2rem;
-    font-weight: 700;
+    font-size: 4rem;
+    /* Mucho más grande */
+    font-weight: 900;
     font-variant-numeric: tabular-nums;
     color: var(--text-primary);
+    line-height: 1;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 }
