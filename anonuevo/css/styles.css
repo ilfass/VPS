@@ -1,0 +1,155 @@
+:root {
+    --bg-color: #050505;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0a0;
+    --accent: #3b82f6;
+    --font-stack: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body,
+html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    /* Sin scroll para OBS */
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: var(--font-stack);
+}
+
+#app-container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.stage {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+/* Utilidades comunes para los modos */
+.center-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    height: 100%;
+}
+
+.title-large {
+    font-size: 5rem;
+    font-weight: 900;
+    letter-spacing: -2px;
+    margin-bottom: 1rem;
+}
+
+.subtitle {
+    font-size: 2rem;
+    color: var(--text-secondary);
+    font-weight: 300;
+}
+
+/* Debug Layer */
+#debug-layer {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #00ff00;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+/* Loading */
+.loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 0.5;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.5;
+    }
+}
+
+/* Estilos específicos para modos (pueden sobreescribirse o cargarse dinámicamente) */
+
+/* MODO RELOJ */
+.clock-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.clock-time {
+    font-size: 12vw;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    text-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+}
+
+.clock-date {
+    font-size: 3vw;
+    margin-top: 1rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+}
+
+/* MODO CURIOSIDADES */
+.fact-card {
+    max-width: 80%;
+    padding: 3rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.fact-text {
+    font-size: 3rem;
+    line-height: 1.4;
+    font-weight: 600;
+}
+
+.fact-category {
+    color: var(--accent);
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 1.5rem;
+    display: block;
+}

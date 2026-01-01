@@ -4,99 +4,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fabián de Haro | En Vivo</title>
-    <meta name="description"
-        content="Transmisiones diarias en vivo con Fabián de Haro. Noticias, tecnología y actualidad.">
-
-    <!-- Google Fonts -->
+    <title>Live Stream Engine</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Preload critical fonts if any -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
-
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap" rel="stylesheet">
 </head>
 
 <body>
-    <div class="background-effects">
-        <div class="glow-orb orb-1"></div>
-        <div class="glow-orb orb-2"></div>
+    <div id="app-container">
+        <!-- El contenido del modo se inyectará aquí -->
+        <div id="stage" class="stage">
+            <div class="loading">Cargando motor...</div>
+        </div>
+
+        <!-- Capa de depuración (opcional, activable por URL ?debug=true) -->
+        <div id="debug-layer" style="display: none;">
+            <span id="fps-counter">FPS: 0</span>
+            <span id="mode-indicator">Modo: --</span>
+        </div>
     </div>
 
-    <header class="site-header">
-        <div class="logo-container">
-            <i class="fa-solid fa-tower-broadcast logo-icon"></i>
-            <span class="logo-text">FABIÁN<span class="highlight">LIVE</span></span>
-        </div>
-        <div class="live-status" id="liveStatus">
-            <span class="status-dot"></span>
-            <span class="status-text">OFFLINE</span>
-        </div>
-    </header>
-
-    <main class="main-content">
-        <section class="hero-section">
-            <div class="video-container">
-                <!-- Placeholder for YouTube Embed -->
-                <div class="video-placeholder" id="videoPlaceholder">
-                    <div class="placeholder-content">
-                        <i class="fa-brands fa-youtube play-icon"></i>
-                        <h2>Próxima Transmisión</h2>
-                        <p id="nextStreamTime">Hoy a las 20:00 ARG</p>
-                        <a href="https://www.youtube.com/@fabiandeharo" target="_blank" class="cta-button">
-                            Ir al Canal
-                        </a>
-                    </div>
-                    <iframe id="youtubePlayer" src="" frameborder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowfullscreen style="display: none;"></iframe>
-                </div>
-            </div>
-
-            <div class="stream-info">
-                <h1>Actualidad y Tecnología</h1>
-                <p class="stream-description">
-                    Únete a la conversación diaria. Analizamos las noticias más importantes del mundo tecnológico y la
-                    actualidad global.
-                </p>
-
-                <div class="social-links">
-                    <a href="#" class="social-btn youtube"><i class="fa-brands fa-youtube"></i></a>
-                    <a href="#" class="social-btn twitter"><i class="fa-brands fa-x-twitter"></i></a>
-                    <a href="#" class="social-btn instagram"><i class="fa-brands fa-instagram"></i></a>
-                </div>
-            </div>
-        </section>
-
-        <section class="schedule-section">
-            <h2><i class="fa-regular fa-calendar"></i> Próximos Eventos</h2>
-            <div class="schedule-grid">
-                <div class="schedule-card active">
-                    <div class="card-time">HOY 20:00</div>
-                    <div class="card-title">Resumen Semanal Tech</div>
-                    <div class="card-status">En Breve</div>
-                </div>
-                <div class="schedule-card">
-                    <div class="card-time">MAÑANA 20:00</div>
-                    <div class="card-title">Análisis de Mercado</div>
-                    <div class="card-status">Programado</div>
-                </div>
-                <div class="schedule-card">
-                    <div class="card-time">VIERNES 21:00</div>
-                    <div class="card-title">Preguntas y Respuestas</div>
-                    <div class="card-status">Programado</div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <footer class="site-footer">
-        <p>&copy; 2026 Fabián de Haro. Todos los derechos reservados.</p>
-    </footer>
-
-    <script src="script.js"></script>
+    <!-- Scripts Base -->
+    <script type="module" src="js/main.js"></script>
 </body>
 
 </html>
