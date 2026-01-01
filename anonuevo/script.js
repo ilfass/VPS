@@ -2564,24 +2564,19 @@ function updateNextCountryPanel() {
                 const zoneDateString = now.toLocaleString('en-US', { timeZone: timezone });
                 const zoneDate = new Date(zoneDateString);
 
-                // Lógica robusta: Queremos la próxima medianoche que marque el cambio de año.
-                // Si la fecha es 31 de Diciembre, la próxima medianoche es Año Nuevo.
-                // Si la fecha es antes (ej. 30 Dic), falta más de 24h (no nos importa ahora).
-                // Si la fecha es 1 de Enero o después, ya celebró.
+                // Lógica de emergencia: Buscar la próxima medianoche más cercana
+                // Eliminamos la restricción de fecha para que funcione en UTC-3 (Argentina)
+                // aunque en UTC ya sea 1 de Enero.
 
-                // Verificar si es 31 de Diciembre
-                if (zoneDate.getMonth() === 11 && zoneDate.getDate() === 31) {
-                    // Calcular tiempo hasta la medianoche de hoy (que será mañana 00:00)
-                    const nextMidnight = new Date(zoneDate);
-                    nextMidnight.setHours(24, 0, 0, 0);
+                const nextMidnight = new Date(zoneDate);
+                nextMidnight.setHours(24, 0, 0, 0);
 
-                    const msUntilMidnight = nextMidnight - zoneDate;
+                const msUntilMidnight = nextMidnight - zoneDate;
 
-                    // Si es positivo y menor que el actual mínimo
-                    if (msUntilMidnight > 0 && msUntilMidnight < minTimeRemaining) {
-                        minTimeRemaining = msUntilMidnight;
-                        nextZoneId = timezone;
-                    }
+                // Si es positivo y menor que el actual mínimo
+                if (msUntilMidnight > 0 && msUntilMidnight < minTimeRemaining) {
+                    minTimeRemaining = msUntilMidnight;
+                    nextZoneId = timezone;
                 }
             } catch (e) {
                 // Zona inválida, ignorar
