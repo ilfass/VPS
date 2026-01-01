@@ -68,7 +68,6 @@ export default class MapaMode {
             .style("height", "100%");
 
         // Definir proyección (Equirectangular para llenar pantalla 16:9)
-        // Ajustamos la escala y traslación para que cubra bien 1920x1080
         this.projection = d3.geoEquirectangular()
             .scale(300)
             .translate([this.width / 2, this.height / 2]);
@@ -82,8 +81,7 @@ export default class MapaMode {
         this.gMap.append("path")
             .datum({ type: "Sphere" })
             .attr("class", "ocean")
-            .attr("d", this.pathGenerator)
-            .attr("fill", "#0f172a");
+            .attr("d", this.pathGenerator);
 
         // Capa de Países (se llenará al cargar datos)
         this.gCountries = this.gMap.append("g").attr("class", "countries");
@@ -91,14 +89,13 @@ export default class MapaMode {
         // Capa de Noche (Sombra)
         this.nightPath = this.gMap.append("path")
             .attr("class", "night-overlay")
-            .attr("fill", "rgba(0,0,0,0.6)")
             .style("mix-blend-mode", "multiply");
 
         // Sol (marcador simple)
         this.sunGroup = this.svg.append("g").attr("class", "sun-group");
         this.sunGroup.append("circle")
             .attr("r", 15)
-            .attr("fill", "#fde047")
+            .attr("class", "sun-circle")
             .attr("filter", "drop-shadow(0 0 20px rgba(253, 224, 71, 0.8))");
     }
 
@@ -121,10 +118,7 @@ export default class MapaMode {
             .data(this.worldData.features)
             .enter().append("path")
             .attr("d", this.pathGenerator)
-            .attr("class", "country")
-            .attr("fill", "#334155")
-            .attr("stroke", "#1e293b")
-            .attr("stroke-width", 0.5);
+            .attr("class", "country");
     }
 
     update(now) {
@@ -144,8 +138,6 @@ export default class MapaMode {
         if (!this.projection || !this.nightPath) return;
 
         // Calcular posición del sol
-        // D3 espera coordenadas [lon, lat]
-        // Lon: (12 - UTC) * 15
         const hours = date.getUTCHours();
         const minutes = date.getUTCMinutes();
         const totalHours = hours + minutes / 60;
@@ -167,13 +159,12 @@ export default class MapaMode {
         }
 
         // 2. Generar el círculo de noche
-        // La noche es el círculo centrado en la antípoda del sol
         const antipodalLon = sunLon > 0 ? sunLon - 180 : sunLon + 180;
         const antipodalLat = -sunLat;
 
         const circle = d3.geoCircle()
             .center([antipodalLon, antipodalLat])
-            .radius(90)(); // 90 grados de radio cubre medio mundo
+            .radius(90)();
 
         this.nightPath.attr("d", this.pathGenerator(circle));
     }
