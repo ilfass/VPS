@@ -383,8 +383,8 @@ html {
 
 /* Overlay Noche D3 */
 .night-overlay {
-    fill: rgba(0, 0, 0, 0.4);
-    /* Un poco más oscuro para resaltar los colores */
+    fill: rgba(0, 0, 0, 0.2);
+    /* Sombra mucho más suave (20%) */
     pointer-events: none;
     transition: d 1s linear;
 }
