@@ -156,37 +156,122 @@ html {
 
 /* MODO MAPA */
 /* MODO MAPA */
-.map-mode-container {
+/* =========================================
+   STREAMING LAYOUT (MODO MAPA PRO)
+   ========================================= */
+
+.stream-layout {
     width: 100%;
-    height: 100%;
-    position: relative;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
     background: #0f172a;
-    /* Color océano de fondo */
+    color: white;
     overflow: hidden;
 }
 
-.map-wrapper {
-    width: 100%;
-    height: 100%;
+/* --- HEADER --- */
+.stream-header {
+    height: 12vh;
+    background: linear-gradient(to bottom, #1e293b, #0f172a);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    z-index: 50;
+}
+
+.brand-block {
+    display: flex;
+    flex-direction: column;
+}
+
+.stream-title {
+    font-size: 2.5rem;
+    font-weight: 900;
+    letter-spacing: -1px;
+    line-height: 1;
+    background: linear-gradient(90deg, #fff, #94a3b8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.stream-subtitle {
+    font-size: 0.9rem;
+    color: #64748b;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: 5px;
+    font-weight: 600;
+}
+
+.clock-block {
+    text-align: right;
+}
+
+.stream-clock {
+    font-size: 3rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    color: #3b82f6;
+    text-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+.clock-label {
+    font-size: 0.7rem;
+    color: #64748b;
+    letter-spacing: 1px;
+    margin-top: 5px;
+}
+
+/* --- MAIN STAGE (MAP) --- */
+.stream-map-stage {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #0b1120;
+    /* Océano profundo */
+}
+
+.map-container {
+    width: 90%;
+    height: 90%;
     position: relative;
 }
 
-.map-wrapper svg {
+.map-container svg {
     width: 100%;
     height: 100%;
-    display: block;
+    filter: drop-shadow(0 0 30px rgba(0, 0, 0, 0.5));
 }
 
-/* Mejora de contraste para continentes */
-.land-masses path {
-    fill: #475569;
-    /* Más claro que el fondo */
-    stroke: #64748b;
-    /* Borde sutil */
-    stroke-width: 0.5;
-    transition: fill 0.3s ease;
+/* Animación suave de "respiración" para dar vida */
+.zoom-effect {
+    animation: slowZoom 60s infinite alternate ease-in-out;
 }
 
+@keyframes slowZoom {
+    0% {
+        transform: scale(1);
+    }
+
+    100% {
+        transform: scale(1.05);
+    }
+}
+
+/* Estilos del SVG Mapa */
+.world-map-group path {
+    transition: fill 0.3s;
+}
+
+/* Overlay Noche */
 .night-overlay {
     position: absolute;
     top: 0;
@@ -194,57 +279,50 @@ html {
     width: 100%;
     height: 100%;
     pointer-events: none;
-    mix-blend-mode: multiply;
-    opacity: 0.85;
-    /* Más oscuro para evidenciar la noche */
 }
 
+/* Sol */
 .sun-marker {
     position: absolute;
-    width: 50px;
-    /* Un poco más grande */
-    height: 50px;
-    font-size: 35px;
-    line-height: 50px;
-    text-align: center;
+    font-size: 40px;
     transform: translate(-50%, -50%);
-    filter: drop-shadow(0 0 15px rgba(255, 200, 0, 0.9));
-    transition: top 1s linear, left 1s linear;
+    filter: drop-shadow(0 0 20px rgba(253, 224, 71, 0.6));
     z-index: 10;
 }
 
-.map-info-overlay {
-    position: absolute;
-    bottom: 40px;
-    left: 50%;
-    transform: translateX(-50%);
-    /* Centrado abajo */
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(15px);
-    padding: 20px 40px;
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    z-index: 20;
-    text-align: center;
-    min-width: 400px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+/* --- FOOTER TICKER --- */
+.stream-footer {
+    height: 6vh;
+    background: #1e293b;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    padding: 0 2rem;
+    z-index: 50;
 }
 
-.map-title {
+.ticker-wrap {
+    width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.ticker-item {
     font-size: 1.2rem;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    margin-bottom: 5px;
     font-weight: 600;
+    color: #e2e8f0;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: opacity 0.5s ease;
 }
 
-.map-time {
-    font-size: 4rem;
-    /* Mucho más grande */
-    font-weight: 900;
-    font-variant-numeric: tabular-nums;
-    color: var(--text-primary);
-    line-height: 1;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+/* Ajustes Responsivos */
+@media (max-width: 1200px) {
+    .stream-title {
+        font-size: 2rem;
+    }
+
+    .stream-clock {
+        font-size: 2rem;
+    }
 }
