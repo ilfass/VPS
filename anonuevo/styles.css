@@ -1837,3 +1837,33 @@ body {
     from { transform: scale(1); text-shadow: 0 0 30px rgba(255, 255, 255, 0.5); }
     to { transform: scale(1.05); text-shadow: 0 0 60px rgba(255, 255, 255, 1); }
 }
+
+/* Estilos Post-Evento */
+.countdown-2027-container {
+    margin-top: 30px;
+    padding: 20px;
+    background: rgba(0, 20, 40, 0.8);
+    border: 2px solid #00f2fe;
+    border-radius: 15px;
+    text-align: center;
+    animation: fadeIn 2s;
+}
+
+.countdown-2027-container h2 {
+    color: #00f2fe;
+    margin-bottom: 10px;
+    font-size: 1.5rem;
+    text-transform: uppercase;
+}
+
+.timer-2027 {
+    font-size: 2rem;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.post-event-mode .info-panel {
+    border-color: #ffd700; /* Dorado para celebración final */
+}
