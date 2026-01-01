@@ -157,118 +157,81 @@ html {
 /* MODO MAPA */
 /* MODO MAPA */
 /* =========================================
-   STREAMING LAYOUT (MODO MAPA PRO)
+   BROADCAST SCENE (MODO MAPA FINAL)
    ========================================= */
 
-.stream-layout {
-    width: 100%;
+.broadcast-scene {
+    width: 100vw;
     height: 100vh;
-    display: flex;
-    flex-direction: column;
+    position: relative;
     background: #0f172a;
-    color: white;
     overflow: hidden;
 }
 
-/* --- HEADER --- */
-.stream-header {
-    height: 12vh;
-    background: linear-gradient(to bottom, #1e293b, #0f172a);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 0 3rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    z-index: 50;
+.broadcast-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, #1e293b 0%, #020617 100%);
+    z-index: 1;
 }
 
-.brand-block {
-    display: flex;
-    flex-direction: column;
-}
-
-.stream-title {
-    font-size: 2.5rem;
-    font-weight: 900;
-    letter-spacing: -1px;
-    line-height: 1;
-    background: linear-gradient(90deg, #fff, #94a3b8);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.stream-subtitle {
-    font-size: 0.9rem;
-    color: #64748b;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    margin-top: 5px;
-    font-weight: 600;
-}
-
-.clock-block {
-    text-align: right;
-}
-
-.stream-clock {
-    font-size: 3rem;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-    color: #3b82f6;
-    text-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
-}
-
-.clock-label {
-    font-size: 0.7rem;
-    color: #64748b;
-    letter-spacing: 1px;
-    margin-top: 5px;
-}
-
-/* --- MAIN STAGE (MAP) --- */
-.stream-map-stage {
-    flex: 1;
-    position: relative;
+/* --- MAPA FULLSCREEN --- */
+.broadcast-map-container {
+    position: absolute;
+    top: -10%;
+    left: -10%;
+    width: 120%;
+    height: 120%;
+    z-index: 2;
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
-    background: #0b1120;
-    /* Océano profundo */
 }
 
-.map-container {
-    width: 90%;
-    height: 90%;
-    position: relative;
-}
-
-.map-container svg {
+.broadcast-map-container svg {
     width: 100%;
     height: 100%;
-    filter: drop-shadow(0 0 30px rgba(0, 0, 0, 0.5));
+    /* Asegurar que cubra todo */
+    object-fit: cover;
+    filter: drop-shadow(0 0 50px rgba(0, 0, 0, 0.8));
 }
 
-/* Animación suave de "respiración" para dar vida */
-.zoom-effect {
-    animation: slowZoom 60s infinite alternate ease-in-out;
+/* Animación Cinemática Lenta */
+.zoom-pan-effect {
+    animation: slowPanZoom 120s infinite alternate ease-in-out;
 }
 
-@keyframes slowZoom {
+@keyframes slowPanZoom {
     0% {
-        transform: scale(1);
+        transform: scale(1) translate(0, 0);
+    }
+
+    25% {
+        transform: scale(1.1) translate(-2%, 1%);
+    }
+
+    50% {
+        transform: scale(1.05) translate(2%, -2%);
+    }
+
+    75% {
+        transform: scale(1.15) translate(1%, 2%);
     }
 
     100% {
-        transform: scale(1.05);
+        transform: scale(1) translate(0, 0);
     }
 }
 
 /* Estilos del SVG Mapa */
 .world-map-group path {
-    transition: fill 0.3s;
+    fill: #334155;
+    stroke: #475569;
+    stroke-width: 0.5;
+    transition: fill 0.5s ease;
 }
 
 /* Overlay Noche */
@@ -279,50 +242,97 @@ html {
     width: 100%;
     height: 100%;
     pointer-events: none;
+    mix-blend-mode: multiply;
 }
 
 /* Sol */
 .sun-marker {
     position: absolute;
-    font-size: 40px;
+    font-size: 60px;
     transform: translate(-50%, -50%);
-    filter: drop-shadow(0 0 20px rgba(253, 224, 71, 0.6));
+    filter: drop-shadow(0 0 30px rgba(253, 224, 71, 0.8));
     z-index: 10;
+    opacity: 0.9;
 }
 
-/* --- FOOTER TICKER --- */
-.stream-footer {
-    height: 6vh;
-    background: #1e293b;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+/* --- OVERLAY INFORMATIVO (Glassmorphism) --- */
+.broadcast-overlay {
+    position: absolute;
+    bottom: 50px;
+    left: 50px;
+    z-index: 50;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 25px 35px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    min-width: 300px;
+}
+
+.overlay-header {
     display: flex;
     align-items: center;
-    padding: 0 2rem;
-    z-index: 50;
+    gap: 15px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 10px;
 }
 
-.ticker-wrap {
-    width: 100%;
-    overflow: hidden;
-    white-space: nowrap;
+.live-badge {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    animation: pulseRed 2s infinite;
 }
 
-.ticker-item {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: #e2e8f0;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    transition: opacity 0.5s ease;
-}
-
-/* Ajustes Responsivos */
-@media (max-width: 1200px) {
-    .stream-title {
-        font-size: 2rem;
+@keyframes pulseRed {
+    0% {
+        opacity: 1;
     }
 
-    .stream-clock {
-        font-size: 2rem;
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+.overlay-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #94a3b8;
+    letter-spacing: 2px;
+}
+
+.overlay-clock {
+    font-size: 4.5rem;
+    font-weight: 800;
+    line-height: 1;
+    color: #ffffff;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -2px;
+    text-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+}
+
+.overlay-date {
+    font-size: 1.1rem;
+    color: #cbd5e1;
+    margin-top: 5px;
+    font-weight: 400;
+    text-transform: capitalize;
+}
+
+/* Ajustes para pantallas muy grandes (4K) o pequeñas */
+@media (min-width: 2500px) {
+    .broadcast-overlay {
+        transform: scale(1.5);
+        transform-origin: bottom left;
     }
 }
