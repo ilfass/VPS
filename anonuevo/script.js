@@ -2575,16 +2575,33 @@ function updateNextCountryPanel() {
 
         let displayName = "Cargando...";
 
-        // Si encontramos una zona
-        if (nextZoneId) {
-            // Encontrar países en esta zona
-            const countriesInZone = Object.entries(COUNTRY_TIMEZONE_MAP)
-                .filter(([country, tz]) => tz === nextZoneId)
-                .map(([country]) => country.charAt(0).toUpperCase() + country.slice(1))
-                .slice(0, 3);
+        // Si no se encontró ninguna zona, intentar usar la hora local del navegador
+        // Esto es crucial si el cálculo de zonas falla por falta de datos ICU en el navegador/sistema
+        if (!nextZoneId) {
+            const localNextMidnight = new Date();
+            localNextMidnight.setHours(24, 0, 0, 0);
+            const localDiff = localNextMidnight - now;
 
-            displayName = countriesInZone.join(', ');
-            if (countriesInZone.length < 1) displayName = nextZoneId.split('/')[1].replace(/_/g, ' ');
+            if (localDiff > 0 && localDiff < 86400000) { // Menos de 24h
+                minTimeRemaining = localDiff;
+                nextZoneId = "Tu Hora Local";
+                displayName = "Tu Ubicación";
+            }
+        }
+
+        // Si encontramos una zona (o usamos la local)
+        if (nextZoneId) {
+            // Si es una zona detectada por el mapa
+            if (nextZoneId !== "Tu Hora Local") {
+                // Encontrar países en esta zona
+                const countriesInZone = Object.entries(COUNTRY_TIMEZONE_MAP)
+                    .filter(([country, tz]) => tz === nextZoneId)
+                    .map(([country]) => country.charAt(0).toUpperCase() + country.slice(1))
+                    .slice(0, 3);
+
+                displayName = countriesInZone.join(', ');
+                if (countriesInZone.length < 1) displayName = nextZoneId.split('/')[1].replace(/_/g, ' ');
+            }
         } else {
             // FALLBACK: Si no se encuentra nada, apuntar a la próxima hora en punto
             // Esto asegura que el contador SIEMPRE funcione
