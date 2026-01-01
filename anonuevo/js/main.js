@@ -27,9 +27,22 @@ class App {
         // Iniciar motor de tiempo
         timeEngine.start();
 
-        // Detectar parámetros de URL
+        // Detectar modo desde URL (Query Param o Path)
         const params = new URLSearchParams(window.location.search);
-        const modeName = params.get('mode') || DEFAULT_MODE;
+        let modeName = params.get('mode');
+
+        // Si no hay query param, intentar extraer del path (ej: /vivos/mapa)
+        if (!modeName) {
+            const pathSegments = window.location.pathname.split('/').filter(Boolean);
+            const lastSegment = pathSegments[pathSegments.length - 1];
+            if (MODES[lastSegment]) {
+                modeName = lastSegment;
+            }
+        }
+
+        // Fallback al default
+        modeName = modeName || DEFAULT_MODE;
+
         const debug = params.get('debug') === 'true';
 
         if (debug) {
