@@ -336,3 +336,24 @@ html {
         transform-origin: bottom left;
     }
 }
+
+/* Estilos del SVG Mapa (D3) */
+.country {
+    transition: fill 0.5s ease, stroke 0.5s ease;
+}
+
+.country:hover {
+    fill: #475569;
+    /* Highlight sutil */
+}
+
+.ocean {
+    fill: #0f172a;
+}
+
+/* Overlay Noche D3 */
+.night-overlay {
+    pointer-events: none;
+    transition: d 1s linear;
+    /* Suavizar movimiento del path */
+}

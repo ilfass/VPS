@@ -1,140 +1,186 @@
 import { timeEngine } from '../utils/time.js';
-import { WORLD_MAP_SVG } from '../data/world-map.js';
 
 export default class MapaMode {
     constructor(container) {
         this.container = container;
         this.unsubscribeTime = null;
+        this.width = 1920;
+        this.height = 1080;
 
-        // DOM Elements
-        this.nightPath = null;
-        this.sunIcon = null;
-        this.clockEl = null;
-        this.dateEl = null;
+        // D3 selections
+        this.svg = null;
+        this.gMap = null;
+        this.pathGenerator = null;
+        this.projection = null;
+
+        // Data
+        this.worldData = null;
     }
 
-    mount() {
-        // 1. Estructura Fullscreen Broadcast (Sin layout web)
+    async mount() {
+        // 1. Estructura Base
         this.container.innerHTML = `
             <div class="broadcast-scene fade-in">
-                <!-- Capa de Fondo (Océano) -->
                 <div class="broadcast-background"></div>
-
-                <!-- Mapa Principal -->
-                <div class="broadcast-map-container zoom-pan-effect">
-                    ${WORLD_MAP_SVG}
-                    
-                    <!-- Capa de Noche -->
-                    <svg class="night-overlay" viewBox="0 0 1009.6727 665.96301" preserveAspectRatio="xMidYMid slice">
-                        <path id="night-path" fill="rgba(0,0,0,0.65)" d="" style="mix-blend-mode: multiply;" />
-                    </svg>
-                    
-                    <!-- Sol -->
-                    <div id="sun-icon" class="sun-marker">☀️</div>
-                </div>
-
-                <!-- Overlay Informativo (Discreto, esquina inferior izquierda) -->
+                <div id="d3-map-container" class="broadcast-map-container"></div>
+                
+                <!-- Overlay Informativo -->
                 <div class="broadcast-overlay">
                     <div class="overlay-header">
                         <span class="live-badge">● EN VIVO</span>
                         <span class="overlay-title">MONITOR GLOBAL</span>
                     </div>
                     <div class="overlay-clock" id="broadcast-clock">--:--</div>
-                    <div class="overlay-date" id="broadcast-date">Cargando fecha...</div>
+                    <div class="overlay-info" id="broadcast-info">Cargando datos geográficos...</div>
                 </div>
             </div>
         `;
 
-        // 2. Referencias
-        this.nightPath = this.container.querySelector('#night-path');
-        this.sunIcon = this.container.querySelector('#sun-icon');
-        this.clockEl = this.container.querySelector('#broadcast-clock');
-        this.dateEl = this.container.querySelector('#broadcast-date');
+        // 2. Inicializar D3
+        this.initD3();
 
-        // 3. Iniciar Lógica
-        this.unsubscribeTime = timeEngine.subscribe((now) => this.update(now));
+        // 3. Cargar Datos (GeoJSON)
+        try {
+            await this.loadMapData();
+            this.renderMap();
 
-        // Actualización inicial
-        this.update(new Date());
+            // 4. Iniciar Ciclo de Tiempo
+            this.unsubscribeTime = timeEngine.subscribe((now) => this.update(now));
+            this.update(new Date()); // Primer render inmediato
+
+            document.getElementById('broadcast-info').textContent = "SISTEMA ONLINE";
+        } catch (error) {
+            console.error("Error cargando mapa:", error);
+            document.getElementById('broadcast-info').textContent = "ERROR DE DATOS";
+        }
+    }
+
+    initD3() {
+        const container = d3.select("#d3-map-container");
+
+        // Limpiar
+        container.selectAll("*").remove();
+
+        this.svg = container.append("svg")
+            .attr("viewBox", `0 0 ${this.width} ${this.height}`)
+            .attr("preserveAspectRatio", "xMidYMid cover")
+            .style("width", "100%")
+            .style("height", "100%");
+
+        // Definir proyección (Equirectangular para llenar pantalla 16:9)
+        // Ajustamos la escala y traslación para que cubra bien 1920x1080
+        this.projection = d3.geoEquirectangular()
+            .scale(300)
+            .translate([this.width / 2, this.height / 2]);
+
+        this.pathGenerator = d3.geoPath().projection(this.projection);
+
+        // Grupo principal del mapa
+        this.gMap = this.svg.append("g").attr("class", "world-map-group");
+
+        // Capa de Océano (Esfera)
+        this.gMap.append("path")
+            .datum({ type: "Sphere" })
+            .attr("class", "ocean")
+            .attr("d", this.pathGenerator)
+            .attr("fill", "#0f172a");
+
+        // Capa de Países (se llenará al cargar datos)
+        this.gCountries = this.gMap.append("g").attr("class", "countries");
+
+        // Capa de Noche (Sombra)
+        this.nightPath = this.gMap.append("path")
+            .attr("class", "night-overlay")
+            .attr("fill", "rgba(0,0,0,0.6)")
+            .style("mix-blend-mode", "multiply");
+
+        // Sol (marcador simple)
+        this.sunGroup = this.svg.append("g").attr("class", "sun-group");
+        this.sunGroup.append("circle")
+            .attr("r", 15)
+            .attr("fill", "#fde047")
+            .attr("filter", "drop-shadow(0 0 20px rgba(253, 224, 71, 0.8))");
+    }
+
+    async loadMapData() {
+        if (this.worldData) return; // Ya cargado
+
+        // Usamos topojson de world-atlas (110m es ligero y suficiente para full screen)
+        const response = await fetch('https://unpkg.com/world-atlas@2.0.2/countries-110m.json');
+        if (!response.ok) throw new Error("Network response was not ok");
+
+        const topology = await response.json();
+        this.worldData = topojson.feature(topology, topology.objects.countries);
+    }
+
+    renderMap() {
+        if (!this.worldData) return;
+
+        // Renderizar países
+        this.gCountries.selectAll("path")
+            .data(this.worldData.features)
+            .enter().append("path")
+            .attr("d", this.pathGenerator)
+            .attr("class", "country")
+            .attr("fill", "#334155")
+            .attr("stroke", "#1e293b")
+            .attr("stroke-width", 0.5);
     }
 
     update(now) {
-        // Actualizar Reloj (HH:MM:SS opcional, prefiero HH:MM para limpieza)
-        const hours = String(now.getUTCHours()).padStart(2, '0');
-        const minutes = String(now.getUTCMinutes()).padStart(2, '0');
-        if (this.clockEl) this.clockEl.textContent = `${hours}:${minutes} UTC`;
-
-        // Actualizar Fecha
-        if (this.dateEl) {
-            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' };
-            // Capitalizar primera letra
-            const dateStr = now.toLocaleDateString('es-ES', dateOptions);
-            this.dateEl.textContent = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+        // Actualizar Reloj
+        const clockEl = document.getElementById('broadcast-clock');
+        if (clockEl) {
+            const hours = String(now.getUTCHours()).padStart(2, '0');
+            const minutes = String(now.getUTCMinutes()).padStart(2, '0');
+            clockEl.textContent = `${hours}:${minutes} UTC`;
         }
 
-        // Actualizar Ciclo Solar
-        if (this.nightPath) this.updateDayNightCycle(now);
+        // Actualizar Ciclo Día/Noche
+        this.updateDayNight(now);
     }
 
-    updateDayNightCycle(date) {
+    updateDayNight(date) {
+        if (!this.projection || !this.nightPath) return;
+
+        // Calcular posición del sol
+        // D3 espera coordenadas [lon, lat]
+        // Lon: (12 - UTC) * 15
         const hours = date.getUTCHours();
         const minutes = date.getUTCMinutes();
         const totalHours = hours + minutes / 60;
 
-        // Longitud del sol (-180 a 180)
         let sunLon = (12 - totalHours) * 15;
         if (sunLon > 180) sunLon -= 360;
         if (sunLon < -180) sunLon += 360;
 
-        // Declinación
-        const dayOfYear = this.getDayOfYear(date);
-        const declination = -23.44 * Math.cos((2 * Math.PI / 365) * (dayOfYear + 10));
-
-        // Posición del Sol (CSS %)
-        const sunX = ((sunLon + 180) / 360) * 100;
-        const sunY = ((90 - declination) / 180) * 100;
-
-        if (this.sunIcon) {
-            this.sunIcon.style.left = `${sunX}%`;
-            this.sunIcon.style.top = `${sunY}%`;
-        }
-
-        // Path del Terminador
-        const width = 1009.6727;
-        const height = 665.96301;
-
-        const points = [];
-        const step = 2; // Más suave
-        const rad = Math.PI / 180;
-        const tanDec = Math.tan(declination * rad);
-
-        for (let lon = -180; lon <= 180; lon += step) {
-            const deltaLon = (lon - sunLon) * rad;
-            let lat;
-            try {
-                lat = Math.atan(-Math.cos(deltaLon) / tanDec) * 180 / Math.PI;
-            } catch (e) { lat = 0; }
-
-            const x = ((lon + 180) / 360) * width;
-            const y = ((90 - lat) / 180) * height;
-            points.push(`${x},${y}`);
-        }
-
-        // Cerrar polígono
-        const closeY = declination > 0 ? height : 0;
-        const pathData = `M ${points[0]} L ${points.join(' L ')} L ${width},${closeY} L 0,${closeY} Z`;
-
-        this.nightPath.setAttribute('d', pathData);
-    }
-
-    getDayOfYear(date) {
+        // Declinación solar
         const start = new Date(date.getFullYear(), 0, 0);
         const diff = date - start;
-        return Math.floor(diff / (1000 * 60 * 60 * 24));
+        const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const sunLat = -23.44 * Math.cos((2 * Math.PI / 365) * (dayOfYear + 10));
+
+        // 1. Mover el icono del sol
+        const sunPos = this.projection([sunLon, sunLat]);
+        if (sunPos) {
+            this.sunGroup.attr("transform", `translate(${sunPos[0]}, ${sunPos[1]})`);
+        }
+
+        // 2. Generar el círculo de noche
+        // La noche es el círculo centrado en la antípoda del sol
+        const antipodalLon = sunLon > 0 ? sunLon - 180 : sunLon + 180;
+        const antipodalLat = -sunLat;
+
+        const circle = d3.geoCircle()
+            .center([antipodalLon, antipodalLat])
+            .radius(90)(); // 90 grados de radio cubre medio mundo
+
+        this.nightPath.attr("d", this.pathGenerator(circle));
     }
 
     unmount() {
         if (this.unsubscribeTime) this.unsubscribeTime();
         this.container.innerHTML = '';
+        this.svg = null;
     }
 }
