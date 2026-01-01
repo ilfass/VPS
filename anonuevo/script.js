@@ -2620,10 +2620,8 @@ function updateNextCountryPanel() {
             const bigCountryEl = document.getElementById('bigCountdownCountry');
 
             if (bigCountdownEl && bigTimerEl && bigCountryEl) {
-                // Mostrar si falta menos de 5 minutos (300000 ms)
-                // OJO: Para pruebas, si el usuario quiere verlo YA, podríamos aumentar este umbral o forzarlo.
-                // Lo dejaré en 5 minutos como "feature" real.
-                if (minTimeRemaining <= 300000 && minTimeRemaining > 0) {
+                // Mostrar si falta menos de 20 minutos (1200000 ms)
+                if (minTimeRemaining <= 1200000 && minTimeRemaining > 0) {
                     bigCountdownEl.style.display = 'flex';
                     bigCountryEl.textContent = displayName;
 
