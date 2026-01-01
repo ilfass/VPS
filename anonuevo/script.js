@@ -2614,6 +2614,67 @@ function updateNextCountryPanel() {
                 statNextZone.textContent = displayName;
             }
 
+            // --- Lógica de Gran Cuenta Regresiva y Voz ---
+            const bigCountdownEl = document.getElementById('bigFinalCountdown');
+            const bigTimerEl = document.getElementById('bigCountdownTimer');
+            const bigCountryEl = document.getElementById('bigCountdownCountry');
+
+            if (bigCountdownEl && bigTimerEl && bigCountryEl) {
+                // Mostrar si falta menos de 5 minutos (300000 ms)
+                // OJO: Para pruebas, si el usuario quiere verlo YA, podríamos aumentar este umbral o forzarlo.
+                // Lo dejaré en 5 minutos como "feature" real.
+                if (minTimeRemaining <= 300000 && minTimeRemaining > 0) {
+                    bigCountdownEl.style.display = 'flex';
+                    bigCountryEl.textContent = displayName;
+
+                    // Formato MM:SS para el timer grande
+                    const mStr = minutes.toString().padStart(2, '0');
+                    const sStr = seconds.toString().padStart(2, '0');
+                    bigTimerEl.textContent = `${mStr}:${sStr}`;
+
+                    // --- Lógica de Voz ---
+                    // Inicializar estado si no existe
+                    if (typeof state.lastCountdownMinute === 'undefined') state.lastCountdownMinute = -1;
+                    if (typeof state.lastCountdownSecond === 'undefined') state.lastCountdownSecond = -1;
+
+                    // 1. Minutos restantes (cada vez que cambia el minuto)
+                    if (state.lastCountdownMinute !== minutes) {
+                        state.lastCountdownMinute = minutes;
+                        if (minutes > 0) {
+                            // Variar mensajes
+                            const messages = [
+                                `Faltan ${minutes} minutos para el Año Nuevo en ${displayName}`,
+                                `Solo quedan ${minutes} minutos para recibir el 2026 en ${displayName}`,
+                                `Atención, ${minutes} minutos restantes`
+                            ];
+                            const msg = messages[Math.floor(Math.random() * messages.length)];
+                            speakMessage(msg);
+                        } else {
+                            speakMessage(`¡Atención! Menos de un minuto para el Año Nuevo en ${displayName}`);
+                        }
+                    }
+
+                    // 2. Últimos 30 segundos (segundo a segundo)
+                    if (minutes === 0 && seconds <= 30 && state.lastCountdownSecond !== seconds) {
+                        state.lastCountdownSecond = seconds;
+                        if (seconds > 10) {
+                            // Solo decir cada 5 o 10 segundos si falta más de 10
+                            if (seconds % 5 === 0) speakMessage(`${seconds} segundos`);
+                        } else if (seconds > 0) {
+                            // Cuenta regresiva final segundo a segundo
+                            speakMessage(`${seconds}`);
+                        } else {
+                            speakMessage(`¡Feliz Año Nuevo ${displayName}!`);
+                            lanzarConfetti();
+                        }
+                    }
+
+                } else {
+                    bigCountdownEl.style.display = 'none';
+                    state.lastCountdownMinute = -1;
+                }
+            }
+
         } else {
             nextCountryNameEl.textContent = "Todo el mundo ha celebrado";
             timeUntilNextEl.textContent = "--:--:--";
