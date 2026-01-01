@@ -339,27 +339,41 @@ html {
 
 /* Estilos del SVG Mapa (D3) - High Contrast */
 .country {
-    fill: #e2e8f0;
-    /* Tierra más clara (Slate 200) para resaltar sobre el océano */
-    stroke: #475569;
-    /* Borde oscuro */
+    /* Fill manejado por JS según continente */
+    stroke: #1e293b;
+    /* Borde oscuro y nítido */
     stroke-width: 0.5px;
-    transition: fill 0.5s ease;
+    transition: fill 0.5s ease, stroke-width 0.5s ease;
+    vector-effect: non-scaling-stroke;
+    /* Mantiene el grosor al hacer zoom? No soportado en todos los browsers con D3 transform, mejor manejar manual */
 }
 
 .country:hover {
-    fill: #cbd5e1;
-    /* Highlight sutil */
+    filter: brightness(1.2);
 }
 
 .active-country {
     fill: #fbbf24 !important;
     /* Amber 400 - Muy visible */
     stroke: #fff !important;
-    stroke-width: 1px !important;
-    z-index: 10;
-    filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.5));
-    /* Glow suave */
+    stroke-width: 1.5px !important;
+    /* Más grueso */
+    z-index: 100;
+    filter: drop_shadow(0 0 15px rgba(251, 191, 36, 0.6));
+}
+
+.country-label {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    text-anchor: middle;
+    fill: #ffffff;
+    pointer-events: none;
+    text-shadow:
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000,
+        0 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .ocean {
@@ -369,8 +383,8 @@ html {
 
 /* Overlay Noche D3 */
 .night-overlay {
-    fill: rgba(0, 0, 0, 0.35);
-    /* Sombra suave (35%) */
+    fill: rgba(0, 0, 0, 0.4);
+    /* Un poco más oscuro para resaltar los colores */
     pointer-events: none;
     transition: d 1s linear;
 }

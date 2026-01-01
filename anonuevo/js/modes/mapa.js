@@ -1,26 +1,5 @@
 import { timeEngine } from '../utils/time.js';
-import { scheduler } from '../utils/scheduler.js';
-
-const TOUR_TARGETS = [
-    { id: '032', name: 'Argentina' },
-    { id: '076', name: 'Brasil' },
-    { id: '840', name: 'Estados Unidos' },
-    { id: '124', name: 'Canadá' },
-    { id: '484', name: 'México' },
-    { id: '156', name: 'China' },
-    { id: '392', name: 'Japón' },
-    { id: '356', name: 'India' },
-    { id: '643', name: 'Rusia' },
-    { id: '276', name: 'Alemania' },
-    { id: '250', name: 'Francia' },
-    { id: '380', name: 'Italia' },
-    { id: '724', name: 'España' },
-    { id: '826', name: 'Reino Unido' },
-    { id: '036', name: 'Australia' },
-    { id: '710', name: 'Sudáfrica' },
-    { id: '818', name: 'Egipto' },
-    { id: '792', name: 'Turquía' }
-];
+import { COUNTRY_INFO, REGION_COLORS } from '../data/country-info.js';
 
 export default class MapaMode {
     constructor(container) {
@@ -38,6 +17,7 @@ export default class MapaMode {
         // Data
         this.worldData = null;
         this.currentZoom = d3.zoomIdentity;
+        this.travelTimeout = null;
     }
 
     async mount() {
@@ -97,7 +77,7 @@ export default class MapaMode {
 
         this.pathGenerator = d3.geoPath().projection(this.projection);
 
-        // Grupo principal (el que vamos a transformar/zoomear)
+        // Grupo principal
         this.gMap = this.svg.append("g").attr("class", "world-map-group");
 
         // Océano
@@ -109,6 +89,9 @@ export default class MapaMode {
         // Países
         this.gCountries = this.gMap.append("g").attr("class", "countries");
 
+        // Nombres de Países (Labels)
+        this.gLabels = this.gMap.append("g").attr("class", "country-labels");
+
         // Noche
         this.nightPath = this.gMap.append("path")
             .attr("class", "night-overlay")
@@ -117,7 +100,7 @@ export default class MapaMode {
         // Sol
         this.sunGroup = this.gMap.append("g").attr("class", "sun-group");
         this.sunGroup.append("circle")
-            .attr("r", 10) // Más pequeño base
+            .attr("r", 10)
             .attr("class", "sun-circle")
             .attr("filter", "drop-shadow(0 0 20px rgba(253, 224, 71, 0.8))");
     }
@@ -132,12 +115,31 @@ export default class MapaMode {
 
     renderMap() {
         if (!this.worldData) return;
+
+        // Renderizar países con colores por región
         this.gCountries.selectAll("path")
             .data(this.worldData.features)
             .enter().append("path")
             .attr("d", this.pathGenerator)
             .attr("class", "country")
-            .attr("id", d => `country-${d.id}`);
+            .attr("id", d => `country-${d.id}`)
+            .style("fill", d => {
+                const info = COUNTRY_INFO[d.id];
+                return info ? REGION_COLORS[info.region] : "#cbd5e1"; // Color por región o default
+            });
+
+        // Renderizar etiquetas (solo para países con info)
+        this.gLabels.selectAll("text")
+            .data(this.worldData.features.filter(d => COUNTRY_INFO[d.id]))
+            .enter().append("text")
+            .attr("class", "country-label")
+            .attr("transform", d => {
+                const centroid = this.pathGenerator.centroid(d);
+                return `translate(${centroid[0]}, ${centroid[1]})`;
+            })
+            .attr("dy", "0.35em")
+            .text(d => COUNTRY_INFO[d.id].name)
+            .style("opacity", 0); // Ocultos por defecto, se muestran al hacer zoom
     }
 
     update(now) {
@@ -170,7 +172,6 @@ export default class MapaMode {
         const sunPos = this.projection([sunLon, sunLat]);
         if (sunPos) {
             this.sunGroup.attr("transform", `translate(${sunPos[0]}, ${sunPos[1]})`);
-            // Mantener tamaño del sol constante visualmente (invertir zoom)
             const k = d3.zoomTransform(this.svg.node()).k || 1;
             this.sunGroup.selectAll("circle").attr("r", 15 / k);
         }
@@ -183,27 +184,28 @@ export default class MapaMode {
     }
 
     startAutoTravel() {
-        // Iniciar el ciclo de viaje: Global (40s) -> País (30s) -> Global...
-        // Empezamos con una vista global inicial corta para dar contexto, luego primer viaje.
+        // Ciclo: Global (40s) -> País (15s)
         setTimeout(() => this.cycleZoomIn(), 5000);
     }
 
     cycleZoomIn() {
-        // 1. Elegir país y hacer Zoom
-        const target = TOUR_TARGETS[Math.floor(Math.random() * TOUR_TARGETS.length)];
+        // Elegir país aleatorio de nuestra lista de info
+        const availableIds = Object.keys(COUNTRY_INFO);
+        const randomId = availableIds[Math.floor(Math.random() * availableIds.length)];
+        const target = { id: randomId, name: COUNTRY_INFO[randomId].name };
+
         this.zoomToCountry(target);
 
-        // 2. Programar vuelta a Vista Global en 30 segundos
+        // 15 segundos de zoom
         this.travelTimeout = setTimeout(() => {
             this.cycleZoomOut();
-        }, 30000);
+        }, 15000);
     }
 
     cycleZoomOut() {
-        // 1. Volver a Vista Global
         this.resetZoom();
 
-        // 2. Programar siguiente viaje en 40 segundos
+        // 40 segundos de vista global
         this.travelTimeout = setTimeout(() => {
             this.cycleZoomIn();
         }, 40000);
@@ -212,7 +214,6 @@ export default class MapaMode {
     zoomToCountry(target) {
         if (!this.worldData) return;
 
-        // Encontrar feature
         const feature = this.worldData.features.find(f => f.id === target.id);
 
         // Actualizar Info
@@ -230,44 +231,46 @@ export default class MapaMode {
         if (feature) {
             this.gCountries.select(`#country-${target.id}`).classed("active-country", true);
         } else {
-            this.cycleZoomOut(); // Si falla, volver a global y reintentar
+            this.cycleZoomOut();
             return;
         }
 
         // Calcular Zoom
-        // Bounds en pixeles [[x0, y0], [x1, y1]]
         const bounds = this.pathGenerator.bounds(feature);
         const dx = bounds[1][0] - bounds[0][0];
         const dy = bounds[1][1] - bounds[0][1];
         const x = (bounds[0][0] + bounds[1][0]) / 2;
         const y = (bounds[0][1] + bounds[1][1]) / 2;
 
-        // Escala: 0.6 del viewport / max dimension del país
         const scale = Math.max(1, Math.min(8, 0.6 / Math.max(dx / this.width, dy / this.height)));
         const translate = [this.width / 2 - scale * x, this.height / 2 - scale * y];
 
         // Transición D3
         this.gMap.transition()
-            .duration(3000) // 3 segundos de viaje
+            .duration(3000)
             .ease(d3.easeCubicInOut)
             .attr("transform", `translate(${translate})scale(${scale})`)
             .on("end", () => {
                 this.gCountries.selectAll("path").style("stroke-width", `${0.5 / scale}px`);
-                // Mantener el highlight del país activo mientras dure el zoom
-                this.gCountries.select(`#country-${target.id}`).style("stroke-width", `${1.5 / scale}px`);
+                this.gCountries.select(`#country-${target.id}`).style("stroke-width", `${2 / scale}px`);
+
+                // Mostrar etiquetas
+                this.gLabels.selectAll("text").style("opacity", 0); // Ocultar todas
+                // Mostrar solo la del país activo? O todas las visibles?
+                // Mejor solo la del activo para evitar clutter
+                // O mostrar todas con escala ajustada
+                this.gLabels.selectAll("text")
+                    .style("font-size", `${12 / scale}px`) // Ajustar tamaño texto
+                    .style("opacity", 1);
             });
 
-        // Guardar estado para el sol
-        // Nota: d3.zoomTransform no se actualiza automáticamente con transiciones manuales de attr transform
-        // Hack visual para el sol:
         this.sunGroup.selectAll("circle").transition().duration(3000).attr("r", 15 / scale);
     }
 
     resetZoom() {
-        // Quitar highlight
         this.gCountries.selectAll(".country").classed("active-country", false);
+        this.gLabels.selectAll("text").transition().duration(1000).style("opacity", 0); // Ocultar etiquetas
 
-        // Actualizar Info
         const infoEl = document.getElementById('broadcast-info');
         if (infoEl) {
             infoEl.style.opacity = 0;
