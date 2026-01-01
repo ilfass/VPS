@@ -91,7 +91,8 @@ const state = {
     currentUtterance: null, // Utterance actual para evitar cortes
     isSpeaking: false, // Flag para saber si está hablando
     pendingMessage: null, // Mensaje pendiente en cola
-    worldTimes: new Map() // Cache de horas del mundo
+    worldTimes: new Map(), // Cache de horas del mundo
+    initialLoadTime: Date.now() // Marca de tiempo de inicio
 };
 
 // ============================================
@@ -382,7 +383,7 @@ function initializeMapbox() {
                     color: '#5a7a9e', // Color de los países
                     states: {
                         hover: {
-                            color: '#7a9aae',
+                            color: '#00f2fe',
                             borderColor: 'rgba(255, 255, 255, 1)',
                             brightness: 0.3
                         }
@@ -2850,6 +2851,13 @@ function announceCountryInfo(countryName, info) {
     // Esto es un parche temporal para un error específico reportado
     if (countryName === 'Faroe Islands' && now.getUTCHours() !== 23) { // Faroe es UTC+0/UTC+1, celebra tarde
         console.warn('⚠️ Intento de anuncio falso para Faroe Islands bloqueado');
+        return;
+    }
+
+    // EVITAR ANUNCIOS AL CARGAR LA PÁGINA
+    // Si la página se cargó hace menos de 15 segundos, no anunciar nada.
+    if (state.initialLoadTime && (Date.now() - state.initialLoadTime < 15000)) {
+        console.log(`🤫 Silenciando anuncio de ${countryName} durante la carga inicial.`);
         return;
     }
 
