@@ -81,8 +81,11 @@ class App {
         scheduler.clearTasks();
 
         try {
-            // Importación dinámica del módulo
-            const module = await import(MODES[modeName]);
+            // Importación dinámica del módulo con Cache Busting
+            // Usamos un timestamp para forzar la recarga en cada visita nueva
+            // En producción idealmente usaríamos un hash de build, pero esto funciona para este setup simple.
+            const cacheBuster = '?v=' + new Date().getTime();
+            const module = await import(MODES[modeName] + cacheBuster);
             const ModeClass = module.default;
 
             // Instanciar y montar
