@@ -84,7 +84,7 @@ class App {
             // Importación dinámica del módulo con Cache Busting
             // Usamos un timestamp para forzar la recarga en cada visita nueva
             // En producción idealmente usaríamos un hash de build, pero esto funciona para este setup simple.
-            const cacheBuster = '?v=3';
+            const cacheBuster = '?v=4';
             const module = await import(MODES[modeName] + cacheBuster);
             const ModeClass = module.default;
 

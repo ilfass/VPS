@@ -183,15 +183,30 @@ export default class MapaMode {
     }
 
     startAutoTravel() {
-        // Viajar cada 20 segundos
-        this.travelStep();
-        scheduler.addTask('MapTravel', 0.33, () => this.travelStep()); // 0.33 min ~= 20 seg
+        // Iniciar el ciclo de viaje: Global (40s) -> País (30s) -> Global...
+        // Empezamos con una vista global inicial corta para dar contexto, luego primer viaje.
+        setTimeout(() => this.cycleZoomIn(), 5000);
     }
 
-    travelStep() {
-        // Elegir país aleatorio
+    cycleZoomIn() {
+        // 1. Elegir país y hacer Zoom
         const target = TOUR_TARGETS[Math.floor(Math.random() * TOUR_TARGETS.length)];
         this.zoomToCountry(target);
+
+        // 2. Programar vuelta a Vista Global en 30 segundos
+        this.travelTimeout = setTimeout(() => {
+            this.cycleZoomOut();
+        }, 30000);
+    }
+
+    cycleZoomOut() {
+        // 1. Volver a Vista Global
+        this.resetZoom();
+
+        // 2. Programar siguiente viaje en 40 segundos
+        this.travelTimeout = setTimeout(() => {
+            this.cycleZoomIn();
+        }, 40000);
     }
 
     zoomToCountry(target) {
@@ -215,8 +230,7 @@ export default class MapaMode {
         if (feature) {
             this.gCountries.select(`#country-${target.id}`).classed("active-country", true);
         } else {
-            // Si no encuentra el país (por ID diferente), volver a vista global
-            this.resetZoom();
+            this.cycleZoomOut(); // Si falla, volver a global y reintentar
             return;
         }
 
@@ -238,8 +252,9 @@ export default class MapaMode {
             .ease(d3.easeCubicInOut)
             .attr("transform", `translate(${translate})scale(${scale})`)
             .on("end", () => {
-                // Ajustar stroke width para que no se vea gigante
                 this.gCountries.selectAll("path").style("stroke-width", `${0.5 / scale}px`);
+                // Mantener el highlight del país activo mientras dure el zoom
+                this.gCountries.select(`#country-${target.id}`).style("stroke-width", `${1.5 / scale}px`);
             });
 
         // Guardar estado para el sol
@@ -249,15 +264,33 @@ export default class MapaMode {
     }
 
     resetZoom() {
+        // Quitar highlight
+        this.gCountries.selectAll(".country").classed("active-country", false);
+
+        // Actualizar Info
+        const infoEl = document.getElementById('broadcast-info');
+        if (infoEl) {
+            infoEl.style.opacity = 0;
+            setTimeout(() => {
+                infoEl.textContent = "VISTA GLOBAL - MONITOREO";
+                infoEl.style.opacity = 1;
+            }, 500);
+        }
+
         this.gMap.transition()
             .duration(3000)
-            .attr("transform", "translate(0,0)scale(1)");
-        this.gCountries.selectAll("path").style("stroke-width", "0.5px");
-        document.getElementById('broadcast-info').textContent = "VISTA GLOBAL";
+            .ease(d3.easeCubicInOut)
+            .attr("transform", "translate(0,0)scale(1)")
+            .on("end", () => {
+                this.gCountries.selectAll("path").style("stroke-width", "0.5px");
+            });
+
+        this.sunGroup.selectAll("circle").transition().duration(3000).attr("r", 15);
     }
 
     unmount() {
         if (this.unsubscribeTime) this.unsubscribeTime();
+        if (this.travelTimeout) clearTimeout(this.travelTimeout);
         this.container.innerHTML = '';
         this.svg = null;
     }

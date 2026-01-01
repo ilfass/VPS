@@ -339,8 +339,8 @@ html {
 
 /* Estilos del SVG Mapa (D3) - High Contrast */
 .country {
-    fill: #cbd5e1;
-    /* Tierra clara (Beige/Gris) */
+    fill: #e2e8f0;
+    /* Tierra más clara (Slate 200) para resaltar sobre el océano */
     stroke: #475569;
     /* Borde oscuro */
     stroke-width: 0.5px;
@@ -348,16 +348,18 @@ html {
 }
 
 .country:hover {
-    fill: #94a3b8;
-    /* Highlight */
+    fill: #cbd5e1;
+    /* Highlight sutil */
 }
 
 .active-country {
-    fill: #f59e0b !important;
-    /* Amber highlight */
+    fill: #fbbf24 !important;
+    /* Amber 400 - Muy visible */
     stroke: #fff !important;
     stroke-width: 1px !important;
     z-index: 10;
+    filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.5));
+    /* Glow suave */
 }
 
 .ocean {
