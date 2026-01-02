@@ -2,6 +2,16 @@ import { timeEngine } from '../utils/time.js';
 import { scheduler } from '../utils/scheduler.js';
 import { COUNTRY_INFO, REGION_COLORS, GLOBAL_FACTS } from '../data/country-info.js';
 
+const INTRO_TEMPLATES = [
+    "Ahora estamos en {country}.",
+    "Este es {country}.",
+    "Viajamos a {country}.",
+    "En este momento, en {country}...",
+    "Mientras aquí transcurre el tiempo, en {country}...",
+    "Así se vive el momento actual en {country}...",
+    "Observando {country}."
+];
+
 export default class MapaMode {
     constructor(container) {
         this.container = container;
@@ -322,7 +332,15 @@ export default class MapaMode {
                         }).format(now);
                     } catch (e) { timeStr = "--:--"; }
 
-                    const speechText = `Observando ${target.name}. Son las ${timeStr} hora local. ${randomFact}`;
+
+
+                    // Seleccionar plantilla de introducción aleatoria
+                    const template = INTRO_TEMPLATES[Math.floor(Math.random() * INTRO_TEMPLATES.length)];
+                    const intro = template.replace("{country}", target.name);
+
+                    // Construir texto final: Intro + Hora + Dato
+                    // Nota: El dato se lee tal cual viene del array facts
+                    const speechText = `${intro} Son las ${timeStr} hora local. ${randomFact}`;
 
                     this.speak(speechText, 'primary');
                     this.showCountryInfo(randomFact);
