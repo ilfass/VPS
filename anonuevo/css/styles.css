@@ -350,6 +350,32 @@ html {
     /* border-color y top definidos en .country-mode */
 }
 
+/* Cápsula Noticias (Estilo Sobrio) */
+.info-capsule.news-mode {
+    top: 15%;
+    /* Un poco más arriba */
+    right: 40px;
+    /* Mismo lado que país */
+    width: 400px;
+    /* Más ancho para noticias */
+    border-left: 4px solid #ef4444;
+    /* Rojo sobrio (Red-500) */
+    background: rgba(15, 23, 42, 0.95);
+    /* Slate-900 casi opaco */
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.info-capsule.news-mode .capsule-icon {
+    background: #ef4444;
+    color: white;
+    font-size: 1.5em;
+}
+
+.info-capsule.news-mode .capsule-content {
+    font-size: 1.1em;
+    line-height: 1.6;
+}
+
 .info-capsule.hidden-right {
     transform: translateX(120%);
     opacity: 0;

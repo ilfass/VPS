@@ -1,6 +1,8 @@
 import { timeEngine } from '../utils/time.js';
 import { scheduler } from '../utils/scheduler.js';
 import { COUNTRY_INFO, REGION_COLORS, GLOBAL_FACTS } from '../data/country-info.js';
+import { audioManager, AUDIO_STATES } from '../utils/audio-manager.js';
+import { newsProvider } from '../data/news-provider.js';
 
 const INTRO_TEMPLATES = [
     "Ahora estamos en {country}.",
@@ -62,6 +64,12 @@ export default class MapaMode {
                     <div class="capsule-content" id="country-capsule-text">...</div>
                 </div>
 
+                <!-- Capa 5: Noticias Internacionales (Lateral) -->
+                <div id="news-capsule" class="info-capsule news-mode hidden-right">
+                    <div class="capsule-icon">📰</div>
+                    <div class="capsule-content" id="news-capsule-text">...</div>
+                </div>
+
                 <!-- Estado del Sistema (Discreto) -->
                 <div class="system-status" id="broadcast-info">SISTEMA ONLINE</div>
             </div>
@@ -84,6 +92,13 @@ export default class MapaMode {
 
             // 6. Programar Cápsulas Informativas (cada 2 min)
             scheduler.addTask('InfoCapsules', 2, () => this.showInfoCapsule());
+
+            // 7. Programar Noticias Internacionales (cada 30 min)
+            // Usamos un intervalo largo, pero verificamos estado antes de lanzar
+            setInterval(() => this.triggerNewsEvent(), 30 * 60 * 1000);
+
+            // Test inicial (opcional, para debug, comentar en prod)
+            // setTimeout(() => this.triggerNewsEvent(), 10000);
 
         } catch (error) {
             console.error("Error cargando mapa:", error);
@@ -217,10 +232,20 @@ export default class MapaMode {
 
     startAutoTravel() {
         // Ciclo: Global (40s) -> País (15s)
-        setTimeout(() => this.cycleZoomIn(), 5000);
+        // Solo si no hay noticias activas
+        if (audioManager.currentState !== AUDIO_STATES.GLOBAL_NEWS) {
+            setTimeout(() => this.cycleZoomIn(), 5000);
+        }
     }
 
     cycleZoomIn() {
+        // Verificar si podemos narrar país
+        if (!audioManager.requestChannel(AUDIO_STATES.COUNTRY_NARRATION)) {
+            // Si está ocupado (noticias), reintentar en 5s
+            setTimeout(() => this.cycleZoomIn(), 5000);
+            return;
+        }
+
         // Elegir país aleatorio de nuestra lista de info
         const availableIds = Object.keys(COUNTRY_INFO);
         const randomId = availableIds[Math.floor(Math.random() * availableIds.length)];
@@ -342,7 +367,8 @@ export default class MapaMode {
                     // Nota: El dato se lee tal cual viene del array facts
                     const speechText = `${intro} Son las ${timeStr} hora local. ${randomFact}`;
 
-                    this.speak(speechText, 'primary');
+                    // Usar AudioManager
+                    audioManager.speak(speechText, 'normal');
                     this.showCountryInfo(randomFact);
                 }
             });
@@ -359,7 +385,7 @@ export default class MapaMode {
         if (narrativeEl) narrativeEl.classList.add('hidden');
 
         // Cancelar voz y ocultar cápsula lateral
-        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        audioManager.cancel();
         const capsuleEl = document.getElementById('country-info-capsule');
         if (capsuleEl) capsuleEl.classList.add('hidden-right');
 
@@ -388,7 +414,8 @@ export default class MapaMode {
         capsuleEl.classList.remove('hidden-left');
 
         // Leer dato general (Voz secundaria)
-        this.speak(fact, 'secondary');
+        // No bloqueamos el canal principal, es un dato corto
+        audioManager.speak(fact, 'news'); // Usamos voz 'news' para variedad
 
         // Ocultar después de 10 segundos
         setTimeout(() => {
@@ -411,35 +438,59 @@ export default class MapaMode {
         }, 12000);
     }
 
-    speak(text, type = 'primary') {
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel(); // Cancelar anterior
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'es-ES';
-            utterance.rate = 0.9; // Tono calmo
-
-            // Selección de Voz
-            const voices = window.speechSynthesis.getVoices().filter(v => v.lang.includes('es'));
-
-            if (voices.length > 0) {
-                if (type === 'primary') {
-                    // Preferir voz masculina o la primera
-                    // Heurística simple: buscar nombres comunes de voces masculinas o default
-                    utterance.voice = voices[0];
-                } else {
-                    // Secundaria: Intentar usar una diferente
-                    // Si hay más de una, usar la segunda o la última
-                    utterance.voice = voices.length > 1 ? voices[1] : voices[0];
-                    utterance.pitch = 1.1; // Ligeramente más agudo para diferenciar
-                }
-            }
-
-            window.speechSynthesis.speak(utterance);
+    async triggerNewsEvent() {
+        // 1. Intentar tomar control exclusivo
+        if (!audioManager.requestChannel(AUDIO_STATES.GLOBAL_NEWS)) {
+            console.log("Canal ocupado, posponiendo noticias...");
+            setTimeout(() => this.triggerNewsEvent(), 60000); // Reintentar en 1 min
+            return;
         }
+
+        // 2. Obtener noticia
+        const newsItem = await newsProvider.fetchNews();
+        if (!newsItem) {
+            audioManager.releaseChannel();
+            return;
+        }
+
+        console.log("📰 BREAKING NEWS:", newsItem.title);
+
+        // 3. Resetear vista a Global
+        this.resetZoom();
+
+        // 4. Mostrar UI de Noticia
+        const capsuleEl = document.getElementById('news-capsule');
+        const textEl = document.getElementById('news-capsule-text');
+        const infoEl = document.getElementById('broadcast-info');
+
+        if (capsuleEl && textEl) {
+            textEl.innerHTML = `<strong>${newsItem.title}</strong><br><span style="font-size:0.9em">${newsItem.summary}</span>`;
+            capsuleEl.classList.remove('hidden-right');
+
+            if (infoEl) infoEl.textContent = "ACTUALIDAD INTERNACIONAL";
+        }
+
+        // 5. Narrar
+        const intro = newsProvider.getRandomIntro();
+        const fullText = `${intro} ${newsItem.title}. ${newsItem.summary}`;
+
+        audioManager.speak(fullText, 'news', () => {
+            // Callback al terminar de hablar
+            setTimeout(() => {
+                // Ocultar UI
+                if (capsuleEl) capsuleEl.classList.add('hidden-right');
+                if (infoEl) infoEl.textContent = "SISTEMA ONLINE";
+
+                // Liberar canal y retomar ciclo
+                audioManager.releaseChannel();
+                this.cycleZoomIn(); // Retomar viaje
+            }, 3000); // Pausa de 3s
+        });
     }
 
+    // Método speak antiguo eliminado, usamos audioManager
     unmount() {
-        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        audioManager.cancel();
         if (this.unsubscribeTime) this.unsubscribeTime();
         if (this.travelTimeout) clearTimeout(this.travelTimeout);
         scheduler.clearTasks(); // Limpiar tareas del scheduler (cápsulas)
