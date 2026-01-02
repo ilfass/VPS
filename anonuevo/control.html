@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Panel - Stream</title>
+    <style>
+        body {
+            background: #0f172a;
+            color: white;
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 10px;
+        }
+
+        .section {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .section-title {
+            font-size: 0.9em;
+            text-transform: uppercase;
+            color: #94a3b8;
+            margin-bottom: 15px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        button {
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            font-size: 1rem;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-auto {
+            background: #22c55e;
+            color: white;
+        }
+
+        .btn-manual {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-news {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-fact {
+            background: #a855f7;
+            color: white;
+        }
+
+        .btn-country {
+            background: #f59e0b;
+            color: #000;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ef4444;
+            margin-right: 10px;
+        }
+
+        .status-indicator.active {
+            background: #22c55e;
+            box-shadow: 0 0 10px #22c55e;
+        }
+
+        input {
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: white;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        #log {
+            font-family: monospace;
+            font-size: 0.8em;
+            color: #64748b;
+            margin-top: 20px;
+            height: 100px;
+            overflow-y: auto;
+            border-top: 1px solid #334155;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>
+        <span id="status-light" class="status-indicator"></span>
+        Control Panel
+        <span id="mode-text"
+            style="font-size: 0.5em; float: right; margin-top: 10px; color: #94a3b8;">CONNECTING...</span>
+    </h1>
+
+    <div class="section">
+        <div class="section-title">Modo de Operación</div>
+        <div class="grid">
+            <button class="btn-auto" onclick="sendCommand('auto/on')">ACTIVAR AUTO</button>
+            <button class="btn-manual" onclick="sendCommand('auto/off')">MODO MANUAL</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Eventos Globales</div>
+        <div class="grid">
+            <button class="btn-news" onclick="sendCommand('news')">📢 Lanzar Noticia</button>
+            <button class="btn-fact" onclick="sendCommand('fact')">ℹ️ Dato Curioso</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Navegación Manual</div>
+        <div class="grid" style="grid-template-columns: 2fr 1fr;">
+            <input type="text" id="country-code" placeholder="Código ISO (ej: 032, 840, 724)" maxlength="3">
+            <button class="btn-country" onclick="sendCountry()">IR A PAÍS</button>
+        </div>
+        <div style="margin-top: 10px; font-size: 0.8em; color: #64748b;">
+            Códigos comunes: 032 (Argentina), 840 (USA), 724 (España), 392 (Japón), 250 (Francia)
+        </div>
+    </div>
+
+    <div id="log"></div>
+
+    <script>
+        const API_URL = '/control-api'; // Proxy Nginx
+
+        function log(msg) {
+            const el = document.getElementById('log');
+            el.innerHTML = `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>` + el.innerHTML;
+        }
+
+        async function sendCommand(endpoint) {
+            try {
+                log(`Sending ${endpoint}...`);
+                const res = await fetch(`${API_URL}/event/${endpoint}`, { method: 'POST' });
+                if (res.ok) {
+                    log('OK');
+                    updateStatus();
+                } else {
+                    log('Error sending command');
+                }
+            } catch (e) {
+                log('Network Error: ' + e.message);
+            }
+        }
+
+        function sendCountry() {
+            const code = document.getElementById('country-code').value;
+            if (code.length === 3) {
+                sendCommand(`country/${code}`);
+            } else {
+                alert("Ingrese un código ISO de 3 dígitos");
+            }
+        }
+
+        async function updateStatus() {
+            try {
+                const res = await fetch(`${API_URL}/poll`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const isAuto = data.autoMode;
+
+                    const light = document.getElementById('status-light');
+                    const text = document.getElementById('mode-text');
+
+                    if (isAuto) {
+                        light.classList.add('active');
+                        text.textContent = "SYSTEM: AUTOMATIC";
+                        text.style.color = "#22c55e";
+                    } else {
+                        light.classList.remove('active');
+                        text.textContent = "SYSTEM: MANUAL";
+                        text.style.color = "#ef4444";
+                    }
+                }
+            } catch (e) {
+                document.getElementById('mode-text').textContent = "OFFLINE";
+            }
+        }
+
+        // Poll status every 2s
+        setInterval(updateStatus, 2000);
+        updateStatus();
+    </script>
+</body>
+
+</html>

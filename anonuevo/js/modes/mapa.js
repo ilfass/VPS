@@ -3,6 +3,7 @@ import { scheduler } from '../utils/scheduler.js';
 import { COUNTRY_INFO, REGION_COLORS, GLOBAL_FACTS } from '../data/country-info.js';
 import { audioManager, AUDIO_STATES } from '../utils/audio-manager.js';
 import { newsProvider } from '../data/news-provider.js';
+import { eventManager } from '../utils/event-manager.js';
 
 const TEMPLATES = {
     GENERIC: [
@@ -120,6 +121,32 @@ export default class MapaMode {
             });
 
             document.getElementById('broadcast-info').textContent = "SISTEMA ONLINE (NOTICIAS ACTIVO)";
+
+            // 8. Inicializar Gestor de Eventos (Control Manual)
+            eventManager.init();
+
+            // Registrar manejadores
+            eventManager.on('news', () => this.triggerNewsEvent(true)); // true = forzado
+            eventManager.on('fact', () => this.showInfoCapsule(true));
+            eventManager.on('country', (code) => {
+                // Buscar país por ID (code)
+                // Nota: COUNTRY_INFO usa claves string "032", etc.
+                if (COUNTRY_INFO[code]) {
+                    // Cancelar cualquier viaje actual
+                    if (this.travelTimeout) clearTimeout(this.travelTimeout);
+                    this.resetZoom();
+
+                    // Esperar un poco y hacer zoom
+                    setTimeout(() => {
+                        this.zoomToCountry({ id: code, ...COUNTRY_INFO[code] });
+                        // Programar salida manual (o dejar estático si es manual? 
+                        // El requerimiento dice "sin estados inconsistentes", mejor mantener ciclo de salida)
+                        this.travelTimeout = setTimeout(() => this.cycleZoomOut(), 20000);
+                    }, 1000);
+                } else {
+                    console.warn(`Country code ${code} not found`);
+                }
+            });
 
         } catch (error) {
             console.error("Error cargando mapa:", error);
@@ -253,13 +280,20 @@ export default class MapaMode {
 
     startAutoTravel() {
         // Ciclo: Global (40s) -> País (15s)
-        // Solo si no hay noticias activas
-        if (audioManager.currentState !== AUDIO_STATES.GLOBAL_NEWS) {
+        // Solo si no hay noticias activas Y estamos en modo AUTO
+        if (audioManager.currentState !== AUDIO_STATES.GLOBAL_NEWS && eventManager.canProceedAuto()) {
             setTimeout(() => this.cycleZoomIn(), 5000);
         }
     }
 
     cycleZoomIn() {
+        // Verificar modo AUTO
+        if (!eventManager.canProceedAuto()) {
+            // Si estamos en manual, reintentar en 5s por si vuelve a auto
+            setTimeout(() => this.cycleZoomIn(), 5000);
+            return;
+        }
+
         // Verificar si podemos narrar país
         if (!audioManager.requestChannel(AUDIO_STATES.COUNTRY_NARRATION)) {
             // Si está ocupado (noticias), reintentar en 5s
@@ -459,7 +493,10 @@ export default class MapaMode {
         this.sunGroup.selectAll("circle").transition().duration(3000).attr("r", 15);
     }
 
-    showInfoCapsule() {
+    showInfoCapsule(forced = false) {
+        // Si es forzado (manual), ignoramos estado AUTO, pero respetamos audio
+        if (!forced && !eventManager.canProceedAuto()) return;
+
         // Si hay noticias o narración prioritaria, no mostrar cápsula general
         // Solo mostrar si estamos en IDLE (vista global tranquila)
         if (audioManager.currentState !== AUDIO_STATES.IDLE) return;
@@ -502,7 +539,10 @@ export default class MapaMode {
         }, duration);
     }
 
-    async triggerNewsEvent() {
+    async triggerNewsEvent(forced = false) {
+        // Si es automático, verificar flag
+        if (!forced && !eventManager.canProceedAuto()) return;
+
         console.log("Intentando lanzar evento de noticias...");
         const infoEl = document.getElementById('broadcast-info');
 

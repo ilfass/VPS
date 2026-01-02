@@ -1,27 +1,27 @@
-version: '3.8'
+version: '3'
 
 services:
   nginx-proxy:
     image: nginx:alpine
     ports:
       - "80:80"
-      - "443:443"
     volumes:
-      - ./nginx-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./nginx-proxy/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
       - descuentosen
+      - descuentosen-backend
       - descuentosen-admin
       - habilispro
       - habilispro-live
       - expodiario
       - anonuevo
+      - anonuevo-control
     restart: always
 
   descuentosen:
     build: ./descuentosen
     expose:
-      - "3000"
+      - "80"
     environment:
       - BACKEND_URL=http://descuentosen-backend:3001
     depends_on:
@@ -29,14 +29,13 @@ services:
     restart: always
 
   descuentosen-backend:
-    build: ./descuentosen/backend
+    build:
+      context: ./descuentosen
+      dockerfile: Dockerfile.backend
     expose:
       - "3001"
     environment:
-      - PORT=3001
-      - MONGODB_URI=mongodb://descuentosen-mongo:27017/descuentosen
-      - NODE_ENV=production
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-AIzaSyAKa_dvA4qmZ-io37eili_fEwZT91VtmQI}
+      - MONGO_URI=mongodb://descuentosen-mongo:27017/descuentosen
     depends_on:
       - descuentosen-mongo
     restart: always
@@ -83,6 +82,16 @@ services:
       - "80"
     restart: always
 
+  anonuevo-control:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./anonuevo:/app
+    expose:
+      - "3005"
+    command: node control-server.js
+    restart: always
+
   webhook:
     image: node:20-alpine
     working_dir: /app
@@ -96,4 +105,3 @@ services:
 
 volumes:
   descuentosen-data:
-
