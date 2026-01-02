@@ -95,7 +95,7 @@ export default class MapaMode {
 
             // 7. Programar Noticias Internacionales (cada 30 min)
             // Usamos un intervalo largo, pero verificamos estado antes de lanzar
-            setInterval(() => this.triggerNewsEvent(), 30 * 60 * 1000);
+            setInterval(() => this.triggerNewsEvent(), 60 * 1000); // TEST: 1 minuto
 
             // Test inicial (opcional, para debug, comentar en prod)
             // setTimeout(() => this.triggerNewsEvent(), 10000);
