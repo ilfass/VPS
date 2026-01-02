@@ -40,8 +40,8 @@ export default class MapaMode {
                     <div class="narrative-time" id="narrative-time">--:--</div>
                 </div>
 
-                <!-- Capa 3: Cápsulas Informativas (Lateral) -->
-                <div id="info-capsule" class="info-capsule hidden-right">
+                <!-- Capa 3: Cápsulas Informativas (Lateral Izquierda) -->
+                <div id="info-capsule" class="info-capsule hidden-left">
                     <div class="capsule-icon">ℹ</div>
                     <div class="capsule-content" id="capsule-text">...</div>
                 </div>
@@ -327,7 +327,7 @@ export default class MapaMode {
 
                     const speechText = `Observando ${target.name}. Son las ${timeStr} hora local. ${target.fact}`;
 
-                    this.speak(speechText);
+                    this.speak(speechText, 'primary');
                     this.showCountryInfo(target.fact);
                 }
             });
@@ -370,11 +370,14 @@ export default class MapaMode {
         textEl.textContent = fact;
 
         // Mostrar (Slide In)
-        capsuleEl.classList.remove('hidden-right');
+        capsuleEl.classList.remove('hidden-left');
+
+        // Leer dato general (Voz secundaria)
+        this.speak(fact, 'secondary');
 
         // Ocultar después de 10 segundos
         setTimeout(() => {
-            capsuleEl.classList.add('hidden-right');
+            capsuleEl.classList.add('hidden-left');
         }, 10000);
     }
 
@@ -393,15 +396,29 @@ export default class MapaMode {
         }, 12000);
     }
 
-    speak(text) {
+    speak(text, type = 'primary') {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel(); // Cancelar anterior
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'es-ES';
             utterance.rate = 0.9; // Tono calmo
-            // Opcional: buscar voz específica
-            // const voices = window.speechSynthesis.getVoices();
-            // utterance.voice = voices.find(v => v.lang.includes('es')) || null;
+
+            // Selección de Voz
+            const voices = window.speechSynthesis.getVoices().filter(v => v.lang.includes('es'));
+
+            if (voices.length > 0) {
+                if (type === 'primary') {
+                    // Preferir voz masculina o la primera
+                    // Heurística simple: buscar nombres comunes de voces masculinas o default
+                    utterance.voice = voices[0];
+                } else {
+                    // Secundaria: Intentar usar una diferente
+                    // Si hay más de una, usar la segunda o la última
+                    utterance.voice = voices.length > 1 ? voices[1] : voices[0];
+                    utterance.pitch = 1.1; // Ligeramente más agudo para diferenciar
+                }
+            }
+
             window.speechSynthesis.speak(utterance);
         }
     }
