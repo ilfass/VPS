@@ -340,6 +340,19 @@ html {
     opacity: 0;
 }
 
+.info-capsule.country-mode {
+    top: 50%;
+    transform: translateY(-50%);
+    border-left-color: #fbbf24;
+    /* Amber */
+    z-index: 56;
+}
+
+.info-capsule.country-mode.hidden-right {
+    transform: translateY(-50%) translateX(120%);
+    opacity: 0;
+}
+
 .capsule-icon {
     font-size: 1.5rem;
     margin-bottom: 10px;
@@ -429,4 +442,61 @@ html {
 
 .sun-circle {
     fill: #fde047;
+}
+/* Start Overlay */
+.start-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(10px);
+    transition: opacity 0.5s ease;
+}
+
+.start-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.start-content {
+    text-align: center;
+    color: white;
+}
+
+.start-content h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    letter-spacing: 5px;
+    font-weight: 900;
+}
+
+.start-content p {
+    font-size: 1.2rem;
+    color: #94a3b8;
+    margin-bottom: 2rem;
+}
+
+.start-content button {
+    padding: 15px 40px;
+    font-size: 1.2rem;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    font-weight: 700;
+    letter-spacing: 2px;
+    transition: transform 0.2s, background 0.2s;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+}
+
+.start-content button:hover {
+    background: #2563eb;
+    transform: scale(1.05);
 }

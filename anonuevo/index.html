@@ -20,7 +20,16 @@
     <div id="app-container">
         <!-- El contenido del modo se inyectará aquí -->
         <div id="stage" class="stage">
-            <div class="loading">Cargando motor...</div>
+            <!-- El contenido se carga dinámicamente -->
+        </div>
+
+        <!-- Overlay de Inicio (Para activar Audio/Autoplay) -->
+        <div id="start-overlay" class="start-overlay">
+            <div class="start-content">
+                <h1>VIVO AUTOMÁTICO</h1>
+                <p>Click para iniciar transmisión</p>
+                <button id="start-btn">INICIAR</button>
+            </div>
         </div>
 
         <!-- Capa de depuración (opcional, activable por URL ?debug=true) -->

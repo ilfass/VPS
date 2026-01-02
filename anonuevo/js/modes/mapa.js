@@ -46,6 +46,12 @@ export default class MapaMode {
                     <div class="capsule-content" id="capsule-text">...</div>
                 </div>
 
+                <!-- Capa 4: Datos del País (Lateral - Nuevo) -->
+                <div id="country-info-capsule" class="info-capsule country-mode hidden-right">
+                    <div class="capsule-icon">🌍</div>
+                    <div class="capsule-content" id="country-capsule-text">...</div>
+                </div>
+
                 <!-- Estado del Sistema (Discreto) -->
                 <div class="system-status" id="broadcast-info">SISTEMA ONLINE</div>
             </div>
@@ -224,7 +230,7 @@ export default class MapaMode {
         // 40 segundos de vista global
         this.travelTimeout = setTimeout(() => {
             this.cycleZoomIn();
-        }, 40000);
+        }, 25000);
     }
 
     zoomToCountry(target) {
@@ -295,13 +301,35 @@ export default class MapaMode {
                 this.gCountries.select(`#country-${target.id}`).style("stroke-width", `${2 / scale}px`);
 
                 // Mostrar etiquetas
-                this.gLabels.selectAll("text").style("opacity", 0); // Ocultar todas
-                // Mostrar solo la del país activo? O todas las visibles?
-                // Mejor solo la del activo para evitar clutter
-                // O mostrar todas con escala ajustada
+                this.gLabels.selectAll("text").style("opacity", 0);
                 this.gLabels.selectAll("text")
-                    .style("font-size", `${12 / scale}px`) // Ajustar tamaño texto
+                    .style("font-size", `${12 / scale}px`)
                     .style("opacity", 1);
+
+                // DISPARAR VOZ Y DATO (Después del zoom)
+                if (target.fact) {
+                    // Construir texto
+                    // "Observando Japón. Son las 21:34 hora local. Es uno de los países..."
+                    // Necesitamos la hora local calculada previamente. 
+                    // Recalculamos o la pasamos? Mejor recalcular o extraer del DOM si es fiable, 
+                    // pero mejor recalcular limpio.
+
+                    let timeStr = "";
+                    try {
+                        const now = new Date();
+                        timeStr = new Intl.DateTimeFormat('es-ES', {
+                            timeZone: target.timezone,
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false
+                        }).format(now);
+                    } catch (e) { timeStr = "--:--"; }
+
+                    const speechText = `Observando ${target.name}. Son las ${timeStr} hora local. ${target.fact}`;
+
+                    this.speak(speechText);
+                    this.showCountryInfo(target.fact);
+                }
             });
 
         this.sunGroup.selectAll("circle").transition().duration(3000).attr("r", 15 / scale);
@@ -314,6 +342,11 @@ export default class MapaMode {
         // Ocultar Narrativa
         const narrativeEl = document.getElementById('zoom-narrative');
         if (narrativeEl) narrativeEl.classList.add('hidden');
+
+        // Cancelar voz y ocultar cápsula lateral
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        const capsuleEl = document.getElementById('country-info-capsule');
+        if (capsuleEl) capsuleEl.classList.add('hidden-right');
 
         this.gMap.transition()
             .duration(3000)
@@ -345,7 +378,36 @@ export default class MapaMode {
         }, 10000);
     }
 
+    showCountryInfo(fact) {
+        const capsuleEl = document.getElementById('country-info-capsule');
+        const textEl = document.getElementById('country-capsule-text');
+
+        if (!capsuleEl || !textEl) return;
+
+        textEl.textContent = fact;
+        capsuleEl.classList.remove('hidden-right');
+
+        // Ocultar después de 12 segundos (duración max voz)
+        setTimeout(() => {
+            capsuleEl.classList.add('hidden-right');
+        }, 12000);
+    }
+
+    speak(text) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel(); // Cancelar anterior
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'es-ES';
+            utterance.rate = 0.9; // Tono calmo
+            // Opcional: buscar voz específica
+            // const voices = window.speechSynthesis.getVoices();
+            // utterance.voice = voices.find(v => v.lang.includes('es')) || null;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
     unmount() {
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
         if (this.unsubscribeTime) this.unsubscribeTime();
         if (this.travelTimeout) clearTimeout(this.travelTimeout);
         scheduler.clearTasks(); // Limpiar tareas del scheduler (cápsulas)

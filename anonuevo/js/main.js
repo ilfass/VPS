@@ -118,5 +118,25 @@ class App {
     }
 }
 
-// Iniciar aplicación
-window.app = new App();
+// Lógica de Inicio con Interacción de Usuario (Autoplay Policy)
+document.addEventListener('DOMContentLoaded', () => {
+    const startOverlay = document.getElementById('start-overlay');
+    const startBtn = document.getElementById('start-btn');
+
+    startBtn.addEventListener('click', async () => {
+        // 1. Desbloquear Audio Context
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel(); // Reset
+            // Intentar hablar algo vacío para "calentar" el motor
+            const u = new SpeechSynthesisUtterance('');
+            window.speechSynthesis.speak(u);
+        }
+
+        // 2. Ocultar Overlay
+        startOverlay.classList.add('hidden');
+
+        // 3. Iniciar App
+        console.log('🚀 Iniciando aplicación tras interacción de usuario...');
+        window.app = new App();
+    });
+});
