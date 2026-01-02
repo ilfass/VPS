@@ -29,9 +29,7 @@ services:
     restart: always
 
   descuentosen-backend:
-    build:
-      context: ./descuentosen
-      dockerfile: Dockerfile.backend
+    build: ./descuentosen/backend
     expose:
       - "3001"
     environment:
