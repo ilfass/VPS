@@ -302,17 +302,14 @@ export default class MapaMode {
 
                 // Mostrar etiquetas
                 this.gLabels.selectAll("text").style("opacity", 0);
-                this.gLabels.selectAll("text")
-                    .style("font-size", `${12 / scale}px`)
-                    .style("opacity", 1);
-
                 // DISPARAR VOZ Y DATO (Después del zoom)
-                if (target.fact) {
+                const facts = target.facts || (target.fact ? [target.fact] : []);
+
+                if (facts.length > 0) {
+                    const randomFact = facts[Math.floor(Math.random() * facts.length)];
+
                     // Construir texto
                     // "Observando Japón. Son las 21:34 hora local. Es uno de los países..."
-                    // Necesitamos la hora local calculada previamente. 
-                    // Recalculamos o la pasamos? Mejor recalcular o extraer del DOM si es fiable, 
-                    // pero mejor recalcular limpio.
 
                     let timeStr = "";
                     try {
@@ -325,10 +322,10 @@ export default class MapaMode {
                         }).format(now);
                     } catch (e) { timeStr = "--:--"; }
 
-                    const speechText = `Observando ${target.name}. Son las ${timeStr} hora local. ${target.fact}`;
+                    const speechText = `Observando ${target.name}. Son las ${timeStr} hora local. ${randomFact}`;
 
                     this.speak(speechText, 'primary');
-                    this.showCountryInfo(target.fact);
+                    this.showCountryInfo(randomFact);
                 }
             });
 
