@@ -4,15 +4,29 @@ import { COUNTRY_INFO, REGION_COLORS, GLOBAL_FACTS } from '../data/country-info.
 import { audioManager, AUDIO_STATES } from '../utils/audio-manager.js';
 import { newsProvider } from '../data/news-provider.js';
 
-const INTRO_TEMPLATES = [
-    "Ahora estamos en {country}.",
-    "Este es {country}.",
-    "Viajamos a {country}.",
-    "En este momento, en {country}...",
-    "Mientras aquí transcurre el tiempo, en {country}...",
-    "Así se vive el momento actual en {country}...",
-    "Observando {country}."
-];
+const TEMPLATES = {
+    GENERIC: [
+        "Ahora estamos en {country}.",
+        "Este es {country}.",
+        "Viajamos a {country}.",
+        "En este momento, en {country}...",
+        "Mientras aquí transcurre el tiempo, en {country}...",
+        "Así se vive el momento actual en {country}...",
+        "Observando {country}.",
+        "¿Qué país vamos a visitar? Vamos a {country}.",
+        "Acerquémonos a {country}."
+    ],
+    WINTER: [
+        "Vamos al frío invernal de {country}.",
+        "El invierno se hace sentir en {country}.",
+        "Visitamos el clima frío de {country}."
+    ],
+    SUMMER: [
+        "Vamos al calor veraniego de {country}.",
+        "El verano ilumina a {country}.",
+        "Disfrutemos del clima cálido de {country}."
+    ]
+};
 
 export default class MapaMode {
     constructor(container) {
@@ -367,8 +381,32 @@ export default class MapaMode {
 
 
 
-                    // Seleccionar plantilla de introducción aleatoria
-                    const template = INTRO_TEMPLATES[Math.floor(Math.random() * INTRO_TEMPLATES.length)];
+                    // Determinar estación para elegir plantilla
+                    let pool = [...TEMPLATES.GENERIC];
+
+                    try {
+                        // Calcular latitud para saber hemisferio
+                        const centroid = d3.geoCentroid(feature);
+                        const lat = centroid[1];
+                        const month = new Date().getMonth(); // 0-11
+
+                        let isWinter = false;
+                        let isSummer = false;
+
+                        if (lat >= 0) { // Hemisferio Norte
+                            if (month === 11 || month === 0 || month === 1) isWinter = true;
+                            if (month >= 5 && month <= 7) isSummer = true;
+                        } else { // Hemisferio Sur
+                            if (month >= 5 && month <= 7) isWinter = true;
+                            if (month === 11 || month === 0 || month === 1) isSummer = true;
+                        }
+
+                        if (isWinter) pool = pool.concat(TEMPLATES.WINTER);
+                        if (isSummer) pool = pool.concat(TEMPLATES.SUMMER);
+                    } catch (e) { console.warn("Error calculating season:", e); }
+
+                    // Seleccionar plantilla aleatoria
+                    const template = pool[Math.floor(Math.random() * pool.length)];
                     const intro = template.replace("{country}", target.name);
 
                     // Construir texto final: Intro + Hora + Dato
