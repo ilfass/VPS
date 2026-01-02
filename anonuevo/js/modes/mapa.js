@@ -1,5 +1,6 @@
 import { timeEngine } from '../utils/time.js';
-import { COUNTRY_INFO, REGION_COLORS } from '../data/country-info.js';
+import { scheduler } from '../utils/scheduler.js';
+import { COUNTRY_INFO, REGION_COLORS, GLOBAL_FACTS } from '../data/country-info.js';
 
 export default class MapaMode {
     constructor(container) {
@@ -21,21 +22,32 @@ export default class MapaMode {
     }
 
     async mount() {
-        // 1. Estructura Base
+        // 1. Estructura Base (Capas)
         this.container.innerHTML = `
             <div class="broadcast-scene fade-in">
                 <div class="broadcast-background"></div>
                 <div id="d3-map-container" class="broadcast-map-container"></div>
                 
-                <!-- Overlay Informativo -->
-                <div class="broadcast-overlay">
-                    <div class="overlay-header">
-                        <span class="live-badge">● EN VIVO</span>
-                        <span class="overlay-title">MONITOR GLOBAL</span>
-                    </div>
-                    <div class="overlay-clock" id="broadcast-clock">--:--</div>
-                    <div class="overlay-info" id="broadcast-info">Conectando satélite...</div>
+                <!-- Capa 1: Overlay Global (Reloj UTC pequeño) -->
+                <div class="broadcast-overlay-top-right">
+                    <div class="mini-clock-label">TIEMPO UNIVERSAL (UTC)</div>
+                    <div class="mini-clock" id="broadcast-clock">--:--</div>
                 </div>
+
+                <!-- Capa 2: Narrativa de Zoom (Centro-Abajo) -->
+                <div id="zoom-narrative" class="zoom-narrative hidden">
+                    <div class="narrative-country" id="narrative-country">PAÍS</div>
+                    <div class="narrative-time" id="narrative-time">--:--</div>
+                </div>
+
+                <!-- Capa 3: Cápsulas Informativas (Lateral) -->
+                <div id="info-capsule" class="info-capsule hidden-right">
+                    <div class="capsule-icon">ℹ</div>
+                    <div class="capsule-content" id="capsule-text">...</div>
+                </div>
+
+                <!-- Estado del Sistema (Discreto) -->
+                <div class="system-status" id="broadcast-info">SISTEMA ONLINE</div>
             </div>
         `;
 
@@ -53,6 +65,9 @@ export default class MapaMode {
 
             // 5. Iniciar Viaje Automático
             this.startAutoTravel();
+
+            // 6. Programar Cápsulas Informativas (cada 2 min)
+            scheduler.addTask('InfoCapsules', 2, () => this.showInfoCapsule());
 
         } catch (error) {
             console.error("Error cargando mapa:", error);
@@ -143,11 +158,12 @@ export default class MapaMode {
     }
 
     update(now) {
+        // Reloj UTC Pequeño
         const clockEl = document.getElementById('broadcast-clock');
         if (clockEl) {
             const hours = String(now.getUTCHours()).padStart(2, '0');
             const minutes = String(now.getUTCMinutes()).padStart(2, '0');
-            clockEl.textContent = `${hours}:${minutes} UTC`;
+            clockEl.textContent = `${hours}:${minutes}`;
         }
         this.updateDayNight(now);
     }
@@ -192,7 +208,7 @@ export default class MapaMode {
         // Elegir país aleatorio de nuestra lista de info
         const availableIds = Object.keys(COUNTRY_INFO);
         const randomId = availableIds[Math.floor(Math.random() * availableIds.length)];
-        const target = { id: randomId, name: COUNTRY_INFO[randomId].name };
+        const target = { id: randomId, ...COUNTRY_INFO[randomId] }; // Incluye timezone
 
         this.zoomToCountry(target);
 
@@ -216,14 +232,38 @@ export default class MapaMode {
 
         const feature = this.worldData.features.find(f => f.id === target.id);
 
-        // Actualizar Info
-        const infoEl = document.getElementById('broadcast-info');
-        if (infoEl) {
-            infoEl.style.opacity = 0;
-            setTimeout(() => {
-                infoEl.textContent = `OBSERVANDO: ${target.name.toUpperCase()}`;
-                infoEl.style.opacity = 1;
-            }, 500);
+        // 1. Mostrar Narrativa de Zoom
+        const narrativeEl = document.getElementById('zoom-narrative');
+        const countryEl = document.getElementById('narrative-country');
+        const timeEl = document.getElementById('narrative-time');
+
+        if (narrativeEl && target.timezone) {
+            // Calcular hora local
+            try {
+                const now = new Date();
+                const localTime = new Intl.DateTimeFormat('es-ES', {
+                    timeZone: target.timezone,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                }).format(now);
+
+                // Calcular offset GMT (aprox)
+                // Hack simple para mostrar GMT: comparar horas
+                const utcHour = now.getUTCHours();
+                const localHour = parseInt(localTime.split(':')[0]);
+                let diff = localHour - utcHour;
+                if (diff < -12) diff += 24;
+                if (diff > 12) diff -= 24;
+                const sign = diff >= 0 ? '+' : '';
+
+                countryEl.textContent = `OBSERVANDO: ${target.name.toUpperCase()}`;
+                timeEl.textContent = `HORA LOCAL: ${localTime} (GMT${sign}${diff})`;
+
+                narrativeEl.classList.remove('hidden');
+            } catch (e) {
+                console.error("Error time", e);
+            }
         }
 
         // Resaltar país
@@ -269,16 +309,11 @@ export default class MapaMode {
 
     resetZoom() {
         this.gCountries.selectAll(".country").classed("active-country", false);
-        this.gLabels.selectAll("text").transition().duration(1000).style("opacity", 0); // Ocultar etiquetas
+        this.gLabels.selectAll("text").transition().duration(1000).style("opacity", 0);
 
-        const infoEl = document.getElementById('broadcast-info');
-        if (infoEl) {
-            infoEl.style.opacity = 0;
-            setTimeout(() => {
-                infoEl.textContent = "VISTA GLOBAL - MONITOREO";
-                infoEl.style.opacity = 1;
-            }, 500);
-        }
+        // Ocultar Narrativa
+        const narrativeEl = document.getElementById('zoom-narrative');
+        if (narrativeEl) narrativeEl.classList.add('hidden');
 
         this.gMap.transition()
             .duration(3000)
@@ -291,9 +326,29 @@ export default class MapaMode {
         this.sunGroup.selectAll("circle").transition().duration(3000).attr("r", 15);
     }
 
+    showInfoCapsule() {
+        const capsuleEl = document.getElementById('info-capsule');
+        const textEl = document.getElementById('capsule-text');
+
+        if (!capsuleEl || !textEl) return;
+
+        // Elegir dato aleatorio
+        const fact = GLOBAL_FACTS[Math.floor(Math.random() * GLOBAL_FACTS.length)];
+        textEl.textContent = fact;
+
+        // Mostrar (Slide In)
+        capsuleEl.classList.remove('hidden-right');
+
+        // Ocultar después de 10 segundos
+        setTimeout(() => {
+            capsuleEl.classList.add('hidden-right');
+        }, 10000);
+    }
+
     unmount() {
         if (this.unsubscribeTime) this.unsubscribeTime();
         if (this.travelTimeout) clearTimeout(this.travelTimeout);
+        scheduler.clearTasks(); // Limpiar tareas del scheduler (cápsulas)
         this.container.innerHTML = '';
         this.svg = null;
     }
