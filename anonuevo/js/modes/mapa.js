@@ -93,9 +93,9 @@ export default class MapaMode {
             // 6. Programar Cápsulas Informativas (cada 2 min)
             scheduler.addTask('InfoCapsules', 2, () => this.showInfoCapsule());
 
-            // 7. Programar Noticias Internacionales (cada 30 min)
+            // 7. Programar Noticias Internacionales (cada 15 min)
             // Usamos un intervalo largo, pero verificamos estado antes de lanzar
-            setInterval(() => this.triggerNewsEvent(), 60 * 1000); // TEST: 1 minuto
+            setInterval(() => this.triggerNewsEvent(), 15 * 60 * 1000);
 
             // Debug: Tecla 'N' para forzar noticias
             window.addEventListener('keydown', (e) => {
@@ -408,6 +408,9 @@ export default class MapaMode {
     }
 
     showInfoCapsule() {
+        // Si hay noticias o narración prioritaria, no mostrar cápsula general
+        if (audioManager.currentState === AUDIO_STATES.GLOBAL_NEWS) return;
+
         const capsuleEl = document.getElementById('info-capsule');
         const textEl = document.getElementById('capsule-text');
 
@@ -477,6 +480,13 @@ export default class MapaMode {
         const capsuleEl = document.getElementById('news-capsule');
         const textEl = document.getElementById('news-capsule-text');
         // infoEl ya está declarado arriba
+
+        // Asegurar que otras cápsulas estén ocultas
+        const generalCapsule = document.getElementById('info-capsule');
+        if (generalCapsule) generalCapsule.classList.add('hidden-left');
+
+        const countryCapsule = document.getElementById('country-info-capsule');
+        if (countryCapsule) countryCapsule.classList.add('hidden-right');
 
         if (capsuleEl && textEl) {
             textEl.innerHTML = `<strong>${newsItem.title}</strong><br><span style="font-size:0.9em">${newsItem.summary}</span>`;
