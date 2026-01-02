@@ -260,7 +260,8 @@ export default class MapaMode {
 
         this.zoomToCountry(target);
 
-        // 15 segundos de zoom
+        // 15 segundos de zoom (base)
+        // Este timeout se reajustará en zoomToCountry si el texto es largo
         this.travelTimeout = setTimeout(() => {
             this.cycleZoomOut();
         }, 15000);
@@ -376,7 +377,18 @@ export default class MapaMode {
 
                     // Usar AudioManager
                     audioManager.speak(speechText, 'normal');
-                    this.showCountryInfo(randomFact);
+
+                    // Calcular duración estimada (aprox 2.5 palabras por segundo + margen)
+                    const wordCount = speechText.split(' ').length;
+                    const estimatedDuration = Math.max(12000, (wordCount / 2.5) * 1000 + 4000);
+
+                    this.showCountryInfo(randomFact, estimatedDuration);
+
+                    // Reajustar el tiempo de viaje para no cortar el audio
+                    if (this.travelTimeout) clearTimeout(this.travelTimeout);
+                    this.travelTimeout = setTimeout(() => {
+                        this.cycleZoomOut();
+                    }, estimatedDuration + 3000); // 3s extra de margen visual
                 }
             });
 
@@ -392,7 +404,9 @@ export default class MapaMode {
         if (narrativeEl) narrativeEl.classList.add('hidden');
 
         // Cancelar voz y ocultar cápsula lateral
+        // Cancelar voz y ocultar cápsula lateral
         audioManager.cancel();
+        audioManager.releaseChannel(); // Liberar estado
         const capsuleEl = document.getElementById('country-info-capsule');
         if (capsuleEl) capsuleEl.classList.add('hidden-right');
 
@@ -409,7 +423,8 @@ export default class MapaMode {
 
     showInfoCapsule() {
         // Si hay noticias o narración prioritaria, no mostrar cápsula general
-        if (audioManager.currentState === AUDIO_STATES.GLOBAL_NEWS) return;
+        // Solo mostrar si estamos en IDLE (vista global tranquila)
+        if (audioManager.currentState !== AUDIO_STATES.IDLE) return;
 
         const capsuleEl = document.getElementById('info-capsule');
         const textEl = document.getElementById('capsule-text');
@@ -433,7 +448,7 @@ export default class MapaMode {
         }, 10000);
     }
 
-    showCountryInfo(fact) {
+    showCountryInfo(fact, duration = 12000) {
         const capsuleEl = document.getElementById('country-info-capsule');
         const textEl = document.getElementById('country-capsule-text');
 
@@ -443,9 +458,10 @@ export default class MapaMode {
         capsuleEl.classList.remove('hidden-right');
 
         // Ocultar después de 12 segundos (duración max voz)
+        // Ocultar después de la duración calculada
         setTimeout(() => {
             capsuleEl.classList.add('hidden-right');
-        }, 12000);
+        }, duration);
     }
 
     async triggerNewsEvent() {
