@@ -97,8 +97,15 @@ export default class MapaMode {
             // Usamos un intervalo largo, pero verificamos estado antes de lanzar
             setInterval(() => this.triggerNewsEvent(), 60 * 1000); // TEST: 1 minuto
 
-            // Test inicial (opcional, para debug, comentar en prod)
-            // setTimeout(() => this.triggerNewsEvent(), 10000);
+            // Debug: Tecla 'N' para forzar noticias
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'n' || e.key === 'N') {
+                    console.log("Forzando noticias manual...");
+                    this.triggerNewsEvent();
+                }
+            });
+
+            document.getElementById('broadcast-info').textContent = "SISTEMA ONLINE (NOTICIAS ACTIVO)";
 
         } catch (error) {
             console.error("Error cargando mapa:", error);
@@ -439,16 +446,24 @@ export default class MapaMode {
     }
 
     async triggerNewsEvent() {
+        console.log("Intentando lanzar evento de noticias...");
+        const infoEl = document.getElementById('broadcast-info');
+
         // 1. Intentar tomar control exclusivo
         if (!audioManager.requestChannel(AUDIO_STATES.GLOBAL_NEWS)) {
             console.log("Canal ocupado, posponiendo noticias...");
-            setTimeout(() => this.triggerNewsEvent(), 60000); // Reintentar en 1 min
+            if (infoEl) infoEl.textContent = "NOTICIAS POSPUESTAS (CANAL OCUPADO)";
+            setTimeout(() => { if (infoEl) infoEl.textContent = "SISTEMA ONLINE"; }, 2000);
             return;
         }
+
+        if (infoEl) infoEl.textContent = "BUSCANDO NOTICIAS...";
 
         // 2. Obtener noticia
         const newsItem = await newsProvider.fetchNews();
         if (!newsItem) {
+            console.log("No se encontraron noticias válidas.");
+            if (infoEl) infoEl.textContent = "ERROR AL OBTENER NOTICIAS";
             audioManager.releaseChannel();
             return;
         }
@@ -461,7 +476,7 @@ export default class MapaMode {
         // 4. Mostrar UI de Noticia
         const capsuleEl = document.getElementById('news-capsule');
         const textEl = document.getElementById('news-capsule-text');
-        const infoEl = document.getElementById('broadcast-info');
+        // infoEl ya está declarado arriba
 
         if (capsuleEl && textEl) {
             textEl.innerHTML = `<strong>${newsItem.title}</strong><br><span style="font-size:0.9em">${newsItem.summary}</span>`;
