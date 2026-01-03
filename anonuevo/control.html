@@ -196,7 +196,7 @@
 
         async function updateStatus() {
             try {
-                const res = await fetch(`${API_URL}/poll`);
+                const res = await fetch(`${API_URL}/status`);
                 if (res.ok) {
                     const data = await res.json();
                     const isAuto = data.autoMode;

@@ -28,6 +28,16 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    // GET /status - Consulta de estado sin consumir eventos (para el panel de control)
+    if (req.method === 'GET' && path === '/status') {
+        res.writeHead(200, headers);
+        const response = {
+            autoMode: state.autoMode
+        };
+        res.end(JSON.stringify(response));
+        return;
+    }
+
     // GET /poll - El frontend consulta estado y eventos
     if (req.method === 'GET' && path === '/poll') {
         res.writeHead(200, headers);
