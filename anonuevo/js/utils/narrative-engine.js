@@ -20,6 +20,13 @@ export class NarrativeEngine {
             return this.generateLoopContent(country, localTime);
         }
 
+        // Determinar si es un momento de reflexión forzado (ej: fin del día 3)
+        const isReflectionMoment = (dayOfVisit === 3 && theme === 'CURIOSITIES' && Math.random() > 0.7); // Simulación de momento reflexivo
+
+        if (isReflectionMoment || context.forceReflection) {
+            return this.generateReflection(country, localTime);
+        }
+
         let text = "";
         let diaryTopic = "";
 
@@ -62,6 +69,29 @@ export class NarrativeEngine {
                 time: localTime,
                 topic: diaryTopic,
                 content: text
+            }
+        };
+    }
+
+    generateReflection(country, localTime) {
+        // Generar una reflexión genérica pero emotiva
+        // En el futuro esto vendría de una base de datos de reflexiones
+        const reflections = [
+            `Me voy de ${country.name} pensando en cómo protegen su historia. Quizás corremos demasiado en otros lugares. Me llevo esa pausa.`,
+            `Al dejar ${country.name}, siento que apenas rasqué la superficie. La verdadera riqueza está en su gente, no solo en sus monumentos.`,
+            `${country.name} me ha enseñado que las fronteras son solo líneas en un mapa. Las emociones son universales.`,
+            `Cierro mi visita a ${country.name} con más preguntas que respuestas. Y eso es exactamente lo que buscaba.`
+        ];
+        const reflection = reflections[Math.floor(Math.random() * reflections.length)];
+
+        return {
+            text: reflection,
+            type: 'REFLECTION',
+            diaryEntry: {
+                country: country.name,
+                time: localTime,
+                topic: "Reflexión del Viajero",
+                content: reflection
             }
         };
     }
