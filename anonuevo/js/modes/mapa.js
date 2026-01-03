@@ -7,6 +7,7 @@ import { eventManager } from '../utils/event-manager.js';
 import { narrativeEngine } from '../utils/narrative-engine.js';
 import { streamManager, STREAM_MODES } from '../utils/stream-manager.js';
 import { characterDirector } from '../utils/character-director.js';
+import { contentEngine } from '../utils/content-engine.js';
 
 // TEMPLATES eliminados, ahora gestionados por narrativeEngine
 
@@ -438,10 +439,20 @@ export default class MapaMode {
                     // Generar Narrativa con el Motor, pasando el contexto completo
                     const narrative = narrativeEngine.generateNarrative(target, timeStr, context);
 
+                    // Procesar contenido para derivados (Content Engine)
+                    contentEngine.processContent(narrative);
+
                     // Determinar estado del personaje y configuración de voz
                     // Mapeamos la escena actual (simplificado por ahora a LIVE_MAP)
                     const avatarState = characterDirector.determineState('LIVE_MAP', context.mode, narrative.type);
                     const voiceConfig = characterDirector.getVoiceConfig(avatarState);
+
+                    // Verificar si podemos mostrar monetización (Overlay sutil)
+                    const monetization = contentEngine.getMonetizationOverlay({ narrativeType: narrative.type, mode: context.mode });
+                    if (monetization) {
+                        console.log("Monetization Opportunity:", monetization.text);
+                        // Aquí se podría actualizar una UI de soporte discreta
+                    }
 
                     // Usar AudioManager con configuración de voz dinámica
                     // Nota: AudioManager necesita actualización para aceptar rate/pitch, por ahora pasamos texto
