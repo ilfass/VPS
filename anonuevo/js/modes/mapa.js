@@ -8,6 +8,7 @@ import { narrativeEngine } from '../utils/narrative-engine.js';
 import { streamManager, STREAM_MODES } from '../utils/stream-manager.js';
 import { characterDirector } from '../utils/character-director.js';
 import { contentEngine } from '../utils/content-engine.js';
+import { systemOrchestrator } from '../utils/system-orchestrator.js';
 
 // TEMPLATES eliminados, ahora gestionados por narrativeEngine
 
@@ -112,6 +113,9 @@ export default class MapaMode {
 
             // 8. Inicializar Gestor de Eventos (Control Manual)
             eventManager.init();
+
+            // 9. Inicializar Orquestador del Sistema (Cerebro Central)
+            systemOrchestrator.init();
 
             // Registrar manejadores
             eventManager.on('news', () => this.triggerNewsEvent(true)); // true = forzado
