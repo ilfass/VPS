@@ -50,6 +50,12 @@ export const COUNTRY_INFO = {
             "El Aconcagua es la montaña más alta de los hemisferios sur y occidental.",
             "Es el lugar de nacimiento del tango.",
             "Tiene la avenida más ancha del mundo, la 9 de Julio."
+        ],
+        recommendations: [
+            "te recomendaría probar un asado auténtico en una parrilla de barrio.",
+            "no podrías perderte una caminata por los bosques de Palermo.",
+            "deberías visitar el glaciar Perito Moreno, es una experiencia única.",
+            "te sugeriría tomar un café en el histórico Café Tortoni."
         ]
     },
     "036": {
@@ -430,6 +436,12 @@ export const COUNTRY_INFO = {
             "Es el destino turístico más popular del mundo.",
             "Tiene más zonas horarias que cualquier otro país (por sus territorios de ultramar).",
             "El Museo del Louvre es el museo de arte más grande del mundo."
+        ],
+        recommendations: [
+            "te diría que te pierdas por las calles de Montmartre al atardecer.",
+            "tienes que probar un croissant recién horneado en una boulangerie local.",
+            "visitaría los castillos del Valle del Loira si tuviera tiempo.",
+            "un paseo por el Sena de noche es algo mágico."
         ]
     },
     "266": {
@@ -670,6 +682,12 @@ export const COUNTRY_INFO = {
             "Tiene la mayor esperanza de vida del mundo.",
             "Tokio es el área metropolitana más poblada del mundo.",
             "Tiene más de 6.800 islas."
+        ],
+        recommendations: [
+            "te recomendaría visitar un onsen tradicional en las montañas.",
+            "no puedes irte sin probar el sushi en el mercado de Tsukiji.",
+            "caminar por el cruce de Shibuya es una experiencia electrizante.",
+            "visitaría los templos de Kioto en otoño para ver los colores."
         ]
     },
     "400": {

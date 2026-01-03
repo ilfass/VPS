@@ -4,30 +4,9 @@ import { COUNTRY_INFO, REGION_COLORS, GLOBAL_FACTS } from '../data/country-info.
 import { audioManager, AUDIO_STATES } from '../utils/audio-manager.js';
 import { newsProvider } from '../data/news-provider.js';
 import { eventManager } from '../utils/event-manager.js';
+import { narrativeEngine } from '../utils/narrative-engine.js';
 
-const TEMPLATES = {
-    GENERIC: [
-        "Ahora estamos en {country}.",
-        "Este es {country}.",
-        "Viajamos a {country}.",
-        "En este momento, en {country}...",
-        "Mientras aquí transcurre el tiempo, en {country}...",
-        "Así se vive el momento actual en {country}...",
-        "Observando {country}.",
-        "¿Qué país vamos a visitar? Vamos a {country}.",
-        "Acerquémonos a {country}."
-    ],
-    WINTER: [
-        "Vamos al frío invernal de {country}.",
-        "El invierno se hace sentir en {country}.",
-        "Visitamos el clima frío de {country}."
-    ],
-    SUMMER: [
-        "Vamos al calor veraniego de {country}.",
-        "El verano ilumina a {country}.",
-        "Disfrutemos del clima cálido de {country}."
-    ]
-};
+// TEMPLATES eliminados, ahora gestionados por narrativeEngine
 
 export default class MapaMode {
     constructor(container) {
@@ -87,6 +66,12 @@ export default class MapaMode {
 
                 <!-- Estado del Sistema (Discreto) -->
                 <div class="system-status" id="broadcast-info">SISTEMA ONLINE</div>
+
+                <!-- Diario de Viaje (Nuevo) -->
+                <div id="travel-diary" class="travel-diary hidden-bottom">
+                    <div class="diary-header">📔 DIARIO DE VIAJE</div>
+                    <div class="diary-content" id="diary-content">...</div>
+                </div>
             </div>
         `;
 
@@ -307,8 +292,17 @@ export default class MapaMode {
         }
 
         // Elegir país aleatorio de nuestra lista de info
+        // Elegir país aleatorio de nuestra lista de info
+        // Usar narrativeEngine para evitar repeticiones recientes
         const availableIds = Object.keys(COUNTRY_INFO);
-        const randomId = availableIds[Math.floor(Math.random() * availableIds.length)];
+        let randomId;
+        let attempts = 0;
+
+        do {
+            randomId = availableIds[Math.floor(Math.random() * availableIds.length)];
+            attempts++;
+        } while (narrativeEngine.isRecentlyVisited(randomId) && attempts < 10);
+
         const target = { id: randomId, ...COUNTRY_INFO[randomId] }; // Incluye timezone
 
         this.zoomToCountry(target);
@@ -421,45 +415,22 @@ export default class MapaMode {
 
 
                     // Determinar estación para elegir plantilla
-                    let pool = [...TEMPLATES.GENERIC];
-
-                    try {
-                        // Calcular latitud para saber hemisferio
-                        const centroid = d3.geoCentroid(feature);
-                        const lat = centroid[1];
-                        const month = new Date().getMonth(); // 0-11
-
-                        let isWinter = false;
-                        let isSummer = false;
-
-                        if (lat >= 0) { // Hemisferio Norte
-                            if (month === 11 || month === 0 || month === 1) isWinter = true;
-                            if (month >= 5 && month <= 7) isSummer = true;
-                        } else { // Hemisferio Sur
-                            if (month >= 5 && month <= 7) isWinter = true;
-                            if (month === 11 || month === 0 || month === 1) isSummer = true;
-                        }
-
-                        if (isWinter) pool = pool.concat(TEMPLATES.WINTER);
-                        if (isSummer) pool = pool.concat(TEMPLATES.SUMMER);
-                    } catch (e) { console.warn("Error calculating season:", e); }
-
-                    // Seleccionar plantilla aleatoria
-                    const template = pool[Math.floor(Math.random() * pool.length)];
-                    const intro = template.replace("{country}", target.name);
-
-                    // Construir texto final: Intro + Hora + Dato
-                    // Nota: El dato se lee tal cual viene del array facts
-                    const speechText = `${intro} Son las ${timeStr} hora local. ${randomFact}`;
+                    // Generar Narrativa con el Motor
+                    const narrative = narrativeEngine.generateNarrative(target, timeStr);
 
                     // Usar AudioManager
-                    audioManager.speak(speechText, 'normal');
+                    audioManager.speak(narrative.text, 'normal');
+
+                    // Actualizar Diario de Viaje
+                    this.updateDiary(narrative.diaryEntry);
 
                     // Calcular duración estimada (aprox 2.5 palabras por segundo + margen)
-                    const wordCount = speechText.split(' ').length;
+                    const wordCount = narrative.text.split(' ').length;
                     const estimatedDuration = Math.max(12000, (wordCount / 2.5) * 1000 + 4000);
 
-                    this.showCountryInfo(randomFact, estimatedDuration);
+                    // Mostrar info visual (usamos el contenido del texto generado o un fact limpio si preferimos)
+                    // Para simplificar visualmente, mostramos el texto generado completo o una parte
+                    this.showCountryInfo(narrative.text, estimatedDuration);
 
                     // Reajustar el tiempo de viaje para no cortar el audio
                     if (this.travelTimeout) clearTimeout(this.travelTimeout);
@@ -639,6 +610,25 @@ export default class MapaMode {
     }
 
     // Método speak antiguo eliminado, usamos audioManager
+    updateDiary(entry) {
+        const diaryEl = document.getElementById('travel-diary');
+        const contentEl = document.getElementById('diary-content');
+
+        if (diaryEl && contentEl) {
+            contentEl.innerHTML = `
+                <strong>${entry.country}</strong> - ${entry.time}<br>
+                <span style="font-size:0.9em; color: #cbd5e1;">${entry.topic}</span><br>
+                <p style="margin-top:5px; font-style:italic;">"${entry.content}"</p>
+            `;
+            diaryEl.classList.remove('hidden-bottom');
+
+            // Ocultar después de un tiempo
+            setTimeout(() => {
+                diaryEl.classList.add('hidden-bottom');
+            }, 15000);
+        }
+    }
+
     unmount() {
         audioManager.cancel();
         if (this.unsubscribeTime) this.unsubscribeTime();
