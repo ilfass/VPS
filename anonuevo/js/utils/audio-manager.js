@@ -50,7 +50,12 @@ export class AudioManager {
 
     cancel() {
         if (this.synth) {
+            // Marcar que la utterance actual fue cancelada
+            if (this.currentUtterance) {
+                this.currentUtterance.wasCancelled = true;
+            }
             this.synth.cancel();
+            this.currentUtterance = null;
         }
     }
 
@@ -62,6 +67,7 @@ export class AudioManager {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'es-ES';
         utterance.rate = 0.95; // Velocidad natural
+        utterance.wasCancelled = false; // Flag de control
 
         // Selección de voz basada en prioridad/contexto
         const voices = this.synth.getVoices().filter(v => v.lang.includes('es'));
@@ -80,11 +86,15 @@ export class AudioManager {
         }
 
         utterance.onend = () => {
-            if (onEndCallback) onEndCallback();
+            // Solo ejecutar callback si NO fue cancelado explícitamente
+            if (!utterance.wasCancelled && onEndCallback) {
+                onEndCallback();
+            }
             // No liberamos automáticamente aquí porque a veces hay pausas intencionales,
             // el controlador debe llamar a releaseChannel() explícitamente cuando termine la "escena".
         };
 
+        this.currentUtterance = utterance;
         this.synth.speak(utterance);
     }
 }

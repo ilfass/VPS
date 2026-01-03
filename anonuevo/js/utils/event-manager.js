@@ -54,7 +54,7 @@ class EventManager {
                 // Silencioso para no saturar consola si falla
                 // console.warn("Polling error:", e);
             }
-        }, 2000);
+        }, 500);
     }
 
     processQueue() {
