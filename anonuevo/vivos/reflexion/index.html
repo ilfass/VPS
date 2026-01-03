@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Viaje de ilfass - Reflexión</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            max-width: 700px;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .quote-icon {
+            font-size: 4rem;
+            color: #38bdf8;
+            opacity: 0.5;
+            margin-bottom: 1rem;
+        }
+
+        .reflection-text {
+            font-size: 2rem;
+            font-weight: 300;
+            line-height: 1.5;
+            margin-bottom: 2rem;
+            opacity: 0;
+            animation: fadeIn 3s ease-out forwards;
+        }
+
+        .author {
+            font-size: 1rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            opacity: 0;
+            animation: fadeIn 3s ease-out forwards 1s;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="quote-icon">❝</div>
+        <div class="reflection-text" id="reflection-content">
+            Cargando pensamiento...
+        </div>
+        <div class="author">— ilfass</div>
+    </div>
+
+    <script>
+        // Simulación de carga dinámica
+        async function loadReflection() {
+            // En producción, esto leería del estado actual o de un endpoint
+            const reflections = [
+                "A veces, detenerse es la única forma de avanzar.",
+                "Las fronteras son líneas en un mapa, pero las emociones no tienen pasaporte.",
+                "Lo que nos une es mucho más fuerte que lo que nos separa."
+            ];
+            const random = reflections[Math.floor(Math.random() * reflections.length)];
+
+            // Si estamos en iframe y hay contexto padre
+            if (window.parent && window.parent.streamManager) {
+                // Intentar obtener la última reflexión generada
+                // const context = window.parent.streamManager.getCurrentContext();
+                // ... lógica para obtener texto real
+            }
+
+            document.getElementById('reflection-content').textContent = random;
+        }
+        loadReflection();
+    </script>
+</body>
+
+</html>
