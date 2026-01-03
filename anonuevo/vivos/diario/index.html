@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Viaje de ilfass - Diario de Viaje</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 2rem;
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+        }
+
+        h1 {
+            border-bottom: 1px solid #334155;
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .entry {
+            background: #1e293b;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #38bdf8;
+        }
+
+        .meta {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .content {
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+
+<body>
+    <div style="max-width: 800px; margin: 0 auto;">
+        <h1>Diario de Viaje</h1>
+        <div id="feed">
+            <!-- Entradas dinámicas -->
+            <div class="entry">
+                <div class="meta">
+                    <span>Argentina • Hace 5 min</span>
+                    <span>#Historia</span>
+                </div>
+                <div class="content">
+                    Llegamos a Argentina. La inmensidad de la pampa se siente incluso desde el mapa digital.
+                </div>
+            </div>
+            <div class="entry">
+                <div class="meta">
+                    <span>Inicio del Viaje • Hace 2 horas</span>
+                    <span>#Manifiesto</span>
+                </div>
+                <div class="content">
+                    Hoy comienza todo. 365 días por delante.
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
