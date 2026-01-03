@@ -65,10 +65,8 @@ class EventManager {
         // 1. No debe haber audio sonando (IDLE)
         // 2. No debe haber animaciones críticas (podemos chequear audioManager)
 
-        if (audioManager.currentState !== AUDIO_STATES.IDLE) {
-            // Si hay algo sonando, esperamos.
-            return;
-        }
+        // Eliminamos el bloqueo por estado de audio para permitir interrupciones (eventos manuales)
+        // if (audioManager.currentState !== AUDIO_STATES.IDLE) { ... }
 
         // Tomar evento
         const event = this.queue.shift();

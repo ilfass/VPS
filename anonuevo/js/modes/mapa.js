@@ -137,7 +137,12 @@ export default class MapaMode {
                     this.resetZoom();
 
                     // Esperar un poco y hacer zoom
-                    setTimeout(() => {
+                    this.travelTimeout = setTimeout(() => {
+                        // Asegurar el canal de audio para este evento manual (Forzar interrupción)
+                        audioManager.cancel();
+                        audioManager.releaseChannel();
+                        audioManager.requestChannel(AUDIO_STATES.COUNTRY_NARRATION);
+
                         this.zoomToCountry({ id: code, ...COUNTRY_INFO[code] });
                         // Programar salida manual (o dejar estático si es manual? 
                         // El requerimiento dice "sin estados inconsistentes", mejor mantener ciclo de salida)
@@ -467,7 +472,10 @@ export default class MapaMode {
         this.sunGroup.selectAll("circle").transition().duration(3000).attr("r", 15 / scale);
     }
 
-    resetZoom() {
+    resetZoom(releaseAudio = true) {
+        // Detener cualquier viaje automático pendiente
+        if (this.travelTimeout) clearTimeout(this.travelTimeout);
+
         this.gCountries.selectAll(".country").classed("active-country", false);
         this.gLabels.selectAll("text").transition().duration(1000).style("opacity", 0);
 
@@ -478,7 +486,9 @@ export default class MapaMode {
         // Cancelar voz y ocultar cápsula lateral
         // Cancelar voz y ocultar cápsula lateral
         audioManager.cancel();
-        audioManager.releaseChannel(); // Liberar estado
+        if (releaseAudio) {
+            audioManager.releaseChannel(); // Liberar estado solo si se solicita
+        }
         const capsuleEl = document.getElementById('country-info-capsule');
         if (capsuleEl) capsuleEl.classList.add('hidden-right');
 
@@ -494,12 +504,23 @@ export default class MapaMode {
     }
 
     showInfoCapsule(forced = false) {
-        // Si es forzado (manual), ignoramos estado AUTO, pero respetamos audio
+        // Si es forzado (manual), ignoramos estado AUTO, pero respetamos audio salvo que sea IDLE o podamos interrumpir
         if (!forced && !eventManager.canProceedAuto()) return;
 
-        // Si hay noticias o narración prioritaria, no mostrar cápsula general
-        // Solo mostrar si estamos en IDLE (vista global tranquila)
-        if (audioManager.currentState !== AUDIO_STATES.IDLE) return;
+        // Si NO es forzado, solo mostrar si estamos en IDLE
+        if (!forced && audioManager.currentState !== AUDIO_STATES.IDLE) return;
+
+        // Si ES forzado, intentamos tomar el canal (usamos GLOBAL_NEWS como proxy de prioridad alta)
+        if (forced) {
+            // Forzar interrupción si es manual
+            audioManager.cancel();
+            audioManager.releaseChannel();
+
+            if (!audioManager.requestChannel(AUDIO_STATES.GLOBAL_NEWS)) {
+                // Si no podemos tomar el canal (ej: ya hay una noticia real), abortamos
+                return;
+            }
+        }
 
         const capsuleEl = document.getElementById('info-capsule');
         const textEl = document.getElementById('capsule-text');
@@ -515,7 +536,12 @@ export default class MapaMode {
 
         // Leer dato general (Voz secundaria)
         // No bloqueamos el canal principal, es un dato corto
-        audioManager.speak(fact, 'news'); // Usamos voz 'news' para variedad
+        audioManager.speak(fact, 'news', () => {
+            // Si fue forzado, liberamos el canal al terminar de hablar
+            if (forced) {
+                setTimeout(() => audioManager.releaseChannel(), 1000);
+            }
+        });
 
         // Ocultar después de 10 segundos
         setTimeout(() => {
@@ -547,6 +573,11 @@ export default class MapaMode {
         const infoEl = document.getElementById('broadcast-info');
 
         // 1. Intentar tomar control exclusivo
+        if (forced) {
+            audioManager.cancel();
+            audioManager.releaseChannel();
+        }
+
         if (!audioManager.requestChannel(AUDIO_STATES.GLOBAL_NEWS)) {
             console.log("Canal ocupado, posponiendo noticias...");
             if (infoEl) infoEl.textContent = "NOTICIAS POSPUESTAS (CANAL OCUPADO)";
@@ -567,8 +598,8 @@ export default class MapaMode {
 
         console.log("📰 BREAKING NEWS:", newsItem.title);
 
-        // 3. Resetear vista a Global
-        this.resetZoom();
+        // 3. Resetear vista a Global (pero mantener el canal de audio ocupado)
+        this.resetZoom(false);
 
         // 4. Mostrar UI de Noticia
         const capsuleEl = document.getElementById('news-capsule');
@@ -595,7 +626,7 @@ export default class MapaMode {
 
         audioManager.speak(fullText, 'news', () => {
             // Callback al terminar de hablar
-            setTimeout(() => {
+            this.travelTimeout = setTimeout(() => {
                 // Ocultar UI
                 if (capsuleEl) capsuleEl.classList.add('hidden-right');
                 if (infoEl) infoEl.textContent = "SISTEMA ONLINE";
