@@ -71,6 +71,16 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    // POST /event/mode/:mode
+    if (req.method === 'POST' && path.startsWith('/event/mode/')) {
+        const mode = path.split('/').pop(); // NARRATIVE, VISUAL_TRAVEL, LOOP
+        state.eventQueue.push({ type: 'mode_change', payload: mode });
+        console.log(`CMD: Stream Mode ${mode}`);
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({ status: 'ok', mode: mode }));
+        return;
+    }
+
     // POST /event/news
     if (req.method === 'POST' && path === '/event/news') {
         state.eventQueue.push({ type: 'news' });

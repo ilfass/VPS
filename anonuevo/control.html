@@ -150,6 +150,18 @@
     </div>
 
     <div class="section">
+        <div class="section-title">Modo de Stream</div>
+        <div class="grid">
+            <button class="btn-news" style="background: #8b5cf6;" onclick="sendCommand('mode/NARRATIVE')">📖 Narrativo
+                (4h)</button>
+            <button class="btn-news" style="background: #06b6d4;" onclick="sendCommand('mode/VISUAL_TRAVEL')">👁️ Viaje
+                Visual</button>
+            <button class="btn-news" style="background: #64748b;" onclick="sendCommand('mode/LOOP')">🔁 Loop /
+                Descanso</button>
+        </div>
+    </div>
+
+    <div class="section">
         <div class="section-title">Navegación Manual</div>
         <div class="grid" style="grid-template-columns: 2fr 1fr;">
             <input type="text" id="country-code" placeholder="Código ISO (ej: 032, 840, 724)" maxlength="3">

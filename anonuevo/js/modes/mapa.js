@@ -5,6 +5,7 @@ import { audioManager, AUDIO_STATES } from '../utils/audio-manager.js';
 import { newsProvider } from '../data/news-provider.js';
 import { eventManager } from '../utils/event-manager.js';
 import { narrativeEngine } from '../utils/narrative-engine.js';
+import { streamManager, STREAM_MODES } from '../utils/stream-manager.js';
 
 // TEMPLATES eliminados, ahora gestionados por narrativeEngine
 
@@ -113,6 +114,15 @@ export default class MapaMode {
             // Registrar manejadores
             eventManager.on('news', () => this.triggerNewsEvent(true)); // true = forzado
             eventManager.on('fact', () => this.showInfoCapsule(true));
+            eventManager.on('mode_change', (mode) => {
+                if (streamManager.setMode(mode)) {
+                    // Actualizar UI o resetear ciclo si es necesario
+                    console.log("Modo cambiado a:", mode);
+                    // Forzar actualización inmediata del estado visual
+                    const infoEl = document.getElementById('broadcast-info');
+                    if (infoEl) infoEl.textContent = `MODO: ${mode}`;
+                }
+            });
             eventManager.on('country', (code) => {
                 // Buscar país por ID (code)
                 // Nota: COUNTRY_INFO usa claves string "032", etc.
@@ -269,7 +279,10 @@ export default class MapaMode {
     }
 
     startAutoTravel() {
-        // Ciclo: Global (40s) -> País (15s)
+        // Inicializar estado del viaje
+        streamManager.init();
+
+        // Ciclo: Global -> País
         // Solo si no hay noticias activas Y estamos en modo AUTO
         if (audioManager.currentState !== AUDIO_STATES.GLOBAL_NEWS && eventManager.canProceedAuto()) {
             setTimeout(() => this.cycleZoomIn(), 5000);
@@ -291,36 +304,40 @@ export default class MapaMode {
             return;
         }
 
-        // Elegir país aleatorio de nuestra lista de info
-        // Elegir país aleatorio de nuestra lista de info
-        // Usar narrativeEngine para evitar repeticiones recientes
-        const availableIds = Object.keys(COUNTRY_INFO);
-        let randomId;
-        let attempts = 0;
+        // Obtener contexto del Stream Manager (País del día, Tema, Modo)
+        const context = streamManager.getCurrentContext();
+        const timing = streamManager.getTimingConfig();
 
-        do {
-            randomId = availableIds[Math.floor(Math.random() * availableIds.length)];
-            attempts++;
-        } while (narrativeEngine.isRecentlyVisited(randomId) && attempts < 10);
+        // Si estamos en LOOP, comportamiento diferente (quizás random o replay)
+        // Por ahora, en LOOP seguimos la estructura pero con menos voz
 
-        const target = { id: randomId, ...COUNTRY_INFO[randomId] }; // Incluye timezone
+        let targetId = context.countryId;
+
+        // Fallback si el ID del schedule no existe en nuestra data
+        if (!COUNTRY_INFO[targetId]) {
+            console.warn(`Scheduled country ${targetId} not found, picking random.`);
+            const availableIds = Object.keys(COUNTRY_INFO);
+            targetId = availableIds[Math.floor(Math.random() * availableIds.length)];
+        }
+
+        const target = { id: targetId, ...COUNTRY_INFO[targetId] }; // Incluye timezone
 
         this.zoomToCountry(target);
 
-        // 15 segundos de zoom (base)
-        // Este timeout se reajustará en zoomToCountry si el texto es largo
+        // Duración del zoom basada en el modo
         this.travelTimeout = setTimeout(() => {
             this.cycleZoomOut();
-        }, 15000);
+        }, timing.zoomDuration);
     }
 
     cycleZoomOut() {
         this.resetZoom();
+        const timing = streamManager.getTimingConfig();
 
-        // 40 segundos de vista global
+        // Tiempo en vista global antes de volver a entrar
         this.travelTimeout = setTimeout(() => {
             this.cycleZoomIn();
-        }, 25000);
+        }, timing.globalViewDuration);
     }
 
     zoomToCountry(target) {
@@ -393,14 +410,19 @@ export default class MapaMode {
                 // Mostrar etiquetas
                 this.gLabels.selectAll("text").style("opacity", 0);
                 // DISPARAR VOZ Y DATO (Después del zoom)
+                // Verificar probabilidad de hablar según modo
+                const context = streamManager.getCurrentContext();
+                const timing = streamManager.getTimingConfig();
+
+                if (Math.random() > timing.speakProbability) {
+                    console.log("Silencio por probabilidad de modo (Visual/Loop)");
+                    return;
+                }
+
                 const facts = target.facts || (target.fact ? [target.fact] : []);
 
                 if (facts.length > 0) {
-                    const randomFact = facts[Math.floor(Math.random() * facts.length)];
-
                     // Construir texto
-                    // "Observando Japón. Son las 21:34 hora local. Es uno de los países..."
-
                     let timeStr = "";
                     try {
                         const now = new Date();
@@ -412,11 +434,8 @@ export default class MapaMode {
                         }).format(now);
                     } catch (e) { timeStr = "--:--"; }
 
-
-
-                    // Determinar estación para elegir plantilla
-                    // Generar Narrativa con el Motor
-                    const narrative = narrativeEngine.generateNarrative(target, timeStr);
+                    // Generar Narrativa con el Motor, pasando el contexto completo
+                    const narrative = narrativeEngine.generateNarrative(target, timeStr, context);
 
                     // Usar AudioManager
                     audioManager.speak(narrative.text, 'normal');
@@ -426,7 +445,7 @@ export default class MapaMode {
 
                     // Calcular duración estimada (aprox 2.5 palabras por segundo + margen)
                     const wordCount = narrative.text.split(' ').length;
-                    const estimatedDuration = Math.max(12000, (wordCount / 2.5) * 1000 + 4000);
+                    const estimatedDuration = Math.max(timing.zoomDuration, (wordCount / 2.5) * 1000 + 4000);
 
                     // Mostrar info visual (usamos el contenido del texto generado o un fact limpio si preferimos)
                     // Para simplificar visualmente, mostramos el texto generado completo o una parte

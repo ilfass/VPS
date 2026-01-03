@@ -7,37 +7,56 @@ export class NarrativeEngine {
 
     /**
      * Genera una narrativa rica para un país dado.
-     * @param {object} country - Objeto con info del país (name, region, facts, recommendations, etc.)
+     * @param {object} country - Objeto con info del país
      * @param {string} localTime - Hora local formateada
+     * @param {object} context - { dayOfVisit, theme, mode }
      * @returns {object} - { text: string, type: string, diaryEntry: object }
      */
-    generateNarrative(country, localTime) {
-        // 1. Elegir enfoque (Curiosidad, Recomendación, Reflexión)
-        const mode = this.selectMode(country);
+    generateNarrative(country, localTime, context = {}) {
+        const { dayOfVisit = 1, theme = 'HISTORY', mode = 'NARRATIVE' } = context;
+
+        // Si es modo LOOP, usar contenido genérico o corto
+        if (mode === 'LOOP') {
+            return this.generateLoopContent(country, localTime);
+        }
 
         let text = "";
         let diaryTopic = "";
 
-        // Introducción variable
-        const intro = this.getRandomIntro(country.name);
+        // Introducción contextualizada al día del viaje
+        const intro = this.getDayIntro(country.name, dayOfVisit);
 
-        if (mode === 'RECOMMENDATION' && country.recommendations && country.recommendations.length > 0) {
+        // Selección de contenido basado en el TEMA del día
+        // Nota: Como no tenemos datos etiquetados en country-info.js, simulamos la selección
+        // usando índices o aleatoriedad ponderada, pero el texto introductorio da el contexto.
+
+        let content = "";
+
+        if (theme === 'CULTURE' && country.recommendations && country.recommendations.length > 0) {
+            // Día 2: Cultura/Recomendaciones
             const rec = country.recommendations[Math.floor(Math.random() * country.recommendations.length)];
-            text = `${intro} Son las ${localTime}. Si estuvieras aquí, ${rec}`;
-            diaryTopic = "Recomendación de Viaje";
-        } else {
-            // Default: Fact/Curiosidad
+            content = `Si estuvieras aquí, ${rec}`;
+            diaryTopic = `Día ${dayOfVisit}: Cultura y Vida Local`;
+        } else if (theme === 'CURIOSITIES') {
+            // Día 3: Curiosidades
             const fact = country.facts[Math.floor(Math.random() * country.facts.length)];
-            text = `${intro} Son las ${localTime}. ${fact}`;
-            diaryTopic = "Curiosidad Local";
+            content = `Un dato fascinante: ${fact}`;
+            diaryTopic = `Día ${dayOfVisit}: Curiosidades`;
+        } else {
+            // Día 1: Historia/General (Default)
+            const fact = country.facts[0]; // Usamos el primer fact que suele ser general
+            content = `${fact}`;
+            diaryTopic = `Día ${dayOfVisit}: Llegada y Contexto`;
         }
+
+        text = `${intro} Son las ${localTime}. ${content}`;
 
         // Registrar en memoria
         this.addToMemory(country.id);
 
         return {
             text: text,
-            type: mode,
+            type: theme,
             diaryEntry: {
                 country: country.name,
                 time: localTime,
@@ -45,6 +64,30 @@ export class NarrativeEngine {
                 content: text
             }
         };
+    }
+
+    generateLoopContent(country, localTime) {
+        const fact = country.facts[Math.floor(Math.random() * country.facts.length)];
+        return {
+            text: `En ${country.name}, son las ${localTime}. ${fact}`,
+            type: 'LOOP',
+            diaryEntry: {
+                country: country.name,
+                time: localTime,
+                topic: "Resumen de Viaje",
+                content: fact
+            }
+        };
+    }
+
+    getDayIntro(countryName, day) {
+        if (day === 1) {
+            return `Llegamos a ${countryName}. Comienza nuestro recorrido.`;
+        } else if (day === 2) {
+            return `Segundo día en ${countryName}. Hoy exploramos su cultura.`;
+        } else {
+            return `Último día en ${countryName}. Descubramos sus secretos finales.`;
+        }
     }
 
     selectMode(country) {
