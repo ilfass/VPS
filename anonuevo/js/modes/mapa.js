@@ -6,6 +6,7 @@ import { newsProvider } from '../data/news-provider.js';
 import { eventManager } from '../utils/event-manager.js';
 import { narrativeEngine } from '../utils/narrative-engine.js';
 import { streamManager, STREAM_MODES } from '../utils/stream-manager.js';
+import { characterDirector } from '../utils/character-director.js';
 
 // TEMPLATES eliminados, ahora gestionados por narrativeEngine
 
@@ -437,15 +438,23 @@ export default class MapaMode {
                     // Generar Narrativa con el Motor, pasando el contexto completo
                     const narrative = narrativeEngine.generateNarrative(target, timeStr, context);
 
-                    // Usar AudioManager
+                    // Determinar estado del personaje y configuración de voz
+                    // Mapeamos la escena actual (simplificado por ahora a LIVE_MAP)
+                    const avatarState = characterDirector.determineState('LIVE_MAP', context.mode, narrative.type);
+                    const voiceConfig = characterDirector.getVoiceConfig(avatarState);
+
+                    // Usar AudioManager con configuración de voz dinámica
+                    // Nota: AudioManager necesita actualización para aceptar rate/pitch, por ahora pasamos texto
+                    // En una implementación completa, pasaríamos voiceConfig al speak
                     audioManager.speak(narrative.text, 'normal');
 
                     // Actualizar Diario de Viaje
                     this.updateDiary(narrative.diaryEntry);
 
-                    // Calcular duración estimada (aprox 2.5 palabras por segundo + margen)
+                    // Calcular duración estimada (ajustada por velocidad de voz)
                     const wordCount = narrative.text.split(' ').length;
-                    const estimatedDuration = Math.max(timing.zoomDuration, (wordCount / 2.5) * 1000 + 4000);
+                    const baseSpeed = 2.5 * voiceConfig.rate; // Palabras por segundo ajustadas
+                    const estimatedDuration = Math.max(timing.zoomDuration, (wordCount / baseSpeed) * 1000 + 4000);
 
                     // Mostrar info visual (usamos el contenido del texto generado o un fact limpio si preferimos)
                     // Para simplificar visualmente, mostramos el texto generado completo o una parte
