@@ -582,3 +582,34 @@ html {
     line-height: 1.6;
     color: #e2e8f0;
 }
+
+/* SCENE LAYER (Navegación entre páginas) */
+.scene-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 20;
+    /* Encima del mapa base pero debajo de overlays críticos */
+    background: #0f172a;
+    transition: opacity 1s ease;
+}
+
+.scene-layer.hidden {
+    opacity: 0;
+    pointer-events: none;
+    z-index: -1;
+}
+
+#scene-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.hidden-scene {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1s ease;
+}

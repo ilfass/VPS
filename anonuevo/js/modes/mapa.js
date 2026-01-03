@@ -9,6 +9,7 @@ import { streamManager, STREAM_MODES } from '../utils/stream-manager.js';
 import { characterDirector } from '../utils/character-director.js';
 import { contentEngine } from '../utils/content-engine.js';
 import { systemOrchestrator } from '../utils/system-orchestrator.js';
+import { sceneNavigator } from '../utils/scene-navigator.js';
 
 // TEMPLATES eliminados, ahora gestionados por narrativeEngine
 
@@ -113,6 +114,9 @@ export default class MapaMode {
 
             // 8. Inicializar Gestor de Eventos (Control Manual)
             eventManager.init();
+
+            // Inicializar Navegador de Escenas
+            sceneNavigator.init('broadcast-scene');
 
             // 9. Inicializar Orquestador del Sistema (Cerebro Central)
             systemOrchestrator.init();

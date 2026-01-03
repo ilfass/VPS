@@ -1,9 +1,9 @@
-
 import { streamManager } from './stream-manager.js';
 import { narrativeEngine } from './narrative-engine.js';
 import { characterDirector } from './character-director.js';
 import { contentEngine } from './content-engine.js';
 import { choreographer, SCENES } from './choreographer.js';
+import { sceneNavigator } from './scene-navigator.js';
 import { COUNTRY_INFO } from '../data/country-info.js';
 
 export class SystemOrchestrator {
@@ -16,6 +16,11 @@ export class SystemOrchestrator {
     init() {
         console.log("[SystemOrchestrator] Initializing 'El Viaje de ilfass'...");
         streamManager.init();
+        // Inicializar navegador de escenas (asume que existe un contenedor principal)
+        // En MapaMode.mount() se crea la estructura, así que esperamos un poco o lo pasamos
+        // Por ahora, asumimos que 'broadcast-scene' es el contenedor
+        // sceneNavigator.init('broadcast-scene'); // Se debe llamar desde MapaMode para asegurar DOM
+
         this.isRunning = true;
         this.runLoop();
     }
@@ -37,7 +42,12 @@ export class SystemOrchestrator {
         let targetScene = SCENES.LIVE_MAP;
         if (context.mode === 'LOOP') targetScene = SCENES.TRAVEL_DIARY;
 
-        // Aquí se invocaría al VisualSceneManager para cambiar el DOM si targetScene != currentScene
+        // Ejecutar cambio de escena si es necesario
+        if (targetScene !== this.currentScene) {
+            console.log(`[SystemOrchestrator] Scene Change: ${this.currentScene} -> ${targetScene}`);
+            sceneNavigator.navigateTo(targetScene);
+            this.currentScene = targetScene;
+        }
 
         // 4. Generar Contenido (NarrativeEngine) - Esto se dispara por eventos en MapaMode, 
         // pero el orquestador podría forzar eventos periódicos si no hay actividad.
