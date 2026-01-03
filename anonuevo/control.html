@@ -134,6 +134,20 @@
     </h1>
 
     <div class="section">
+        <div class="section-title">Dirección de Escenas (Director de Cámaras)</div>
+        <div class="grid">
+            <button class="btn-news" style="background: #000; border: 1px solid #38bdf8;"
+                onclick="sendCommand('scene/INTRO')">🎬 INTRO (Acto 0)</button>
+            <button class="btn-news" style="background: #0f172a; border: 1px solid #64748b;"
+                onclick="sendCommand('scene/MAP')">🗺️ MAPA GLOBAL</button>
+            <button class="btn-news" style="background: #1e293b; border: 1px solid #94a3b8;"
+                onclick="sendCommand('scene/COUNTRY')">🇦🇷 DETALLE PAÍS</button>
+            <button class="btn-news" style="background: #312e81; border: 1px solid #818cf8;"
+                onclick="sendCommand('scene/REFLECTION')">🧠 REFLEXIÓN</button>
+        </div>
+    </div>
+
+    <div class="section">
         <div class="section-title">Modo de Operación</div>
         <div class="grid">
             <button class="btn-auto" onclick="sendCommand('auto/on')">ACTIVAR AUTO</button>

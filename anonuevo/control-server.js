@@ -81,6 +81,16 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    // POST /event/scene/:sceneName
+    if (req.method === 'POST' && path.startsWith('/event/scene/')) {
+        const sceneName = path.split('/').pop();
+        state.eventQueue.push({ type: 'scene_change', payload: sceneName });
+        console.log(`CMD: Scene Change ${sceneName}`);
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({ status: 'ok', scene: sceneName }));
+        return;
+    }
+
     // POST /event/news
     if (req.method === 'POST' && path === '/event/news') {
         state.eventQueue.push({ type: 'news' });
