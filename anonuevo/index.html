@@ -4,43 +4,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Stream Engine</title>
-    <link rel="stylesheet" href="css/styles.css?v=8">
-    <!-- Preload critical fonts if any -->
+    <title>El Viaje de ilfass - Portada</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            text-align: center;
+        }
 
-    <!-- D3.js & TopoJSON for Realistic Maps -->
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://unpkg.com/topojson-client@3"></script>
+        h1 {
+            font-size: 5rem;
+            font-weight: 900;
+            letter-spacing: -0.05em;
+            margin: 0;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: pulse 3s infinite ease-in-out;
+        }
+
+        p.subtitle {
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: #94a3b8;
+            margin-top: 1rem;
+            max-width: 600px;
+        }
+
+        .manifesto {
+            margin-top: 3rem;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #cbd5e1;
+            max-width: 700px;
+            opacity: 0;
+            animation: fadeIn 2s ease-out forwards 1s;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.8;
+                transform: scale(0.98);
+            }
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .enter-btn {
+            display: inline-block;
+            margin-top: 2rem;
+            padding: 1rem 2rem;
+            background: transparent;
+            border: 1px solid #38bdf8;
+            color: #38bdf8;
+            text-decoration: none;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .enter-btn:hover {
+            background: #38bdf8;
+            color: #0f172a;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+        }
+    </style>
 </head>
 
 <body>
-    <div id="app-container">
-        <!-- El contenido del modo se inyectará aquí -->
-        <div id="stage" class="stage">
-            <!-- El contenido se carga dinámicamente -->
-        </div>
+    <h1>EL VIAJE</h1>
+    <p class="subtitle">Una vuelta al mundo en 365 días. Sin cortes. En vivo.</p>
 
-        <!-- Overlay de Inicio (Para activar Audio/Autoplay) -->
-        <div id="start-overlay" class="start-overlay">
-            <div class="start-content">
-                <h1>VIVO AUTOMÁTICO</h1>
-                <p>Click para iniciar transmisión</p>
-                <button id="start-btn">INICIAR</button>
-            </div>
-        </div>
+    <div class="manifesto">
+        <p>Soy <strong>ilfass</strong>. Desde hoy y hasta fin de año voy a recorrer el mundo.</p>
+        <p>Para entender cómo vivimos hoy. Para conectar puntos distantes. Para aprender.</p>
+        <p>Lo que ves hoy, no se repite mañana.</p>
 
-        <!-- Capa de depuración (opcional, activable por URL ?debug=true) -->
-        <div id="debug-layer" style="display: none;">
-            <span id="fps-counter">FPS: 0</span>
-            <span id="mode-indicator">Modo: --</span>
-        </div>
+        <a href="/vivos/mapa/" class="enter-btn">ENTRAR AL VIVO</a>
     </div>
-
-    <!-- Scripts Base -->
-    <script type="module" src="js/main.js?v=9"></script>
 </body>
 
 </html>
