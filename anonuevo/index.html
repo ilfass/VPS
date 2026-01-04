@@ -41,7 +41,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            opacity: 0.35;
+            opacity: 0.6;
         }
 
         .container {
@@ -275,7 +275,11 @@
 
                     context.beginPath(); path(sphere); context.fillStyle = '#0a0a0a'; context.fill();
                     context.beginPath(); path(land); context.fillStyle = '#1e293b'; context.fill();
-                    context.beginPath(); path(borders); context.strokeStyle = 'rgba(56, 189, 248, 0.15)'; context.lineWidth = 1; context.stroke();
+                    context.beginPath();
+                    path(borders);
+                    context.strokeStyle = 'rgba(56, 189, 248, 0.3)';
+                    context.lineWidth = 1;
+                    context.stroke();
 
                     const grad = context.createRadialGradient(width / 2, height / 2, height / 2.5, width / 2, height / 2, height / 2 + 40);
                     grad.addColorStop(0, 'rgba(56, 189, 248, 0)');
