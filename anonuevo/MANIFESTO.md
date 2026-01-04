@@ -237,3 +237,142 @@ El libro queda como obra cerrada. El viaje termina. La memoria permanece.
 ### PRINCIPIO FINAL (SELLADO)
 **El espectador no debe sentir que mira una IA.**
 **Debe sentir que acompaña a alguien que viaja, observa, duda, aprende y cambia.**
+
+---
+---
+
+## SECCIÓN II: ARQUITECTURA DEL MOTOR DE GENERACIÓN (PROFUNDIZACIÓN TÉCNICA)
+
+### 15. FILOSOFÍA DE GENERACIÓN: EL MITO DEL "MÁS CONTENIDO"
+No necesitás “más contenido”. Necesitás capacidad sostenida de generación narrativa multimodal, con estas condiciones simultáneas:
+*   Funciona durante horas continuas
+*   No repite frases ni estructuras
+*   Mantiene voz humana, no robótica
+*   Produce texto + imágenes + video + música + sonidos
+*   Respeta: país actual, día del ciclo, arco narrativo global
+*   Es interrumpible por dirección humana
+*   No rompe el libro ni el stream
+*   No improvisa rutas ni temas
+
+👉 **Esto no lo resuelve una sola IA, ni un prompt largo. Se resuelve con un SISTEMA DE IAs ORQUESTADAS.**
+
+### 16. SOLUCIÓN CORRECTA: MOTOR DE GENERACIÓN CONTINUA MULTIMODAL ORQUESTADO
+La única solución viable es crear un **Motor de Generación Continua Multimodal Orquestado**.  
+No una IA habladora. Un equipo de IAs especializadas, coordinadas por reglas estrictas.
+
+---
+
+### 17. ARQUITECTURA GENERAL DEL SISTEMA DE GENERACIÓN
+#### 17.1 Capas del sistema
+1.  **Panel de Dirección (Humano)**
+    *   (Ordena, interrumpe, dirige)
+    *   ⬇
+2.  **System Orchestrator (Reglas)**
+    *   (Coordina, verifica, cronometra)
+    *   ⬇
+3.  **Capa de Generación (IAs Especializadas)**
+    *   IA Narrativa (texto)
+    *   IA Visual (imágenes/video)
+    *   IA Sonora (música/ambiente)
+    *   IA Voz (TTS humano)
+    *   ⬇
+4.  **Salida (Output)**
+    *   Stream + Libro + Diario
+
+---
+
+### 18. LA IA QUE “GENERA HORAS” (DINÁMICA DE FLUJO)
+#### 18.1 Regla clave: El stream no habla todo el tiempo.
+Para streams largos, la distribución ideal es:
+*   30–40% Voz
+*   40–50% Visual + Música
+*   10–20% Silencio / Contemplación
+
+Esto reduce carga cognitiva, evita saturación y aumenta la calidad percibida.
+
+---
+
+### 19. DETALLE DE MOTORES ESPECÍFICOS
+
+#### 19.1 Motor Narrativo IA (Texto)
+**Rol:** Generar guiones cortos (15–20s), reflexiones, entradas de diario, texto del libro.
+
+**Cómo evitar repetición:**
+Se usa memoria de sesión y memoria histórica.
+Cada generación se verifica contra un contexto:
+```javascript
+narrativeContext = {
+  pais: "Japón",
+  dia: 2,
+  temasUsados: [...],
+  frasesBloqueadas: [...],
+  tono: "observacional",
+  energia: "media"
+}
+```
+
+#### 19.2 IA Visual (Imágenes y Video)
+Dos fuentes de contenido obligatorias:
+1.  **Banco Curado (Humano):**
+    *   Fotos, videos, clips históricos, contenido con derechos.
+    *   Estructurado en `/media/japon/templos/`, etc.
+2.  **Generación IA:**
+    *   Imágenes ambientales, loops visuales, escenas estilizadas, transiciones.
+
+**Regla:** La IA no reemplaza al banco humano: lo complementa.
+
+#### 19.3 IA Sonora (Música y Ambiente)
+**Tipos:** Música ambiental por país, sonidos de ciudad/naturaleza, pausas con ruido blanco suave, silencio intencional.
+**Regla:** Música generativa (loops largos), no melodías invasivas. Cambios solo por evento narrativo.
+
+#### 19.4 Voz IA (CRÍTICO - REQUISITOS TÉCNICOS)
+**Requisitos innegociables:**
+*   No robótica.
+*   Ritmo humano, pausas naturales, respiración simulada.
+*   Variación emocional leve.
+
+**Solución técnica:**
+*   Voz clonada o TTS neural de alta calidad.
+*   Parámetros dinámicos: velocidad, pitch, énfasis, pausas.
+*   **La voz no improvisa: solo lee guiones aprobados.**
+
+#### 19.5 Avatar
+**Función:** Presencia humana y anclaje emocional.
+**Activación:** Solo cuando hay voz, reflexión o intervención humana.
+**Estados:** Idle, Speaking, Listening, Reflection.
+
+---
+
+### 20. EL SECRETO PARA HORAS INFINITAS: CONTENIDO EN CAPAS
+El stream nunca depende de una sola fuente. Ejemplo de 10 minutos:
+*   0–2 min: Música + imágenes
+*   2–3 min: Voz IA
+*   3–5 min: Video + sonido ambiente
+*   5–6 min: Diario visual
+*   6–7 min: Voz
+*   7–10 min: Mapa + silencio
+
+---
+
+### 21. INTERVENCIÓN HUMANA (MODO DIRECTOR)
+Desde el Panel el humano puede:
+*   Forzar: cámara, imagen, video, texto.
+*   Comandos naturales: “mostrá esta foto”, “callá la voz”, “cambiá música”.
+*   Interrumpir IA sin romper estado: La IA se calla inmediatamente, no discute.
+
+---
+
+### 22. ROL DE ANTIGRAVITY
+*   Antigravity genera estructura.
+*   Antigravity implementa orquestadores.
+*   Antigravity conecta servicios.
+*   ❌ **Antigravity NO decide contenido final. NO narra. NO dirige.**
+
+---
+
+### 23. CONCLUSIÓN
+✔ Sí: necesitás IAs.
+✘ No: una sola IA.
+
+La solución es un sistema narrativo distribuido, con reglas, memoria, control humano, pausas y capas.
+Eso es lo que permite horas reales, no humo.
