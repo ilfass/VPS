@@ -24,7 +24,8 @@ let state = {
         country: 'UNKNOWN',
         day: 0,
         lastUpdate: 0
-    }
+    },
+    travelQueue: [] // COLA DE VIAJE (Playlist)
 };
 
 // Headers CORS
@@ -167,8 +168,39 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, headers);
         res.end(JSON.stringify({
             autoMode: state.autoMode,
-            telemetry: state.clientTelemetry
+            telemetry: state.clientTelemetry,
+            queue: state.travelQueue || []
         }));
+        return;
+    }
+
+    // POST /event/queue/add - Añadir a la playlist
+    if (req.method === 'POST' && apiPath === '/event/queue/add') {
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', () => {
+            try {
+                const { code } = JSON.parse(body);
+                if (code) {
+                    if (!state.travelQueue) state.travelQueue = [];
+                    state.travelQueue.push(code);
+                    console.log(`[Queue] Added country: ${code}`);
+                }
+                res.writeHead(200, headers);
+                res.end(JSON.stringify({ success: true, queue: state.travelQueue }));
+            } catch (e) {
+                res.writeHead(400, headers);
+                res.end(JSON.stringify({ error: 'invalid body' }));
+            }
+        });
+        return;
+    }
+
+    // POST /event/queue/pop - Consumir siguiente destino (Lo usa el AutoPilot)
+    if (req.method === 'POST' && apiPath === '/event/queue/pop') {
+        const next = (state.travelQueue && state.travelQueue.length > 0) ? state.travelQueue.shift() : null;
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({ nextCountry: next, remaining: state.travelQueue ? state.travelQueue.length : 0 }));
         return;
     }
 

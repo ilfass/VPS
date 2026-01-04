@@ -297,6 +297,14 @@
                 </div>
             </div>
 
+            <div style="margin-top: 15px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px;">
+                <span class="status-label">NEXT IN PLAYLIST</span>
+                <div id="queue-display"
+                    style="font-family: 'JetBrains Mono'; font-size: 0.8rem; color: #fbbf24; min-height: 20px;">
+                    (Empty)
+                </div>
+            </div>
+
             <h2 style="margin-top: 20px;">Master Control</h2>
             <button id="btn-toggle-auto" onclick="toggleAuto()">Initializing...</button>
             <div style="font-size: 0.7rem; color: #666; margin-top: 5px; text-align: center;">
@@ -334,7 +342,10 @@
                         <option value="356">🇮🇳 India (356)</option>
                     </select>
                     <button onclick="travelToSelected()"
-                        style="background: var(--warning); color: #000; border: none;">FLY NOW</button>
+                        style="background: var(--warning); color: #000; border: none; flex: 1;">FLY NOW</button>
+                    <button onclick="addToQueue()"
+                        style="background: #0f172a; border: 1px solid var(--warning); color: var(--warning); width: 50px;"
+                        title="Add to Playlist">+</button>
                 </div>
                 <div style="display: flex; gap: 10px; align-items: center;">
                     <input type="checkbox" id="mode-deep">
@@ -424,9 +435,19 @@
                 if (isAutoMode) {
                     btnAuto.classList.add('toggle-active');
                     btnAuto.innerText = "PILOTO AUTOMÁTICO: ON";
+                    btnAuto.style.background = "#10b981"; // Force Green
                 } else {
                     btnAuto.classList.remove('toggle-active');
                     btnAuto.innerText = "MANUAL MODE (PILOTO OFF)";
+                    btnAuto.style.background = ""; // Reset
+                }
+
+                // QUEUE UI
+                const qEl = document.getElementById('queue-display');
+                if (data.queue && data.queue.length > 0) {
+                    qEl.innerText = data.queue.join(' → ');
+                } else {
+                    qEl.innerText = "(Empty)";
                 }
 
                 // TELEMETRY
@@ -498,6 +519,16 @@
 
             log(`✈️ Initiating flight to ${name} (${code})...`, 'info');
             await apiCall(`/event/travel/${code}`);
+        }
+
+        async function addToQueue() {
+            const code = document.getElementById('country-select').value;
+            const name = document.getElementById('country-select').options[document.getElementById('country-select').selectedIndex].text;
+
+            log(`➕ Added to Playlist: ${name}`, 'info');
+            await apiCall('/event/queue/add', 'POST', { code });
+
+            // UI Update is handled by next status poll
         }
 
         async function triggerEvent(type) {

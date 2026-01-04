@@ -49,13 +49,29 @@ export class SystemOrchestrator {
         setTimeout(() => this.runLoop(), 5000);
     }
 
-    rotateCountry() {
+    async rotateCountry() {
+        // 1. Intentar consumir de la Playlist (Cola del Director)
+        try {
+            // endpoint configurado en Nginx como /control-api/...
+            // Asumimos que eventManager tiene la URL base o hardcodeamos '/control-api'
+            const res = await fetch('/control-api/event/queue/pop', { method: 'POST' });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.nextCountry) {
+                    console.log(`[AutoPilot] 🎯 Following Director's Playlist: ${data.nextCountry}`);
+                    eventManager.emit('country', data.nextCountry);
+                    this.currentCountry = data.nextCountry;
+                    return; // Éxito, no hacemos random
+                }
+            }
+        } catch (e) { console.warn("Queue check failed, falling back to random", e); }
+
+        // 2. Si no hay cola, rotación aleatoria estándar
         const countryCodes = Object.keys(COUNTRY_INFO);
-        // Excluir actual
         const available = countryCodes.filter(c => c !== this.currentCountry);
         if (available.length > 0) {
             const nextCode = available[Math.floor(Math.random() * available.length)];
-            console.log(`[AutoPilot] Rotating to random country: ${nextCode}`);
+            console.log(`[AutoPilot] 🎲 Rotating to random country: ${nextCode}`);
             eventManager.emit('country', nextCode);
             this.currentCountry = nextCode; // Actualizamos tracking local
         }
