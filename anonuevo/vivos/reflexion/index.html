@@ -68,7 +68,21 @@
         <div class="author">— ilfass</div>
     </div>
 
-    <script>
+    <script type="module">
+        import { eventManager } from '../../js/utils/event-manager.js?v=2';
+
+        // --- TELEMETRÍA Y CONTROL ---
+        eventManager.init();
+        eventManager.reportTelemetry('REFLEXION', 'GLOBAL', 0);
+
+        // Escuchar orden del Director
+        eventManager.on('scene_change', (scene) => {
+            console.log("🕯️ Reflexion switching to:", scene);
+            if (scene === 'mapa') window.location.href = '/vivos/mapa/';
+            else if (scene === 'intro') window.location.href = '/';
+            else window.location.href = `/vivos/${scene}/`;
+        });
+
         // Simulación de carga dinámica
         async function loadReflection() {
             // En producción, esto leería del estado actual o de un endpoint
@@ -78,14 +92,6 @@
                 "Lo que nos une es mucho más fuerte que lo que nos separa."
             ];
             const random = reflections[Math.floor(Math.random() * reflections.length)];
-
-            // Si estamos en iframe y hay contexto padre
-            if (window.parent && window.parent.streamManager) {
-                // Intentar obtener la última reflexión generada
-                // const context = window.parent.streamManager.getCurrentContext();
-                // ... lógica para obtener texto real
-            }
-
             document.getElementById('reflection-content').textContent = random;
         }
         loadReflection();

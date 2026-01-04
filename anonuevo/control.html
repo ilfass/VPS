@@ -115,6 +115,10 @@
             box-shadow: 0 0 15px var(--accent-dim);
         }
 
+        button:active {
+            transform: scale(0.98);
+        }
+
         button.danger {
             border-color: var(--danger);
             color: var(--danger);
@@ -130,6 +134,12 @@
             background: var(--success);
             color: #fff;
             border-color: var(--success);
+        }
+
+        button.disabled {
+            opacity: 0.3;
+            pointer-events: none;
+            filter: grayscale(1);
         }
 
         /* DREAM CONSOLE */
@@ -183,6 +193,19 @@
             font-weight: bold;
             margin-left: 5px;
         }
+
+        #big-scene {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+            text-align: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-family: 'Outfit';
+        }
     </style>
 </head>
 
@@ -202,9 +225,11 @@
             </div>
 
             <h2 style="margin-top: 20px; color: #fff; border-color: #38bdf8;">LIVE TELEMETRY</h2>
+
+            <div style="font-size: 0.7rem; color: #64748b; letter-spacing: 2px; text-align: center;">CURRENT SCENE</div>
+            <div id="big-scene">--</div>
+
             <div class="telemetry-box">
-                <div><span class="telemetry-label">SCENE:</span><span id="tel-scene" class="telemetry-val">--</span>
-                </div>
                 <div><span class="telemetry-label">COUNTRY:</span><span id="tel-country" class="telemetry-val">--</span>
                 </div>
                 <div><span class="telemetry-label">DAY:</span><span id="tel-day" class="telemetry-val">--</span></div>
@@ -225,10 +250,10 @@
         <div class="panel">
             <h2>Scene Director</h2>
             <div class="scene-grid">
-                <button onclick="changeScene('intro')">🎬 ACTO CERO (Intro)</button>
-                <button onclick="changeScene('mapa')">🌍 MAPA GLOBAL</button>
-                <button onclick="changeScene('pais')">🇯🇵 PAÍS (Detalle)</button>
-                <button onclick="changeScene('reflexion')">🕯️ REFLEXIÓN</button>
+                <button onclick="changeScene('intro')" id="btn-intro">🎬 ACTO CERO (Intro)</button>
+                <button onclick="changeScene('mapa')" id="btn-mapa">🌍 MAPA GLOBAL</button>
+                <button onclick="changeScene('pais')" id="btn-pais" class="disabled">🇯🇵 PAÍS (Zoom)</button>
+                <button onclick="changeScene('reflexion')" id="btn-reflexion">🕯️ REFLEXIÓN</button>
             </div>
 
             <h2 style="margin-top: 20px;">Inyecciones de Contenido</h2>
@@ -300,17 +325,37 @@
                     btnAuto.innerText = "AUTO: OFF";
                 }
 
-                // Update Telemetry
+                // Update Telemetry & UI
                 if (data.telemetry) {
-                    document.getElementById('tel-scene').innerText = data.telemetry.scene || '--';
+                    const scene = data.telemetry.scene || 'UNKNOWN';
+                    document.getElementById('big-scene').innerText = scene;
+
                     document.getElementById('tel-country').innerText = data.telemetry.country || '--';
                     document.getElementById('tel-day').innerText = data.telemetry.day || '--';
+
+                    // Button Logic
+                    const btnPais = document.getElementById('btn-pais');
+                    // Solo activar País si estamos en Mapa
+                    if (scene === 'MAPA' || scene === 'country') {
+                        btnPais.classList.remove('disabled');
+                    } else {
+                        btnPais.classList.add('disabled');
+                    }
 
                     if (data.telemetry.lastUpdate) {
                         const secondsAgo = Math.floor((Date.now() - data.telemetry.lastUpdate) / 1000);
                         const pingEl = document.getElementById('tel-ping');
                         pingEl.innerText = secondsAgo;
-                        pingEl.style.color = secondsAgo > 5 ? '#ef4444' : '#10b981';
+
+                        // Si se perdió la señal
+                        if (secondsAgo > 10) {
+                            pingEl.style.color = '#ef4444';
+                            document.getElementById('big-scene').style.color = '#ef4444';
+                            document.getElementById('big-scene').innerText = "LOST SIGNAL";
+                        } else {
+                            pingEl.style.color = '#10b981';
+                            document.getElementById('big-scene').style.color = '#fff';
+                        }
                     }
                 }
             } else {
@@ -342,23 +387,18 @@
         async function triggerDream() {
             log(`Invoking AI Dreamer...`);
             apiCall('/api/dream'); // Async trigger
-            setTimeout(fetchLivingScript, 3000); // Check shortly via script update
+            setTimeout(fetchLivingScript, 3000);
         }
 
         async function fetchLivingScript() {
             const data = await apiCall('/api/living-script', 'GET');
-            if (data) {
-                // log(`Memory Bank Updated. Definitions: ${data.definitions.length}`);
-                // Solo loguear si hay algo nuevo
-                if (data.definitions.length > 0) {
-                    // Solo mostramos la última si no está ya en pantalla (simple dup check visual)
-                    // log(`Latest Dream: "${data.definitions[data.definitions.length-1]}"`, 'success');
-                }
+            if (data && data.definitions.length > 0) {
+                // log(`Latest Dream: "${data.definitions[data.definitions.length-1]}"`, 'success');
             }
         }
 
         // --- LOOP ---
-        setInterval(updateStatus, 1000); // Faster polling for telemetry
+        setInterval(updateStatus, 1000);
         updateStatus();
         fetchLivingScript();
 
