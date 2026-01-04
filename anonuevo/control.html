@@ -164,6 +164,25 @@
             grid-template-columns: 1fr 1fr;
             gap: 10px;
         }
+
+        .telemetry-box {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--accent-dim);
+            padding: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            border-radius: 4px;
+        }
+
+        .telemetry-label {
+            color: var(--text-dim);
+        }
+
+        .telemetry-val {
+            color: var(--accent);
+            font-weight: bold;
+            margin-left: 5px;
+        }
     </style>
 </head>
 
@@ -181,6 +200,18 @@
                 <span>AUTO PILOT MODE</span>
                 <div id="led-auto" class="led"></div>
             </div>
+
+            <h2 style="margin-top: 20px; color: #fff; border-color: #38bdf8;">LIVE TELEMETRY</h2>
+            <div class="telemetry-box">
+                <div><span class="telemetry-label">SCENE:</span><span id="tel-scene" class="telemetry-val">--</span>
+                </div>
+                <div><span class="telemetry-label">COUNTRY:</span><span id="tel-country" class="telemetry-val">--</span>
+                </div>
+                <div><span class="telemetry-label">DAY:</span><span id="tel-day" class="telemetry-val">--</span></div>
+                <div style="font-size: 0.7rem; color: #555; margin-top: 5px; text-align: right;">Last Signal: <span
+                        id="tel-ping">--</span>s</div>
+            </div>
+
             <div style="margin-top: 20px;">
                 <button id="btn-toggle-auto" style="width: 100%;">Toggle Auto Mode</button>
             </div>
@@ -211,7 +242,7 @@
         <div class="panel">
             <h2>Living Memory (AI Logs)</h2>
             <div id="console" class="console-log">
-                <div class="log-entry"><span class="log-time">--:--</span>System initialized...</div>
+                <div class="log-entry"><span class="log-time">--:--</span>Connecting to Telemetry...</div>
             </div>
             <button onclick="fetchLivingScript()" style="margin-top: 10px; font-size: 0.7rem;">Refresh Memory
                 Bank</button>
@@ -255,6 +286,7 @@
             if (data) {
                 document.getElementById('led-conn').className = 'led on';
 
+                // Update Auto Mode UI
                 const ledAuto = document.getElementById('led-auto');
                 const btnAuto = document.getElementById('btn-toggle-auto');
 
@@ -266,6 +298,20 @@
                     ledAuto.className = 'led off';
                     btnAuto.classList.remove('toggle-active');
                     btnAuto.innerText = "AUTO: OFF";
+                }
+
+                // Update Telemetry
+                if (data.telemetry) {
+                    document.getElementById('tel-scene').innerText = data.telemetry.scene || '--';
+                    document.getElementById('tel-country').innerText = data.telemetry.country || '--';
+                    document.getElementById('tel-day').innerText = data.telemetry.day || '--';
+
+                    if (data.telemetry.lastUpdate) {
+                        const secondsAgo = Math.floor((Date.now() - data.telemetry.lastUpdate) / 1000);
+                        const pingEl = document.getElementById('tel-ping');
+                        pingEl.innerText = secondsAgo;
+                        pingEl.style.color = secondsAgo > 5 ? '#ef4444' : '#10b981';
+                    }
                 }
             } else {
                 document.getElementById('led-conn').className = 'led off';
@@ -279,7 +325,7 @@
             const res = await apiCall(endpoint);
             if (res) {
                 log(`Auto Mode switched ${isAuto ? 'OFF' : 'ON'}`, 'success');
-                updateStatus();
+                updateStatus(); // Immediate refresh
             }
         };
 
@@ -302,16 +348,17 @@
         async function fetchLivingScript() {
             const data = await apiCall('/api/living-script', 'GET');
             if (data) {
-                log(`Memory Bank Updated. Definitions: ${data.definitions.length}`);
-                // Mostrar la última frase generada
+                // log(`Memory Bank Updated. Definitions: ${data.definitions.length}`);
+                // Solo loguear si hay algo nuevo
                 if (data.definitions.length > 0) {
-                    log(`Latest Dream: "${data.definitions[data.definitions.length - 1]}"`, 'success');
+                    // Solo mostramos la última si no está ya en pantalla (simple dup check visual)
+                    // log(`Latest Dream: "${data.definitions[data.definitions.length-1]}"`, 'success');
                 }
             }
         }
 
         // --- LOOP ---
-        setInterval(updateStatus, 2000);
+        setInterval(updateStatus, 1000); // Faster polling for telemetry
         updateStatus();
         fetchLivingScript();
 

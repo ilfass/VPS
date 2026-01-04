@@ -141,7 +141,20 @@
 
     <div class="progress-line" id="progress"></div>
 
-    <script>
+    <script type="module">
+        import { eventManager } from './js/utils/event-manager.js';
+
+        // --- TELEMETRÍA Y CONTROL ---
+        eventManager.init(); // Inicia polling al servidor de control
+        eventManager.reportTelemetry('INTRO', 'GLOBAL', 0); // "Hola, soy la Intro"
+
+        // Escuchar orden del Director para ir al Mapa
+        eventManager.on('scene_change', (scene) => {
+            if (scene === 'mapa') window.location.href = '/vivos/mapa/';
+        });
+
+        // Hacer disponible globalmente para el resto del script legacy
+        window.eventManager = eventManager;
         // --- 1. VISUALES: GLOBO DE DATOS D3 ---
         function initGlobe() {
             const canvas = document.getElementById('globe-canvas');

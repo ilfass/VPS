@@ -84,6 +84,9 @@ export default class MapaMode {
         // 2. Inicializar D3
         this.initD3();
 
+        // TELEMETRÍA INICIAL
+        eventManager.reportTelemetry('MAPA', 'GLOBAL', 0);
+
         // 3. Cargar Datos (GeoJSON)
         try {
             await this.loadMapData();
@@ -358,6 +361,9 @@ export default class MapaMode {
 
         const feature = this.worldData.features.find(f => f.id === target.id);
 
+        // TELEMETRÍA: Reportar visita al país
+        eventManager.reportTelemetry('MAPA', target.id, target.visitDay || 1);
+
         // 1. Mostrar Narrativa de Zoom
         const narrativeEl = document.getElementById('zoom-narrative');
         const countryEl = document.getElementById('narrative-country');
@@ -516,9 +522,15 @@ export default class MapaMode {
         this.gCountries.selectAll(".country").classed("active-country", false);
         this.gLabels.selectAll("text").transition().duration(1000).style("opacity", 0);
 
+        // TELEMETRÍA: Vuelta a órbita
+        eventManager.reportTelemetry('MAPA', 'GLOBAL', 0);
+
         // Ocultar Narrativa
         const narrativeEl = document.getElementById('zoom-narrative');
         if (narrativeEl) narrativeEl.classList.add('hidden');
+
+        // TELEMETRÍA: Vuelta a órbita
+        eventManager.reportTelemetry('MAPA', 'GLOBAL', 0);
 
         // Cancelar voz y ocultar cápsula lateral
         // Cancelar voz y ocultar cápsula lateral

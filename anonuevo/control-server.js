@@ -18,7 +18,13 @@ const DATA_FILE = path.join(__dirname, 'data', 'living-script.json');
 // Estado Global
 let state = {
     autoMode: true,
-    eventQueue: []
+    eventQueue: [],
+    clientTelemetry: {
+        scene: 'UNKNOWN',
+        country: 'UNKNOWN',
+        day: 0,
+        lastUpdate: 0
+    }
 };
 
 // Headers CORS
@@ -124,7 +130,28 @@ const server = http.createServer(async (req, res) => {
     // GET /status
     if (req.method === 'GET' && apiPath === '/status') {
         res.writeHead(200, headers);
-        res.end(JSON.stringify({ autoMode: state.autoMode }));
+        res.end(JSON.stringify({
+            autoMode: state.autoMode,
+            telemetry: state.clientTelemetry
+        }));
+        return;
+    }
+
+    // POST /api/telemetry - Frontend reporta su estado real
+    if (req.method === 'POST' && apiPath === '/api/telemetry') {
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', () => {
+            try {
+                const telemetry = JSON.parse(body);
+                state.clientTelemetry = { ...state.clientTelemetry, ...telemetry, lastUpdate: Date.now() };
+                res.writeHead(200, headers);
+                res.end(JSON.stringify({ status: 'updated' }));
+            } catch (e) {
+                res.writeHead(400, headers);
+                res.end(JSON.stringify({ error: 'invalid json' }));
+            }
+        });
         return;
     }
 
