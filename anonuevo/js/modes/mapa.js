@@ -10,6 +10,7 @@ import { characterDirector } from '../utils/character-director.js';
 import { contentEngine } from '../utils/content-engine.js';
 import { systemOrchestrator } from '../utils/system-orchestrator.js';
 import { sceneNavigator } from '../utils/scene-navigator.js';
+import { pacingEngine, CONTENT_TYPES } from '../utils/pacing-engine.js';
 
 // TEMPLATES eliminados, ahora gestionados por narrativeEngine
 
@@ -295,6 +296,8 @@ export default class MapaMode {
         // Ciclo: Global -> País
         // Solo si no hay noticias activas Y estamos en modo AUTO
         if (audioManager.currentState !== AUDIO_STATES.GLOBAL_NEWS && eventManager.canProceedAuto()) {
+            // Iniciar ciclo por defecto en VISUAL (esperando primera decisión)
+            pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
             setTimeout(() => this.cycleZoomIn(), 5000);
         }
     }
@@ -420,12 +423,22 @@ export default class MapaMode {
                 // Mostrar etiquetas
                 this.gLabels.selectAll("text").style("opacity", 0);
                 // DISPARAR VOZ Y DATO (Después del zoom)
-                // Verificar probabilidad de hablar según modo
+                // Usar PacingEngine para decidir si hablamos o solo mostramos visual
                 const context = streamManager.getCurrentContext();
                 const timing = streamManager.getTimingConfig();
 
-                if (Math.random() > timing.speakProbability) {
-                    console.log("Silencio por probabilidad de modo (Visual/Loop)");
+                // Decisión del Director de Ritmo
+                const shouldSpeak = pacingEngine.shouldSpeak();
+
+                if (!shouldSpeak) {
+                    console.log("[MapaMode] PacingEngine: VISUAL ONLY (Silencio narrativo)");
+                    // Asegurar que estamos registrando tiempo VISUAL
+                    pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+
+                    // Si no hablamos, estamos 'active' en visual un rato y luego salimos
+                    this.travelTimeout = setTimeout(() => {
+                        this.cycleZoomOut();
+                    }, timing.zoomDuration);
                     return;
                 }
 
@@ -465,7 +478,13 @@ export default class MapaMode {
                     // Usar AudioManager con configuración de voz dinámica
                     // Nota: AudioManager necesita actualización para aceptar rate/pitch, por ahora pasamos texto
                     // En una implementación completa, pasaríamos voiceConfig al speak
-                    audioManager.speak(narrative.text, 'normal');
+                    // Registrar inicio de evento de VOZ
+                    pacingEngine.startEvent(CONTENT_TYPES.VOICE);
+                    audioManager.speak(narrative.text, 'normal', () => {
+                        // Al terminar de hablar, registramos el fin y pasamos a VISUAL/SILENCE
+                        pacingEngine.endCurrentEvent();
+                        pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+                    });
 
                     // Actualizar Diario de Viaje
                     this.updateDiary(narrative.diaryEntry);
@@ -554,7 +573,13 @@ export default class MapaMode {
 
         // Leer dato general (Voz secundaria)
         // No bloqueamos el canal principal, es un dato corto
+        pacingEngine.startEvent(CONTENT_TYPES.VOICE);
         audioManager.speak(fact, 'news', () => {
+            // Fin de voz corta
+            pacingEngine.endCurrentEvent();
+            // Probablemente volvamos al estado anterior (VISUAL), pero startEvent maneja el switch
+            pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+
             // Si fue forzado, liberamos el canal al terminar de hablar
             if (forced) {
                 setTimeout(() => audioManager.releaseChannel(), 1000);
@@ -642,7 +667,11 @@ export default class MapaMode {
         const intro = newsProvider.getRandomIntro();
         const fullText = `${intro} ${newsItem.title}. ${newsItem.summary}`;
 
+        pacingEngine.startEvent(CONTENT_TYPES.VOICE);
         audioManager.speak(fullText, 'news', () => {
+            pacingEngine.endCurrentEvent();
+            pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+
             // Callback al terminar de hablar
             this.travelTimeout = setTimeout(() => {
                 // Ocultar UI
@@ -677,6 +706,7 @@ export default class MapaMode {
     }
 
     unmount() {
+        pacingEngine.endCurrentEvent(); // Cerrar tracking actual
         audioManager.cancel();
         if (this.unsubscribeTime) this.unsubscribeTime();
         if (this.travelTimeout) clearTimeout(this.travelTimeout);
