@@ -363,6 +363,24 @@
             overlay.onclick = () => {
                 overlay.style.opacity = 0;
                 setTimeout(() => overlay.remove(), 500);
+
+                // Iniciar Audio Ambiente
+                const ambientAudio = new Audio('assets/audio/ambient_base.mp3');
+                ambientAudio.loop = true;
+                ambientAudio.volume = 0.0;
+                ambientAudio.play().then(() => {
+                    // Fade In Manual
+                    let vol = 0;
+                    const interval = setInterval(() => {
+                        vol += 0.05;
+                        if (vol >= 0.3) {
+                            vol = 0.3;
+                            clearInterval(interval);
+                        }
+                        ambientAudio.volume = vol;
+                    }, 200);
+                }).catch(e => console.log("Audio play blocked:", e));
+
                 window.speechSynthesis.resume();
                 playNextLine();
             };
