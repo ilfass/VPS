@@ -246,60 +246,112 @@
         // --- 3. NARRATIVA Y VOZ (IA) ---
         const voiceConfig = { pitch: 1.0, rate: 1.0, volume: 1.0 };
 
-        // --- MOTOR DE GENERACIÓN DE GUIÓN EN VIVO ---
+        // --- MOTOR DE GENERACIÓN DE GUIÓN EN VIVO (DATA + LEGO) ---
         function generateDynamicScript() {
             const now = new Date();
             const hour = now.getHours();
 
-            // 1. Saludo variable por hora
+            // 1. CÁLCULO DE DATOS REALES
+            const startDate = new Date('2026-01-01T00:00:00');
+            const diffTime = Math.abs(now - startDate);
+            const dayOfJourney = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            const timeString = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            const dateString = now.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+
+            // 2. SALUDO CONTEXTUAL
             let greeting = "Buenos días.";
             if (hour >= 12 && hour < 20) greeting = "Buenas tardes.";
             if (hour >= 20 || hour < 6) greeting = "Buenas noches.";
 
-            // 2. Definición variable
+            // 3. DEFINICIONES (Bloque A)
             const definitions = [
-                "Esto no es un stream infinito.",
-                "Lo que ves no es televisión.",
-                "Olvida el contenido tradicional.",
-                "No busques un final predecible."
-            ];
-            const defParams = [
-                "Es un documento vivo <span class='highlight'>en tiempo real</span>.",
-                "Es una memoria que se escribe <span class='highlight'>ahora mismo</span>.",
-                "Es un sistema que respira con el mundo.",
-                "Es una ventana abierta <span class='highlight'>permanentemente</span>."
+                `Hoy es ${dateString}.`,
+                `Son las ${timeString} en tu reloj.`,
+                `Día ${dayOfJourney} del viaje global.`,
+                "El cronómetro sigue avanzando."
             ];
 
-            // 3. Identidad variable
-            const identities = [
-                "Soy <span class='highlight'>ilfass</span>.",
-                "Me llaman <span class='highlight'>ilfass</span>.",
-                "La interfaz humana es <span class='highlight'>ilfass</span>."
+            // 4. PROFUNDIDAD (Bloque B)
+            const concepts = [
+                "Esto no es un stream infinito, es un documento vivo.",
+                "Estamos capturando la memoria del mundo en tiempo real.",
+                "Lo que sucede ahora no se repetirá jamás.",
+                "Cada segundo queda registrado en el libro."
             ];
 
-            // 4. Misión variable
+            // 5. MISIÓN (Bloque C)
             const missions = [
-                "Y vamos a escribir la memoria del mundo.",
-                "Y nuestro objetivo es archivar la realidad.",
-                "Y juntos construiremos un mapa de vivencias."
+                "Soy ilfass, y estoy aquí para observar.",
+                "La interfaz humana es ilfass. El objetivo: recordar.",
+                "Me llamo ilfass. Vamos a construir historia.",
+                "Conectando nodos. Yo soy ilfass."
             ];
 
             // Selección aleatoria
             const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
+            // ENSAMBLAJE FINAL
             return [
                 { text: "Conexión estable.", delay: 500 },
-                { text: `${greeting} Iniciando protocolos de viaje.`, delay: 800 },
-                { text: pick(definitions), delay: 600 },
-                { text: pick(defParams), delay: 600 },
-                { text: pick(identities), delay: 800 },
-                { text: pick(missions), delay: 600 },
+                { text: `${greeting} Iniciando día ${dayOfJourney}.`, delay: 800 },
+                { text: pick(definitions), delay: 600 },       // Dato Real/Generado
+                { text: pick(concepts), delay: 800 },          // Concepto Filosófico
+                { text: pick(missions), delay: 800 },          // Identidad
+                { text: "Sincronizando memoria...", delay: 600 },
                 { text: "El sistema está listo.", delay: 2000 },
                 { text: "Cargando mapa global...", delay: 1000 }
             ];
         }
 
-        const script = generateDynamicScript();
+        // --- SISTEMA DE MEMORIA VIVA ---
+        let remoteScriptData = null;
+
+        async function fetchLivingScript() {
+            try {
+                // Ruta relativa al proxy, o hardcoded si es dev
+                const res = await fetch('/control-api/api/living-script');
+                if (res.ok) {
+                    remoteScriptData = await res.json();
+                    console.log("🧠 Memoria viva cargada:", remoteScriptData);
+                }
+            } catch (e) { console.log("Usando memoria local (Offline/Init)"); }
+        }
+
+        function triggerDreaming() {
+            // Disparar generación asíncrona para el FUTURO visitante
+            fetch('/control-api/api/dream', { method: 'POST' }).catch(e => console.log("Dreaming skipped"));
+        }
+
+        const scriptPromise = fetchLivingScript().then(() => {
+            // Si hay datos remotos, sobreescribir los locales temporales dentro de generateDynamicScript
+            // (Nota simplificada: En una implementación ideal, generateDynamicScript tomaría argumentos)
+            return generateDynamicScript();
+        });
+
+        // Modificamos generateDynamicScript para usar remoteScriptData si existe
+        // ... (Reimplementación parcial para inyectar datos remotos)
+        const _originalGenerate = generateDynamicScript;
+        generateDynamicScript = function () {
+            const base = _originalGenerate(); // Obtener estructura base con datos de tiempo
+
+            if (remoteScriptData) {
+                // Reemplazar bloques de texto con los soñados
+                // base[2] = definitions, base[3] = concepts
+                const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+                if (remoteScriptData.definitions && remoteScriptData.definitions.length) {
+                    base[2].text = pick(remoteScriptData.definitions);
+                }
+                if (remoteScriptData.concepts && remoteScriptData.concepts.length) {
+                    base[3].text = pick(remoteScriptData.concepts);
+                }
+                // missions también si se desea
+            }
+            return base;
+        };
+
+        let script = []; // Se llenará al iniciar
 
         let currentIndex = 0;
         const textDisplay = document.getElementById('text-display');
@@ -409,6 +461,12 @@
             overlay.onclick = () => {
                 overlay.style.opacity = 0;
                 setTimeout(() => overlay.remove(), 500);
+
+                // Iniciar Dreaming para el futuro
+                triggerDreaming();
+
+                // Regenerar script (ahora que tenemos tiempo para fetch)
+                script = generateDynamicScript();
 
                 // Iniciar Audio Ambiente
                 const ambientAudio = new Audio('assets/audio/ambient_base.mp3');
