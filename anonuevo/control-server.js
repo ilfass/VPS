@@ -164,9 +164,20 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    // Rutas de eventos (Simplificadas en catch-all para evitar borrar lógica existente)
+    // Endpoint específico para cambio de escena con payload
+    if (apiPath.startsWith('/event/scene/')) {
+        const targetScene = apiPath.split('/').pop();
+        state.eventQueue.push({
+            type: 'scene_change',
+            payload: targetScene
+        });
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({ status: 'queued', scene: targetScene }));
+        return;
+    }
+
+    // Rutas de eventos simples (news, fact)
     if (apiPath.startsWith('/event/')) {
-        // Lógica de colas existente...
         state.eventQueue.push({ type: apiPath.split('/').pop() });
         res.writeHead(200, headers);
         res.end(JSON.stringify({ status: 'ok' }));
