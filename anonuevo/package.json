@@ -1,0 +1,12 @@
+{
+    "name": "anonuevo-control",
+    "version": "1.0.0",
+    "description": "Control server for HabilisPro Live Stream",
+    "main": "control-server.js",
+    "scripts": {
+        "start": "node control-server.js"
+    },
+    "dependencies": {
+        "@google/generative-ai": "^0.1.3"
+    }
+}
