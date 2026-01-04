@@ -237,6 +237,14 @@
             font-size: 0.65rem;
             padding: 5px;
         }
+
+        .btn-auto-active {
+            background-color: rgba(220, 38, 38, 0.2) !important;
+            border-color: #ef4444 !important;
+            color: #ef4444 !important;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+            animation: pulseRed 2s infinite;
+        }
     </style>
 </head>
 
@@ -259,11 +267,21 @@
             </div>
 
             <button id="btn-auto-mode" onclick="toggleAuto()"
-                style="height: 50px; font-weight: bold; font-size: 0.9rem;">
-                PILOTO AUTOMÁTICO
+                style="height: 50px; font-weight: bold; font-size: 0.9rem; margin-top: 10px;">
+                INITIALIZING...
             </button>
             <div style="text-align: center; font-size: 0.7rem; color: #666;">
                 Si ON: El sistema viaja solo (Playlist o Random)
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Scene Navigation</h2> <!-- RESTORED -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button onclick="changeScene('intro')">🏠 INTRO (Cover)</button>
+                <button onclick="changeScene('mapa')">🌍 MAPA GLOBAL</button>
+                <button onclick="changeScene('reflexion')">📖 LIBRO (Memory)</button>
+                <button onclick="changeScene('pais')">🏳️ PAÍS DETALLE</button>
             </div>
         </div>
 
@@ -272,7 +290,6 @@
 
             <div id="playlist-container">
                 <!-- Items se inyectan aquí -->
-                <div style="text-align: center; color: #444; padding-top: 20px;">Lista vacía</div>
             </div>
 
             <div style="font-size: 0.7rem; color: #666;">
@@ -503,6 +520,11 @@
             // Placeholder logic
         }
 
+        async function changeScene(sceneName) {
+            log(`Switching Scene to: ${sceneName}`, 'cmd');
+            await api(`/event/scene/${sceneName}`);
+        }
+
         // --- POLLING LOOP ---
         async function pollStatus() {
             const data = await api('/status');
@@ -537,21 +559,13 @@
             // 3. AUTO BUTTON STATE
             const btnAuto = document.getElementById('btn-auto-mode');
             if (data.autoMode) {
-                btnAuto.innerText = "PILOTO AUTOMÁTICO: ON";
-                btnAuto.style.background = ""; // Clear inline
-                btnAuto.className = "indicator active-danger"; // Class handles Red Pulse
-                // Hack: Button styling via class wasn't applied directly to button element logic in CSS properly for background override.
-                // Let's force style directly
-                btnAuto.style.backgroundColor = "rgba(220, 38, 38, 0.2)";
-                btnAuto.style.borderColor = "#ef4444";
-                btnAuto.style.color = "#ef4444";
-                btnAuto.style.boxShadow = "0 0 15px rgba(239, 68, 68, 0.3)";
+                btnAuto.innerText = "🚨 PILOTO AUTOMÁTICO: ON";
+                btnAuto.className = "btn-auto-active";
+                btnAuto.style = ""; // Clear inline styles
             } else {
-                btnAuto.innerText = "MANUAL MODE";
-                btnAuto.style.backgroundColor = "#27272a";
-                btnAuto.style.borderColor = "#3f3f46";
-                btnAuto.style.color = "#71717a";
-                btnAuto.style.boxShadow = "none";
+                btnAuto.innerText = "MANUAL MODE (STANDBY)";
+                btnAuto.className = "";
+                btnAuto.style = "height: 50px; font-weight: bold; font-size: 0.9rem; margin-top: 10px;";
             }
         }
 
