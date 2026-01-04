@@ -1,3 +1,4 @@
+
 export const AUDIO_STATES = {
     IDLE: 'IDLE',
     COUNTRY_NARRATION: 'COUNTRY_NARRATION',
@@ -9,51 +10,75 @@ export class AudioManager {
         this.currentState = AUDIO_STATES.IDLE;
         this.synth = window.speechSynthesis;
         this.currentUtterance = null;
+
+        // Capas de Audio (Music Layers)
+        this.musicLayer = null; // Elemento de Audio HTML5
+        this.isMusicPlaying = false;
+
+        // Simulación de tracks (esto vendría de archivos reales en prod)
+        // Usamos URLs de placeholder que funcionen o tracks locales si existen
+        this.tracks = [
+            'assets/audio/ambient_base.mp3', // Placeholder
+        ];
+    }
+
+    init() {
+        // Crear elemento de audio invisible para el fondo
+        this.musicLayer = new Audio();
+        this.musicLayer.loop = true;
+        this.musicLayer.volume = 0.0; // Inicia en silencio y hace fade in
+
+        // Solo para demo, intentar cargar si existe, si no, fallará silenciosamente
+        // En un entorno real, aseguraríamos que estos assets existan
+        this.musicLayer.src = this.tracks[0];
+
+        // Autoplay policy puede bloquear esto hasta interacción del usuario
+        // El botón "Iniciar Sistema" del index.html debería desbloquearlo
     }
 
     /**
-     * Intenta tomar el control del audio.
-     * @param {string} newState - El estado solicitado (COUNTRY_NARRATION o GLOBAL_NEWS)
-     * @returns {boolean} - True si se otorgó el control, False si está ocupado por una prioridad mayor.
+     * Inicia la música de fondo con Fade In
+     */
+    startAmbience() {
+        if (!this.musicLayer) this.init();
+
+        this.musicLayer.play().then(() => {
+            this.isMusicPlaying = true;
+            this.fadeAudio(this.musicLayer, 0.0, 0.3, 2000); // Subir a 30% volumen
+        }).catch(e => {
+            console.warn("[AudioManager] Autoplay blocked or track missing:", e);
+        });
+    }
+
+    /**
+     * Intenta tomar el control del audio (Prioridad de Voz).
      */
     requestChannel(newState) {
-        // Si ya estamos en noticias, nadie puede interrumpir (salvo otra noticia, teóricamente)
-        if (this.currentState === AUDIO_STATES.GLOBAL_NEWS && newState !== AUDIO_STATES.GLOBAL_NEWS) {
-            return false;
-        }
-
-        // Si estamos narrando país y llega noticia, interrumpimos
+        if (this.currentState === AUDIO_STATES.GLOBAL_NEWS && newState !== AUDIO_STATES.GLOBAL_NEWS) return false;
         if (this.currentState === AUDIO_STATES.COUNTRY_NARRATION && newState === AUDIO_STATES.GLOBAL_NEWS) {
             this.cancel();
             this.currentState = newState;
             return true;
         }
-
-        // Si estamos IDLE, aceptamos cualquiera
-        if (this.currentState === AUDIO_STATES.IDLE) {
+        if (this.currentState === AUDIO_STATES.IDLE || this.currentState === newState) {
+            if (this.currentState === newState) this.cancel();
             this.currentState = newState;
             return true;
         }
-
-        // Si es el mismo estado, permitimos (ej: cambio de país rápido)
-        if (this.currentState === newState) {
-            this.cancel();
-            return true;
-        }
-
         return false;
     }
 
     releaseChannel() {
         this.currentState = AUDIO_STATES.IDLE;
+        // Restaurar volumen de música al terminar voz
+        if (this.isMusicPlaying) {
+            this.fadeAudio(this.musicLayer, this.musicLayer.volume, 0.3, 1000); // Volver a nivel ambiente
+        }
     }
 
     cancel() {
         if (this.synth) {
-            // Marcar que la utterance actual fue cancelada
-            if (this.currentUtterance) {
-                this.currentUtterance.wasCancelled = true;
-            }
+            if (this.currentUtterance) this.currentUtterance.wasCancelled = true;
             this.synth.cancel();
             this.currentUtterance = null;
         }
@@ -62,40 +87,68 @@ export class AudioManager {
     speak(text, priority = 'normal', onEndCallback = null) {
         if (!this.synth) return;
 
-        this.cancel(); // Asegurar silencio previo
+        this.cancel();
+
+        // ** DUCKING **: Bajar música antes de hablar
+        if (this.isMusicPlaying) {
+            this.fadeAudio(this.musicLayer, this.musicLayer.volume, 0.05, 500); // Bajar a 5% rápido
+        }
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'es-ES';
-        utterance.rate = 0.95; // Velocidad natural
-        utterance.wasCancelled = false; // Flag de control
+        utterance.rate = 0.95;
+        utterance.wasCancelled = false;
 
-        // Selección de voz basada en prioridad/contexto
         const voices = this.synth.getVoices().filter(v => v.lang.includes('es'));
-
         if (voices.length > 0) {
             if (priority === 'news') {
-                // Voz de noticias: Preferiblemente femenina o diferente a la del mapa
-                // Intentamos buscar una voz distinta a la primera (que suele ser la del mapa)
                 utterance.voice = voices.length > 1 ? voices[1] : voices[0];
-                utterance.pitch = 1.05; // Un poco más formal/aguda
+                utterance.pitch = 1.05;
             } else {
-                // Voz de mapa (default)
                 utterance.voice = voices[0];
                 utterance.pitch = 1.0;
             }
         }
 
         utterance.onend = () => {
-            // Solo ejecutar callback si NO fue cancelado explícitamente
-            if (!utterance.wasCancelled && onEndCallback) {
-                onEndCallback();
-            }
-            // No liberamos automáticamente aquí porque a veces hay pausas intencionales,
-            // el controlador debe llamar a releaseChannel() explícitamente cuando termine la "escena".
+            if (!utterance.wasCancelled && onEndCallback) onEndCallback();
+            // El releaseChannel se encargará de subir la música de nuevo, pero a veces
+            // el callback es quien maneja esa lógica superior.
+            // Si nadie llama a releaseChannel pronto, podríamos forzar restore aquí,
+            // pero mejor respetar el control externo.
         };
 
         this.currentUtterance = utterance;
         this.synth.speak(utterance);
+    }
+
+    /**
+     * Utilidad para hacer Fade de volumen
+     */
+    fadeAudio(audioEl, from, to, duration) {
+        if (!audioEl) return;
+        const steps = 20;
+        const stepTime = duration / steps;
+        const volStep = (to - from) / steps;
+        let currentVol = from;
+        let stepCount = 0;
+
+        const interval = setInterval(() => {
+            currentVol += volStep;
+            // Clamping
+            if (currentVol < 0) currentVol = 0;
+            if (currentVol > 1) currentVol = 1;
+
+            try {
+                audioEl.volume = currentVol;
+            } catch (e) { clearInterval(interval); }
+
+            stepCount++;
+            if (stepCount >= steps) {
+                audioEl.volume = to;
+                clearInterval(interval);
+            }
+        }, stepTime);
     }
 }
 

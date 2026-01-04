@@ -1,3 +1,4 @@
+import { memoryBank } from './memory-bank.js';
 
 export class NarrativeEngine {
     constructor() {
@@ -30,12 +31,11 @@ export class NarrativeEngine {
         let text = "";
         let diaryTopic = "";
 
-        // Introducción contextualizada al día del viaje
-        const intro = this.getDayIntro(country.name, dayOfVisit);
+        // Introducción contextualizada (Variable)
+        const intro = memoryBank.getUniquePhrase('INTRO', { COUNTRY: country.name });
 
-        // Selección de contenido basado en el TEMA del día
-        // Nota: Como no tenemos datos etiquetados en country-info.js, simulamos la selección
-        // usando índices o aleatoriedad ponderada, pero el texto introductorio da el contexto.
+        // Conector Variable
+        const connector = memoryBank.getUniquePhrase('CONNECTORS');
 
         let content = "";
 
@@ -47,11 +47,11 @@ export class NarrativeEngine {
         } else if (theme === 'CURIOSITIES') {
             // Día 3: Curiosidades
             const fact = country.facts[Math.floor(Math.random() * country.facts.length)];
-            content = `Un dato fascinante: ${fact}`;
+            content = `${connector} ${fact.charAt(0).toLowerCase() + fact.slice(1)}`;
             diaryTopic = `Día ${dayOfVisit}: Curiosidades`;
         } else {
             // Día 1: Historia/General (Default)
-            const fact = country.facts[0]; // Usamos el primer fact que suele ser general
+            const fact = country.facts[0];
             content = `${fact}`;
             diaryTopic = `Día ${dayOfVisit}: Llegada y Contexto`;
         }
