@@ -4,250 +4,317 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control Panel - Stream</title>
+    <title>ilfass | Director Console</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
     <style>
+        :root {
+            --bg-dark: #050505;
+            --panel-bg: #0f172a;
+            --accent: #38bdf8;
+            --accent-dim: rgba(56, 189, 248, 0.1);
+            --danger: #ef4444;
+            --success: #10b981;
+            --text-main: #e2e8f0;
+            --text-dim: #64748b;
+        }
+
         body {
-            background: #0f172a;
-            color: white;
-            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
             padding: 20px;
-            max-width: 800px;
-            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
         }
 
-        h1 {
-            margin-bottom: 20px;
-            border-bottom: 1px solid #334155;
-            padding-bottom: 10px;
-        }
-
-        .section {
-            background: #1e293b;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        }
-
-        .section-title {
-            font-size: 0.9em;
-            text-transform: uppercase;
-            color: #94a3b8;
-            margin-bottom: 15px;
-            font-weight: bold;
-            letter-spacing: 1px;
-        }
-
-        .grid {
+        .dashboard {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            grid-template-columns: 250px 1fr 300px;
+            gap: 20px;
+            width: 100%;
+            max-width: 1400px;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
             gap: 15px;
         }
 
-        button {
-            padding: 15px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.1s, opacity 0.2s;
-            font-size: 1rem;
+        h2 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-dim);
+            margin: 0 0 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 10px;
         }
 
-        button:active {
-            transform: scale(0.98);
+        /* STATUS INDICATORS */
+        .status-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
         }
 
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-auto {
-            background: #22c55e;
-            color: white;
-        }
-
-        .btn-manual {
-            background: #ef4444;
-            color: white;
-        }
-
-        .btn-news {
-            background: #3b82f6;
-            color: white;
-        }
-
-        .btn-fact {
-            background: #a855f7;
-            color: white;
-        }
-
-        .btn-country {
-            background: #f59e0b;
-            color: #000;
-        }
-
-        .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
+        .led {
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
-            background: #ef4444;
-            margin-right: 10px;
+            background: #333;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s;
         }
 
-        .status-indicator.active {
-            background: #22c55e;
-            box-shadow: 0 0 10px #22c55e;
+        .led.on {
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success);
         }
 
-        input {
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #475569;
-            background: #0f172a;
-            color: white;
-            width: 100%;
-            box-sizing: border-box;
+        .led.off {
+            background: var(--danger);
+            box-shadow: 0 0 10px var(--danger);
         }
 
-        #log {
-            font-family: monospace;
-            font-size: 0.8em;
-            color: #64748b;
-            margin-top: 20px;
-            height: 100px;
+        .led.active {
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        /* BUTTONS */
+        button {
+            background: var(--accent-dim);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            background: var(--accent);
+            color: var(--bg-dark);
+            box-shadow: 0 0 15px var(--accent-dim);
+        }
+
+        button.danger {
+            border-color: var(--danger);
+            color: var(--danger);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        button.danger:hover {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        button.toggle-active {
+            background: var(--success);
+            color: #fff;
+            border-color: var(--success);
+        }
+
+        /* DREAM CONSOLE */
+        .console-log {
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: #0f0;
+            height: 300px;
             overflow-y: auto;
-            border-top: 1px solid #334155;
-            padding-top: 10px;
+            display: flex;
+            flex-direction: column-reverse;
+            /* Newest at bottom visually but stick to bottom */
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            border-bottom: 1px solid #111;
+            padding-bottom: 2px;
+        }
+
+        .log-time {
+            color: #555;
+            margin-right: 5px;
+        }
+
+        .scene-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
         }
     </style>
 </head>
 
 <body>
-    <h1>
-        <span id="status-light" class="status-indicator"></span>
-        Control Panel
-        <span id="mode-text"
-            style="font-size: 0.5em; float: right; margin-top: 10px; color: #94a3b8;">CONNECTING...</span>
-    </h1>
 
-    <div class="section">
-        <div class="section-title">Dirección de Escenas (Director de Cámaras)</div>
-        <div class="grid">
-            <button class="btn-news" style="background: #000; border: 1px solid #38bdf8;"
-                onclick="sendCommand('scene/INTRO')">🎬 INTRO (Acto 0)</button>
-            <button class="btn-news" style="background: #0f172a; border: 1px solid #64748b;"
-                onclick="sendCommand('scene/MAP')">🗺️ MAPA GLOBAL</button>
-            <button class="btn-news" style="background: #1e293b; border: 1px solid #94a3b8;"
-                onclick="sendCommand('scene/COUNTRY')">🇦🇷 DETALLE PAÍS</button>
-            <button class="btn-news" style="background: #312e81; border: 1px solid #818cf8;"
-                onclick="sendCommand('scene/REFLECTION')">🧠 REFLEXIÓN</button>
+    <div class="dashboard">
+        <!-- COL 1: SYSTEM STATUS -->
+        <div class="panel">
+            <h2>System Status</h2>
+            <div class="status-row">
+                <span>SERVER CONNECTION</span>
+                <div id="led-conn" class="led"></div>
+            </div>
+            <div class="status-row">
+                <span>AUTO PILOT MODE</span>
+                <div id="led-auto" class="led"></div>
+            </div>
+            <div style="margin-top: 20px;">
+                <button id="btn-toggle-auto" style="width: 100%;">Toggle Auto Mode</button>
+            </div>
+            <div style="margin-top: 10px;">
+                <button onclick="triggerDream()" style="width: 100%; border-color: #a855f7; color: #a855f7;">Force Dream
+                    (AI)</button>
+            </div>
+        </div>
+
+        <!-- COL 2: DIRECTOR CONTROLS -->
+        <div class="panel">
+            <h2>Scene Director</h2>
+            <div class="scene-grid">
+                <button onclick="changeScene('intro')">🎬 ACTO CERO (Intro)</button>
+                <button onclick="changeScene('mapa')">🌍 MAPA GLOBAL</button>
+                <button onclick="changeScene('pais')">🇯🇵 PAÍS (Detalle)</button>
+                <button onclick="changeScene('reflexion')">🕯️ REFLEXIÓN</button>
+            </div>
+
+            <h2 style="margin-top: 20px;">Inyecciones de Contenido</h2>
+            <div class="scene-grid">
+                <button onclick="triggerEvent('news')" class="danger">🚨 BREAKING NEWS</button>
+                <button onclick="triggerEvent('fact')">💡 CURIOSIDAD RANDOM</button>
+            </div>
+        </div>
+
+        <!-- COL 3: DREAM LOG -->
+        <div class="panel">
+            <h2>Living Memory (AI Logs)</h2>
+            <div id="console" class="console-log">
+                <div class="log-entry"><span class="log-time">--:--</span>System initialized...</div>
+            </div>
+            <button onclick="fetchLivingScript()" style="margin-top: 10px; font-size: 0.7rem;">Refresh Memory
+                Bank</button>
         </div>
     </div>
-
-    <div class="section">
-        <div class="section-title">Modo de Operación</div>
-        <div class="grid">
-            <button class="btn-auto" onclick="sendCommand('auto/on')">ACTIVAR AUTO</button>
-            <button class="btn-manual" onclick="sendCommand('auto/off')">MODO MANUAL</button>
-        </div>
-    </div>
-
-    <div class="section">
-        <div class="section-title">Eventos Globales</div>
-        <div class="grid">
-            <button class="btn-news" onclick="sendCommand('news')">📢 Lanzar Noticia</button>
-            <button class="btn-fact" onclick="sendCommand('fact')">ℹ️ Dato Curioso</button>
-        </div>
-    </div>
-
-    <div class="section">
-        <div class="section-title">Modo de Stream</div>
-        <div class="grid">
-            <button class="btn-news" style="background: #8b5cf6;" onclick="sendCommand('mode/NARRATIVE')">📖 Narrativo
-                (4h)</button>
-            <button class="btn-news" style="background: #06b6d4;" onclick="sendCommand('mode/VISUAL_TRAVEL')">👁️ Viaje
-                Visual</button>
-            <button class="btn-news" style="background: #64748b;" onclick="sendCommand('mode/LOOP')">🔁 Loop /
-                Descanso</button>
-        </div>
-    </div>
-
-    <div class="section">
-        <div class="section-title">Navegación Manual</div>
-        <div class="grid" style="grid-template-columns: 2fr 1fr;">
-            <input type="text" id="country-code" placeholder="Código ISO (ej: 032, 840, 724)" maxlength="3">
-            <button class="btn-country" onclick="sendCountry()">IR A PAÍS</button>
-        </div>
-        <div style="margin-top: 10px; font-size: 0.8em; color: #64748b;">
-            Códigos comunes: 032 (Argentina), 840 (USA), 724 (España), 392 (Japón), 250 (Francia)
-        </div>
-    </div>
-
-    <div id="log"></div>
 
     <script>
-        const API_URL = '/control-api'; // Proxy Nginx
+        const API_BASE = '/control-api';
 
-        function log(msg) {
-            const el = document.getElementById('log');
-            el.innerHTML = `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>` + el.innerHTML;
+        // --- UTILS ---
+        function log(msg, type = 'info') {
+            const consoleEl = document.getElementById('console');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            const time = new Date().toLocaleTimeString();
+            entry.innerHTML = `<span class="log-time">[${time}]</span> ${msg}`;
+            if (type === 'error') entry.style.color = '#ef4444';
+            if (type === 'success') entry.style.color = '#10b981';
+            consoleEl.prepend(entry);
         }
 
-        async function sendCommand(endpoint) {
+        async function apiCall(endpoint, method = 'POST', body = null) {
             try {
-                log(`Sending ${endpoint}...`);
-                const res = await fetch(`${API_URL}/event/${endpoint}`, { method: 'POST' });
-                if (res.ok) {
-                    log('OK');
-                    updateStatus();
-                } else {
-                    log('Error sending command');
+                const opts = { method };
+                if (body) {
+                    opts.headers = { 'Content-Type': 'application/json' };
+                    opts.body = JSON.stringify(body);
                 }
+                const res = await fetch(`${API_BASE}${endpoint}`, opts);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return await res.json();
             } catch (e) {
-                log('Network Error: ' + e.message);
+                log(`API Error ${endpoint}: ${e.message}`, 'error');
+                return null;
             }
         }
 
-        function sendCountry() {
-            const code = document.getElementById('country-code').value;
-            if (code.length === 3) {
-                sendCommand(`country/${code}`);
-            } else {
-                alert("Ingrese un código ISO de 3 dígitos");
-            }
-        }
-
+        // --- ACTIONS ---
         async function updateStatus() {
-            try {
-                const res = await fetch(`${API_URL}/status`);
-                if (res.ok) {
-                    const data = await res.json();
-                    const isAuto = data.autoMode;
+            const data = await apiCall('/status', 'GET');
+            if (data) {
+                document.getElementById('led-conn').className = 'led on';
 
-                    const light = document.getElementById('status-light');
-                    const text = document.getElementById('mode-text');
+                const ledAuto = document.getElementById('led-auto');
+                const btnAuto = document.getElementById('btn-toggle-auto');
 
-                    if (isAuto) {
-                        light.classList.add('active');
-                        text.textContent = "SYSTEM: AUTOMATIC";
-                        text.style.color = "#22c55e";
-                    } else {
-                        light.classList.remove('active');
-                        text.textContent = "SYSTEM: MANUAL";
-                        text.style.color = "#ef4444";
-                    }
+                if (data.autoMode) {
+                    ledAuto.className = 'led active';
+                    btnAuto.classList.add('toggle-active');
+                    btnAuto.innerText = "AUTO: ON";
+                } else {
+                    ledAuto.className = 'led off';
+                    btnAuto.classList.remove('toggle-active');
+                    btnAuto.innerText = "AUTO: OFF";
                 }
-            } catch (e) {
-                document.getElementById('mode-text').textContent = "OFFLINE";
+            } else {
+                document.getElementById('led-conn').className = 'led off';
             }
         }
 
-        // Poll status every 2s
+        document.getElementById('btn-toggle-auto').onclick = async () => {
+            const currentText = document.getElementById('btn-toggle-auto').innerText;
+            const isAuto = currentText.includes("ON");
+            const endpoint = isAuto ? '/event/auto/off' : '/event/auto/on';
+            const res = await apiCall(endpoint);
+            if (res) {
+                log(`Auto Mode switched ${isAuto ? 'OFF' : 'ON'}`, 'success');
+                updateStatus();
+            }
+        };
+
+        async function changeScene(scene) {
+            log(`Requesting scene change: ${scene}...`);
+            await apiCall(`/event/scene/${scene}`);
+        }
+
+        async function triggerEvent(type) {
+            log(`Triggering event: ${type}...`);
+            await apiCall(`/event/${type}`);
+        }
+
+        async function triggerDream() {
+            log(`Invoking AI Dreamer...`);
+            apiCall('/api/dream'); // Async trigger
+            setTimeout(fetchLivingScript, 3000); // Check shortly via script update
+        }
+
+        async function fetchLivingScript() {
+            const data = await apiCall('/api/living-script', 'GET');
+            if (data) {
+                log(`Memory Bank Updated. Definitions: ${data.definitions.length}`);
+                // Mostrar la última frase generada
+                if (data.definitions.length > 0) {
+                    log(`Latest Dream: "${data.definitions[data.definitions.length - 1]}"`, 'success');
+                }
+            }
+        }
+
+        // --- LOOP ---
         setInterval(updateStatus, 2000);
         updateStatus();
+        fetchLivingScript();
+
     </script>
 </body>
 

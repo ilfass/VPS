@@ -416,21 +416,61 @@ El sistema asume entradas asincrónicas:
 *   Hay señales de vida real
 
 ---
+---
 
-### CONCLUSIÓN FINAL (DEFINITIVA)
+## SECCIÓN III: MÓDULO DE CONTENIDO DIRIGIDO (MCD) - EL CEREBRO EDITORIAL
 
-“El Viaje de ilfass” es:
-*   Un stream
-*   Un libro
-*   Una experiencia
-*   Un proceso de transformación
+### 25. INTRODUCCIÓN AL MCD
+Un stream largo no puede depender solo de generación en vivo ni ser totalmente estático. Se necesita **Orquestación de Contenido**.
+El **Módulo de Contenido Dirigido (MCD)** permite preparar el universo narrativo que ilfass ejecutará, expandirá y mantendrá vivo. No es un CMS, es un motor controlado.
 
-Y se sostiene sobre un equilibrio deliberado entre:
-*   Contenido base
-*   Automatización
-*   Control humano
-*   Generación viva dosificada
+### 26. ARQUITECTURA DEL MCD
 
-**Nada es improvisado.**
-**Nada es rígido.**
-**Todo tiene sentido.**
+#### 26.1 Entidades de Contenido (Bloques Temáticos)
+Cada unidad es un **BLOQUE TEMÁTICO** (Ej: "Cataratas", "Cafés de Buenos Aires").
+Cada bloque contiene:
+*   **Datos Clave:** Título, País/Ciudad, Categoría, Profundidad.
+*   **Texto Base (Humano):** El núcleo narrativo innegociable.
+*   **Multimedia:** Imágenes ordenables, Videos locales, Audio ambiental, Música de fondo (loops).
+*   **Instrucciones Narrativas:** Tono (calmo, entusiasta), Ritmo, Prioridades (Visual > Voz > Silencio).
+
+👉 **Ilfass no inventa el tema: lo EXPANDE.**
+
+#### 26.2 Motor de Expansión Narrativa (IA Controlada)
+Resuelve la generación de horas de contenido.
+**Función:**
+1.  Tomar el Texto Base humano.
+2.  Reescribirlo y variarlo en tiempo real.
+3.  Profundizar en aspectos específicos (geografía, historia, sentidos).
+4.  Conectar con bloques relacionados.
+5.  Todo sin salir del tema asignado hasta nueva orden.
+
+#### 26.3 Sistema de Persistencia Temporal
+El sistema mantiene el estado para evitar repeticiones en streams largos:
+*   Tiempo hablando del bloque actual.
+*   Subtemas ya tratados vs pendientes.
+*   Permite hablar 30 minutos o 3 horas del mismo lugar sin loops idénticos.
+
+### 27. EXPERIENCIA DEL ESPECTADOR (SIN LAG NARRATIVO)
+*   **Entrada al Inicio:** Ve la Intro y explicación del viaje.
+*   **Entrada a los 40 min:** Encuentra a ilfass en un tema específico con contexto claro ("Seguimos recorriendo...").
+*   **Entrada a las 2 hs:** El sistema sigue vivo, sin depender de lo que pasó al inicio.
+
+### 28. EL ROL DEL DIRECTOR (PANEL DE CONTROL)
+Desde el Panel, el humano convierte el stream en un **documental en vivo dirigido**.
+Puede:
+*   Cambiar de bloque temático.
+*   Forzar imagen/audio/video.
+*   Indicar "Quedate hablando de esto" o "Pasá a otro país".
+*   Volver a la intro.
+
+### 29. VOZ Y NATURALIDAD (REFUERZO)
+La voz no recita, conversa.
+Se logra mediante síntesis neural local, prosodia variable y frases imperfectas (más humanas).
+
+### 30. RESUMEN DE INTEGRACIÓN
+Con el MCD logramos:
+✔ Sostener streams de 5-12 horas.
+✔ Sin costos excesivos de API externa.
+✔ Con control humano real.
+✔ Con contenido profundo y coherencia narrativa.
