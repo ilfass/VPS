@@ -376,3 +376,61 @@ Desde el Panel el humano puede:
 
 La solución es un sistema narrativo distribuido, con reglas, memoria, control humano, pausas y capas.
 Eso es lo que permite horas reales, no humo.
+
+---
+
+### 24. PRINCIPIOS DE LA GENERACIÓN EN VIVO (RESPIRACIÓN)
+
+#### 24.1 Principio Rector
+La generación en vivo no es el motor del stream. Es su respiración.
+
+#### 24.2 Qué se Genera en Vivo (Permitido)
+*   Comentarios contextuales
+*   Reacciones al presente
+*   Conexiones entre ideas
+*   Micro-reflexiones espontáneas
+*   Transiciones narrativas
+*   Respuestas a eventos o entradas de espectadores
+
+**Duración:** 10 a 40 segundos, episódico, nunca continuo.
+
+#### 24.3 Rol de la IA en Vivo
+La IA en vivo actúa como:
+*   Observador
+*   Conector
+*   Explorador reflexivo
+
+**No como:**
+*   Locutor automático
+*   Generador infinito de texto
+
+#### 24.4 Escenario de Entrada de Espectadores
+El sistema asume entradas asincrónicas:
+*   Alguien entra al inicio
+*   Alguien entra a los 40 minutos
+*   Alguien entra a las 2 horas
+
+**Por eso:**
+*   Hay recap suave
+*   Hay contexto inmediato
+*   Hay señales de vida real
+
+---
+
+### CONCLUSIÓN FINAL (DEFINITIVA)
+
+“El Viaje de ilfass” es:
+*   Un stream
+*   Un libro
+*   Una experiencia
+*   Un proceso de transformación
+
+Y se sostiene sobre un equilibrio deliberado entre:
+*   Contenido base
+*   Automatización
+*   Control humano
+*   Generación viva dosificada
+
+**Nada es improvisado.**
+**Nada es rígido.**
+**Todo tiene sentido.**
