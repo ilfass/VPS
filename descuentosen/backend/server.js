@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors')
 const mongoose = require('mongoose')
+const { startScraping } = require('./services/scraperService')
 require('dotenv').config()
 
 const app = express()
@@ -28,6 +29,9 @@ mongoose.connect(MONGODB_URI)
     console.log('✅ Conectado a MongoDB')
     app.listen(PORT, () => {
       console.log(`🚀 Servidor corriendo en puerto ${PORT}`)
+      // Iniciar scraping automáticamente después de conectar
+      console.log('🔄 Iniciando scraping automático...')
+      startScraping()
     })
   })
   .catch((error) => {
@@ -36,3 +40,9 @@ mongoose.connect(MONGODB_URI)
   })
 
 module.exports = app
+
+
+
+
+
+

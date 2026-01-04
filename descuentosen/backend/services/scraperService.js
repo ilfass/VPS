@@ -3,15 +3,16 @@ const cheerio = require('cheerio')
 const cron = require('node-cron')
 const Offer = require('../models/Offer')
 const ScrapeConfig = require('../models/ScrapeConfig')
+const { extractOfferWithAI, isAIAvailable } = require('./aiService')
 
 let scrapingInterval = null
 let isScraping = false
 let lastScrapeResult = null
 
-// Función principal de scraping
-async function scrapeUrl(config) {
+// Función de scraping tradicional (fallback)
+async function scrapeUrlTraditional(config) {
   try {
-    console.log(`🔍 Scrapeando: ${config.url}`)
+    console.log(`🔍 Scrapeando (método tradicional): ${config.url}`)
     
     const response = await axios.get(config.url, {
       timeout: 10000,
@@ -79,8 +80,49 @@ async function scrapeUrl(config) {
       { upsert: true, new: true }
     )
     
-    console.log(`✅ Oferta procesada: ${title}`)
+    console.log(`✅ Oferta procesada (tradicional): ${title}`)
     return { success: true, offer: offerData }
+  } catch (error) {
+    console.error(`❌ Error scrapeando ${config.url}:`, error.message)
+    return { success: false, error: error.message }
+  }
+}
+
+// Función principal de scraping (usa IA si está disponible, fallback a tradicional)
+async function scrapeUrl(config) {
+  try {
+    console.log(`🔍 Scrapeando: ${config.url}`)
+    
+    // Intentar primero con IA si está disponible
+    if (isAIAvailable()) {
+      console.log('🤖 Intentando extracción con IA...')
+      const aiResult = await extractOfferWithAI(config.url, config)
+      
+      if (aiResult.success && aiResult.offer) {
+        // Guardar la oferta extraída por IA
+        await Offer.findOneAndUpdate(
+          { url: config.url },
+          aiResult.offer,
+          { upsert: true, new: true }
+        )
+        
+        console.log(`✅ Oferta procesada con IA: ${aiResult.offer.title}`)
+        return { success: true, offer: aiResult.offer, method: 'ai' }
+      } else {
+        console.log('⚠️ IA no pudo extraer información, intentando método tradicional...')
+      }
+    } else {
+      console.log('⚠️ IA no disponible, usando método tradicional...')
+    }
+    
+    // Fallback al método tradicional
+    const traditionalResult = await scrapeUrlTraditional(config)
+    if (traditionalResult.success) {
+      return { ...traditionalResult, method: 'traditional' }
+    }
+    
+    return traditionalResult
+    
   } catch (error) {
     console.error(`❌ Error scrapeando ${config.url}:`, error.message)
     return { success: false, error: error.message }
@@ -99,6 +141,20 @@ async function scrapeAll() {
   
   try {
     const configs = await ScrapeConfig.find({ isActive: true })
+    
+    if (configs.length === 0) {
+      console.log('⚠️ No hay configuraciones de scraping activas. Agrega configuraciones desde el panel de administración.')
+      lastScrapeResult = {
+        timestamp: new Date(),
+        total: 0,
+        successful: 0,
+        failed: 0,
+        results: [],
+        message: 'No hay configuraciones de scraping activas'
+      }
+      return
+    }
+    
     console.log(`🚀 Iniciando scraping de ${configs.length} URLs...`)
     
     for (const config of configs) {
@@ -176,3 +232,4 @@ module.exports = {
   stopScraping,
   getScrapingStatus
 }
+

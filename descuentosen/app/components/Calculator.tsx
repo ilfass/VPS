@@ -146,3 +146,8 @@ export default function Calculator({ offers, onClear }: CalculatorProps) {
     </div>
   )
 }
+
+
+
+
+

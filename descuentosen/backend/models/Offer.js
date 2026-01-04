@@ -80,3 +80,8 @@ offerSchema.index({ store: 1, isActive: 1 })
 offerSchema.index({ extractedAt: -1 })
 
 module.exports = mongoose.model('Offer', offerSchema)
+
+
+
+
+

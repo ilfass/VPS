@@ -118,3 +118,8 @@ echo ""
 echo "Para ver el estado:"
 echo "  $DOCKER_COMPOSE ps"
 echo ""
+
+
+
+
+

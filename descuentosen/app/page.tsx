@@ -184,7 +184,11 @@ export default function Home() {
       {!loading && !error && (
         <>
           {filteredOffers.length === 0 ? (
-            <div className="loading">No se encontraron ofertas con los filtros seleccionados</div>
+            <div className="loading">
+              {offers.length === 0 
+                ? 'No hay ofertas disponibles. El sistema está buscando ofertas, por favor intenta más tarde.'
+                : 'No se encontraron ofertas con los filtros seleccionados'}
+            </div>
           ) : (
             <div className="offers-grid">
               {filteredOffers.map(offer => (
@@ -239,3 +243,9 @@ export default function Home() {
     </div>
   )
 }
+
+
+
+
+
+

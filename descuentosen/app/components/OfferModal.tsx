@@ -149,3 +149,8 @@ export default function OfferModal({ offer, onClose }: OfferModalProps) {
     </div>
   )
 }
+
+
+
+
+

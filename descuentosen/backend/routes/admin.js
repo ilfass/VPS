@@ -105,3 +105,8 @@ router.delete('/configs/:id', async (req, res) => {
 })
 
 module.exports = router
+
+
+
+
+

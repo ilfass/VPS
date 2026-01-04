@@ -41,3 +41,8 @@ const scrapeConfigSchema = new mongoose.Schema({
 })
 
 module.exports = mongoose.model('ScrapeConfig', scrapeConfigSchema)
+
+
+
+
+
