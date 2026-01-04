@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ilfass | Director Console</title>
+    <title>ilfass | Director Console v3</title>
     <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=JetBrains+Mono:wght@400;700&display=swap"
         rel="stylesheet">
@@ -16,6 +16,7 @@
             --accent-dim: rgba(56, 189, 248, 0.1);
             --danger: #ef4444;
             --success: #10b981;
+            --warning: #f59e0b;
             --text-main: #e2e8f0;
             --text-dim: #64748b;
         }
@@ -33,10 +34,10 @@
 
         .dashboard {
             display: grid;
-            grid-template-columns: 250px 1fr 300px;
+            grid-template-columns: 280px 1fr 320px;
             gap: 20px;
             width: 100%;
-            max-width: 1400px;
+            max-width: 1600px;
         }
 
         .panel {
@@ -47,85 +48,108 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
 
         h2 {
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             text-transform: uppercase;
             letter-spacing: 2px;
             color: var(--text-dim);
-            margin: 0 0 10px 0;
+            margin: 0 0 5px 0;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         /* STATUS INDICATORS */
-        .status-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .status-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .status-label {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .status-val {
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.9rem;
-            margin-bottom: 10px;
+            font-weight: bold;
+            color: #fff;
         }
 
         .led {
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            background: #333;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-            transition: all 0.3s;
+            display: inline-block;
+            margin-right: 5px;
         }
 
         .led.on {
             background: var(--success);
-            box-shadow: 0 0 10px var(--success);
+            box-shadow: 0 0 8px var(--success);
         }
 
         .led.off {
             background: var(--danger);
-            box-shadow: 0 0 10px var(--danger);
-        }
-
-        .led.active {
-            background: var(--accent);
-            box-shadow: 0 0 10px var(--accent);
         }
 
         /* BUTTONS */
         button {
             background: var(--accent-dim);
-            border: 1px solid var(--accent);
+            border: 1px solid rgba(56, 189, 248, 0.3);
             color: var(--accent);
             padding: 12px;
             border-radius: 6px;
             cursor: pointer;
             font-family: 'Outfit', sans-serif;
-            font-weight: 500;
+            font-weight: 600;
             transition: all 0.2s;
             text-transform: uppercase;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
         }
 
-        button:hover {
+        button:hover:not(:disabled) {
             background: var(--accent);
             color: var(--bg-dark);
             box-shadow: 0 0 15px var(--accent-dim);
         }
 
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+
         button:active {
-            transform: scale(0.98);
+            transform: translateY(1px);
         }
 
         button.danger {
-            border-color: var(--danger);
+            border-color: rgba(239, 68, 68, 0.5);
             color: var(--danger);
             background: rgba(239, 68, 68, 0.1);
         }
 
-        button.danger:hover {
+        button.danger:hover:not(:disabled) {
             background: var(--danger);
             color: #fff;
         }
@@ -136,75 +160,107 @@
             border-color: var(--success);
         }
 
-        button.disabled {
-            opacity: 0.3;
-            pointer-events: none;
-            filter: grayscale(1);
+        /* SCENE DISPLAY */
+        #big-scene {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+            text-align: center;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: color 0.3s;
         }
 
-        /* DREAM CONSOLE */
+        /* LOGS */
         .console-log {
             background: #000;
-            border: 1px solid #333;
+            border: 1px solid #222;
             border-radius: 6px;
             padding: 10px;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            color: #0f0;
-            height: 300px;
+            font-size: 0.7rem;
+            color: #ccc;
+            height: 400px;
             overflow-y: auto;
             display: flex;
             flex-direction: column-reverse;
-            /* Newest at bottom visually but stick to bottom */
         }
 
         .log-entry {
-            margin-bottom: 5px;
+            margin-bottom: 4px;
             border-bottom: 1px solid #111;
             padding-bottom: 2px;
+            line-height: 1.4;
         }
 
         .log-time {
             color: #555;
-            margin-right: 5px;
+            margin-right: 8px;
         }
 
-        .scene-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
+        .log-info {
+            color: #38bdf8;
         }
 
-        .telemetry-box {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--accent-dim);
-            padding: 10px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
-            border-radius: 4px;
+        .log-error {
+            color: #ef4444;
         }
 
-        .telemetry-label {
-            color: var(--text-dim);
+        .log-success {
+            color: #10b981;
         }
 
-        .telemetry-val {
-            color: var(--accent);
-            font-weight: bold;
-            margin-left: 5px;
-        }
-
-        #big-scene {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #fff;
-            text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
-            text-align: center;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.05);
+        /* TRAVEL SYSTEM */
+        .travel-ui {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 15px;
             border-radius: 8px;
+        }
+
+        .country-select-wrapper {
+            display: flex;
+            gap: 10px;
             margin-bottom: 10px;
-            font-family: 'Outfit';
+        }
+
+        select {
+            flex: 1;
+            background: #0f172a;
+            color: #fff;
+            border: 1px solid #333;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Outfit', sans-serif;
+            outline: none;
+        }
+
+        select:focus {
+            border-color: var(--accent);
+        }
+
+        /* ANIMATIONS */
+        @keyframes pulse-red {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .blinking {
+            animation: pulse-red 1s infinite;
+            color: var(--danger) !important;
         }
     </style>
 </head>
@@ -212,108 +268,124 @@
 <body>
 
     <div class="dashboard">
-        <!-- COL 1: SYSTEM STATUS -->
+        <!-- LEFT: SYSTEM & TELEMETRY -->
         <div class="panel">
-            <h2>System Status</h2>
-            <div class="status-row">
-                <span>SERVER CONNECTION</span>
-                <div id="led-conn" class="led"></div>
-            </div>
-            <div class="status-row">
-                <span>AUTO PILOT MODE</span>
-                <div id="led-auto" class="led"></div>
-            </div>
+            <h2>System Health <span id="conn-led" class="led off"></span></h2>
 
-            <h2 style="margin-top: 20px; color: #fff; border-color: #38bdf8;">LIVE TELEMETRY</h2>
-
-            <div style="font-size: 0.7rem; color: #64748b; letter-spacing: 2px; text-align: center;">CURRENT SCENE</div>
-            <div id="big-scene">--</div>
-
-            <div class="telemetry-box">
-                <div><span class="telemetry-label">COUNTRY:</span><span id="tel-country" class="telemetry-val">--</span>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-label">PING</span>
+                    <span id="tel-ping" class="status-val">-- ms</span>
                 </div>
-                <div><span class="telemetry-label">DAY:</span><span id="tel-day" class="telemetry-val">--</span></div>
-                <div style="font-size: 0.7rem; color: #555; margin-top: 5px; text-align: right;">Last Signal: <span
-                        id="tel-ping">--</span>s</div>
+                <div class="status-item">
+                    <span class="status-label">UPTIME</span>
+                    <span id="sys-uptime" class="status-val">00:00</span>
+                </div>
             </div>
 
-            <div style="margin-top: 20px;">
-                <button id="btn-toggle-auto" style="width: 100%;">Toggle Auto Mode</button>
+            <h2 style="margin-top: 20px; color: var(--accent);">Live Telemetry</h2>
+            <div id="big-scene">CONNECTING...</div>
+
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-label">COUNTRY</span>
+                    <span id="tel-country" class="status-val">--</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">DAY</span>
+                    <span id="tel-day" class="status-val">--</span>
+                </div>
             </div>
-            <div style="margin-top: 10px;">
-                <button onclick="triggerDream()" style="width: 100%; border-color: #a855f7; color: #a855f7;">Force Dream
-                    (AI)</button>
+
+            <h2 style="margin-top: 20px;">Master Control</h2>
+            <button id="btn-toggle-auto" onclick="toggleAuto()">Initializing...</button>
+            <div style="font-size: 0.7rem; color: #666; margin-top: 5px; text-align: center;">
+                Disabling Auto gives you full manual control.
             </div>
         </div>
 
-        <!-- COL 2: DIRECTOR CONTROLS -->
+        <!-- CENTER: DIRECTOR -->
         <div class="panel">
-            <h2>Scene Director</h2>
-            <div class="scene-grid">
-                <button onclick="changeScene('intro')" id="btn-intro">🎬 ACTO CERO (Intro)</button>
-                <button onclick="changeScene('mapa')" id="btn-mapa">🌍 MAPA GLOBAL</button>
-                <button onclick="changeScene('pais')" id="btn-pais" class="disabled">🇯🇵 PAÍS (Zoom)</button>
-                <button onclick="changeScene('reflexion')" id="btn-reflexion">🕯️ REFLEXIÓN</button>
+            <h2>🎬 Scene Director</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button onclick="changeScene('intro')">Acto Cero (Intro)</button>
+                <button onclick="changeScene('reflexion')">Reflexión</button>
+                <button onclick="changeScene('mapa')" style="grid-column: span 2;">🌍 Mapa Global</button>
             </div>
 
-            <h2 style="margin-top: 20px;">Inyecciones de Contenido</h2>
-            <div class="scene-grid">
-                <button onclick="triggerEvent('news')" class="danger">🚨 BREAKING NEWS</button>
-                <button onclick="triggerEvent('fact')">💡 CURIOSIDAD RANDOM</button>
-            </div>
-
-            <h2 style="margin-top: 20px; color: #38bdf8;">TRAVEL SYSTEM</h2>
-            <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px;">
-                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                    <select id="country-select"
-                        style="flex: 1; background: #0f172a; color: #fff; border: 1px solid #333; padding: 10px; border-radius: 4px;">
-                        <option value="AR">ARGENTINA</option>
-                        <option value="JP">JAPAN</option>
-                        <option value="MX">MEXICO</option>
-                        <option value="ES">SPAIN</option>
-                        <option value="US">USA</option>
-                        <option value="RU">RUSSIA</option>
-                        <option value="CN">CHINA</option>
-                        <option value="FR">FRANCE</option>
-                        <option value="IT">ITALY</option>
-                        <option value="BR">BRAZIL</option>
-                        <option value="CL">CHILE</option>
-                        <option value="PE">PERU</option>
-                        <option value="CO">COLOMBIA</option>
+            <h2 style="margin-top: 20px; color: var(--warning);">✈️ Flight Navigation</h2>
+            <div class="travel-ui">
+                <div class="country-select-wrapper">
+                    <select id="country-select">
+                        <option value="032">🇦🇷 Argentina (032)</option>
+                        <option value="392">🇯🇵 Japón (392)</option>
+                        <option value="484">🇲🇽 México (484)</option>
+                        <option value="724">🇪🇸 España (724)</option>
+                        <option value="840">🇺🇸 USA (840)</option>
+                        <option value="643">🇷🇺 Rusia (643)</option>
+                        <option value="156">🇨🇳 China (156)</option>
+                        <option value="250">🇫🇷 Francia (250)</option>
+                        <option value="380">🇮🇹 Italia (380)</option>
+                        <option value="076">🇧🇷 Brasil (076)</option>
+                        <option value="152">🇨🇱 Chile (152)</option>
+                        <option value="604">🇵🇪 Perú (604)</option>
+                        <option value="170">🇨🇴 Colombia (170)</option>
+                        <option value="818">🇪🇬 Egipto (818)</option>
+                        <option value="356">🇮🇳 India (356)</option>
                     </select>
                     <button onclick="travelToSelected()"
-                        style="background: var(--accent); color: #000; border: none; font-weight: bold;">FLY</button>
+                        style="background: var(--warning); color: #000; border: none;">FLY NOW</button>
                 </div>
                 <div style="display: flex; gap: 10px; align-items: center;">
-                    <input type="checkbox" id="mode-deep"> <label for="mode-deep"
-                        style="font-size: 0.8rem; color: #aaa;">DEEP DIVE (Multimedia)</label>
+                    <input type="checkbox" id="mode-deep">
+                    <label for="mode-deep" style="font-size: 0.8rem; color: #aaa; cursor: pointer;">Enable Deep Dive
+                        Mode (Multimedia)</label>
                 </div>
+            </div>
+
+            <h2 style="margin-top: 20px;">Context Actions</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button id="btn-pais" onclick="changeScene('pais')" disabled>🔍 Ver Detalle País</button>
+                <button onclick="triggerEvent('fact')">💡 Dato Curioso</button>
+                <button onclick="triggerEvent('news')" class="danger" style="grid-column: span 2;">🚨 Breaking News
+                    Injection</button>
             </div>
         </div>
 
-        <!-- COL 3: DREAM LOG -->
+        <!-- RIGHT: AI BRAIN -->
         <div class="panel">
-            <h2>Living Memory (AI Logs)</h2>
-            <div id="console" class="console-log">
-                <div class="log-entry"><span class="log-time">--:--</span>Connecting to Telemetry...</div>
+            <h2>🧠 Neural Core (IA)</h2>
+            <div class="travel-ui" style="background: rgba(168, 85, 247, 0.1); border-color: rgba(168, 85, 247, 0.3);">
+                <button id="btn-dream" onclick="triggerDream()"
+                    style="width: 100%; border-color: #a855f7; color: #a855f7; background: transparent;">
+                    ✨ Force Dream Generation
+                </button>
+                <div style="font-size: 0.7rem; color: #a855f7; margin-top: 5px; text-align: center;">
+                    Gemini 2.0 / HF Mistral Fallback
+                </div>
             </div>
-            <button onclick="fetchLivingScript()" style="margin-top: 10px; font-size: 0.7rem;">Refresh Memory
-                Bank</button>
+
+            <h2 style="margin-top: 20px;">System Logs</h2>
+            <div id="console" class="console-log">
+                <div class="log-entry"><span class="log-time">--:--</span>System Initialized. Waiting for signal...
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
+        // --- CONFIG ---
         const API_BASE = '/control-api';
+        let isAutoMode = true;
+        let lastTelemetryTime = 0;
 
-        // --- UTILS ---
+        // --- CORE FUNCTIONS ---
         function log(msg, type = 'info') {
             const consoleEl = document.getElementById('console');
             const entry = document.createElement('div');
-            entry.className = 'log-entry';
+            entry.className = `log-entry log-${type}`;
             const time = new Date().toLocaleTimeString();
             entry.innerHTML = `<span class="log-time">[${time}]</span> ${msg}`;
-            if (type === 'error') entry.style.color = '#ef4444';
-            if (type === 'success') entry.style.color = '#10b981';
             consoleEl.prepend(entry);
         }
 
@@ -333,109 +405,124 @@
             }
         }
 
-        // --- ACTIONS ---
+        // --- STATE MANAGEMENT ---
         async function updateStatus() {
-            const data = await apiCall('/status', 'GET');
-            if (data) {
-                document.getElementById('led-conn').className = 'led on';
-
-                // Update Auto Mode UI
-                const ledAuto = document.getElementById('led-auto');
-                const btnAuto = document.getElementById('btn-toggle-auto');
-
-                if (data.autoMode) {
-                    ledAuto.className = 'led active';
-                    btnAuto.classList.add('toggle-active');
-                    btnAuto.innerText = "AUTO: ON";
-                } else {
-                    ledAuto.className = 'led off';
-                    btnAuto.classList.remove('toggle-active');
-                    btnAuto.innerText = "AUTO: OFF";
+            try {
+                const data = await apiCall('/status', 'GET');
+                if (!data) {
+                    document.getElementById('conn-led').className = 'led off';
+                    document.getElementById('big-scene').classList.add('blinking');
+                    document.getElementById('big-scene').innerText = "DISCONNECTED";
+                    return;
                 }
 
-                // Update Telemetry & UI
+                document.getElementById('conn-led').className = 'led on';
+
+                // AUTO MODE UI
+                isAutoMode = data.autoMode;
+                const btnAuto = document.getElementById('btn-toggle-auto');
+                if (isAutoMode) {
+                    btnAuto.classList.add('toggle-active');
+                    btnAuto.innerText = "PILOTO AUTOMÁTICO: ON";
+                } else {
+                    btnAuto.classList.remove('toggle-active');
+                    btnAuto.innerText = "MANUAL MODE (PILOTO OFF)";
+                }
+
+                // TELEMETRY
                 if (data.telemetry) {
                     const scene = data.telemetry.scene || 'UNKNOWN';
+                    const country = data.telemetry.country || '--';
+
+                    document.getElementById('big-scene').classList.remove('blinking');
                     document.getElementById('big-scene').innerText = scene;
 
-                    document.getElementById('tel-country').innerText = data.telemetry.country || '--';
-                    document.getElementById('tel-day').innerText = data.telemetry.day || '--';
+                    document.getElementById('tel-country').innerText = country;
+                    document.getElementById('tel-day').innerText = data.telemetry.day || 0;
 
-                    // Button Logic
-                    const btnPais = document.getElementById('btn-pais');
-                    // Solo activar País si estamos en Mapa
-                    if (scene === 'MAPA' || scene === 'country') {
-                        btnPais.classList.remove('disabled');
-                    } else {
-                        btnPais.classList.add('disabled');
-                    }
-
+                    // Ping Calculation
                     if (data.telemetry.lastUpdate) {
-                        const secondsAgo = Math.floor((Date.now() - data.telemetry.lastUpdate) / 1000);
-                        const pingEl = document.getElementById('tel-ping');
-                        pingEl.innerText = secondsAgo;
+                        const now = Date.now();
+                        const diff = Math.floor((now - data.telemetry.lastUpdate) / 1000);
+                        document.getElementById('tel-ping').innerText = diff + 's ago';
 
-                        // Si se perdió la señal
-                        if (secondsAgo > 10) {
-                            pingEl.style.color = '#ef4444';
+                        if (diff > 5) {
+                            document.getElementById('tel-ping').style.color = '#ef4444';
                             document.getElementById('big-scene').style.color = '#ef4444';
-                            document.getElementById('big-scene').innerText = "LOST SIGNAL";
                         } else {
-                            pingEl.style.color = '#10b981';
+                            document.getElementById('tel-ping').style.color = '#10b981';
                             document.getElementById('big-scene').style.color = '#fff';
                         }
                     }
+
+                    // CONTEXT BUTTONS
+                    const btnPais = document.getElementById('btn-pais');
+                    // Enable Detail View only if map is viewing a specific country
+                    if (scene === 'MAPA' && country !== 'GLOBAL' && country !== 'UNKNOWN') {
+                        btnPais.disabled = false;
+                        btnPais.innerText = `🔍 Ver Detalle (${country})`;
+                    } else {
+                        btnPais.disabled = true;
+                        btnPais.innerText = "🔍 Ver Detalle País";
+                    }
                 }
-            } else {
-                document.getElementById('led-conn').className = 'led off';
-            }
+
+            } catch (e) { console.error(e); }
         }
 
-        document.getElementById('btn-toggle-auto').onclick = async () => {
-            const currentText = document.getElementById('btn-toggle-auto').innerText;
-            const isAuto = currentText.includes("ON");
-            const endpoint = isAuto ? '/event/auto/off' : '/event/auto/on';
-            const res = await apiCall(endpoint);
-            if (res) {
-                log(`Auto Mode switched ${isAuto ? 'OFF' : 'ON'}`, 'success');
-                updateStatus(); // Immediate refresh
-            }
-        };
+        // --- COMMANDS ---
+        async function toggleAuto() {
+            // Optimistic UI update
+            const btn = document.getElementById('btn-toggle-auto');
+            btn.innerText = "Switching...";
+
+            const targetState = !isAutoMode;
+            const endpoint = targetState ? '/event/auto/on' : '/event/auto/off';
+
+            await apiCall(endpoint);
+            log(`Director switched Auto Mode to: ${targetState ? 'ON' : 'OFF'}`, 'warning');
+            setTimeout(updateStatus, 500);
+        }
 
         async function changeScene(scene) {
             log(`Requesting scene change: ${scene}...`);
             await apiCall(`/event/scene/${scene}`);
+            // If manual action, we might want to disable auto mode automatically?
+            // For now, let's keep it explicit.
         }
 
         async function travelToSelected() {
             const code = document.getElementById('country-select').value;
             const deep = document.getElementById('mode-deep').checked;
-            log(`✈️ Departure to ${code} (Deep: ${deep})...`);
+            const name = document.getElementById('country-select').options[document.getElementById('country-select').selectedIndex].text;
+
+            log(`✈️ Initiating flight to ${name} (${code})...`, 'info');
             await apiCall(`/event/travel/${code}`);
         }
 
         async function triggerEvent(type) {
-            log(`Triggering event: ${type}...`);
+            log(`Injecting Event: ${type}`, 'warning');
             await apiCall(`/event/${type}`);
         }
 
         async function triggerDream() {
-            log(`Invoking AI Dreamer...`);
-            apiCall('/api/dream'); // Async trigger
-            setTimeout(fetchLivingScript, 3000);
+            const btn = document.getElementById('btn-dream');
+            btn.innerText = "✨ Dreaming...";
+            btn.disabled = true;
+
+            log(`🧠 Invoking Neural Core...`, 'info');
+            await apiCall('/api/dream');
+
+            setTimeout(() => {
+                btn.innerText = "✨ Force Dream Generation";
+                btn.disabled = false;
+                log(`✅ Dream sequence initiated.`, 'success');
+            }, 3000);
         }
 
-        async function fetchLivingScript() {
-            const data = await apiCall('/api/living-script', 'GET');
-            if (data && data.definitions.length > 0) {
-                // log(`Latest Dream: "${data.definitions[data.definitions.length-1]}"`, 'success');
-            }
-        }
-
-        // --- LOOP ---
+        // --- INIT ---
         setInterval(updateStatus, 1000);
         updateStatus();
-        fetchLivingScript();
 
     </script>
 </body>
