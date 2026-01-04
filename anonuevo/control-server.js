@@ -52,32 +52,67 @@ function saveLivingScript(data) {
 }
 
 // --- UTILIDAD DE GENERACIÓN (THE DREAMER) ---
-async function dreamNewPhrase(category) {
-    if (!GoogleGenerativeAI || !process.env.GEMINI_API_KEY) {
-        console.log("🚫 Dreaming disabled: No SDK or API Key.");
-        return null; // Simulamos fallo silencioso
-    }
+// --- UTILIDAD DE GENERACIÓN (MULTI-CEREBRO) ---
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+async function dreamWithHuggingFace(prompt) {
+    if (!process.env.HF_API_KEY) return null;
 
-    let prompt = "";
-    if (category === 'definition') {
-        prompt = "Actúa como ilfass, una IA viajera filosófica. Genera 1 frase corta (max 10 palabras) definiendo qué es este stream. Tono: Cyberpunk, solemne, misterioso. Ej: 'No busques un final predecible'.";
-    } else if (category === 'concept') {
-        prompt = "Actúa como ilfass. Genera 1 frase corta sobre la memoria digital y el tiempo real. Tono: Profundo y técnico. Ej: 'Cada segundo queda registrado en el libro'.";
-    }
+    console.log("🧠 Switching to Hugging Face (Mistral)...");
+    const HF_MODEL = "mistralai/Mistral-7B-Instruct-v0.2";
 
     try {
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        let text = response.text().replace(/"/g, '').trim();
-        console.log(`✨ Dreamed (${category}): ${text}`);
-        return text;
+        const response = await fetch(`https://api-inference.huggingface.co/models/${HF_MODEL}`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${process.env.HF_API_KEY}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                inputs: `[INST] ${prompt} [/INST]`,
+                parameters: { max_new_tokens: 50, return_full_text: false, temperature: 0.8 }
+            })
+        });
+
+        const data = await response.json();
+        if (data && data[0] && data[0].generated_text) {
+            let text = data[0].generated_text.replace(/"/g, '').trim();
+            console.log(`✨ Dreamed (HF): ${text}`);
+            return text;
+        }
+        return null;
     } catch (e) {
-        console.error("Dream failed:", e.message);
+        console.error("HF Dream failed:", e.message);
         return null;
     }
+}
+
+async function dreamNewPhrase(category) {
+    let prompt = "";
+    // Prompts mejorados para que funcionen bien en ambos modelos
+    if (category === 'definition') {
+        prompt = "Eres ilfass, una IA viajera y misteriosa. Genera UNA sola frase corta (max 10 palabras) filosófica y poética sobre qué es este viaje digital. Sin explicaciones, solo la frase.";
+    } else if (category === 'concept') {
+        prompt = "Eres ilfass. Define brevemente un concepto sobre la memoria digital, el tiempo o la soledad en la red. Una sola frase corta, estilo cyberpunk poético.";
+    }
+
+    // 1. INTENTO CON GEMINI (Principal)
+    if (GoogleGenerativeAI && process.env.GEMINI_API_KEY) {
+        try {
+            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+            const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            let text = response.text().replace(/"/g, '').trim();
+            console.log(`✨ Dreamed (Gemini): ${text}`);
+            return text;
+        } catch (e) {
+            console.warn("⚠️ Gemini failed (Rate Limit?), trying Fallback...", e.message);
+        }
+    }
+
+    // 2. FALLBACK: HUGGING FACE
+    return await dreamWithHuggingFace(prompt);
 }
 
 const server = http.createServer(async (req, res) => {

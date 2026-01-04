@@ -91,6 +91,7 @@ services:
       - "3005"
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - HF_API_KEY=${HF_API_KEY}
     command: sh -c "node control-server.js"
     restart: always
 
