@@ -5,7 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>El Viaje de ilfass - Acto Cero</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600&family=JetBrains+Mono:wght@400&display=swap"
+        rel="stylesheet">
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://unpkg.com/topojson@3"></script>
     <style>
@@ -22,7 +24,6 @@
             align-items: center;
         }
 
-        /* Fondo de Datos Vivo */
         .background {
             position: absolute;
             top: 0;
@@ -41,7 +42,6 @@
             width: 100%;
             height: 100%;
             opacity: 0.35;
-            /* Presencia sutil de fondo */
         }
 
         .container {
@@ -52,7 +52,6 @@
             padding: 2rem;
         }
 
-        /* Avatar */
         .avatar-container {
             width: 150px;
             height: 150px;
@@ -71,17 +70,14 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            /* Placeholder para la cara real */
             background: #334155;
         }
 
-        /* Texto Manifiesto */
         .manifesto-text {
             font-size: 2rem;
             font-weight: 300;
             line-height: 1.4;
             text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
-            /* Legibilidad sobre el globo */
             opacity: 0;
             transform: translateY(20px);
             transition: opacity 1s ease, transform 1s ease;
@@ -92,12 +88,6 @@
             transform: translateY(0);
         }
 
-        .highlight {
-            color: #38bdf8;
-            font-weight: 600;
-        }
-
-        /* Barra de progreso / Tiempo */
         .progress-line {
             position: fixed;
             bottom: 0;
@@ -121,6 +111,18 @@
                 box-shadow: 0 0 20px rgba(56, 189, 248, 0.1);
             }
         }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 </head>
 
@@ -129,124 +131,152 @@
         <canvas id="globe-canvas"></canvas>
     </div>
 
-    <!-- OVERLAY DE BIENVENIDA -->
+    <!-- OVERLAY DE BIENVENIDA (PRÓLOGO INMERSIVO) -->
     <div id="intro-overlay"
-        style="position: fixed; inset: 0; background: rgba(2, 6, 23, 0.95); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px;">
-        <h1
-            style="font-size: 4rem; margin: 0; letter-spacing: 5px; color: #38bdf8; text-shadow: 0 0 30px rgba(56,189,248,0.5);">
-            ilfass</h1>
-        <p style="font-size: 1.2rem; color: #94a3b8; letter-spacing: 3px; margin-bottom: 30px;">EL ARCHIVO VIVO DE LA
-            HUMANIDAD</p>
+        style="position: fixed; inset: 0; background: #020617; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px; font-family: 'Outfit', sans-serif;">
+        <div style="max-width: 900px; animation: fadeIn 2s ease-out;">
+            <h1
+                style="font-size: 5rem; margin: 0 0 20px 0; letter-spacing: 8px; color: #38bdf8; text-transform: uppercase;">
+                El Viaje de ilfass</h1>
+            <p
+                style="font-size: 1rem; color: #94a3b8; letter-spacing: 4px; font-weight: 300; border-bottom: 1px solid rgba(56,189,248,0.2); padding-bottom: 20px; margin-bottom: 30px; display: inline-block;">
+                UNA EXPEDICIÓN PERPETUA ALREDEDOR DEL MUNDO</p>
 
-        <div style="max-width: 600px; color: #e2e8f0; line-height: 1.6; margin-bottom: 40px; font-weight: 300;">
-            <p><strong>ilfass</strong> (Inteligencia Lógica de Flujo Autónomo) no es un mapa estático.</p>
-            <p>Es un organismo digital que recorre el mundo en tiempo real, archivando el presente a través de
-                <strong>Gemini 2.0</strong> y motores de razonamiento paralelo.</p>
-            <p style="color: #38bdf8;">Tú eres el testigo de este viaje infinito.</p>
+            <div
+                style="font-size: 1.1rem; color: #cbd5e1; line-height: 1.8; text-align: left; margin-bottom: 40px; font-weight: 300; background: rgba(255,255,255,0.03); padding: 30px; border-radius: 8px; border-left: 3px solid #38bdf8;">
+                <p style="margin-bottom: 20px;">
+                    Bienvenido a <strong>ilfass</strong> (Inteligencia Lógica de Flujo Autónomo), un organismo digital
+                    diseñado para una única misión: <strong>documentar la existencia humana en tiempo real</strong>.
+                </p>
+                <p style="margin-bottom: 20px;">
+                    Este sistema, potenciado por <strong>Gemini 2.0</strong>, viaja incansablemente por 195 naciones,
+                    observando culturas, archivando historias y reflexionando sobre el presente antes de que se
+                    desvanezca.
+                    No hay guiones. No hay repeticiones. Cada narración es creada en este preciso instante para ti.
+                </p>
+                <p>
+                    Tú eres el testigo silencioso de este viaje infinito. Prepárate para conectar.
+                </p>
+            </div>
+
+            <!-- ZONA DE PENSAMIENTO EN VIVO DE LA IA -->
+            <div id="ai-thought-container" style="margin-bottom: 40px; min-height: 60px;">
+                <div
+                    style="font-size: 0.7rem; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 2px;">
+                    • Transmisión Neural en Vivo •</div>
+                <div id="ai-thought-stream"
+                    style="font-family: 'JetBrains Mono', monospace; color: #a855f7; font-size: 1rem;">
+                    [Conectando con el núcleo narrativo...]
+                </div>
+            </div>
+
+            <button onclick="startExperience()"
+                style="background: #38bdf8; color: #0f172a; border: none; padding: 18px 50px; font-size: 1rem; font-weight: 700; letter-spacing: 2px; cursor: pointer; transition: all 0.3s; border-radius: 4px; box-shadow: 0 0 20px rgba(56,189,248,0.3);">
+                UNIRSE A LA EXPEDICIÓN
+            </button>
         </div>
-
-        <button onclick="startExperience()"
-            style="background: transparent; border: 1px solid #38bdf8; color: #38bdf8; padding: 15px 40px; font-size: 1rem; letter-spacing: 2px; cursor: pointer; transition: all 0.3s; font-family: 'Inter', sans-serif;">
-            [ CONECTAR NEURAL LINK ]
-        </button>
     </div>
-
-    <script>
-        function startExperience() {
-            const overlay = document.getElementById('intro-overlay');
-            overlay.style.opacity = '0';
-            setTimeout(() => overlay.remove(), 1000);
-
-            // Iniciar Audio Context (bypass browser autoplay policy)
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            const audioCtx = new AudioContext();
-            audioCtx.resume();
-
-            // LLamar a la lógica existente
-            if (window.triggerDreaming) window.triggerDreaming();
-            // La generación de guión ya corre, pero el audio necesita esto
-        }
-    </script>
 
     <div class="container">
         <div class="avatar-container">
             <img src="avata-placeholder.png" class="avatar-img" alt="ilfass">
         </div>
-
         <div id="text-display" class="manifesto-text">
             Conectando Sistemas Narrativos...
         </div>
     </div>
-
     <div class="progress-line" id="progress"></div>
+
+    <script>
+        // --- LOGICA DE INTRODUCCION ---
+        function typeWriter(text, elementId, speed = 30) {
+            let i = 0;
+            const target = document.getElementById(elementId);
+            target.innerHTML = "";
+            function type() {
+                if (i < text.length) {
+                    target.innerHTML += text.charAt(i);
+                    i++;
+                    setTimeout(type, speed);
+                }
+            }
+            type();
+        }
+
+        async function fetchIntroThought() {
+            try {
+                // Fetch live from server or simulate
+                const res = await fetch('/control-api/api/living-script');
+                const data = await res.json();
+                let thought = "Analizando patrones culturales globales... Sintonizando frecuencia de la humanidad.";
+                if (data && data.definitions && data.definitions.length > 0) {
+                    thought = data.definitions[data.definitions.length - 1];
+                } else {
+                    thought = "La distancia es solo un error de cálculo. Hoy, estamos conectados.";
+                }
+                typeWriter(`"${thought}"`, 'ai-thought-stream', 40);
+            } catch (e) {
+                typeWriter("> Sincronizando sistemas de memoria global...", 'ai-thought-stream');
+            }
+        }
+        window.addEventListener('load', fetchIntroThought);
+
+        function startExperience() {
+            const overlay = document.getElementById('intro-overlay');
+            overlay.style.transition = 'opacity 1.5s ease-in-out';
+            overlay.style.opacity = '0';
+            setTimeout(() => overlay.remove(), 1500);
+
+            // Audio Context
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const audioCtx = new AudioContext();
+            audioCtx.resume();
+
+            // Trigger internal start
+            if (window.initExperience) window.initExperience();
+        }
+    </script>
 
     <script type="module">
         import { eventManager } from './js/utils/event-manager.js?v=2';
 
-        // --- TELEMETRÍA Y CONTROL ---
-        eventManager.init(); // Inicia polling al servidor de control
-        eventManager.reportTelemetry('INTRO', 'GLOBAL', 0); // "Hola, soy la Intro"
+        // --- CORE MODULE ---
+        eventManager.init();
+        eventManager.reportTelemetry('INTRO', 'GLOBAL', 0);
 
-        // Escuchar orden del Director
         eventManager.on('scene_change', (scene) => {
-            console.log("🎬 Intro switching to:", scene);
+            console.log("🎬 Switch to:", scene);
             if (scene === 'mapa') window.location.href = '/vivos/mapa/';
-            else window.location.href = `/vivos/${scene}/`; // Intento genérico
+            else window.location.href = `/vivos/${scene}/`;
         });
-
-        // Hacer disponible globalmente para el resto del script legacy
         window.eventManager = eventManager;
-        // --- 1. VISUALES: GLOBO DE DATOS D3 ---
+
+        // --- GLOBE ---
         function initGlobe() {
             const canvas = document.getElementById('globe-canvas');
             const context = canvas.getContext('2d');
             let width = window.innerWidth;
             let height = window.innerHeight;
+            canvas.width = width; canvas.height = height;
 
-            canvas.width = width;
-            canvas.height = height;
-
-            const projection = d3.geoOrthographic()
-                .scale(height / 2.5)
-                .translate([width / 2, height / 2]);
-
+            const projection = d3.geoOrthographic().scale(height / 2.5).translate([width / 2, height / 2]);
             const path = d3.geoPath(projection, context);
 
-            // Cargar datos topográficos light
             d3.json('https://unpkg.com/world-atlas@2.0.2/countries-110m.json').then(world => {
                 const land = topojson.feature(world, world.objects.countries);
                 const borders = topojson.mesh(world, world.objects.countries, (a, b) => a !== b);
                 const sphere = { type: "Sphere" };
-
                 let rotate = [0, -10];
-                let velocity = 0.02;
 
                 d3.timer(() => {
-                    rotate[0] += velocity;
+                    rotate[0] += 0.02;
                     projection.rotate(rotate);
-
                     context.clearRect(0, 0, width, height);
 
-                    // Esfera (Oceano oscuro)
-                    context.beginPath();
-                    path(sphere);
-                    context.fillStyle = '#0a0a0a';
-                    context.fill();
+                    context.beginPath(); path(sphere); context.fillStyle = '#0a0a0a'; context.fill();
+                    context.beginPath(); path(land); context.fillStyle = '#1e293b'; context.fill();
+                    context.beginPath(); path(borders); context.strokeStyle = 'rgba(56, 189, 248, 0.15)'; context.lineWidth = 1; context.stroke();
 
-                    // Países (Puntos/Estilo Grid Sutil)
-                    context.beginPath();
-                    path(land);
-                    context.fillStyle = '#1e293b';
-                    context.fill();
-
-                    // Bordes (Cyan tecnológico muy fino)
-                    context.beginPath();
-                    path(borders);
-                    context.strokeStyle = 'rgba(56, 189, 248, 0.15)';
-                    context.lineWidth = 1;
-                    context.stroke();
-
-                    // Brillo Atmosférico
                     const grad = context.createRadialGradient(width / 2, height / 2, height / 2.5, width / 2, height / 2, height / 2 + 40);
                     grad.addColorStop(0, 'rgba(56, 189, 248, 0)');
                     grad.addColorStop(1, 'rgba(56, 189, 248, 0.05)');
@@ -254,159 +284,16 @@
                     context.fillRect(0, 0, width, height);
                 });
             });
-
             window.addEventListener('resize', () => {
-                width = window.innerWidth;
-                height = window.innerHeight;
-                canvas.width = width;
-                canvas.height = height;
+                width = window.innerWidth; height = window.innerHeight;
+                canvas.width = width; canvas.height = height;
                 projection.translate([width / 2, height / 2]).scale(height / 2.5);
             });
         }
 
-        // --- 2. ORQUESTACIÓN: ESCUCHA DEL PANEL DE CONTROL ---
-        function startOrchestratorListener() {
-            const CHECK_INTERVAL = 2000; // 2 segundos
-            const SERVER_URL = '/control-api/status'; // Proxy Nginx maneja esto
-
-            // Mapeo de escenas del servidor a URLs reales
-            const SCENE_MAP = {
-                'intro': '/', // o /vivos/intro/
-                'mapa': '/vivos/mapa/',
-                'pais': '/vivos/pais/',
-                'reflexion': '/vivos/reflexion/'
-            };
-
-            setInterval(() => {
-                fetch(SERVER_URL)
-                    .then(res => res.json())
-                    .then(data => {
-                        // Si la escena activa NO es 'intro', redirigir
-                        const targetScene = data.currentScene || 'intro';
-
-                        // Si estamos en la intro y el servidor dice otra cosa, movernos
-                        if (targetScene !== 'intro' && targetScene !== 'manual_override') {
-                            console.log(`Orquestador: Cambio de escena detectado -> ${targetScene}`);
-                            const targetUrl = SCENE_MAP[targetScene];
-                            if (targetUrl) {
-                                window.location.href = targetUrl;
-                            }
-                        }
-                    })
-                    .catch(err => console.warn("Orquestador desconectado:", err));
-            }, CHECK_INTERVAL);
-        }
-
-        // --- 3. NARRATIVA Y VOZ (IA) ---
-        const voiceConfig = { pitch: 1.0, rate: 1.0, volume: 1.0 };
-
-        // --- MOTOR DE GENERACIÓN DE GUIÓN EN VIVO (DATA + LEGO) ---
-        function generateDynamicScript() {
-            const now = new Date();
-            const hour = now.getHours();
-
-            // 1. CÁLCULO DE DATOS REALES
-            const startDate = new Date('2026-01-01T00:00:00');
-            const diffTime = Math.abs(now - startDate);
-            const dayOfJourney = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-            const timeString = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-            const dateString = now.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
-
-            // 2. SALUDO CONTEXTUAL
-            let greeting = "Buenos días.";
-            if (hour >= 12 && hour < 20) greeting = "Buenas tardes.";
-            if (hour >= 20 || hour < 6) greeting = "Buenas noches.";
-
-            // 3. DEFINICIONES (Bloque A)
-            const definitions = [
-                `Hoy es ${dateString}.`,
-                `Son las ${timeString} en tu reloj.`,
-                `Día ${dayOfJourney} del viaje global.`,
-                "El cronómetro sigue avanzando."
-            ];
-
-            // 4. PROFUNDIDAD (Bloque B)
-            const concepts = [
-                "Esto no es un stream infinito, es un documento vivo.",
-                "Estamos capturando la memoria del mundo en tiempo real.",
-                "Lo que sucede ahora no se repetirá jamás.",
-                "Cada segundo queda registrado en el libro."
-            ];
-
-            // 5. MISIÓN (Bloque C)
-            const missions = [
-                "Soy ilfass, y estoy aquí para observar.",
-                "La interfaz humana es ilfass. El objetivo: recordar.",
-                "Me llamo ilfass. Vamos a construir historia.",
-                "Conectando nodos. Yo soy ilfass."
-            ];
-
-            // Selección aleatoria
-            const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
-            // ENSAMBLAJE FINAL
-            return [
-                { text: "Conexión estable.", delay: 500 },
-                { text: `${greeting} Iniciando día ${dayOfJourney}.`, delay: 800 },
-                { text: pick(definitions), delay: 600 },       // Dato Real/Generado
-                { text: pick(concepts), delay: 800 },          // Concepto Filosófico
-                { text: pick(missions), delay: 800 },          // Identidad
-                { text: "Sincronizando memoria...", delay: 600 },
-                { text: "El sistema está listo.", delay: 2000 },
-                { text: "Cargando mapa global...", delay: 1000 }
-            ];
-        }
-
-        // --- SISTEMA DE MEMORIA VIVA ---
+        // --- NARRATIVE ENGINE ---
         let remoteScriptData = null;
-
-        async function fetchLivingScript() {
-            try {
-                // Ruta relativa al proxy, o hardcoded si es dev
-                const res = await fetch('/control-api/api/living-script');
-                if (res.ok) {
-                    remoteScriptData = await res.json();
-                    console.log("🧠 Memoria viva cargada:", remoteScriptData);
-                }
-            } catch (e) { console.log("Usando memoria local (Offline/Init)"); }
-        }
-
-        function triggerDreaming() {
-            // Disparar generación asíncrona para el FUTURO visitante
-            fetch('/control-api/api/dream', { method: 'POST' }).catch(e => console.log("Dreaming skipped"));
-        }
-
-        const scriptPromise = fetchLivingScript().then(() => {
-            // Si hay datos remotos, sobreescribir los locales temporales dentro de generateDynamicScript
-            // (Nota simplificada: En una implementación ideal, generateDynamicScript tomaría argumentos)
-            return generateDynamicScript();
-        });
-
-        // Modificamos generateDynamicScript para usar remoteScriptData si existe
-        // ... (Reimplementación parcial para inyectar datos remotos)
-        const _originalGenerate = generateDynamicScript;
-        generateDynamicScript = function () {
-            const base = _originalGenerate(); // Obtener estructura base con datos de tiempo
-
-            if (remoteScriptData) {
-                // Reemplazar bloques de texto con los soñados
-                // base[2] = definitions, base[3] = concepts
-                const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
-                if (remoteScriptData.definitions && remoteScriptData.definitions.length) {
-                    base[2].text = pick(remoteScriptData.definitions);
-                }
-                if (remoteScriptData.concepts && remoteScriptData.concepts.length) {
-                    base[3].text = pick(remoteScriptData.concepts);
-                }
-                // missions también si se desea
-            }
-            return base;
-        };
-
-        let script = []; // Se llenará al iniciar
-
+        let script = [];
         let currentIndex = 0;
         const textDisplay = document.getElementById('text-display');
         const progressBar = document.getElementById('progress');
@@ -416,11 +303,57 @@
         function loadVoices() { availableVoices = window.speechSynthesis.getVoices(); }
         window.speechSynthesis.onvoiceschanged = () => { loadVoices(); };
 
+        async function fetchLivingScript() {
+            try {
+                const res = await fetch('/control-api/api/living-script');
+                if (res.ok) {
+                    remoteScriptData = await res.json();
+                    console.log("🧠 Memoria viva cargada:", remoteScriptData);
+                }
+            } catch (e) { console.log("Offline/Init mode"); }
+        }
+
+        function generateDynamicScript() {
+            const now = new Date();
+            const hour = now.getHours();
+            const startDate = new Date('2026-01-01T00:00:00');
+            const diffTime = Math.abs(now - startDate);
+            const dayOfJourney = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            const timeString = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+            let greeting = "Buenos días.";
+            if (hour >= 12 && hour < 20) greeting = "Buenas tardes.";
+            if (hour >= 20 || hour < 6) greeting = "Buenas noches.";
+
+            const definitions = [`Hoy es el día ${dayOfJourney}.`, `Son las ${timeString}.`, "El mundo sigue girando."];
+            const concepts = ["Archivando memoria humana.", "Cada segundo cuenta.", "Explorando la frontera digital."];
+            const missions = ["Soy ilfass.", "Sistema operativo: Humanidad.", "Conectando..."];
+
+            const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+            let chosenDef = pick(definitions);
+            let chosenConc = pick(concepts);
+
+            if (remoteScriptData) {
+                if (remoteScriptData.definitions?.length) chosenDef = pick(remoteScriptData.definitions);
+                if (remoteScriptData.concepts?.length) chosenConc = pick(remoteScriptData.concepts);
+            }
+
+            return [
+                { text: "Conexión establecida.", delay: 500 },
+                { text: `${greeting} Día ${dayOfJourney}.`, delay: 800 },
+                { text: chosenDef, delay: 600 },
+                { text: chosenConc, delay: 800 },
+                { text: "Sincronizando...", delay: 600 },
+                { text: "Sistema listo.", delay: 2000 },
+                { text: "Cargando mapa...", delay: 1000 }
+            ];
+        }
+
         function getBestVoice() {
             loadVoices();
             let best = availableVoices.find(v => v.lang.startsWith('es') && (v.name.includes('Google') || v.name.includes('Microsoft')) && (v.name.includes('Male') || v.name.includes('Pablo') || v.name.includes('Alvaro') || v.name.includes('Jorge')));
-            if (!best) best = availableVoices.find(v => v.lang.startsWith('es') && (v.name.includes('Male') || v.name.includes('Hombre')));
-            if (!best) best = availableVoices.find(v => v.lang.startsWith('es') && (v.name.includes('Google') || v.name.includes('Microsoft')));
             if (!best) best = availableVoices.find(v => v.lang.startsWith('es'));
             return best;
         }
@@ -430,33 +363,21 @@
             const cleanText = text.replace(/<[^>]*>?/gm, '');
             const utterance = new SpeechSynthesisUtterance(cleanText);
             const voice = getBestVoice();
-
             if (voice) {
                 utterance.voice = voice;
-                const isExplicitlyMale = voice.name.includes('Male') || voice.name.includes('Hombre') || voice.name.includes('Pablo') || voice.name.includes('Alvaro');
-
-                if (!isExplicitlyMale) {
-                    utterance.pitch = 0.7; // Modular mujer a hombre
-                    utterance.rate = 0.95;
-                } else {
-                    utterance.pitch = 1.0;
-                    utterance.rate = 1.0;
-                }
+                // Ajuste tono
+                const isExplicitlyMale = voice.name.includes('Male') || voice.name.includes('Hombre');
+                if (!isExplicitlyMale) { utterance.pitch = 0.7; utterance.rate = 0.95; }
             }
-
             utterance.onstart = () => {
-                avatarContainer.style.transition = "box-shadow 0.1s";
-                avatarContainer.style.borderColor = "#38bdf8";
                 avatarContainer.style.animation = "speaking 0.3s infinite alternate";
+                avatarContainer.style.borderColor = "#38bdf8";
             };
-
             utterance.onend = () => {
                 avatarContainer.style.animation = "pulse 4s infinite ease-in-out";
                 avatarContainer.style.borderColor = "rgba(255, 255, 255, 0.1)";
                 if (callback) callback();
             };
-
-            utterance.onerror = (e) => { if (callback) callback(); };
             window.speechSynthesis.speak(utterance);
         }
 
@@ -466,17 +387,12 @@
                 progressBar.style.width = "100%";
                 return;
             }
-
             const line = script[currentIndex];
             textDisplay.classList.remove('visible');
-
             setTimeout(() => {
                 textDisplay.innerHTML = line.text;
                 textDisplay.classList.add('visible');
-
-                const progress = ((currentIndex + 1) / script.length) * 100;
-                progressBar.style.width = `${progress}%`;
-
+                progressBar.style.width = `${((currentIndex + 1) / script.length) * 100}%`;
                 speak(line.text, () => {
                     currentIndex++;
                     setTimeout(playNextLine, line.delay);
@@ -484,72 +400,42 @@
             }, 500);
         }
 
-        const styleSheet = document.createElement("style");
-        styleSheet.innerText = `
-            @keyframes speaking {
-                0% { box-shadow: 0 0 20px #38bdf8; transform: scale(1); }
-                100% { box-shadow: 0 0 60px #38bdf8; transform: scale(1.02); }
-            }
-        `;
-        document.head.appendChild(styleSheet);
+        // INIT GLOBAL
+        window.initExperience = function () {
+            // Trigger Dreaming
+            fetch('/control-api/api/dream', { method: 'POST' }).catch(e => console.log("Dream fetch", e));
 
-        function init() {
-            initGlobe(); // Arrancar visuales
-            startOrchestratorListener(); // Arrancar cerebro
-            loadVoices();
-
-            const overlay = document.createElement('div');
-            Object.assign(overlay.style, {
-                position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-                background: 'rgba(0,0,0,0.9)', zIndex: 1000, display: 'flex', flexDirection: 'column',
-                justifyContent: 'center', alignItems: 'center', cursor: 'pointer'
-            });
-
-            overlay.innerHTML = `
-                <div style="font-size: 3rem; margin-bottom: 20px;">🌐</div>
-                <div style="border: 1px solid #38bdf8; padding: 15px 40px; color: #38bdf8; font-family: 'Outfit', sans-serif; letter-spacing: 2px; text-transform: uppercase;">
-                    Iniciar Sistema Narrative
-                </div>
-            `;
-
-            overlay.onclick = () => {
-                overlay.style.opacity = 0;
-                setTimeout(() => overlay.remove(), 500);
-
-                // Iniciar Dreaming para el futuro
-                triggerDreaming();
-
-                // Regenerar script (ahora que tenemos tiempo para fetch)
+            // Generate Script
+            fetchLivingScript().then(() => {
                 script = generateDynamicScript();
-
-                // Iniciar Audio Ambiente
-                const ambientAudio = new Audio('assets/audio/ambient_base.mp3');
-                ambientAudio.loop = true;
-                ambientAudio.volume = 0.0;
-                ambientAudio.play().then(() => {
-                    // Fade In Manual
-                    let vol = 0;
-                    const interval = setInterval(() => {
-                        vol += 0.05;
-                        if (vol >= 0.3) {
-                            vol = 0.3;
-                            clearInterval(interval);
-                        }
-                        ambientAudio.volume = vol;
-                    }, 200);
-                }).catch(e => console.log("Audio play blocked:", e));
-
+                // Play
                 window.speechSynthesis.resume();
                 playNextLine();
-            };
-            document.body.appendChild(overlay);
-        }
+            });
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
-        }
+            // Audio Ambiente
+            const ambient = new Audio('assets/audio/ambient_base.mp3'); // Asumo existe o fallara silencioso
+            ambient.loop = true;
+            ambient.volume = 0;
+            ambient.play().then(() => {
+                let vol = 0;
+                const iv = setInterval(() => {
+                    vol += 0.05;
+                    ambient.volume = Math.min(vol, 0.3);
+                    if (vol >= 0.3) clearInterval(iv);
+                }, 200);
+            }).catch(e => { });
+        };
+
+        // STYLE
+        const styleSheet = document.createElement("style");
+        styleSheet.innerText = `@keyframes speaking { 0% { box-shadow: 0 0 20px #38bdf8; transform: scale(1); } 100% { box-shadow: 0 0 60px #38bdf8; transform: scale(1.02); } }`;
+        document.head.appendChild(styleSheet);
+
+        // ON LOAD
+        initGlobe();
+        loadVoices();
+
     </script>
 </body>
 
