@@ -101,6 +101,16 @@ export default class MapaMode {
             else window.location.href = `/vivos/${scene}/`;
         });
 
+        eventManager.on('travel_to', (code) => {
+            console.log("✈️ Recibida orden de vuelo a:", code);
+            if (COUNTRY_INFO[code]) {
+                const target = { id: code, ...COUNTRY_INFO[code] };
+                this.zoomToCountry(target);
+            } else {
+                console.warn(`País ${code} no encontrado en base de datos.`);
+            }
+        });
+
         // 3. Cargar Datos (GeoJSON)
         try {
             await this.loadMapData();

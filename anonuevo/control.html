@@ -261,6 +261,34 @@
                 <button onclick="triggerEvent('news')" class="danger">🚨 BREAKING NEWS</button>
                 <button onclick="triggerEvent('fact')">💡 CURIOSIDAD RANDOM</button>
             </div>
+
+            <h2 style="margin-top: 20px; color: #38bdf8;">TRAVEL SYSTEM</h2>
+            <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px;">
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <select id="country-select"
+                        style="flex: 1; background: #0f172a; color: #fff; border: 1px solid #333; padding: 10px; border-radius: 4px;">
+                        <option value="AR">ARGENTINA</option>
+                        <option value="JP">JAPAN</option>
+                        <option value="MX">MEXICO</option>
+                        <option value="ES">SPAIN</option>
+                        <option value="US">USA</option>
+                        <option value="RU">RUSSIA</option>
+                        <option value="CN">CHINA</option>
+                        <option value="FR">FRANCE</option>
+                        <option value="IT">ITALY</option>
+                        <option value="BR">BRAZIL</option>
+                        <option value="CL">CHILE</option>
+                        <option value="PE">PERU</option>
+                        <option value="CO">COLOMBIA</option>
+                    </select>
+                    <button onclick="travelToSelected()"
+                        style="background: var(--accent); color: #000; border: none; font-weight: bold;">FLY</button>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="checkbox" id="mode-deep"> <label for="mode-deep"
+                        style="font-size: 0.8rem; color: #aaa;">DEEP DIVE (Multimedia)</label>
+                </div>
+            </div>
         </div>
 
         <!-- COL 3: DREAM LOG -->
@@ -377,6 +405,13 @@
         async function changeScene(scene) {
             log(`Requesting scene change: ${scene}...`);
             await apiCall(`/event/scene/${scene}`);
+        }
+
+        async function travelToSelected() {
+            const code = document.getElementById('country-select').value;
+            const deep = document.getElementById('mode-deep').checked;
+            log(`✈️ Departure to ${code} (Deep: ${deep})...`);
+            await apiCall(`/event/travel/${code}`);
         }
 
         async function triggerEvent(type) {

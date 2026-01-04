@@ -199,6 +199,18 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // Endpoint específico para viajar a un país
+    if (apiPath.startsWith('/event/travel/')) {
+        const targetCountry = apiPath.split('/').pop();
+        state.eventQueue.push({
+            type: 'travel_to',
+            payload: targetCountry
+        });
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({ status: 'queued', country: targetCountry }));
+        return;
+    }
+
     // Endpoint específico para cambio de escena con payload
     if (apiPath.startsWith('/event/scene/')) {
         const targetScene = apiPath.split('/').pop();

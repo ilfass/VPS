@@ -85,6 +85,9 @@ class EventManager {
                 case 'fact':
                     if (this.handlers['fact']) this.handlers['fact']();
                     break;
+                case 'travel_to':
+                    if (this.handlers['travel_to']) this.handlers['travel_to'](event.payload);
+                    break;
                 case 'auto_on':
                 case 'auto_off':
                     // Ya manejado por el flag
