@@ -1,6 +1,8 @@
 import { eventManager } from './event-manager.js';
 import { COUNTRY_INFO } from '../data/country-info.js';
 import { streamManager } from './stream-manager.js';
+import { choreographer, SCENES } from './choreographer.js';
+import { sceneNavigator } from './scene-navigator.js';
 
 export class SystemOrchestrator {
     constructor() {
