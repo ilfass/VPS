@@ -148,9 +148,11 @@
         eventManager.init(); // Inicia polling al servidor de control
         eventManager.reportTelemetry('INTRO', 'GLOBAL', 0); // "Hola, soy la Intro"
 
-        // Escuchar orden del Director para ir al Mapa
+        // Escuchar orden del Director
         eventManager.on('scene_change', (scene) => {
+            console.log("🎬 Intro switching to:", scene);
             if (scene === 'mapa') window.location.href = '/vivos/mapa/';
+            else window.location.href = `/vivos/${scene}/`; // Intento genérico
         });
 
         // Hacer disponible globalmente para el resto del script legacy

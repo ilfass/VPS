@@ -87,6 +87,14 @@ export default class MapaMode {
         // TELEMETRÍA INICIAL
         eventManager.reportTelemetry('MAPA', 'GLOBAL', 0);
 
+        // ESCUCHA DE ORDENES DE DIRECCIÓN
+        eventManager.on('scene_change', (scene) => {
+            console.log("🎬 Mapa switching to:", scene);
+            if (scene === 'mapa') window.location.reload();
+            else if (scene === 'intro') window.location.href = '/';
+            else window.location.href = `/vivos/${scene}/`;
+        });
+
         // 3. Cargar Datos (GeoJSON)
         try {
             await this.loadMapData();
