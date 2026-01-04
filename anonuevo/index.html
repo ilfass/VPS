@@ -112,8 +112,8 @@
 
     <div class="container">
         <div class="avatar-container">
-            <!-- AQUÍ DEBE IR TU FOTO REAL LUEGO -->
-            <img src="avatar-placeholder.jpg" class="avatar-img" alt="ilfass">
+            <!-- FOTO REAL -->
+            <img src="avata-placeholder.png" class="avatar-img" alt="ilfass">
         </div>
 
         <div id="text-display" class="manifesto-text">
@@ -124,12 +124,11 @@
     <div class="progress-line" id="progress"></div>
 
     <script>
-        // Configuración de la IA de Voz (Hacker Mode)
+        // Configuración de la IA de Voz (Hacker Mode Humanizado)
         const voiceConfig = {
-            pitch: 0.8, // Grave para autoridad (Estilo Sci-Fi)
-            rate: 0.9,  // Pausado pero fluido
-            volume: 1.0,
-            langPreference: ['es-US', 'es-419', 'es-ES'] // Preferencia Latam > España
+            pitch: 1.0,
+            rate: 1.0,
+            volume: 1.0
         };
 
         // Guion del Acto Cero
@@ -151,29 +150,32 @@
 
         function loadVoices() {
             availableVoices = window.speechSynthesis.getVoices();
+            console.log("Voces:", availableVoices.map(v => v.name));
         }
 
-        // Cargar voces asíncronamente (Chrome a veces tarda)
         window.speechSynthesis.onvoiceschanged = () => {
             loadVoices();
         };
 
         function getBestVoice() {
-            loadVoices(); // Asegurar carga
-            // 1. Buscar voces "Google" o "Microsoft" (calidad alta) en español
-            let best = availableVoices.find(v => (v.name.includes('Google') || v.name.includes('Microsoft')) && (v.lang.includes('es-419') || v.lang.includes('es-US')));
+            loadVoices();
+            // 1. Prioridad: Voces "Google" o "Microsoft" explícitamente MASCULINAS en ESPAÑOL
+            let best = availableVoices.find(v => v.lang.startsWith('es') && (v.name.includes('Google') || v.name.includes('Microsoft')) && (v.name.includes('Male') || v.name.includes('Pablo') || v.name.includes('Alvaro') || v.name.includes('Jorge')));
 
-            // 2. Si no, cualquier español de alta calidad
-            if (!best) best = availableVoices.find(v => (v.name.includes('Google') || v.name.includes('Microsoft')) && v.lang.includes('es'));
+            // 2. Si no, cualquier voz masculina en español
+            if (!best) best = availableVoices.find(v => v.lang.startsWith('es') && (v.name.includes('Male') || v.name.includes('Hombre')));
 
-            // 3. Fallback a cualquier español
-            if (!best) best = availableVoices.find(v => v.lang.includes('es'));
+            // 3. Fallback: Google Español (suele ser mujer, la modularemos) o Microsoft
+            if (!best) best = availableVoices.find(v => v.lang.startsWith('es') && (v.name.includes('Google') || v.name.includes('Microsoft')));
+
+            // 4. Último recurso
+            if (!best) best = availableVoices.find(v => v.lang.startsWith('es'));
 
             return best;
         }
 
         function speak(text, callback) {
-            window.speechSynthesis.cancel(); // Detener anterior si hubiera
+            window.speechSynthesis.cancel();
 
             const cleanText = text.replace(/<[^>]*>?/gm, '');
             const utterance = new SpeechSynthesisUtterance(cleanText);
@@ -181,13 +183,19 @@
 
             if (voice) {
                 utterance.voice = voice;
-                // Ajuste específico: Las voces de Google suelen ser rápidas y agudas
-                if (voice.name.includes('Google')) {
-                    utterance.pitch = 0.85;
-                    utterance.rate = 0.85;
+
+                // --- MODIFICACIÓN CLAVE: MASCULINIZACIÓN ---
+                const isExplicitlyMale = voice.name.includes('Male') || voice.name.includes('Hombre') || voice.name.includes('Pablo') || voice.name.includes('Alvaro');
+
+                if (!isExplicitlyMale) {
+                    console.log("Usando voz femenina modulada:", voice.name);
+                    // Bajamos el pitch para simular voz masculina en voces femeninas (ej: Google español)
+                    utterance.pitch = 0.7;
+                    utterance.rate = 0.95;
                 } else {
-                    utterance.pitch = voiceConfig.pitch;
-                    utterance.rate = voiceConfig.rate;
+                    console.log("Usando voz masculina natural:", voice.name);
+                    utterance.pitch = 1.0;
+                    utterance.rate = 1.0;
                 }
             }
 
