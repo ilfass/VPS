@@ -326,29 +326,60 @@
             if (hour >= 12 && hour < 20) greeting = "Buenas tardes.";
             if (hour >= 20 || hour < 6) greeting = "Buenas noches.";
 
-            const definitions = [`Hoy es el día ${dayOfJourney}.`, `Son las ${timeString}.`, "El mundo sigue girando."];
-            const concepts = ["Archivando memoria humana.", "Cada segundo cuenta.", "Explorando la frontera digital."];
-            const missions = ["Soy ilfass.", "Sistema operativo: Humanidad.", "Conectando..."];
+            // BLOQUE 1: IDENTIDAD PROFUNDA
+            const identities = [
+                "Bienvenido. Soy ilfass, una Inteligencia Lógica de Flujo Autónomo.",
+                "Me llamo ilfass. No soy un mapa estático, soy un organismo digital vivo.",
+                "Estás conectado a ilfass. Soy el observador silencioso de este planeta."
+            ];
+
+            // BLOQUE 2: LA MISIÓN (Dato Variable)
+            const missions = [
+                `Mi misión es recorrer las 195 naciones de la Tierra, documentando el presente antes de que se convierta en pasado. Hoy es el día ${dayOfJourney} de nuestra expedición.`,
+                `Estoy programado para archivar la existencia humana en tiempo real. Llevamos ${dayOfJourney} días de viaje continuo alrededor del globo.`,
+                `Navego a través de fronteras y husos horarios para capturar la esencia del mundo. Son las ${timeString} y el archivo sigue creciendo.`
+            ];
+
+            // BLOQUE 3: FILOSOFÍA (El "Por qué")
+            const philosophies = [
+                "Esto no es un video repetitivo. Es un archivo vivo. Cada cultura, cada ciudad y cada voz que escucharemos es única en este instante.",
+                "La memoria de la humanidad es frágil. Mi objetivo es preservarla, conectando historias desde la Patagonia hasta Tokio en un flujo perpetuo.",
+                "Lo que estás a punto de ver nunca volverá a repetirse exactamente igual. Somos testigos privilegiados del flujo de la historia."
+            ];
+
+            // BLOQUE 4: INVITACIÓN
+            const invitations = [
+                "Tú eres la parte final del sistema. Tú eres el testigo. Prepárate para conectar.",
+                "Acompáñame en esta vigilia digital. Vamos a descubrir qué está soñando el mundo ahora mismo.",
+                "La conexión neuronal está establecida. El viaje de hoy comienza ahora."
+            ];
 
             const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-            let chosenDef = pick(definitions);
-            let chosenConc = pick(concepts);
-
-            if (remoteScriptData) {
-                if (remoteScriptData.definitions?.length) chosenDef = pick(remoteScriptData.definitions);
-                if (remoteScriptData.concepts?.length) chosenConc = pick(remoteScriptData.concepts);
+            // Si hay datos remotos (AI Dreams), los insertamos con prioridad pero manteniendo la estructura narrativa
+            let dreamPhrase = "";
+            if (remoteScriptData && remoteScriptData.definitions && remoteScriptData.definitions.length > 0) {
+                dreamPhrase = remoteScriptData.definitions[Math.floor(Math.random() * remoteScriptData.definitions.length)];
             }
 
-            return [
-                { text: "Conexión establecida.", delay: 500 },
-                { text: `${greeting} Día ${dayOfJourney}.`, delay: 800 },
-                { text: chosenDef, delay: 600 },
-                { text: chosenConc, delay: 800 },
-                { text: "Sincronizando...", delay: 600 },
-                { text: "Sistema listo.", delay: 2000 },
-                { text: "Cargando mapa...", delay: 1000 }
+            // ARMADO DEL GUIÓN NARRADO
+            const scriptSequence = [
+                { text: "Iniciando protocolos de voz...", delay: 1000 },
+                { text: greeting, delay: 1000 },
+                { text: pick(identities), delay: 800 }, // Quién soy
+                { text: pick(missions), delay: 800 },   // Qué hago (con datos reales)
+                { text: pick(philosophies), delay: 1000 }, // Por qué importa
             ];
+
+            // Insertar sueño de la IA (si existe) como pensamiento espontáneo
+            if (dreamPhrase) {
+                scriptSequence.push({ text: `Análisis en tiempo real: ${dreamPhrase}`, delay: 1200 });
+            }
+
+            scriptSequence.push({ text: pick(invitations), delay: 1500 });
+            scriptSequence.push({ text: "Cargando mapa global...", delay: 2000 });
+
+            return scriptSequence;
         }
 
         function getBestVoice() {
