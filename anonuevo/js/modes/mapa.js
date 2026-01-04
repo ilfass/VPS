@@ -3,7 +3,7 @@ import { scheduler } from '../utils/scheduler.js';
 import { COUNTRY_INFO, REGION_COLORS, GLOBAL_FACTS } from '../data/country-info.js';
 import { audioManager, AUDIO_STATES } from '../utils/audio-manager.js';
 import { newsProvider } from '../data/news-provider.js';
-import { eventManager } from '../utils/event-manager.js';
+import { eventManager } from '../utils/event-manager.js?v=2';
 import { narrativeEngine } from '../utils/narrative-engine.js';
 import { streamManager, STREAM_MODES } from '../utils/stream-manager.js';
 import { characterDirector } from '../utils/character-director.js';
