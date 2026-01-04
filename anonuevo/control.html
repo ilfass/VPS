@@ -4,556 +4,556 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ilfass | Director Console v3</title>
+    <title>DIRECCIÓN - ILFASS CONTROL V4</title>
     <link
-        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap"
         rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #050505;
-            --panel-bg: #0f172a;
+            --bg-dark: #09090b;
+            --panel-bg: #18181b;
+            --border: #27272a;
+            --text-main: #e4e4e7;
+            --text-dim: #71717a;
             --accent: #38bdf8;
-            --accent-dim: rgba(56, 189, 248, 0.1);
+            /* Cyan */
             --danger: #ef4444;
+            /* Red */
             --success: #10b981;
+            /* Green */
             --warning: #f59e0b;
-            --text-main: #e2e8f0;
-            --text-dim: #64748b;
+            /* Amber */
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
             background-color: var(--bg-dark);
             color: var(--text-main);
-            font-family: 'Outfit', sans-serif;
+            font-family: 'Inter', sans-serif;
             margin: 0;
             padding: 20px;
-            display: flex;
-            justify-content: center;
-            min-height: 100vh;
-        }
-
-        .dashboard {
+            font-size: 14px;
+            height: 100vh;
+            overflow: hidden;
             display: grid;
-            grid-template-columns: 280px 1fr 320px;
+            grid-template-columns: 350px 1fr 350px;
             gap: 20px;
-            width: 100%;
-            max-width: 1600px;
         }
 
+        /* LAYOUT COLUMNS */
+        .col {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        /* PANELS */
         .panel {
             background: var(--panel-bg);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            padding: 20px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
             display: flex;
             flex-direction: column;
             gap: 15px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
 
         h2 {
+            font-family: 'JetBrains Mono', monospace;
             font-size: 0.8rem;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
             color: var(--text-dim);
-            margin: 0 0 5px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            padding-bottom: 10px;
+            margin: 0;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
         }
 
-        /* STATUS INDICATORS */
-        .status-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .status-item {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 10px;
-            border-radius: 6px;
-            text-align: center;
-        }
-
-        .status-label {
-            font-size: 0.7rem;
-            color: var(--text-dim);
-            display: block;
-            margin-bottom: 5px;
-        }
-
-        .status-val {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.9rem;
-            font-weight: bold;
-            color: #fff;
-        }
-
-        .led {
-            width: 8px;
-            height: 8px;
+        /* INDICATORS */
+        .indicator {
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             display: inline-block;
-            margin-right: 5px;
+            background: #333;
         }
 
-        .led.on {
+        .indicator.on {
             background: var(--success);
-            box-shadow: 0 0 8px var(--success);
+            box-shadow: 0 0 10px var(--success);
         }
 
-        .led.off {
+        .indicator.busy {
+            background: var(--warning);
+            animation: blink 1s infinite;
+        }
+
+        .indicator.active-danger {
             background: var(--danger);
+            box-shadow: 0 0 15px var(--danger);
+            animation: pulseRed 2s infinite;
         }
 
-        /* BUTTONS */
-        button {
-            background: var(--accent-dim);
-            border: 1px solid rgba(56, 189, 248, 0.3);
-            color: var(--accent);
-            padding: 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-family: 'Outfit', sans-serif;
-            font-weight: 600;
-            transition: all 0.2s;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 1px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        button:hover:not(:disabled) {
-            background: var(--accent);
-            color: var(--bg-dark);
-            box-shadow: 0 0 15px var(--accent-dim);
-        }
-
-        button:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            filter: grayscale(1);
-        }
-
-        button:active {
-            transform: translateY(1px);
-        }
-
-        button.danger {
-            border-color: rgba(239, 68, 68, 0.5);
-            color: var(--danger);
-            background: rgba(239, 68, 68, 0.1);
-        }
-
-        button.danger:hover:not(:disabled) {
-            background: var(--danger);
-            color: #fff;
-        }
-
-        button.toggle-active {
-            background: var(--success);
-            color: #fff;
-            border-color: var(--success);
-        }
-
-        /* SCENE DISPLAY */
-        #big-scene {
-            font-size: 2.2rem;
-            font-weight: 800;
-            color: #fff;
-            text-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
-            text-align: center;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            margin-bottom: 10px;
-            transition: color 0.3s;
-        }
-
-        /* LOGS */
-        .console-log {
-            background: #000;
-            border: 1px solid #222;
-            border-radius: 6px;
-            padding: 10px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.7rem;
-            color: #ccc;
-            height: 400px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column-reverse;
-        }
-
-        .log-entry {
-            margin-bottom: 4px;
-            border-bottom: 1px solid #111;
-            padding-bottom: 2px;
-            line-height: 1.4;
-        }
-
-        .log-time {
-            color: #555;
-            margin-right: 8px;
-        }
-
-        .log-info {
-            color: #38bdf8;
-        }
-
-        .log-error {
-            color: #ef4444;
-        }
-
-        .log-success {
-            color: #10b981;
-        }
-
-        /* TRAVEL SYSTEM */
-        .travel-ui {
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: 8px;
-        }
-
-        .country-select-wrapper {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        select {
-            flex: 1;
-            background: #0f172a;
-            color: #fff;
-            border: 1px solid #333;
-            padding: 10px;
-            border-radius: 4px;
-            font-family: 'Outfit', sans-serif;
-            outline: none;
-        }
-
-        select:focus {
-            border-color: var(--accent);
-        }
-
-        /* ANIMATIONS */
-        @keyframes pulse-red {
-            0% {
-                opacity: 1;
-            }
-
+        @keyframes blink {
             50% {
                 opacity: 0.5;
             }
+        }
+
+        @keyframes pulseRed {
+            0% {
+                box-shadow: 0 0 5px var(--danger);
+            }
+
+            50% {
+                box-shadow: 0 0 20px var(--danger);
+            }
 
             100% {
-                opacity: 1;
+                box-shadow: 0 0 5px var(--danger);
             }
         }
 
-        .blinking {
-            animation: pulse-red 1s infinite;
-            color: var(--danger) !important;
+        /* CONTROLS */
+        button {
+            font-family: 'JetBrains Mono', monospace;
+            background: #27272a;
+            color: white;
+            border: 1px solid #3f3f46;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button.danger-toggle.active {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        select,
+        input[type="text"] {
+            background: #000;
+            border: 1px solid var(--border);
+            color: white;
+            padding: 8px;
+            width: 100%;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            border-radius: 4px;
+        }
+
+        /* MONITOR */
+        .data-display {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            text-align: center;
+            padding: 20px;
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--accent);
+        }
+
+        /* PLAYLIST */
+        #playlist-container {
+            min-height: 100px;
+            background: #000;
+            border: 1px solid var(--border);
+            padding: 10px;
+            font-family: 'JetBrains Mono';
+            font-size: 0.8rem;
+        }
+
+        .playlist-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px;
+            border-bottom: 1px solid #222;
+        }
+
+        .playlist-item:hover {
+            background: #111;
+        }
+
+        .btn-del {
+            border: none;
+            background: transparent;
+            color: var(--danger);
+            cursor: pointer;
+            padding: 0 5px;
+        }
+
+        /* MEDIA REPO */
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .media-item {
+            background: #000;
+            border: 1px solid var(--border);
+            padding: 5px;
+            border-radius: 4px;
+        }
+
+        .media-prev {
+            width: 100%;
+            height: 80px;
+            object-fit: cover;
+            background: #333;
+        }
+
+        .media-actions button {
+            width: 100%;
+            margin-top: 5px;
+            font-size: 0.65rem;
+            padding: 5px;
         }
     </style>
 </head>
 
 <body>
 
-    <div class="dashboard">
-        <!-- LEFT: SYSTEM & TELEMETRY -->
+    <!-- LEFT: SYSTEM STATUS & PLAYLIST -->
+    <div class="col">
         <div class="panel">
-            <h2>System Health <span id="conn-led" class="led off"></span></h2>
-
-            <div class="status-grid">
-                <div class="status-item">
-                    <span class="status-label">PING</span>
-                    <span id="tel-ping" class="status-val">-- ms</span>
+            <h2>System Status <div id="sys-led" class="indicator"></div>
+            </h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <div style="font-size: 0.7rem; color: var(--text-dim);">SCENE</div>
+                    <div id="stat-scene" style="color: white; font-weight: bold;">--</div>
                 </div>
-                <div class="status-item">
-                    <span class="status-label">UPTIME</span>
-                    <span id="sys-uptime" class="status-val">00:00</span>
-                </div>
-            </div>
-
-            <h2 style="margin-top: 20px; color: var(--accent);">Live Telemetry</h2>
-            <div id="big-scene">CONNECTING...</div>
-
-            <div class="status-grid">
-                <div class="status-item">
-                    <span class="status-label">COUNTRY</span>
-                    <span id="tel-country" class="status-val">--</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">DAY</span>
-                    <span id="tel-day" class="status-val">--</span>
+                <div>
+                    <div style="font-size: 0.7rem; color: var(--text-dim);">COUNTRY</div>
+                    <div id="stat-country" style="color: var(--accent);">--</div>
                 </div>
             </div>
 
-            <div style="margin-top: 15px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px;">
-                <span class="status-label">NEXT IN PLAYLIST</span>
-                <div id="queue-display"
-                    style="font-family: 'JetBrains Mono'; font-size: 0.8rem; color: #fbbf24; min-height: 20px;">
-                    (Empty)
-                </div>
-            </div>
-
-            <h2 style="margin-top: 20px;">Master Control</h2>
-            <button id="btn-toggle-auto" onclick="toggleAuto()">Initializing...</button>
-            <div style="font-size: 0.7rem; color: #666; margin-top: 5px; text-align: center;">
-                Disabling Auto gives you full manual control.
+            <button id="btn-auto-mode" onclick="toggleAuto()"
+                style="height: 50px; font-weight: bold; font-size: 0.9rem;">
+                PILOTO AUTOMÁTICO
+            </button>
+            <div style="text-align: center; font-size: 0.7rem; color: #666;">
+                Si ON: El sistema viaja solo (Playlist o Random)
             </div>
         </div>
 
-        <!-- CENTER: DIRECTOR -->
-        <div class="panel">
-            <h2>🎬 Scene Director</h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <button onclick="changeScene('intro')">Acto Cero (Intro)</button>
-                <button onclick="changeScene('reflexion')">Reflexión</button>
-                <button onclick="changeScene('mapa')" style="grid-column: span 2;">🌍 Mapa Global</button>
+        <div class="panel" style="flex: 1;">
+            <h2>Travel Playlist</h2>
+
+            <div id="playlist-container">
+                <!-- Items se inyectan aquí -->
+                <div style="text-align: center; color: #444; padding-top: 20px;">Lista vacía</div>
             </div>
 
-            <h2 style="margin-top: 20px; color: var(--warning);">✈️ Flight Navigation</h2>
-            <div class="travel-ui">
-                <div class="country-select-wrapper">
-                    <select id="country-select">
-                        <option value="032">🇦🇷 Argentina (032)</option>
-                        <option value="392">🇯🇵 Japón (392)</option>
-                        <option value="484">🇲🇽 México (484)</option>
-                        <option value="724">🇪🇸 España (724)</option>
-                        <option value="840">🇺🇸 USA (840)</option>
-                        <option value="643">🇷🇺 Rusia (643)</option>
-                        <option value="156">🇨🇳 China (156)</option>
-                        <option value="250">🇫🇷 Francia (250)</option>
-                        <option value="380">🇮🇹 Italia (380)</option>
-                        <option value="076">🇧🇷 Brasil (076)</option>
-                        <option value="152">🇨🇱 Chile (152)</option>
-                        <option value="604">🇵🇪 Perú (604)</option>
-                        <option value="170">🇨🇴 Colombia (170)</option>
-                        <option value="818">🇪🇬 Egipto (818)</option>
-                        <option value="356">🇮🇳 India (356)</option>
-                    </select>
-                    <button onclick="travelToSelected()"
-                        style="background: var(--warning); color: #000; border: none; flex: 1;">FLY NOW</button>
-                    <button onclick="addToQueue()"
-                        style="background: #0f172a; border: 1px solid var(--warning); color: var(--warning); width: 50px;"
-                        title="Add to Playlist">+</button>
-                </div>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <input type="checkbox" id="mode-deep">
-                    <label for="mode-deep" style="font-size: 0.8rem; color: #aaa; cursor: pointer;">Enable Deep Dive
-                        Mode (Multimedia)</label>
-                </div>
-            </div>
-
-            <h2 style="margin-top: 20px;">Context Actions</h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <button id="btn-pais" onclick="changeScene('pais')" disabled>🔍 Ver Detalle País</button>
-                <button onclick="triggerEvent('fact')">💡 Dato Curioso</button>
-                <button onclick="triggerEvent('news')" class="danger" style="grid-column: span 2;">🚨 Breaking News
-                    Injection</button>
+            <div style="font-size: 0.7rem; color: #666;">
+                El piloto automático consumirá esta lista primero.
             </div>
         </div>
+    </div>
 
-        <!-- RIGHT: AI BRAIN -->
+    <!-- CENTER: NAVIGATION & MEDIA -->
+    <div class="col">
         <div class="panel">
-            <h2>🧠 Neural Core (IA)</h2>
-            <div class="travel-ui" style="background: rgba(168, 85, 247, 0.1); border-color: rgba(168, 85, 247, 0.3);">
-                <button id="btn-dream" onclick="triggerDream()"
-                    style="width: 100%; border-color: #a855f7; color: #a855f7; background: transparent;">
-                    ✨ Force Dream Generation
+            <h2>Flight Navigation</h2>
+            <div style="display: flex; gap: 10px;">
+                <select id="country-select" onchange="loadCountryMedia()">
+                    <option value="" disabled selected>Select Destination...</option>
+                    <!-- Options populated by JS -->
+                </select>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="flyNow()" style="flex: 1; border-color: var(--accent); color: var(--accent);">
+                    ✈️ FLY IMMEDIATE
                 </button>
-                <div style="font-size: 0.7rem; color: #a855f7; margin-top: 5px; text-align: center;">
-                    Gemini 2.0 / HF Mistral Fallback
-                </div>
+                <button onclick="addPlaylist()" style="flex: 1; border-color: var(--warning); color: var(--warning);">
+                    + ADD TO PLAYLIST
+                </button>
             </div>
+        </div>
 
-            <h2 style="margin-top: 20px;">System Logs</h2>
-            <div id="console" class="console-log">
-                <div class="log-entry"><span class="log-time">--:--</span>System Initialized. Waiting for signal...
+        <div class="panel" style="flex: 1; min-height: 400px;">
+            <h2>Media Repository <span id="media-count" style="font-size: 0.7rem;">(0)</span></h2>
+
+            <!-- Aquí se muestran los medios del país seleccionado -->
+            <div id="media-container" class="media-grid">
+                <div style="grid-column: span 2; text-align: center; padding: 40px; color: #444;">
+                    Selecciona un país para ver archivos.
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
-        // --- CONFIG ---
-        const API_BASE = '/control-api';
-        let isAutoMode = true;
-        let lastTelemetryTime = 0;
+    <!-- RIGHT: AI & ORCHESTRATION -->
+    <div class="col">
+        <div class="panel">
+            <h2>Neural Core</h2>
+            <button id="btn-dream" onclick="toggleDream()" class="danger-toggle" style="height: 60px;">
+                FORCE DREAM GENERATION
+            </button>
+            <div style="font-size: 0.7rem; color: #666; margin-top: 5px;">
+                Si ON: La IA toma control total (Cambios de escena, Narrativa, Media Flash).
+            </div>
+        </div>
 
-        // --- CORE FUNCTIONS ---
-        function log(msg, type = 'info') {
-            const consoleEl = document.getElementById('console');
-            const entry = document.createElement('div');
-            entry.className = `log-entry log-${type}`;
-            const time = new Date().toLocaleTimeString();
-            entry.innerHTML = `<span class="log-time">[${time}]</span> ${msg}`;
-            consoleEl.prepend(entry);
+        <div class="panel">
+            <h2>Live Events</h2>
+            <button onclick="sendEvent('fact')">💡 Trigger Fact</button>
+            <button onclick="sendEvent('glitch')">⚡ Trigger Glitch</button>
+            <button onclick="sendEvent('news')" style="border-color: var(--danger); color: var(--danger);">🚨 News
+                Injection</button>
+        </div>
+
+        <div class="panel"
+            style="flex: 1; background: #000; font-family: 'JetBrains Mono'; font-size: 0.7rem; color: #888;">
+            <h2>Console</h2>
+            <div id="console-log" style="height: 100%; overflow-y: auto; padding-bottom: 20px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA & CONFIG ---
+        const ALL_COUNTRIES = [
+            // Lista ISO reducida para demo, expandir a 195 es trivial con un script
+            { code: '032', name: 'Argentina' }, { code: '076', name: 'Brazil' },
+            { code: '840', name: 'United States' }, { code: '156', name: 'China' },
+            { code: '392', name: 'Japan' }, { code: '250', name: 'France' },
+            { code: '276', name: 'Germany' }, { code: '380', name: 'Italy' },
+            { code: '724', name: 'Spain' }, { code: '826', name: 'United Kingdom' },
+            { code: '643', name: 'Russia' }, { code: '356', name: 'India' },
+            { code: '036', name: 'Australia' }, { code: '124', name: 'Canada' },
+            { code: '484', name: 'Mexico' }, { code: '710', name: 'South Africa' },
+            { code: '818', name: 'Egypt' }, { code: '792', name: 'Turkey' },
+            { code: '410', name: 'South Korea' }, { code: '360', name: 'Indonesia' },
+            // ... (Se debe completar en una implementación final)
+        ];
+
+        // MOCK MEDIA REPO (En producción esto vendría del servidor)
+        const MOCK_MEDIA = {
+            '032': [
+                { type: 'img', src: 'https://media.istockphoto.com/id/1146311634/es/foto/obelisco-buenos-aires-argentina.jpg?s=612x612&w=0&k=20&c=XMrz330d-i-4LqW8S2R2c5g9-k0Wb0d4E8q7G9n8G5k=', title: 'Obelisco' },
+                { type: 'img', src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Glaciar_Perito_Moreno_-_Santa_Cruz_-_Argentina.jpg/1200px-Glaciar_Perito_Moreno_-_Santa_Cruz_-_Argentina.jpg', title: 'Perito Moreno' }
+            ],
+            '392': [
+                { type: 'img', src: 'https://dummyimage.com/400x300/101820/fff&text=Tokyo+Streets', title: 'Tokyo Night' },
+                { type: 'img', src: 'https://dummyimage.com/400x300/101820/fff&text=Kyoto+Temple', title: 'Kyoto Temple' }
+            ]
+        };
+
+        // STATE
+        let isAuto = false;
+        let isDreaming = false;
+        let currentQueue = [];
+
+        // --- INIT ---
+        window.onload = () => {
+            populateCountries();
+            pollStatus();
+            setInterval(pollStatus, 1000); // Fast update
+        };
+
+        function populateCountries() {
+            const sel = document.getElementById('country-select');
+            ALL_COUNTRIES.sort((a, b) => a.name.localeCompare(b.name)).forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.code;
+                opt.innerText = `${c.name} (${c.code})`;
+                sel.appendChild(opt);
+            });
         }
 
-        async function apiCall(endpoint, method = 'POST', body = null) {
+        // --- CORE FUNCTIONS ---
+        async function api(path, method = 'GET', body = null) {
             try {
                 const opts = { method };
                 if (body) {
                     opts.headers = { 'Content-Type': 'application/json' };
                     opts.body = JSON.stringify(body);
                 }
-                const res = await fetch(`${API_BASE}${endpoint}`, opts);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const res = await fetch(`/control-api${path}`, opts);
                 return await res.json();
             } catch (e) {
-                log(`API Error ${endpoint}: ${e.message}`, 'error');
+                log(`Error: ${e.message}`, 'error');
                 return null;
             }
         }
 
-        // --- STATE MANAGEMENT ---
-        async function updateStatus() {
-            try {
-                const data = await apiCall('/status', 'GET');
-                if (!data) {
-                    document.getElementById('conn-led').className = 'led off';
-                    document.getElementById('big-scene').classList.add('blinking');
-                    document.getElementById('big-scene').innerText = "DISCONNECTED";
-                    return;
-                }
-
-                document.getElementById('conn-led').className = 'led on';
-
-                // AUTO MODE UI
-                isAutoMode = data.autoMode;
-                const btnAuto = document.getElementById('btn-toggle-auto');
-                if (isAutoMode) {
-                    btnAuto.classList.add('toggle-active');
-                    btnAuto.innerText = "PILOTO AUTOMÁTICO: ON";
-                    btnAuto.style.background = "#10b981"; // Force Green
-                } else {
-                    btnAuto.classList.remove('toggle-active');
-                    btnAuto.innerText = "MANUAL MODE (PILOTO OFF)";
-                    btnAuto.style.background = ""; // Reset
-                }
-
-                // QUEUE UI
-                const qEl = document.getElementById('queue-display');
-                if (data.queue && data.queue.length > 0) {
-                    qEl.innerText = data.queue.join(' → ');
-                } else {
-                    qEl.innerText = "(Empty)";
-                }
-
-                // TELEMETRY
-                if (data.telemetry) {
-                    const scene = data.telemetry.scene || 'UNKNOWN';
-                    const country = data.telemetry.country || '--';
-
-                    document.getElementById('big-scene').classList.remove('blinking');
-                    document.getElementById('big-scene').innerText = scene;
-
-                    document.getElementById('tel-country').innerText = country;
-                    document.getElementById('tel-day').innerText = data.telemetry.day || 0;
-
-                    // Ping Calculation
-                    if (data.telemetry.lastUpdate) {
-                        const now = Date.now();
-                        const diff = Math.floor((now - data.telemetry.lastUpdate) / 1000);
-                        document.getElementById('tel-ping').innerText = diff + 's ago';
-
-                        if (diff > 5) {
-                            document.getElementById('tel-ping').style.color = '#ef4444';
-                            document.getElementById('big-scene').style.color = '#ef4444';
-                        } else {
-                            document.getElementById('tel-ping').style.color = '#10b981';
-                            document.getElementById('big-scene').style.color = '#fff';
-                        }
-                    }
-
-                    // CONTEXT BUTTONS
-                    const btnPais = document.getElementById('btn-pais');
-                    // Enable Detail View only if map is viewing a specific country
-                    if (scene === 'MAPA' && country !== 'GLOBAL' && country !== 'UNKNOWN') {
-                        btnPais.disabled = false;
-                        btnPais.innerText = `🔍 Ver Detalle (${country})`;
-                    } else {
-                        btnPais.disabled = true;
-                        btnPais.innerText = "🔍 Ver Detalle País";
-                    }
-                }
-
-            } catch (e) { console.error(e); }
+        function log(msg, type = 'info') {
+            const div = document.getElementById('console-log');
+            const l = document.createElement('div');
+            l.style.marginBottom = '5px';
+            l.style.color = type === 'error' ? '#ef4444' : (type === 'cmd' ? '#38bdf8' : '#888');
+            l.innerText = `> ${msg}`;
+            div.prepend(l);
         }
 
-        // --- COMMANDS ---
+        // --- ACTIONS ---
         async function toggleAuto() {
-            // Optimistic UI update
-            const btn = document.getElementById('btn-toggle-auto');
-            btn.innerText = "Switching...";
-
-            const targetState = !isAutoMode;
-            const endpoint = targetState ? '/event/auto/on' : '/event/auto/off';
-
-            await apiCall(endpoint);
-            log(`Director switched Auto Mode to: ${targetState ? 'ON' : 'OFF'}`, 'warning');
-            setTimeout(updateStatus, 500);
+            log("Toggling Auto Mode...", 'cmd');
+            // La lógica real está en backend, aquí enviamos toggle
+            // Para simplificar, enviamos evento 'auto_toggle' o usamos un endpoint específico
+            // Como no tenemos endpoint toggle, asumimos que el usuario quiere encender o apagar
+            // Usaremos /event/auto_mode (que deberiamos crear o simular)
+            // Por ahora, simulamos el cambio visual y dejamos que el poll corrija
+            // Pero necesitamos decirle al server que cambie.
+            // Crearemos un endpoint rápido en server o usamos uno existente.
+            // Usaremos /event/auto_mode/on o off si existiera.
+            // Fallback: endpoint genérico
+            await api('/event/auto_toggle', 'POST');
         }
 
-        async function changeScene(scene) {
-            log(`Requesting scene change: ${scene}...`);
-            await apiCall(`/event/scene/${scene}`);
-            // If manual action, we might want to disable auto mode automatically?
-            // For now, let's keep it explicit.
-        }
-
-        async function travelToSelected() {
+        async function flyNow() {
             const code = document.getElementById('country-select').value;
-            const deep = document.getElementById('mode-deep').checked;
-            const name = document.getElementById('country-select').options[document.getElementById('country-select').selectedIndex].text;
-
-            log(`✈️ Initiating flight to ${name} (${code})...`, 'info');
-            await apiCall(`/event/travel/${code}`);
+            if (!code) return;
+            log(`Flying to ${code}...`, 'cmd');
+            await api(`/event/travel/${code}`);
         }
 
-        async function addToQueue() {
+        async function addPlaylist() {
             const code = document.getElementById('country-select').value;
-            const name = document.getElementById('country-select').options[document.getElementById('country-select').selectedIndex].text;
-
-            log(`➕ Added to Playlist: ${name}`, 'info');
-            await apiCall('/event/queue/add', 'POST', { code });
-
-            // UI Update is handled by next status poll
+            if (!code) return;
+            log(`Queueing ${code}...`, 'cmd');
+            await api('/event/queue/add', 'POST', { code });
         }
 
-        async function triggerEvent(type) {
-            log(`Injecting Event: ${type}`, 'warning');
-            await apiCall(`/event/${type}`);
+        async function removeFromQueue(index) {
+            // Nota: El backend actual de cola es simple array.
+            // Necesitaríamos endpoint de borrado por índice. 
+            // Por ahora, no implementado en backend, simularemos en frontend si podemos, 
+            // pero el backend es la fuente de la verdad.
+            // PENDIENTE: Endpoint delete.
+            log("Remove not yet supported by server protocol.", 'error');
         }
 
-        async function triggerDream() {
+        async function toggleDream() {
+            // Force dream generation
+            log("Forcing Dream Generation...", 'cmd');
+            await api('/api/dream', 'POST');
+            // Feedback visual temporal
             const btn = document.getElementById('btn-dream');
-            btn.innerText = "✨ Dreaming...";
-            btn.disabled = true;
-
-            log(`🧠 Invoking Neural Core...`, 'info');
-            await apiCall('/api/dream');
-
-            setTimeout(() => {
-                btn.innerText = "✨ Force Dream Generation";
-                btn.disabled = false;
-                log(`✅ Dream sequence initiated.`, 'success');
-            }, 3000);
+            btn.innerText = "GENERATING...";
+            setTimeout(() => btn.innerText = "FORCE DREAM GENERATION", 2000);
         }
 
-        // --- INIT ---
-        setInterval(updateStatus, 1000);
-        updateStatus();
+        function loadCountryMedia() {
+            const code = document.getElementById('country-select').value;
+            const container = document.getElementById('media-container');
+            const count = document.getElementById('media-count');
+            container.innerHTML = "";
+
+            const media = MOCK_MEDIA[code] || []; // Fallback a vacío
+            count.innerText = `(${media.length})`;
+
+            if (media.length === 0) {
+                container.innerHTML = `<div style="grid-column: span 2; text-align: center; padding: 20px; color: #444;">No media found for ${code}.<br><button onclick="generateMedia('${code}')" style="margin-top:10px;">AUTO-GENERATE WITH AI</button></div>`;
+                return;
+            }
+
+            media.forEach(m => {
+                const item = document.createElement('div');
+                item.className = 'media-item';
+                item.innerHTML = `
+                    <div class="media-prev" style="background-image: url('${m.src}'); background-size: cover;"></div>
+                    <div style="font-size: 0.7rem; margin-top: 5px; color: #aaa;">${m.title}</div>
+                    <div class="media-actions">
+                        <button onclick="launchMedia('${m.src}')" style="background: var(--accent); color: black; border:none;">LAUNCH TO SCREEN</button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        async function launchMedia(url) {
+            log(`Launching media: ${url}`, 'cmd');
+            // Enviar evento de media al orquestador
+            await api('/event/media', 'POST', { url, type: 'image' });
+        }
+
+        async function generateMedia(code) {
+            log(`Requesting AI generation for ${code}...`, 'cmd');
+            // Placeholder logic
+        }
+
+        // --- POLLING LOOP ---
+        async function pollStatus() {
+            const data = await api('/status');
+            if (!data) {
+                document.getElementById('sys-led').className = 'indicator busy';
+                return;
+            }
+            document.getElementById('sys-led').className = 'indicator on';
+
+            // 1. UPDATE PLAYLIST
+            const plContainer = document.getElementById('playlist-container');
+            if (data.queue && JSON.stringify(data.queue) !== JSON.stringify(currentQueue)) {
+                currentQueue = data.queue;
+                plContainer.innerHTML = "";
+                if (currentQueue.length === 0) {
+                    plContainer.innerHTML = '<div style="text-align: center; color: #444; padding-top: 20px;">Lista vacía</div>';
+                } else {
+                    currentQueue.forEach((code, idx) => {
+                        const div = document.createElement('div');
+                        div.className = 'playlist-item';
+                        div.innerHTML = `<span>${idx + 1}. ${code}</span> <button class="btn-del" onclick="removeFromQueue(${idx})">x</button>`;
+                        plContainer.appendChild(div);
+                    });
+                }
+            }
+
+            // 2. STATUS INDICATORS
+            document.getElementById('stat-scene').innerText = data.currentScene || 'INTRO';
+            const tel = data.telemetry || {};
+            document.getElementById('stat-country').innerText = tel.country || '--';
+
+            // 3. AUTO BUTTON STATE
+            const btnAuto = document.getElementById('btn-auto-mode');
+            if (data.autoMode) {
+                btnAuto.innerText = "PILOTO AUTOMÁTICO: ON";
+                btnAuto.style.background = ""; // Clear inline
+                btnAuto.className = "indicator active-danger"; // Class handles Red Pulse
+                // Hack: Button styling via class wasn't applied directly to button element logic in CSS properly for background override.
+                // Let's force style directly
+                btnAuto.style.backgroundColor = "rgba(220, 38, 38, 0.2)";
+                btnAuto.style.borderColor = "#ef4444";
+                btnAuto.style.color = "#ef4444";
+                btnAuto.style.boxShadow = "0 0 15px rgba(239, 68, 68, 0.3)";
+            } else {
+                btnAuto.innerText = "MANUAL MODE";
+                btnAuto.style.backgroundColor = "#27272a";
+                btnAuto.style.borderColor = "#3f3f46";
+                btnAuto.style.color = "#71717a";
+                btnAuto.style.boxShadow = "none";
+            }
+        }
 
     </script>
 </body>

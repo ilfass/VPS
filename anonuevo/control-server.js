@@ -163,11 +163,48 @@ const server = http.createServer(async (req, res) => {
     }
 
     // ... (RUTAS VIEJAS DE POLLING MANTENIDAS) ...
+    // POST /event/auto_toggle
+    if (req.method === 'POST' && apiPath === '/event/auto_toggle') {
+        state.autoMode = !state.autoMode;
+        console.log(`[Director] Auto Mode toggled to: ${state.autoMode}`);
+        // Limpiar cola de eventos automática si se apaga? No necesariamente.
+        // Pero si se enciende, quizás queramos notificar.
+        state.eventQueue.push({ type: 'mode_change', autoMode: state.autoMode });
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({ success: true, autoMode: state.autoMode }));
+        return;
+    }
+
+    // POST /event/media - Lanzar contenido multimedia
+    if (req.method === 'POST' && apiPath === '/event/media') {
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', () => {
+            try {
+                const mediaData = JSON.parse(body);
+                console.log(`[Director] Launching Media: ${JSON.stringify(mediaData)}`);
+                // Encolar evento 'media' para el frontend
+                state.eventQueue.push({
+                    type: 'media',
+                    url: mediaData.url,
+                    mediaType: mediaData.type || 'image'
+                });
+                res.writeHead(200, headers);
+                res.end(JSON.stringify({ success: true }));
+            } catch (e) {
+                res.writeHead(400, headers);
+                res.end(JSON.stringify({ error: 'invalid body' }));
+            }
+        });
+        return;
+    }
+
     // GET /status
     if (req.method === 'GET' && apiPath === '/status') {
         res.writeHead(200, headers);
         res.end(JSON.stringify({
             autoMode: state.autoMode,
+            currentScene: state.currentScene,
             telemetry: state.clientTelemetry,
             queue: state.travelQueue || []
         }));
