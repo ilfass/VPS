@@ -245,15 +245,61 @@
 
         // --- 3. NARRATIVA Y VOZ (IA) ---
         const voiceConfig = { pitch: 1.0, rate: 1.0, volume: 1.0 };
-        const script = [
-            { text: "Conexión estable.", delay: 500 },
-            { text: "Iniciando protocolos de viaje.", delay: 500 },
-            { text: "Esto no es un stream infinito.", delay: 500 },
-            { text: "Es un documento vivo <span class='highlight'>en tiempo real</span>.", delay: 500 },
-            { text: "Soy <span class='highlight'>ilfass</span>.", delay: 800 },
-            { text: "Y vamos a escribir la memoria del mundo.", delay: 500 },
-            { text: "El sistema está listo.", delay: 2000 }
-        ];
+
+        // --- MOTOR DE GENERACIÓN DE GUIÓN EN VIVO ---
+        function generateDynamicScript() {
+            const now = new Date();
+            const hour = now.getHours();
+
+            // 1. Saludo variable por hora
+            let greeting = "Buenos días.";
+            if (hour >= 12 && hour < 20) greeting = "Buenas tardes.";
+            if (hour >= 20 || hour < 6) greeting = "Buenas noches.";
+
+            // 2. Definición variable
+            const definitions = [
+                "Esto no es un stream infinito.",
+                "Lo que ves no es televisión.",
+                "Olvida el contenido tradicional.",
+                "No busques un final predecible."
+            ];
+            const defParams = [
+                "Es un documento vivo <span class='highlight'>en tiempo real</span>.",
+                "Es una memoria que se escribe <span class='highlight'>ahora mismo</span>.",
+                "Es un sistema que respira con el mundo.",
+                "Es una ventana abierta <span class='highlight'>permanentemente</span>."
+            ];
+
+            // 3. Identidad variable
+            const identities = [
+                "Soy <span class='highlight'>ilfass</span>.",
+                "Me llaman <span class='highlight'>ilfass</span>.",
+                "La interfaz humana es <span class='highlight'>ilfass</span>."
+            ];
+
+            // 4. Misión variable
+            const missions = [
+                "Y vamos a escribir la memoria del mundo.",
+                "Y nuestro objetivo es archivar la realidad.",
+                "Y juntos construiremos un mapa de vivencias."
+            ];
+
+            // Selección aleatoria
+            const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+            return [
+                { text: "Conexión estable.", delay: 500 },
+                { text: `${greeting} Iniciando protocolos de viaje.`, delay: 800 },
+                { text: pick(definitions), delay: 600 },
+                { text: pick(defParams), delay: 600 },
+                { text: pick(identities), delay: 800 },
+                { text: pick(missions), delay: 600 },
+                { text: "El sistema está listo.", delay: 2000 },
+                { text: "Cargando mapa global...", delay: 1000 }
+            ];
+        }
+
+        const script = generateDynamicScript();
 
         let currentIndex = 0;
         const textDisplay = document.getElementById('text-display');
