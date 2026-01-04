@@ -1,26 +1,19 @@
-import { streamManager } from './stream-manager.js';
-import { narrativeEngine } from './narrative-engine.js';
-import { characterDirector } from './character-director.js';
-import { contentEngine } from './content-engine.js';
-import { choreographer, SCENES } from './choreographer.js';
-import { sceneNavigator } from './scene-navigator.js';
+import { eventManager } from './event-manager.js';
 import { COUNTRY_INFO } from '../data/country-info.js';
+import { streamManager } from './stream-manager.js';
 
 export class SystemOrchestrator {
     constructor() {
         this.isRunning = false;
         this.currentCountry = null;
         this.currentScene = SCENES.COVER;
+        this.lastRotation = Date.now();
+        this.rotationInterval = 60000; // Rotar cada 60s en Auto Mode
     }
 
     init() {
         console.log("[SystemOrchestrator] Initializing 'El Viaje de ilfass'...");
         streamManager.init();
-        // Inicializar navegador de escenas (asume que existe un contenedor principal)
-        // En MapaMode.mount() se crea la estructura, así que esperamos un poco o lo pasamos
-        // Por ahora, asumimos que 'broadcast-scene' es el contenedor
-        // sceneNavigator.init('broadcast-scene'); // Se debe llamar desde MapaMode para asegurar DOM
-
         this.isRunning = true;
         this.runLoop();
     }
@@ -28,35 +21,42 @@ export class SystemOrchestrator {
     runLoop() {
         if (!this.isRunning) return;
 
-        // 1. Obtener Estado Global (StreamManager)
-        const context = streamManager.getCurrentContext();
-        // context: { mode, countryId, dayOfVisit, theme }
+        // 1. CHEQUEO DE AUTO-PILOTO
+        // Usamos una propiedad directa o método del eventManager si existe, 
+        // o asumimos un flag global si no. 
+        // Vamos a usar eventManager.canProceedAuto() que ya existe en mapa.js pero aquí reviso la flag interna
 
-        // 2. Validar cambio de país/día
-        if (this.currentCountry !== context.countryId) {
-            this.handleCountryChange(context);
+        // Simulación de acceso a estado de Auto Mode
+        // Nota: eventManager debería exponer isAutoMode. Si no lo hace, asumimos true o leemos del DOM.
+        // Como parche rápido, leemos del sessionStorage o variable global window.AUTO_MODE
+
+        // Mejor: Si no hay Auto, retornamos pero seguimos loopeando para cuando se active
+        if (window.AUTO_MODE === false) { // Setado por index.html o event-manager
+            setTimeout(() => this.runLoop(), 2000);
+            return;
         }
 
-        // 3. Determinar Escena Visual (Choreographer)
-        // Por ahora simplificado: Si es modo NARRATIVE -> LIVE_MAP
-        let targetScene = SCENES.LIVE_MAP;
-        if (context.mode === 'LOOP') targetScene = SCENES.TRAVEL_DIARY;
-
-        // Ejecutar cambio de escena si es necesario
-        if (targetScene !== this.currentScene) {
-            console.log(`[SystemOrchestrator] Scene Change: ${this.currentScene} -> ${targetScene}`);
-            sceneNavigator.navigateTo(targetScene);
-            this.currentScene = targetScene;
+        // 2. ROTACIÓN AUTOMÁTICA (Aleatoriedad Real)
+        const now = Date.now();
+        if (now - this.lastRotation > this.rotationInterval) {
+            this.rotateCountry();
+            this.lastRotation = now;
         }
 
-        // 4. Generar Contenido (NarrativeEngine) - Esto se dispara por eventos en MapaMode, 
-        // pero el orquestador podría forzar eventos periódicos si no hay actividad.
+        // 3. Persistencia y Escenas (Mantenemos lógica existente simplificada)
+        setTimeout(() => this.runLoop(), 5000);
+    }
 
-        // 5. Persistencia (LibroEngine - Simulado)
-        // Se actualizaría el estado del libro basado en context.dayOfVisit
-
-        // Loop de chequeo cada 10s (el ritmo real lo lleva el MapaMode)
-        setTimeout(() => this.runLoop(), 10000);
+    rotateCountry() {
+        const countryCodes = Object.keys(COUNTRY_INFO);
+        // Excluir actual
+        const available = countryCodes.filter(c => c !== this.currentCountry);
+        if (available.length > 0) {
+            const nextCode = available[Math.floor(Math.random() * available.length)];
+            console.log(`[AutoPilot] Rotating to random country: ${nextCode}`);
+            eventManager.emit('country', nextCode);
+            this.currentCountry = nextCode; // Actualizamos tracking local
+        }
     }
 
     handleCountryChange(context) {

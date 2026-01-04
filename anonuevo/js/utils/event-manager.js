@@ -30,6 +30,7 @@ class EventManager {
                     // Sincronizar estado AutoMode
                     if (this.autoMode !== data.autoMode) {
                         this.autoMode = data.autoMode;
+                        window.AUTO_MODE = this.autoMode; // Expose global flag
                         console.log(`🔄 Auto Mode Changed: ${this.autoMode}`);
                         // Disparar evento si hay handler
                         if (this.handlers['mode_change']) this.handlers['mode_change'](this.autoMode);

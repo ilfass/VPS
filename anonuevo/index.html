@@ -129,6 +129,45 @@
         <canvas id="globe-canvas"></canvas>
     </div>
 
+    <!-- OVERLAY DE BIENVENIDA -->
+    <div id="intro-overlay"
+        style="position: fixed; inset: 0; background: rgba(2, 6, 23, 0.95); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px;">
+        <h1
+            style="font-size: 4rem; margin: 0; letter-spacing: 5px; color: #38bdf8; text-shadow: 0 0 30px rgba(56,189,248,0.5);">
+            ilfass</h1>
+        <p style="font-size: 1.2rem; color: #94a3b8; letter-spacing: 3px; margin-bottom: 30px;">EL ARCHIVO VIVO DE LA
+            HUMANIDAD</p>
+
+        <div style="max-width: 600px; color: #e2e8f0; line-height: 1.6; margin-bottom: 40px; font-weight: 300;">
+            <p><strong>ilfass</strong> (Inteligencia Lógica de Flujo Autónomo) no es un mapa estático.</p>
+            <p>Es un organismo digital que recorre el mundo en tiempo real, archivando el presente a través de
+                <strong>Gemini 2.0</strong> y motores de razonamiento paralelo.</p>
+            <p style="color: #38bdf8;">Tú eres el testigo de este viaje infinito.</p>
+        </div>
+
+        <button onclick="startExperience()"
+            style="background: transparent; border: 1px solid #38bdf8; color: #38bdf8; padding: 15px 40px; font-size: 1rem; letter-spacing: 2px; cursor: pointer; transition: all 0.3s; font-family: 'Inter', sans-serif;">
+            [ CONECTAR NEURAL LINK ]
+        </button>
+    </div>
+
+    <script>
+        function startExperience() {
+            const overlay = document.getElementById('intro-overlay');
+            overlay.style.opacity = '0';
+            setTimeout(() => overlay.remove(), 1000);
+
+            // Iniciar Audio Context (bypass browser autoplay policy)
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const audioCtx = new AudioContext();
+            audioCtx.resume();
+
+            // LLamar a la lógica existente
+            if (window.triggerDreaming) window.triggerDreaming();
+            // La generación de guión ya corre, pero el audio necesita esto
+        }
+    </script>
+
     <div class="container">
         <div class="avatar-container">
             <img src="avata-placeholder.png" class="avatar-img" alt="ilfass">

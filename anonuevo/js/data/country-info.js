@@ -56,6 +56,10 @@ export const COUNTRY_INFO = {
             "no podrías perderte una caminata por los bosques de Palermo.",
             "deberías visitar el glaciar Perito Moreno, es una experiencia única.",
             "te sugeriría tomar un café en el histórico Café Tortoni."
+        ],
+        media: [
+            { type: 'image', url: '/assets/media/ar/obelisco.jpg', caption: 'Obelisco de Buenos Aires al amanecer' },
+            { type: 'image', url: '/assets/media/ar/perito.jpg', caption: 'Glaciar Perito Moreno' }
         ]
     },
     "036": {
