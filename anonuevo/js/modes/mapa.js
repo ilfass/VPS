@@ -31,6 +31,7 @@ export default class MapaMode {
         this.worldData = null;
         this.currentZoom = d3.zoomIdentity;
         this.travelTimeout = null;
+        this.currentCountryId = null; // Track current country
     }
 
     async mount() {
@@ -92,6 +93,11 @@ export default class MapaMode {
             console.log("🎬 Mapa switching to:", scene);
             if (scene === 'mapa') window.location.reload();
             else if (scene === 'intro') window.location.href = '/';
+            else if (scene === 'pais') {
+                // Navegación inteligente a detalle de país
+                const targetCode = this.currentCountryId ? `?code=${this.currentCountryId}` : '';
+                window.location.href = `/vivos/pais/${targetCode}`;
+            }
             else window.location.href = `/vivos/${scene}/`;
         });
 
@@ -368,6 +374,7 @@ export default class MapaMode {
         if (!this.worldData) return;
 
         const feature = this.worldData.features.find(f => f.id === target.id);
+        this.currentCountryId = target.id; // UPDATE STATE
 
         // TELEMETRÍA: Reportar visita al país
         eventManager.reportTelemetry('MAPA', target.id, target.visitDay || 1);
@@ -532,6 +539,7 @@ export default class MapaMode {
 
         // TELEMETRÍA: Vuelta a órbita
         eventManager.reportTelemetry('MAPA', 'GLOBAL', 0);
+        this.currentCountryId = null; // RESET STATE
 
         // Ocultar Narrativa
         const narrativeEl = document.getElementById('zoom-narrative');
