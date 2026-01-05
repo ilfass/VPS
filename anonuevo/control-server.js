@@ -15,7 +15,7 @@ try {
 const PORT = 3005;
 const DATA_FILE = path.join(__dirname, 'data', 'living-script.json');
 
-// Estado Global del Sistema
+// Estado Global
 let state = {
     autoMode: false, currentScene: 'intro', eventQueue: [], travelQueue: [],
     clientTelemetry: { scene: 'UNKNOWN', country: 'UNKNOWN', day: 0, lastUpdate: 0 },
@@ -30,9 +30,7 @@ const headers = {
 };
 
 // --- DATA UTILS ---
-function loadLivingScript() {
-    try { return fs.existsSync(DATA_FILE) ? JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')) : null; } catch (e) { return null; }
-}
+function loadLivingScript() { try { return fs.existsSync(DATA_FILE) ? JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')) : null; } catch (e) { return null; } }
 function saveLivingScript(data) { fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 4)); }
 function saveEditorialDay(dayData) {
     const filename = `day-${dayData.dayId.replace(/\s+/g, '_')}-${Date.now()}.json`;
@@ -44,13 +42,7 @@ function saveEditorialDay(dayData) {
 
 // --- AI LAYERS ---
 
-// Nivel 5: Nano Banana (Experimental)
-async function dreamWithNanoBanana(prompt) {
-    console.log("🍌 Trying Nano Banana...");
-    return null; // A la espera de endpoint real
-}
-
-// Nivel 4: Pollinations (Fallback Universal)
+// Nivel 5: Pollinations
 async function generateImagePollinations(prompt) {
     console.log("🎨 Fallback to Pollinations...");
     try {
@@ -70,7 +62,7 @@ async function dreamWithPollinations(prompt) {
     catch (e) { return "Silencio digital."; }
 }
 
-// Nivel 3: Hugging Face
+// Nivel 4: Hugging Face
 async function generateImageHF(prompt) {
     if (!process.env.HF_API_KEY) return await generateImagePollinations(prompt);
     try {
@@ -84,7 +76,6 @@ async function generateImageHF(prompt) {
         const dir = path.join(__dirname, 'media', 'AI_Generated');
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(path.join(dir, filename), buffer);
-        console.log(`✨ Saved (HF): ${filename}`);
         return { filename, url: `/media/AI_Generated/${filename}` };
     } catch (e) { return await generateImagePollinations(prompt); }
 }
@@ -100,7 +91,7 @@ async function dreamWithHF(prompt) {
     } catch (e) { return await dreamWithPollinations(prompt); }
 }
 
-// Nivel 2: Gemini
+// Nivel 3: Gemini
 async function dreamWithGemini(prompt) {
     if (!GoogleGenerativeAI || !process.env.GEMINI_API_KEY) return null;
     try {
@@ -110,7 +101,38 @@ async function dreamWithGemini(prompt) {
     } catch (e) { return null; }
 }
 
-// Nivel 1: OpenAI (Omni Layer)
+// Nivel 2: Grok (xAI) - NEW!
+async function dreamWithGrok(prompt) {
+    if (!process.env.GROK_API_KEY) return null;
+    console.log("🧠 Dreaming with Grok (xAI)...");
+    try {
+        const response = await fetch('https://api.x.ai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.GROK_API_KEY}`
+            },
+            body: JSON.stringify({
+                messages: [
+                    { role: "system", content: "You are ilfass, a poetic cyberpunk AI narrator." },
+                    { role: "user", content: prompt }
+                ],
+                model: "grok-4-latest", // Usando el modelo especificado por usuario
+                stream: false,
+                temperature: 0.7
+            })
+        });
+        const data = await response.json();
+        if (data.choices && data.choices[0]) {
+            return data.choices[0].message.content.replace(/"/g, '').trim();
+        }
+    } catch (e) {
+        console.error("Grok Dream failed:", e.message);
+    }
+    return null;
+}
+
+// Nivel 1: OpenAI
 async function dreamWithOpenAI(prompt) {
     if (!process.env.OPENAI_API_KEY) return null;
     try {
@@ -140,17 +162,17 @@ async function generateImageOpenAI(prompt) {
             return { filename, url: `/media/AI_Generated/${filename}` };
         }
     } catch (e) { console.error("OpenAI Gen failed"); }
-    return await generateImageHF(prompt);
+    return await generateImageHF(prompt); // Fallback to HF if OpenAI Fails
 }
 
 // Orquestadores
 async function dreamNarrative(context) {
     const prompt = `Describe brevemente (max 20 palabras) esta imagen cyberpunk: "${context}".`;
     let res = await dreamWithOpenAI(prompt);
+    if (!res) res = await dreamWithGrok(prompt); // Grok as first fallback!
     if (!res) res = await dreamWithGemini(prompt);
-    if (!res) res = await dreamWithNanoBanana(prompt); // ;)
     if (res) return res;
-    return await dreamWithHF(prompt); // HF fallback cascade handles Pollinations
+    return await dreamWithHF(prompt);
 }
 
 // SERVER
@@ -173,7 +195,7 @@ const server = http.createServer(async (req, res) => {
         req.on('end', async () => {
             const { prompt } = JSON.parse(body || '{}');
             if (!prompt) { res.writeHead(400, headers); res.end('{"error":"No prompt"}'); return; }
-            const result = await generateImageOpenAI(prompt); // Empieza por OpenAI -> HF -> Pollinations
+            const result = await generateImageOpenAI(prompt);
             res.writeHead(result ? 200 : 500, headers);
             res.end(JSON.stringify(result || { error: "Failed" }));
         });
@@ -201,7 +223,6 @@ const server = http.createServer(async (req, res) => {
                 const fp = path.join(dir, file);
                 if (fs.statSync(fp).isDirectory()) res = res.concat(getFiles(fp, path.join(base, file)));
                 else if (/\.(jpg|jpeg|png|gif|mp4|webm|mp3|txt)$/i.test(file)) {
-                    // Fix path separators for URL
                     const folder = base.split(path.sep)[0] || 'Global';
                     const urlPath = path.posix.join(...base.split(path.sep), file);
                     res.push({ name: file, path: base, folder, url: `/media/${urlPath}`, type: /\.(mp4|webm)$/.test(file) ? 'video' : 'image' });
@@ -241,9 +262,8 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    // Day controls (Simplified)
+    // Day controls 
     if (req.method === 'POST' && (apiPath === '/event/day/start' || apiPath === '/event/day/end')) {
-        // Logic condensed for brevity in V8 update, assumes V5 logic logic is standard
         let body = ''; req.on('data', c => body += c); req.on('end', () => {
             if (apiPath.includes('start')) {
                 const { id, isTest } = JSON.parse(body || '{}');
@@ -262,4 +282,4 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(404, headers); res.end('{"error":"Not Found"}');
 });
 
-server.listen(PORT, () => console.log(`🎮 Server V8 (OpenAI+NanoBanana) running on ${PORT}`));
+server.listen(PORT, () => console.log(`🎮 Server V9 (OpenAI+Grok+Gemini) running on ${PORT}`));
