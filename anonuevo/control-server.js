@@ -229,8 +229,8 @@ const server = http.createServer(async (req, res) => {
         const code = apiPath.split('/').pop();
         console.log(`[Director] Travel command: ${code}`);
 
-        // 1. Encolar evento de viaje
-        state.eventQueue.push({ type: 'travel_to', code: code });
+        // 1. Encolar evento de viaje (Usar payload para compatibilidad con event-manager)
+        state.eventQueue.push({ type: 'travel_to', payload: code });
 
         // 2. REGISTRO EDITORIAL (Si estamos EN VIVO)
         if (state.editorial.status === 'LIVE') {
