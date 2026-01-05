@@ -73,9 +73,53 @@ function saveEditorialDay(dayData) {
     } catch (e) { console.error("Error saving book:", e); }
 }
 
-// --- GENERACIÓN IA (THE DREAMER) ---
+// --- GENERACIÓN IA (THE DREAMER - RESILIENT LAYER) ---
+
+// Nivel 3: Pollinations AI (Gratis, Sin Key)
+async function generateImagePollinations(prompt) {
+    console.log("🎨 Fallback to Pollinations AI...");
+    try {
+        const safePrompt = encodeURIComponent(prompt);
+        // Pollinations image endpoint
+        const url = `https://image.pollinations.ai/prompt/${safePrompt}`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Pollinations Error: ${response.status}`);
+
+        const blob = await response.blob();
+        const arrayBuffer = await blob.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        const dir = path.join(__dirname, 'media', 'AI_Generated');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+        const filename = `AI_Pollinations_${Date.now()}.jpg`;
+        const filepath = path.join(dir, filename);
+        fs.writeFileSync(filepath, buffer);
+        console.log(`✨ Image saved (Pollinations): ${filename}`);
+        return { filename, url: `/media/AI_Generated/${filename}` };
+    } catch (e) {
+        console.error("Pollinations Image failed:", e.message);
+        return null;
+    }
+}
+
+async function dreamWithPollinations(prompt) {
+    console.log("🧠 Fallback to Pollinations Text...");
+    try {
+        const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(prompt)}`);
+        if (!response.ok) throw new Error("Pollinations Text Error");
+        const text = await response.text();
+        return text.trim();
+    } catch (e) {
+        console.error("Pollinations Text failed:", e.message);
+        return "El silencio digital es la única respuesta.";
+    }
+}
+
+// Nivel 2: Hugging Face
 async function generateImageHF(prompt) {
-    if (!process.env.HF_API_KEY) return null;
+    if (!process.env.HF_API_KEY) return await generateImagePollinations(prompt);
+
     console.log("🎨 Generating Image with HF (SDXL)...");
     const HF_MODEL = "stabilityai/stable-diffusion-xl-base-1.0";
 
@@ -106,13 +150,13 @@ async function generateImageHF(prompt) {
         return { filename, url: `/media/AI_Generated/${filename}` };
 
     } catch (e) {
-        console.error("HF Image Gen failed:", e.message);
-        return null;
+        console.error("HF Image Gen failed, trying fallback...", e.message);
+        return await generateImagePollinations(prompt);
     }
 }
 
 async function dreamWithHuggingFace(prompt) {
-    if (!process.env.HF_API_KEY) return null;
+    if (!process.env.HF_API_KEY) return await dreamWithPollinations(prompt);
     console.log("🧠 Switching to Hugging Face (Mistral)...");
     const HF_MODEL = "mistralai/Mistral-7B-Instruct-v0.2";
     try {
@@ -125,14 +169,17 @@ async function dreamWithHuggingFace(prompt) {
         if (data && data[0] && data[0].generated_text) {
             return data[0].generated_text.replace(/"/g, '').trim();
         }
-        return null;
-    } catch (e) { console.error("HF Dream failed:", e.message); return null; }
+        throw new Error("No output");
+    } catch (e) {
+        console.error("HF Dream failed:", e.message);
+        return await dreamWithPollinations(prompt);
+    }
 }
 
+// Nivel 1: Gemini (The Oracle)
 async function dreamNarrative(context) {
     const prompt = `Eres el narrador de un viaje futurista llamado "ilfass". Estás mostrando la siguiente imagen a la audiencia: "${context}". Genera una descripción muy breve (máximo 2 frases), poética y misteriosa, explicando qué estamos viendo. Estilo documental cyberpunk.`;
 
-    // 1. Gemini
     if (GoogleGenerativeAI && process.env.GEMINI_API_KEY) {
         try {
             const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -141,7 +188,6 @@ async function dreamNarrative(context) {
             return result.response.text().replace(/"/g, '').trim();
         } catch (e) { console.warn("Gemini intent failed:", e.message); }
     }
-    // 2. Fallback
     return await dreamWithHuggingFace(prompt);
 }
 
@@ -264,10 +310,7 @@ const server = http.createServer(async (req, res) => {
                 console.log(`[Director] Launching Media: ${JSON.stringify(mediaData)}`);
 
                 let narrativeText = null;
-                // Si se pide narración, generar texto con IA
                 if (mediaData.narrate) {
-                    // Usar nombre de archivo o prompt como contexto
-                    // Eliminar extensión y caracteres raros
                     const context = mediaData.name ? mediaData.name.replace(/\.[^/.]+$/, "").replace(/_/g, " ") : "una imagen misteriosa";
                     console.log(`[Narrator] Generating script for: ${context}`);
                     narrativeText = await dreamNarrative(context);
@@ -277,7 +320,7 @@ const server = http.createServer(async (req, res) => {
                     type: 'media',
                     url: mediaData.url,
                     mediaType: mediaData.type || 'image',
-                    textToSpeak: narrativeText // Enviamos el texto generado
+                    textToSpeak: narrativeText
                 });
                 res.writeHead(200, headers);
                 res.end(JSON.stringify({ success: true, narrative: narrativeText }));
@@ -330,7 +373,7 @@ const server = http.createServer(async (req, res) => {
     // GET /event/travel/:code
     if (req.method === 'GET' && apiPath.startsWith('/event/travel/')) {
         const code = apiPath.split('/').pop();
-        state.eventQueue.push({ type: 'travel_to', payload: code }); // Corrected payload
+        state.eventQueue.push({ type: 'travel_to', payload: code });
         if (state.editorial.status === 'LIVE') {
             const now = Date.now();
             if (state.editorial.currentVisit) {
@@ -341,28 +384,6 @@ const server = http.createServer(async (req, res) => {
         }
         res.writeHead(200, headers);
         res.end(JSON.stringify({ success: true }));
-        return;
-    }
-
-    // POST /event/auto_toggle
-    if (req.method === 'POST' && apiPath === '/event/auto_toggle') {
-        state.autoMode = !state.autoMode;
-        state.eventQueue.push({ type: 'mode_change', autoMode: state.autoMode });
-        res.writeHead(200, headers);
-        res.end(JSON.stringify({ success: true, autoMode: state.autoMode }));
-        return;
-    }
-
-    // GET /status
-    if (req.method === 'GET' && apiPath === '/status') {
-        res.writeHead(200, headers);
-        res.end(JSON.stringify({
-            autoMode: state.autoMode,
-            currentScene: state.currentScene,
-            telemetry: state.clientTelemetry,
-            queue: state.travelQueue || [],
-            editorial: state.editorial
-        }));
         return;
     }
 
@@ -390,9 +411,30 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // POST /event/auto_toggle
+    if (req.method === 'POST' && apiPath === '/event/auto_toggle') {
+        state.autoMode = !state.autoMode;
+        state.eventQueue.push({ type: 'mode_change', autoMode: state.autoMode });
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({ success: true, autoMode: state.autoMode }));
+        return;
+    }
+
+    // GET /status
+    if (req.method === 'GET' && apiPath === '/status') {
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({
+            autoMode: state.autoMode,
+            currentScene: state.currentScene,
+            telemetry: state.clientTelemetry,
+            queue: state.travelQueue || [],
+            editorial: state.editorial
+        }));
+        return;
+    }
+
     // POST /api/telemetry
     if (req.method === 'POST' && apiPath === '/api/telemetry') {
-        // Dummy handler
         req.on('data', () => { });
         req.on('end', () => {
             res.writeHead(200, headers);
@@ -410,7 +452,7 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    // Scene change & 404
+    // Scene change
     if (apiPath.startsWith('/event/scene/')) {
         const targetScene = apiPath.split('/').pop();
         state.eventQueue.push({ type: 'scene_change', payload: targetScene });
@@ -424,5 +466,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-    console.log(`🎮 Control Server (Dreamer Edition V6) running on port ${PORT}`);
+    console.log(`🎮 Control Server (Resilient V7) running on port ${PORT}`);
 });
