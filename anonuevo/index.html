@@ -478,6 +478,28 @@
         initGlobe();
         loadVoices();
 
+        // POLL DE COMANDOS (ESCUCHA ACTIVA)
+        setInterval(async () => {
+            try {
+                const res = await fetch('/control-api/poll');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.events && data.events.length > 0) {
+                        data.events.forEach(ev => {
+                            console.log("📨 Evento recibido:", ev);
+                            if (ev.type === 'travel_to') {
+                                // El director manda viajar -> Ir al mapa
+                                window.location.href = '/vivos/mapa/';
+                            }
+                            if (ev.type === 'scene_change' && ev.payload === 'mapa') {
+                                window.location.href = '/vivos/mapa/';
+                            }
+                        });
+                    }
+                }
+            } catch (e) { }
+        }, 2000);
+
     </script>
 </body>
 
