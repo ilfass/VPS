@@ -436,30 +436,37 @@
         }
 
         // INIT GLOBAL
-        window.initExperience = function () {
-            // Trigger Dreaming
-            fetch('/control-api/api/dream', { method: 'POST' }).catch(e => console.log("Dream fetch", e));
-
-            // Generate Script
-            fetchLivingScript().then(() => {
-                script = generateDynamicScript();
-                // Play
-                window.speechSynthesis.resume();
-                playNextLine();
-            });
-
-            // Audio Ambiente
-            const ambient = new Audio('assets/audio/ambient_base.mp3'); // Asumo existe o fallara silencioso
+        window.initExperience = async function () {
+            // 1. Audio Ambiente
+            const ambient = new Audio('assets/audio/ambient_base.mp3');
             ambient.loop = true;
             ambient.volume = 0;
-            ambient.play().then(() => {
-                let vol = 0;
-                const iv = setInterval(() => {
-                    vol += 0.05;
-                    ambient.volume = Math.min(vol, 0.3);
-                    if (vol >= 0.3) clearInterval(iv);
-                }, 200);
-            }).catch(e => { });
+            // Intentar reproducir (requiere interaccion previa a veces, pero aqui es init explicito)
+            ambient.play().catch(e => console.log("Audio play prevented", e));
+            // Fade in
+            let vol = 0;
+            const iv = setInterval(() => { vol += 0.05; ambient.volume = Math.min(vol, 0.3); if (vol >= 0.3) clearInterval(iv); }, 200);
+
+            // 2. Generar Guion Base
+            script = generateDynamicScript(); // Carga identidad base
+
+            // 3. Fetch Intro Dinámica (Grok/OpenAI)
+            try {
+                console.log("🧠 Fetching AI Intro...");
+                const res = await fetch('/control-api/api/intro');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.intro) {
+                        // Insertar al principio, despues del saludo hora
+                        console.log("🗣️ AI Intro:", data.intro);
+                        script.splice(2, 0, { text: `Mensaje del Sistema: "${data.intro}"`, delay: 2000 });
+                    }
+                }
+            } catch (e) { console.error("Intro fetch fail", e); }
+
+            // 4. Play
+            window.speechSynthesis.resume();
+            playNextLine();
         };
 
         // STYLE

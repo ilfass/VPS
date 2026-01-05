@@ -101,7 +101,7 @@ async function dreamWithGemini(prompt) {
     } catch (e) { return null; }
 }
 
-// Nivel 2: Grok (xAI) - NEW!
+// Nivel 2: Grok (xAI)
 async function dreamWithGrok(prompt) {
     if (!process.env.GROK_API_KEY) return null;
     console.log("🧠 Dreaming with Grok (xAI)...");
@@ -117,7 +117,7 @@ async function dreamWithGrok(prompt) {
                     { role: "system", content: "You are ilfass, a poetic cyberpunk AI narrator." },
                     { role: "user", content: prompt }
                 ],
-                model: "grok-4-latest", // Usando el modelo especificado por usuario
+                model: "grok-4-latest",
                 stream: false,
                 temperature: 0.7
             })
@@ -126,9 +126,7 @@ async function dreamWithGrok(prompt) {
         if (data.choices && data.choices[0]) {
             return data.choices[0].message.content.replace(/"/g, '').trim();
         }
-    } catch (e) {
-        console.error("Grok Dream failed:", e.message);
-    }
+    } catch (e) { console.error("Grok Dream failed:", e.message); }
     return null;
 }
 
@@ -162,17 +160,16 @@ async function generateImageOpenAI(prompt) {
             return { filename, url: `/media/AI_Generated/${filename}` };
         }
     } catch (e) { console.error("OpenAI Gen failed"); }
-    return await generateImageHF(prompt); // Fallback to HF if OpenAI Fails
+    return await generateImageHF(prompt);
 }
 
-// Orquestadores
+// Orquestador Principal
 async function dreamNarrative(context) {
     const prompt = `Describe brevemente (max 20 palabras) esta imagen cyberpunk: "${context}".`;
     let res = await dreamWithOpenAI(prompt);
-    if (!res) res = await dreamWithGrok(prompt); // Grok as first fallback!
+    if (!res) res = await dreamWithGrok(prompt);
     if (!res) res = await dreamWithGemini(prompt);
-    if (res) return res;
-    return await dreamWithHF(prompt);
+    return res || await dreamWithHF(prompt);
 }
 
 // SERVER
@@ -212,6 +209,21 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(200, headers);
             res.end(JSON.stringify({ success: true, narrative: txt }));
         });
+        return;
+    }
+
+    // NEW: API INTRO LIVE
+    if (req.method === 'GET' && apiPath === '/api/intro') {
+        const hour = new Date().getHours();
+        const prompt = `Eres ilfass, una IA. Son las ${hour}:00. Saluda a la audiencia con una frase mística, breve y potente sobre el viaje que inician. Menciona que tus sistemas (OpenAI, Grok o Gemini) están en línea.`;
+
+        // Priorizar Grok para demostrar integración
+        let introText = await dreamWithGrok(prompt);
+        if (!introText) introText = await dreamWithOpenAI(prompt);
+        if (!introText) introText = await dreamWithGemini(prompt);
+
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({ intro: introText || "Sistemas listos. Iniciando viaje." }));
         return;
     }
 
@@ -282,4 +294,4 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(404, headers); res.end('{"error":"Not Found"}');
 });
 
-server.listen(PORT, () => console.log(`🎮 Server V9 (OpenAI+Grok+Gemini) running on ${PORT}`));
+server.listen(PORT, () => console.log(`🎮 Server V10 (Intro API) running on ${PORT}`));
