@@ -114,9 +114,17 @@ export default class MapaMode {
         });
 
         // Escuchar evento 'media' (Deep Dive / Multimedia)
+        // Escuchar evento 'media' (Deep Dive / Multimedia)
         eventManager.on('media', (data) => {
             console.log(`[Mapa] Media Event Received:`, data);
             this.showMediaOverlay(data.url, data.mediaType);
+
+            // Narración IA si existe
+            if (data.textToSpeak && window.audioManager) {
+                console.log(`[Mapa] Narrating: ${data.textToSpeak}`);
+                // Usar voz mas profunda o distinta si es posible, por ahora default
+                window.audioManager.speak(data.textToSpeak, 'generic', true);
+            }
         });
 
         // Escuchar evento 'glitch'

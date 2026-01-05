@@ -17,7 +17,7 @@ const DATA_FILE = path.join(__dirname, 'data', 'living-script.json');
 
 // Estado Global del Sistema
 let state = {
-    autoMode: false, // Por defecto MANUAL según manifiesto nuevo
+    autoMode: false,
     currentScene: 'intro',
     eventQueue: [],
     clientTelemetry: {
@@ -27,14 +27,13 @@ let state = {
         lastUpdate: 0
     },
     travelQueue: [],
-    // NUEVO: ESTADO EDITORIAL
     editorial: {
         status: 'IDLE', // IDLE, LIVE
-        dayId: null,    // "Dia 1", "Especial"
-        isTest: false,  // Nuevo: Flag de Simulación
+        dayId: null,
+        isTest: false,
         startTime: null,
-        visits: [],     // Historial de visitas de este dia
-        currentVisit: null // Visita activa { country, start, content: [] }
+        visits: [],
+        currentVisit: null
     }
 };
 
@@ -46,14 +45,14 @@ const headers = {
     'Content-Type': 'application/json'
 };
 
-// --- UTILIDADES DE PERSISTENCIA ---
+// --- UTILIDADES ---
 function loadLivingScript() {
     try {
         if (fs.existsSync(DATA_FILE)) {
             return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
         }
     } catch (e) { console.error("Error reading script:", e); }
-    return null; // Fallback
+    return null;
 }
 
 function saveLivingScript(data) {
@@ -62,30 +61,23 @@ function saveLivingScript(data) {
     } catch (e) { console.error("Error saving script:", e); }
 }
 
-// Helper para guardar el Libro del Día
 function saveEditorialDay(dayData) {
     const filename = `day-${dayData.dayId.replace(/\s+/g, '_')}-${Date.now()}.json`;
-
-    // Si es TEST, guardar en carpeta separada
     const subfolder = dayData.isTest ? 'simulations' : 'books';
     const booksDir = path.join(__dirname, 'data', subfolder);
-
     if (!fs.existsSync(booksDir)) fs.mkdirSync(booksDir, { recursive: true });
-
     const filepath = path.join(booksDir, filename);
-
     try {
         fs.writeFileSync(filepath, JSON.stringify(dayData, null, 2));
         console.log(`[Editorial] 📘 ${dayData.isTest ? '[TEST]' : ''} Book Page saved: ${filepath}`);
     } catch (e) { console.error("Error saving book:", e); }
 }
 
-// --- UTILIDAD DE GENERACIÓN (THE DREAMER) ---
-async function dreamWithHuggingFace(prompt) {
+// --- GENERACIÓN IA (THE DREAMER) ---
+async function generateImageHF(prompt) {
     if (!process.env.HF_API_KEY) return null;
-
-    console.log("🧠 Switching to Hugging Face (Mistral)...");
-    const HF_MODEL = "mistralai/Mistral-7B-Instruct-v0.2";
+    console.log("🎨 Generating Image with HF (SDXL)...");
+    const HF_MODEL = "stabilityai/stable-diffusion-xl-base-1.0";
 
     try {
         const response = await fetch(`https://api-inference.huggingface.co/models/${HF_MODEL}`, {
@@ -94,50 +86,78 @@ async function dreamWithHuggingFace(prompt) {
                 "Authorization": `Bearer ${process.env.HF_API_KEY}`,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({
-                inputs: `[INST] ${prompt} [/INST]`,
-                parameters: { max_new_tokens: 50, return_full_text: false, temperature: 0.8 }
-            })
+            body: JSON.stringify({ inputs: prompt })
         });
 
-        const data = await response.json();
-        if (data && data[0] && data[0].generated_text) {
-            let text = data[0].generated_text.replace(/"/g, '').trim();
-            console.log(`✨ Dreamed (HF): ${text}`);
-            return text;
-        }
-        return null;
+        if (!response.ok) throw new Error(`HF Error: ${response.statusText}`);
+
+        const blob = await response.blob();
+        const arrayBuffer = await blob.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        const dir = path.join(__dirname, 'media', 'AI_Generated');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+        const filename = `AI_${Date.now()}_${prompt.slice(0, 10).replace(/[^a-z0-9]/gi, '_')}.jpg`;
+        const filepath = path.join(dir, filename);
+
+        fs.writeFileSync(filepath, buffer);
+        console.log(`✨ Image saved: ${filename}`);
+        return { filename, url: `/media/AI_Generated/${filename}` };
+
     } catch (e) {
-        console.error("HF Dream failed:", e.message);
+        console.error("HF Image Gen failed:", e.message);
         return null;
     }
 }
 
-async function dreamNewPhrase(category) {
-    let prompt = "";
-    if (category === 'definition') {
-        prompt = "Eres ilfass, una IA viajera y misteriosa. Genera UNA sola frase corta (max 10 palabras) filosófica y poética sobre qué es este viaje digital. Sin explicaciones, solo la frase.";
-    } else if (category === 'concept') {
-        prompt = "Eres ilfass. Define brevemente un concepto sobre la memoria digital, el tiempo o la soledad en la red. Una sola frase corta, estilo cyberpunk poético.";
-    }
+async function dreamWithHuggingFace(prompt) {
+    if (!process.env.HF_API_KEY) return null;
+    console.log("🧠 Switching to Hugging Face (Mistral)...");
+    const HF_MODEL = "mistralai/Mistral-7B-Instruct-v0.2";
+    try {
+        const response = await fetch(`https://api-inference.huggingface.co/models/${HF_MODEL}`, {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${process.env.HF_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ inputs: `[INST] ${prompt} [/INST]`, parameters: { max_new_tokens: 100, return_full_text: false, temperature: 0.8 } })
+        });
+        const data = await response.json();
+        if (data && data[0] && data[0].generated_text) {
+            return data[0].generated_text.replace(/"/g, '').trim();
+        }
+        return null;
+    } catch (e) { console.error("HF Dream failed:", e.message); return null; }
+}
 
-    // 1. INTENTO CON GEMINI (Principal)
+async function dreamNarrative(context) {
+    const prompt = `Eres el narrador de un viaje futurista llamado "ilfass". Estás mostrando la siguiente imagen a la audiencia: "${context}". Genera una descripción muy breve (máximo 2 frases), poética y misteriosa, explicando qué estamos viendo. Estilo documental cyberpunk.`;
+
+    // 1. Gemini
     if (GoogleGenerativeAI && process.env.GEMINI_API_KEY) {
         try {
             const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
             const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
             const result = await model.generateContent(prompt);
-            const response = await result.response;
-            let text = response.text().replace(/"/g, '').trim();
-            console.log(`✨ Dreamed (Gemini): ${text}`);
-            return text;
-        } catch (e) {
-            console.warn("⚠️ Gemini failed (Rate Limit?), trying Fallback...", e.message);
-        }
+            return result.response.text().replace(/"/g, '').trim();
+        } catch (e) { console.warn("Gemini intent failed:", e.message); }
     }
+    // 2. Fallback
+    return await dreamWithHuggingFace(prompt);
+}
 
-    // 2. FALLBACK: HUGGING FACE
+async function dreamNewPhrase(category) {
+    let prompt = "";
+    if (category === 'definition') prompt = "Eres ilfass. Genera una frase corta filosófica sobre el viaje digital.";
+    else if (category === 'concept') prompt = "Eres ilfass. Define un concepto sobre la memoria digital en una frase corta.";
+
+    if (GoogleGenerativeAI && process.env.GEMINI_API_KEY) {
+        try {
+            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+            const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+            const result = await model.generateContent(prompt);
+            return result.response.text().replace(/"/g, '').trim();
+        } catch (e) { }
+    }
     return await dreamWithHuggingFace(prompt);
 }
 
@@ -145,27 +165,20 @@ const server = http.createServer(async (req, res) => {
     const parsedUrl = url.parse(req.url, true);
     const apiPath = parsedUrl.pathname;
 
-    // Manejar Preflight CORS
     if (req.method === 'OPTIONS') { res.writeHead(204, headers); res.end(); return; }
+
+    // --- ENDPOINTS ---
 
     // GET /api/living-script
     if (req.method === 'GET' && apiPath === '/api/living-script') {
-        const data = loadLivingScript();
-        if (data) {
-            res.writeHead(200, headers);
-            res.end(JSON.stringify(data));
-        } else {
-            res.writeHead(404, headers);
-            res.end(JSON.stringify({ error: "No data" }));
-        }
+        res.writeHead(200, headers);
+        res.end(JSON.stringify(loadLivingScript() || { error: "No data" }));
         return;
     }
 
-    // GET /api/media-list (MEJORADO: RECURSIVO)
+    // GET /api/media-list (RECURSIVO)
     if (req.method === 'GET' && apiPath === '/api/media-list') {
         const mediaDir = path.join(__dirname, 'media');
-
-        // Función recursiva para listar archivos
         const getFiles = (dir, base = '') => {
             let results = [];
             if (!fs.existsSync(dir)) return results;
@@ -178,37 +191,49 @@ const server = http.createServer(async (req, res) => {
                 } else {
                     if (/\.(jpg|jpeg|png|gif|mp4|webm|mp3|txt|md)$/i.test(file)) {
                         const urlPath = path.posix.join(base, file);
-                        // Extraer primera carpeta como "País"
                         const parts = base.split(path.sep);
                         const countryFolder = parts.length > 0 ? parts[0] : 'Global';
-
                         let type = 'image';
                         if (/\.(mp4|webm)$/i.test(file)) type = 'video';
                         if (/\.(mp3|wav)$/i.test(file)) type = 'audio';
                         if (/\.(txt|md)$/i.test(file)) type = 'text';
-
-                        results.push({
-                            name: file,
-                            path: base,
-                            folder: countryFolder,
-                            url: `/media/${urlPath.replace(/\\/g, '/')}`,
-                            type: type
-                        });
+                        results.push({ name: file, path: base, folder: countryFolder, url: `/media/${urlPath.replace(/\\/g, '/')}`, type: type });
                     }
                 }
             });
             return results;
         };
-
         try {
             const mediaFiles = getFiles(mediaDir);
             res.writeHead(200, headers);
             res.end(JSON.stringify(mediaFiles));
         } catch (e) {
-            console.error("Media list error:", e);
             res.writeHead(500, headers);
             res.end(JSON.stringify({ error: "Media Error" }));
         }
+        return;
+    }
+
+    // POST /api/generate-image (IA)
+    if (req.method === 'POST' && apiPath === '/api/generate-image') {
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', async () => {
+            const { prompt } = JSON.parse(body || '{}');
+            if (!prompt) {
+                res.writeHead(400, headers);
+                res.end(JSON.stringify({ error: "No prompt" }));
+                return;
+            }
+            const result = await generateImageHF(prompt);
+            if (result) {
+                res.writeHead(200, headers);
+                res.end(JSON.stringify({ success: true, ...result }));
+            } else {
+                res.writeHead(500, headers);
+                res.end(JSON.stringify({ error: "Generation failed" }));
+            }
+        });
         return;
     }
 
@@ -216,18 +241,51 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && apiPath === '/api/dream') {
         res.writeHead(202, headers);
         res.end(JSON.stringify({ status: "Dreaming started..." }));
-
         const categories = ['definition', 'concept'];
         const targetCat = categories[Math.floor(Math.random() * categories.length)];
-
         const newPhrase = await dreamNewPhrase(targetCat);
         if (newPhrase) {
-            const currentData = loadLivingScript() || { definitions: [], concepts: [], missions: [] };
+            const currentData = loadLivingScript() || { definitions: [], concepts: [] };
             if (targetCat === 'definition') currentData.definitions.push(newPhrase);
             if (targetCat === 'concept') currentData.concepts.push(newPhrase);
             if (currentData.definitions.length > 20) currentData.definitions.shift();
             saveLivingScript(currentData);
         }
+        return;
+    }
+
+    // POST /event/media (LANZAMIENTO + NARRACIÓN)
+    if (req.method === 'POST' && apiPath === '/event/media') {
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', async () => {
+            try {
+                const mediaData = JSON.parse(body);
+                console.log(`[Director] Launching Media: ${JSON.stringify(mediaData)}`);
+
+                let narrativeText = null;
+                // Si se pide narración, generar texto con IA
+                if (mediaData.narrate) {
+                    // Usar nombre de archivo o prompt como contexto
+                    // Eliminar extensión y caracteres raros
+                    const context = mediaData.name ? mediaData.name.replace(/\.[^/.]+$/, "").replace(/_/g, " ") : "una imagen misteriosa";
+                    console.log(`[Narrator] Generating script for: ${context}`);
+                    narrativeText = await dreamNarrative(context);
+                }
+
+                state.eventQueue.push({
+                    type: 'media',
+                    url: mediaData.url,
+                    mediaType: mediaData.type || 'image',
+                    textToSpeak: narrativeText // Enviamos el texto generado
+                });
+                res.writeHead(200, headers);
+                res.end(JSON.stringify({ success: true, narrative: narrativeText }));
+            } catch (e) {
+                res.writeHead(400, headers);
+                res.end(JSON.stringify({ error: 'invalid body' }));
+            }
+        });
         return;
     }
 
@@ -245,7 +303,7 @@ const server = http.createServer(async (req, res) => {
                 visits: [],
                 currentVisit: null
             };
-            console.log(`[Editorial] ▶ STARTED DAY: ${state.editorial.dayId} (Test: ${state.editorial.isTest})`);
+            console.log(`[Editorial] ▶ STARTED DAY: ${state.editorial.dayId}`);
             res.writeHead(200, headers);
             res.end(JSON.stringify({ success: true, editorial: state.editorial }));
         });
@@ -255,18 +313,12 @@ const server = http.createServer(async (req, res) => {
     // POST /event/day/end
     if (req.method === 'POST' && apiPath === '/event/day/end') {
         if (state.editorial.status === 'LIVE') {
-            // Cerrar última visita si existe
             if (state.editorial.currentVisit) {
                 state.editorial.currentVisit.endTime = Date.now();
                 state.editorial.visits.push(state.editorial.currentVisit);
             }
-
             const finalData = { ...state.editorial, endTime: Date.now(), status: 'ARCHIVED' };
             saveEditorialDay(finalData);
-
-            console.log(`[Editorial] ⏹ ENDED DAY: ${state.editorial.dayId}`);
-
-            // Logica Reset
             state.editorial = { status: 'IDLE', dayId: null, isTest: false, startTime: null, visits: [], currentVisit: null };
             state.autoMode = false;
         }
@@ -278,28 +330,15 @@ const server = http.createServer(async (req, res) => {
     // GET /event/travel/:code
     if (req.method === 'GET' && apiPath.startsWith('/event/travel/')) {
         const code = apiPath.split('/').pop();
-        console.log(`[Director] Travel command: ${code}`);
-
-        // 1. Encolar evento de viaje (Usar payload para compatibilidad con event-manager)
-        state.eventQueue.push({ type: 'travel_to', payload: code });
-
-        // 2. REGISTRO EDITORIAL (Si estamos EN VIVO)
+        state.eventQueue.push({ type: 'travel_to', payload: code }); // Corrected payload
         if (state.editorial.status === 'LIVE') {
             const now = Date.now();
-            // Cerrar anterior
             if (state.editorial.currentVisit) {
                 state.editorial.currentVisit.endTime = now;
                 state.editorial.visits.push(state.editorial.currentVisit);
             }
-            // Abrir nueva
-            state.editorial.currentVisit = {
-                country: code,
-                startTime: now,
-                endTime: null,
-                mediaShown: []
-            };
+            state.editorial.currentVisit = { country: code, startTime: now, endTime: null, mediaShown: [] };
         }
-
         res.writeHead(200, headers);
         res.end(JSON.stringify({ success: true }));
         return;
@@ -308,33 +347,9 @@ const server = http.createServer(async (req, res) => {
     // POST /event/auto_toggle
     if (req.method === 'POST' && apiPath === '/event/auto_toggle') {
         state.autoMode = !state.autoMode;
-        console.log(`[Director] Auto Mode toggled to: ${state.autoMode}`);
         state.eventQueue.push({ type: 'mode_change', autoMode: state.autoMode });
         res.writeHead(200, headers);
         res.end(JSON.stringify({ success: true, autoMode: state.autoMode }));
-        return;
-    }
-
-    // POST /event/media
-    if (req.method === 'POST' && apiPath === '/event/media') {
-        let body = '';
-        req.on('data', chunk => { body += chunk.toString(); });
-        req.on('end', () => {
-            try {
-                const mediaData = JSON.parse(body);
-                console.log(`[Director] Launching Media: ${JSON.stringify(mediaData)}`);
-                state.eventQueue.push({
-                    type: 'media',
-                    url: mediaData.url,
-                    mediaType: mediaData.type || 'image'
-                });
-                res.writeHead(200, headers);
-                res.end(JSON.stringify({ success: true }));
-            } catch (e) {
-                res.writeHead(400, headers);
-                res.end(JSON.stringify({ error: 'invalid body' }));
-            }
-        });
         return;
     }
 
@@ -356,19 +371,13 @@ const server = http.createServer(async (req, res) => {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
         req.on('end', () => {
-            try {
-                const { code } = JSON.parse(body);
-                if (code) {
-                    if (!state.travelQueue) state.travelQueue = [];
-                    state.travelQueue.push(code);
-                    console.log(`[Queue] Added country: ${code}`);
-                }
-                res.writeHead(200, headers);
-                res.end(JSON.stringify({ success: true, queue: state.travelQueue }));
-            } catch (e) {
-                res.writeHead(400, headers);
-                res.end(JSON.stringify({ error: 'invalid body' }));
+            const { code } = JSON.parse(body || '{}');
+            if (code) {
+                if (!state.travelQueue) state.travelQueue = [];
+                state.travelQueue.push(code);
             }
+            res.writeHead(200, headers);
+            res.end(JSON.stringify({ success: true }));
         });
         return;
     }
@@ -377,24 +386,17 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && apiPath === '/event/queue/pop') {
         const next = (state.travelQueue && state.travelQueue.length > 0) ? state.travelQueue.shift() : null;
         res.writeHead(200, headers);
-        res.end(JSON.stringify({ nextCountry: next, remaining: state.travelQueue ? state.travelQueue.length : 0 }));
+        res.end(JSON.stringify({ nextCountry: next }));
         return;
     }
 
     // POST /api/telemetry
     if (req.method === 'POST' && apiPath === '/api/telemetry') {
-        let body = '';
-        req.on('data', chunk => { body += chunk.toString(); });
+        // Dummy handler
+        req.on('data', () => { });
         req.on('end', () => {
-            try {
-                const telemetry = JSON.parse(body);
-                state.clientTelemetry = { ...state.clientTelemetry, ...telemetry, lastUpdate: Date.now() };
-                res.writeHead(200, headers);
-                res.end(JSON.stringify({ status: 'updated' }));
-            } catch (e) {
-                res.writeHead(400, headers);
-                res.end(JSON.stringify({ error: 'invalid json' }));
-            }
+            res.writeHead(200, headers);
+            res.end(JSON.stringify({ status: 'ok' }));
         });
         return;
     }
@@ -408,20 +410,19 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    // Scene change
+    // Scene change & 404
     if (apiPath.startsWith('/event/scene/')) {
         const targetScene = apiPath.split('/').pop();
         state.eventQueue.push({ type: 'scene_change', payload: targetScene });
         res.writeHead(200, headers);
-        res.end(JSON.stringify({ status: 'queued', scene: targetScene }));
+        res.end(JSON.stringify({ status: 'queued' }));
         return;
     }
 
-    // 404
     res.writeHead(404, headers);
     res.end(JSON.stringify({ error: 'Not found' }));
 });
 
 server.listen(PORT, () => {
-    console.log(`🎮 Control Server (Dreamer Edition) running on port ${PORT}`);
+    console.log(`🎮 Control Server (Dreamer Edition V6) running on port ${PORT}`);
 });

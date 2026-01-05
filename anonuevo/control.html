@@ -453,6 +453,50 @@
             const rawText = selectEl.options[selectEl.selectedIndex].text;
             const countryName = rawText.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '').trim();
 
+            const controlsDiv = document.getElementById('media-filters');
+
+            // 1. Botón Generate AI
+            let genBtn = document.getElementById('ai-gen-btn');
+            if (currentTypeFilter === 'AI') {
+                if (!genBtn) {
+                    genBtn = document.createElement('button');
+                    genBtn.id = 'ai-gen-btn';
+                    genBtn.innerText = "✨ CREATE NEW DREAM";
+                    genBtn.style.width = "100%";
+                    genBtn.style.marginBottom = "5px";
+                    genBtn.style.background = "linear-gradient(45deg, #a855f7, #ec4899)";
+                    genBtn.style.color = "white";
+                    genBtn.style.border = "none";
+                    genBtn.onclick = async () => {
+                        const prompt = prompt("Descripción del sueño (Imagen):", `Paisaje onírico de ${countryName}`);
+                        if (prompt) {
+                            genBtn.innerText = "Dreaming... ⏳";
+                            try {
+                                await api('/api/generate-image', 'POST', { prompt });
+                                alert("Dream Created! Refreshing...");
+                                loadCountryMedia(); // Recargar
+                            } catch (e) {
+                                alert("Error dreaming: " + e);
+                            } finally {
+                                genBtn.innerText = "✨ CREATE NEW DREAM";
+                            }
+                        }
+                    };
+                    controlsDiv.appendChild(genBtn);
+                }
+                genBtn.style.display = 'block';
+            } else {
+                if (genBtn) genBtn.style.display = 'none';
+            }
+
+            // 2. Checkbox Narración
+            if (!document.getElementById('narrate-toggle-div')) {
+                const narrateDiv = document.createElement('div');
+                narrateDiv.id = 'narrate-toggle-div';
+                narrateDiv.innerHTML = `<label style="font-size:0.7rem; color:#ccc; display:flex; align-items:center; gap:5px; margin-bottom:5px;"><input type="checkbox" id="narrate-checkbox" checked> 🗣️ Narrate with AI</label>`;
+                controlsDiv.after(narrateDiv);
+            }
+
             const filtered = globalMediaCache.filter(m => {
                 const folder = (m.folder || "").toLowerCase();
                 const target = countryName.toLowerCase();
@@ -483,7 +527,7 @@
                 el.innerHTML = `
                     ${preview}
                     <div style="font-size:0.6rem; margin:5px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${m.name}</div>
-                    <button onclick="launchMedia('${m.url}', '${m.type}')" style="font-size:0.6rem; background:#333; width:100%;">LAUNCH</button>
+                    <button onclick="launchMedia('${m.url}', '${m.type}', '${m.name}')" style="font-size:0.6rem; background:#333; width:100%;">LAUNCH</button>
                 `;
                 grid.appendChild(el);
             });
@@ -491,9 +535,11 @@
 
         document.getElementById('country-select').addEventListener('change', () => renderMediaGrid());
 
-        async function launchMedia(url, type) {
-            log(`Launching Media: ${url}`);
-            await api('/event/media', 'POST', { url, type });
+        async function launchMedia(url, type, name) {
+            const narrateEl = document.getElementById('narrate-checkbox');
+            const narrate = narrateEl ? narrateEl.checked : false;
+            log(`Launching Media: ${url} (Narrate: ${narrate})`);
+            await api('/event/media', 'POST', { url, type, name, narrate });
         }
 
         async function triggerEvent(type) {
