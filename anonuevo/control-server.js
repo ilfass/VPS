@@ -161,23 +161,39 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    // GET /api/media-list (NUEVO)
+    // GET /api/media-list (MEJORADO: RECURSIVO)
     if (req.method === 'GET' && apiPath === '/api/media-list') {
         const mediaDir = path.join(__dirname, 'media');
-        try {
-            if (!fs.existsSync(mediaDir)) {
-                res.writeHead(200, headers);
-                res.end(JSON.stringify([]));
-                return;
-            }
-            const files = fs.readdirSync(mediaDir);
-            const mediaFiles = files.filter(f => /\.(jpg|jpeg|png|gif|mp4|webm)$/i.test(f)).map(f => {
-                return {
-                    name: f,
-                    url: `/media/${f}`,
-                    type: /\.(mp4|webm)$/i.test(f) ? 'video' : 'image'
-                };
+
+        // Función recursiva para listar archivos
+        const getFiles = (dir, base = '') => {
+            let results = [];
+            if (!fs.existsSync(dir)) return results;
+            const list = fs.readdirSync(dir);
+            list.forEach(file => {
+                const filePath = path.join(dir, file);
+                const stat = fs.statSync(filePath);
+                if (stat && stat.isDirectory()) {
+                    results = results.concat(getFiles(filePath, path.join(base, file)));
+                } else {
+                    if (/\.(jpg|jpeg|png|gif|mp4|webm)$/i.test(file)) {
+                        // Usar path.posix para asegurar barras normales en URL
+                        const urlPath = path.posix.join(base, file);
+                        results.push({
+                            name: file, // Nombre solo
+                            path: base, // Carpeta (Pais)
+                            // URL debe ser relativa al servidor web nginx -> /media/Pais/Archivo
+                            url: `/media/${urlPath.replace(/\\/g, '/')}`,
+                            type: /\.(mp4|webm)$/i.test(file) ? 'video' : 'image'
+                        });
+                    }
+                }
             });
+            return results;
+        };
+
+        try {
+            const mediaFiles = getFiles(mediaDir);
             res.writeHead(200, headers);
             res.end(JSON.stringify(mediaFiles));
         } catch (e) {
