@@ -14,6 +14,7 @@ try {
 
 const PORT = 3005;
 const DATA_FILE = path.join(__dirname, 'data', 'living-script.json');
+const STATE_FILE = path.join(__dirname, 'data', 'server-state.json');
 
 // Estado Global
 let state = {
@@ -39,6 +40,29 @@ function saveEditorialDay(dayData) {
     if (!fs.existsSync(booksDir)) fs.mkdirSync(booksDir, { recursive: true });
     fs.writeFileSync(path.join(booksDir, filename), JSON.stringify(dayData, null, 2));
 }
+
+// Persistencia de Estado del Servidor
+function saveState() {
+    try {
+        // No guardamos eventQueue para no repetir eventos viejos al reiniciar
+        const toSave = { ...state, eventQueue: [] };
+        fs.writeFileSync(STATE_FILE, JSON.stringify(toSave, null, 2));
+    } catch (e) { console.error("State save failed", e); }
+}
+function loadState() {
+    try {
+        if (fs.existsSync(STATE_FILE)) {
+            const saved = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+            if (saved) {
+                state = { ...state, ...saved, eventQueue: [] };
+                console.log("💾 State restored:", state.editorial.status);
+            }
+        }
+    } catch (e) { console.error("State load failed", e); }
+}
+
+// Cargar estado al inicio
+loadState();
 
 // --- AI LAYERS ---
 
@@ -261,6 +285,7 @@ const server = http.createServer(async (req, res) => {
     if (apiPath === '/event/auto_toggle') {
         state.autoMode = !state.autoMode;
         state.eventQueue.push({ type: 'mode_change', autoMode: state.autoMode });
+        saveState(); // PERSIST
         res.writeHead(200, headers);
         res.end(JSON.stringify({ success: true }));
         return;
@@ -269,12 +294,15 @@ const server = http.createServer(async (req, res) => {
     // Travel
     if (apiPath.startsWith('/event/travel/')) {
         state.eventQueue.push({ type: 'travel_to', payload: apiPath.split('/').pop() });
+        // Podríamos guardar el país actual en el state si quisiéramos persistencia de ubicación
+        // state.clientTelemetry.country = ... (mejor esperar telemetría real)
+        saveState();
         res.writeHead(200, headers);
         res.end('{"success":true}');
         return;
     }
 
-    // Day controls 
+    // Day controls
     if (req.method === 'POST' && (apiPath === '/event/day/start' || apiPath === '/event/day/end')) {
         let body = ''; req.on('data', c => body += c); req.on('end', () => {
             if (apiPath.includes('start')) {
@@ -286,6 +314,7 @@ const server = http.createServer(async (req, res) => {
                     state.editorial.status = 'IDLE';
                 }
             }
+            saveState(); // PERSIST
             res.writeHead(200, headers); res.end('{"success":true}');
         });
         return;
@@ -295,3 +324,4 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => console.log(`🎮 Server V10 (Intro API) running on ${PORT}`));
+
