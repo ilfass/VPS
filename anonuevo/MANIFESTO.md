@@ -474,3 +474,101 @@ Con el MCD logramos:
 ✔ Sin costos excesivos de API externa.
 ✔ Con control humano real.
 ✔ Con contenido profundo y coherencia narrativa.
+
+---
+---
+
+## SECCIÓN IV: LA NUEVA ARQUITECTURA DEL TIEMPO - EL PARADIGMA DEL DÍA EDITORIAL (2026)
+
+### 31. CAMBIO CONCEPTUAL CENTRAL
+Se abandona la "Lógica Cronológica Rígida" en favor del **Paradigma Editorial**.
+*   **Antes:** El día era una fecha automática en el calendario. El sistema decidía cuándo empezaba y terminaba.
+*   **Ahora:** El "Día" es un **ACTO EDITORIAL**.
+    *   Empieza cuando el Director da la orden.
+    *   Termina cuando el stream se cierra.
+    *   No es tiempo, es **contenido**.
+
+> “Un día no empieza cuando pasa el tiempo, empieza cuando el director da la orden. Y termina cuando la historia queda contada.”
+
+Esto transforma el proyecto:
+*   📖 **El Libro:** No es un calendario, es una colección de capítulos curados.
+*   🎥 **El Stream:** No es un reloj, es un lienzo narrativo sin presión temporal.
+*   🧠 **La Memoria:** Es seleccionada y significativa, no un dump automático.
+
+### 32. NUEVA ENTIDAD: DÍA_EDITORIAL
+Técnicamente, el sistema se rige por esta nueva entidad fundamental. Un Día Editorial contiene TODO lo que ocurrió en esa sesión de stream.
+
+**Estructura de Datos:**
+*   **ID:** Identificador editorial (ej: "Día 1", "Especial Año Nuevo"). Asignado por humano.
+*   **Estado:** `PREPARACIÓN` -> `EN_VIVO` -> `CERRADO/ARCHIVADO`.
+*   **Duración:** Tiempo efectivo de emisión.
+*   **Contenidos:** Array de Visitas (Ver 33.3).
+*   **Metadatos:** Links a YouTube (Live/Vod), fecha real, plataforma.
+
+### 33. FLUJO DEL SISTEMA (WORKFLOW)
+
+#### 33.1 El Inicio (Acción Manual)
+Nada ocurre sin intervención. Desde el Panel de Dirección (`control.html`):
+1.  Director pulsa **▶ "INICIAR DÍA [X]"**.
+2.  El sistema crea el contenedor de memoria del día.
+3.  Activa motor narrativo y registro automático.
+
+#### 33.2 Introducción (El Manifiesto Diario)
+Todo día comienza con una **Intro Narrativa Obligatoria**.
+*   Explica de qué trata el proyecto.
+*   Justifica el viaje.
+*   Establece la expectativa del día ("Hoy vamos a recorrer...").
+*   Este bloque (Texto + Audio) se guarda como el prólogo de la memoria.
+
+#### 33.3 Selección Dinámica de Países (Entidad: VISITA)
+Durante el vivo, el Director decide el recorrido en tiempo real. Cada parada genera una sub-entidad **VISITA**.
+*   **Contiene:** País/Región, Timestamps (Inicio/Fin), Multimedia mostrada, Contenido generado por IA.
+*   No hay límites de tiempo ni orden preestablecido.
+
+### 34. CONTENIDO Y MEMORIA
+La IA y el Director colaboran para llenar la entidad VISITA.
+
+#### 34.1 Fuentes de Contenido
+1.  **Preguardado (Curado):** Imágenes, Textos Base, Datos curiosos, Videos.
+2.  **Generado en Vivo (IA):** Explicaciones, Conexiones, Relatos.
+    *   *Regla:* La IA no decide el tema ni cambia de país. Solo **EXPANDE** lo activo.
+
+#### 34.2 Registro Automático (La Escribanía Digital)
+Todo se guarda en tiempo real para generar la memoria post-stream:
+*   **Resumen Estructurado:** Países, Orden, Temas.
+*   **Narrativa:** Crónica final generada ("En el Día 1 recorrimos...").
+*   **Galería Multimedia:** Qué se mostró visualmente.
+
+#### 34.3 Conversión a Libro
+Al cerrar el día, el sistema genera automáticamente una **Página Web del Libro**:
+*   Título: "Día [X] – [Título Editorial]".
+*   Intro.
+*   Recorrido cronológico del vivo.
+*   Bloques multimedia embebidos.
+*   Reflexión final.
+*   *Resultado:* Una experiencia navegable para quien no vio el vivo.
+
+### 35. MODO AUTOMÁTICO AVANZADO: "DREAM MODE"
+Este es un estado operativo alternativo, no un piloto automático simple.
+**Activación:** `Manual Mode = OFF` + `Force Dream = ON`.
+
+> “Cuando nadie dirige, el viaje sueña. Pero incluso en sueños, recuerda quién es.”
+
+#### 35.1 Principio Rector
+La IA asume el rol de **Explorador y Narrador**, pero NUNCA de **Arquitecto**.
+*   **Puede:** Decidir qué mostrar, de qué hablar, ritmo, pausas.
+*   **No Puede:** Crear Días nuevos, cambiar reglas de guardado, salir del "universo cargado".
+
+#### 35.2 Capas de Contenido en Dream Mode
+1.  **Capa 1 (Memoria):** Prioritaria. Usa visitas previas y patrones narrativos del proyecto.
+2.  **Capa 2 (Backend):** Material curado (fotos/videos) disponibles en el servidor.
+3.  **Capa 3 (Generación):** Solo si es necesario para dar continuidad, expande y reinterpreta. Nunca "rellena" sin sentido.
+
+#### 35.3 Comportamiento "Vivo"
+El stream puede durar horas en este modo.
+*   **Ciclos:** Alterna Narración -> Silencio -> Música -> Video -> Cambio de Cámara.
+*   **Avatar:** No es un streamer, es un viajero pensando en voz alta (pausado, humano).
+*   **Transparencia:** El sistema registra que este segmento fue "Autónomo" en la memoria del libro.
+
+### 36. CONCLUSIÓN TÉCNICA
+Este diseño elimina la presión del tiempo real y devuelve el control total a la **Dirección Editorial**, permitiendo que la IA sea una herramienta de expansión infinita pero siempre dentro de los límites del sentido que le da el humano.
