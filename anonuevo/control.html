@@ -407,51 +407,89 @@
             await api('/event/auto_toggle', 'POST');
         }
 
+        let globalMediaCache = [];
+        let currentTypeFilter = 'ALL';
+
         async function loadCountryMedia() {
             // Cargar repositorio real del servidor
+            const gridContainer = document.getElementById('media-grid').parentNode;
+            if (!document.getElementById('media-filters')) {
+                const filterDiv = document.createElement('div');
+                filterDiv.id = 'media-filters';
+                filterDiv.style.marginBottom = '10px';
+                filterDiv.style.display = 'flex';
+                filterDiv.style.gap = '5px';
+                filterDiv.innerHTML = `
+                    <button onclick="setMediaFilter('ALL')" style="flex:1; padding:2px; font-size:0.7rem;">ALL</button>
+                    <button onclick="setMediaFilter('image')" style="flex:1; padding:2px; font-size:0.7rem;">IMG</button>
+                    <button onclick="setMediaFilter('video')" style="flex:1; padding:2px; font-size:0.7rem;">VID</button>
+                    <button onclick="setMediaFilter('AI')" style="flex:1; padding:2px; font-size:0.7rem; color:cyan; border-color:cyan;">AI</button>
+                `;
+                gridContainer.insertBefore(filterDiv, document.getElementById('media-grid'));
+            }
+
             const grid = document.getElementById('media-grid');
             grid.innerHTML = '<div style="grid-column:span 2; text-align:center; padding:20px; color:#555;">Loading Server Media...</div>';
 
             try {
                 const mediaFiles = await api('/api/media-list');
-                grid.innerHTML = "";
-
-                if (!mediaFiles || mediaFiles.length === 0) {
-                    grid.innerHTML = '<div style="grid-column:span 2; text-align:center; padding:20px; color:#555;">No media in /anonuevo/media/ folder.</div>';
-                    return;
-                }
-
-                // Filtrar por país si se seleccionó uno? 
-                // Por simplicidad V5: Mostrar todo el banco de medios. El director elige qué lanzar.
-                // En futuro: filtrar por nombre de archivo (ej: argentina_glaciar.jpg)
-
-                const selectedCountryCode = document.getElementById('country-select').value;
-                // Opcional: filtrar si el nombre contiene el código o nombre del país (implementación futura)
-
-                mediaFiles.forEach(m => {
-                    const el = document.createElement('div');
-                    el.style.border = "1px solid #333";
-                    el.style.padding = "5px";
-
-                    let preview = '';
-                    if (m.type === 'video') {
-                        preview = `<div style="height:80px; background:#000; color:#fff; display:flex; align-items:center; justify-content:center;">VIDEO</div>`;
-                    } else {
-                        preview = `<div style="height:80px; background:url('${m.url}') center/cover;"></div>`;
-                    }
-
-                    el.innerHTML = `
-                        ${preview}
-                        <div style="font-size:0.6rem; margin:5px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${m.name}</div>
-                        <button onclick="launchMedia('${m.url}', '${m.type}')" style="font-size:0.6rem; background:#333;">LAUNCH</button>
-                    `;
-                    grid.appendChild(el);
-                });
+                globalMediaCache = mediaFiles || [];
+                renderMediaGrid();
             } catch (e) {
                 console.error(e);
                 grid.innerHTML = '<div style="grid-column:span 2; text-align:center; padding:20px; color:red;">Error loading media.</div>';
             }
         }
+
+        function setMediaFilter(type) {
+            currentTypeFilter = type;
+            renderMediaGrid();
+        }
+
+        function renderMediaGrid() {
+            const grid = document.getElementById('media-grid');
+            grid.innerHTML = "";
+            const selectEl = document.getElementById('country-select');
+            const rawText = selectEl.options[selectEl.selectedIndex].text;
+            const countryName = rawText.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '').trim();
+
+            const filtered = globalMediaCache.filter(m => {
+                const folder = (m.folder || "").toLowerCase();
+                const target = countryName.toLowerCase();
+                const folderMatch = folder.includes(target) || target.includes(folder) || folder === 'global';
+
+                let typeMatch = true;
+                if (currentTypeFilter === 'AI') typeMatch = m.name.includes('AI_');
+                else if (currentTypeFilter !== 'ALL') typeMatch = (m.type === currentTypeFilter);
+
+                return folderMatch && typeMatch;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div style="grid-column:span 2; text-align:center; padding:20px; color:#555;">No media for ${countryName}.<br><small>Upload to /media/${countryName}/</small></div>`;
+                return;
+            }
+
+            filtered.forEach(m => {
+                const el = document.createElement('div');
+                el.style.border = "1px solid #333";
+                el.style.padding = "5px";
+
+                let preview = '';
+                if (m.type === 'video') preview = `<div style="height:80px; background:#000; color:#fff; display:flex; align-items:center; justify-content:center;">🎥</div>`;
+                else if (m.type === 'audio') preview = `<div style="height:80px; background:#222; color:#fff; display:flex; align-items:center; justify-content:center;">🎵</div>`;
+                else preview = `<div style="height:80px; background:url('${m.url}') center/cover;"></div>`;
+
+                el.innerHTML = `
+                    ${preview}
+                    <div style="font-size:0.6rem; margin:5px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${m.name}</div>
+                    <button onclick="launchMedia('${m.url}', '${m.type}')" style="font-size:0.6rem; background:#333; width:100%;">LAUNCH</button>
+                `;
+                grid.appendChild(el);
+            });
+        }
+
+        document.getElementById('country-select').addEventListener('change', () => renderMediaGrid());
 
         async function launchMedia(url, type) {
             log(`Launching Media: ${url}`);
