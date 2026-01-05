@@ -206,7 +206,13 @@ const server = http.createServer(async (req, res) => {
     // Endpoints
     if (req.method === 'GET' && apiPath === '/status') {
         res.writeHead(200, headers);
-        res.end(JSON.stringify({ autoMode: state.autoMode, currentScene: state.currentScene, editorial: state.editorial, queue: state.travelQueue }));
+        res.end(JSON.stringify({ 
+            autoMode: state.autoMode, 
+            currentScene: state.currentScene, 
+            editorial: state.editorial, 
+            queue: state.travelQueue,
+            clientTelemetry: state.clientTelemetry // Incluir telemetría para determinar hoja del libro
+        }));
         return;
     }
 
@@ -229,9 +235,17 @@ const server = http.createServer(async (req, res) => {
         req.on('end', async () => {
             const m = JSON.parse(body || '{}');
             let txt = m.narrate ? await dreamNarrative(m.name || "imagen") : null;
-            state.eventQueue.push({ type: 'media', url: m.url, mediaType: m.type || 'image', textToSpeak: txt });
+            // Incluir nombre y tipo en el evento para mejor tracking
+            state.eventQueue.push({ 
+                type: 'media', 
+                url: m.url, 
+                mediaType: m.type || 'image', 
+                name: m.name || 'Media',
+                textToSpeak: txt 
+            });
+            console.log(`📺 Media Event Queued: ${m.name || 'Unknown'} (${m.type || 'image'})`);
             res.writeHead(200, headers);
-            res.end(JSON.stringify({ success: true, narrative: txt }));
+            res.end(JSON.stringify({ success: true, narrative: txt, name: m.name, type: m.type || 'image' }));
         });
         return;
     }

@@ -89,6 +89,16 @@ class EventManager {
                 case 'travel_to':
                     if (this.handlers['travel_to']) this.handlers['travel_to'](event.payload);
                     break;
+                case 'media':
+                    // Evento de media con url, mediaType y textToSpeak
+                    if (this.handlers['media']) {
+                        this.handlers['media']({
+                            url: event.url,
+                            mediaType: event.mediaType || 'image',
+                            textToSpeak: event.textToSpeak
+                        });
+                    }
+                    break;
                 case 'auto_on':
                 case 'auto_off':
                     // Ya manejado por el flag

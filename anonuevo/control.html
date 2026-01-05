@@ -259,10 +259,25 @@
                     <span>DURATION:</span>
                     <span id="visit-timer" class="stat-val">--:--</span>
                 </div>
+                <div class="stat-row" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border);">
+                    <span>📖 HOJA DEL LIBRO:</span>
+                    <span id="book-page" class="stat-val" style="color: #a855f7;">--</span>
+                </div>
             </div>
 
             <div class="panel" style="flex: 1;">
                 <h2>Media Repository (Curated)</h2>
+                
+                <!-- Indicador de Media Activo -->
+                <div id="active-media-indicator" style="display: none; background: rgba(56, 189, 248, 0.1); border: 1px solid var(--accent); border-radius: 4px; padding: 10px; margin-bottom: 10px; font-family: 'JetBrains Mono'; font-size: 0.7rem;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="color: var(--accent);">▶</span>
+                        <span style="color: #94a3b8;">Lanzando:</span>
+                        <span id="active-media-name" style="color: var(--accent); font-weight: bold;"></span>
+                    </div>
+                    <div style="font-size: 0.65rem; color: #64748b; margin-top: 5px;" id="active-media-url"></div>
+                </div>
+                
                 <div id="media-grid"
                     style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; overflow-y: auto; max-height: 400px;">
                     <div style="grid-column: span 2; text-align: center; padding: 40px; color: #444;">Select a country
@@ -524,10 +539,15 @@
                 else if (m.type === 'audio') preview = `<div style="height:80px; background:#222; color:#fff; display:flex; align-items:center; justify-content:center;">🎵</div>`;
                 else preview = `<div style="height:80px; background:url('${m.url}') center/cover;"></div>`;
 
+                // Escapar comillas para evitar problemas en onclick
+                const safeUrl = m.url.replace(/'/g, "\\'");
+                const safeName = m.name.replace(/'/g, "\\'");
+                const safeType = m.type.replace(/'/g, "\\'");
+                
                 el.innerHTML = `
                     ${preview}
                     <div style="font-size:0.6rem; margin:5px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${m.name}</div>
-                    <button onclick="launchMedia('${m.url}', '${m.type}', '${m.name}')" style="font-size:0.6rem; background:#333; width:100%;">LAUNCH</button>
+                    <button onclick="launchMedia('${safeUrl}', '${safeType}', '${safeName}')" style="font-size:0.6rem; background:#333; width:100%;" data-media-name="${safeName}" data-media-url="${safeUrl}">LAUNCH</button>
                 `;
                 grid.appendChild(el);
             });
@@ -538,8 +558,64 @@
         async function launchMedia(url, type, name) {
             const narrateEl = document.getElementById('narrate-checkbox');
             const narrate = narrateEl ? narrateEl.checked : false;
-            log(`Launching Media: ${url} (Narrate: ${narrate})`);
-            await api('/event/media', 'POST', { url, type, name, narrate });
+            
+            // Mostrar indicador visual
+            const indicator = document.getElementById('active-media-indicator');
+            const mediaName = document.getElementById('active-media-name');
+            const mediaUrl = document.getElementById('active-media-url');
+            
+            // Resaltar el botón que se presionó (definir antes de usarlo en callbacks)
+            const buttons = document.querySelectorAll(`button[data-media-url="${url}"]`);
+            
+            if (indicator && mediaName && mediaUrl) {
+                indicator.style.display = 'block';
+                mediaName.textContent = name;
+                mediaUrl.textContent = url;
+                
+                buttons.forEach(btn => {
+                    btn.style.background = 'var(--accent)';
+                    btn.style.color = '#000';
+                    btn.textContent = '▶ Lanzando...';
+                    btn.disabled = true;
+                });
+            }
+            
+            log(`🚀 Launching Media: ${name} (${type}) - Narrate: ${narrate}`);
+            
+            // Función para restaurar botones
+            const restoreButtons = () => {
+                buttons.forEach(btn => {
+                    btn.style.background = '#333';
+                    btn.style.color = 'white';
+                    btn.textContent = 'LAUNCH';
+                    btn.disabled = false;
+                });
+            };
+            
+            try {
+                const result = await api('/event/media', 'POST', { url, type, name, narrate });
+                
+                if (result && result.success) {
+                    log(`✅ Media launched successfully`);
+                    if (result.narrative) {
+                        log(`📝 Narrative generated: "${result.narrative}"`);
+                    }
+                    
+                    // Mantener indicador visible por 5 segundos
+                    setTimeout(() => {
+                        if (indicator) {
+                            indicator.style.display = 'none';
+                        }
+                        restoreButtons();
+                    }, 5000);
+                } else {
+                    throw new Error('Launch failed');
+                }
+            } catch (e) {
+                log(`❌ Error launching media: ${e.message}`);
+                if (indicator) indicator.style.display = 'none';
+                restoreButtons();
+            }
         }
 
         async function triggerEvent(type) {
@@ -550,6 +626,21 @@
         async function triggerForceDream() {
             log("Forcing Dream Generation...");
             await api('/api/dream', 'POST');
+        }
+
+        // Mapeo de escenas a hojas del libro según el manifiesto
+        function getBookPageFromScene(scene, telemetry) {
+            const sceneMap = {
+                'intro': '📖 Portada del Viaje',
+                'mapa': '🌍 Mapa Global (Ubicación)',
+                'pais': telemetry?.country ? `🏳️ País: ${telemetry.country}` : '🏳️ Detalle de País',
+                'reflexion': '💭 Reflexión',
+                'portada': '📖 Portada del Viaje',
+                'diario': '📔 Diario de Viaje',
+                'estado-actual': '⚡ Estado Actual'
+            };
+            
+            return sceneMap[scene] || `📄 ${scene || 'Desconocida'}`;
         }
 
         // --- POLLING ---
@@ -611,6 +702,21 @@
             } else {
                 btnDream.innerText = "OFF";
                 btnDream.className = "";
+            }
+            
+            // 4. Hoja del Libro (NUEVO)
+            const bookPageEl = document.getElementById('book-page');
+            if (bookPageEl) {
+                const currentScene = data.currentScene || 'intro';
+                const telemetry = data.clientTelemetry || {};
+                const bookPage = getBookPageFromScene(currentScene, telemetry);
+                bookPageEl.textContent = bookPage;
+                
+                // Agregar información adicional si hay país activo
+                if (telemetry.country && telemetry.country !== 'GLOBAL' && telemetry.country !== 'UNKNOWN') {
+                    const dayInfo = telemetry.day ? ` - Día ${telemetry.day}` : '';
+                    bookPageEl.textContent += dayInfo;
+                }
             }
         }
 
