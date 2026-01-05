@@ -199,8 +199,12 @@
             <div id="session-timer" style="font-family: 'JetBrains Mono'; color: #888;">00:00:00</div>
         </div>
 
-        <div style="display: flex; gap: 10px;">
-            <input type="text" id="day-id-input" placeholder="ID del Día (ej: Día 1)" style="width: 200px; margin: 0;">
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 5px; color: #888; font-size: 0.7rem;">
+                <input type="checkbox" id="sim-mode" style="width: auto; margin: 0;">
+                <label for="sim-mode">TEST MODE</label>
+            </div>
+            <input type="text" id="day-id-input" placeholder="ID del Día (ej: Día 1)" style="width: 150px; margin: 0;">
             <button onclick="startDay()" id="btn-start-day"
                 style="width: auto; background: var(--success); color: black; font-weight: bold;">
                 ▶ START DAY
@@ -355,9 +359,10 @@
         // --- EDITORIAL ACTIONS ---
         async function startDay() {
             const id = document.getElementById('day-id-input').value;
+            const isTest = document.getElementById('sim-mode').checked;
             if (!id) return alert("Enter Day ID");
-            log(`Starting Editorial Day: ${id}`);
-            await api('/event/day/start', 'POST', { id });
+            log(`Starting Editorial Day: ${id} (Test: ${isTest})`);
+            await api('/event/day/start', 'POST', { id, isTest });
         }
 
         async function endDay() {

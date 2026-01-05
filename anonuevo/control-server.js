@@ -31,118 +31,12 @@ let state = {
     editorial: {
         status: 'IDLE', // IDLE, LIVE
         dayId: null,    // "Dia 1", "Especial"
+        isTest: false,  // Nuevo: Flag de Simulación
         startTime: null,
         visits: [],     // Historial de visitas de este dia
         currentVisit: null // Visita activa { country, start, content: [] }
     }
 };
-
-// ...
-
-// Helper para guardar el Libro del Día
-function saveEditorialDay(dayData) {
-    const filename = `day-${dayData.dayId.replace(/\s+/g, '_')}-${Date.now()}.json`;
-    const filepath = path.join(__dirname, 'data', 'books', filename);
-
-    // Asegurar directorio
-    const booksDir = path.join(__dirname, 'data', 'books');
-    if (!fs.existsSync(booksDir)) fs.mkdirSync(booksDir, { recursive: true });
-
-    try {
-        fs.writeFileSync(filepath, JSON.stringify(dayData, null, 2));
-        console.log(`[Editorial] 📘 Book Page saved: ${filepath}`);
-    } catch (e) { console.error("Error saving book:", e); }
-}
-
-// ...
-
-// POST /event/day/start
-if (req.method === 'POST' && apiPath === '/event/day/start') {
-    let body = '';
-    req.on('data', chunk => { body += chunk.toString(); });
-    req.on('end', () => {
-        const { id } = JSON.parse(body || '{}');
-        state.editorial = {
-            status: 'LIVE',
-            dayId: id || `Dia_${new Date().toISOString().split('T')[0]}`,
-            startTime: Date.now(),
-            visits: [],
-            currentVisit: null
-        };
-        console.log(`[Editorial] ▶ STARTED DAY: ${state.editorial.dayId}`);
-        res.writeHead(200, headers);
-        res.end(JSON.stringify({ success: true, editorial: state.editorial }));
-    });
-    return;
-}
-
-// POST /event/day/end
-if (req.method === 'POST' && apiPath === '/event/day/end') {
-    if (state.editorial.status === 'LIVE') {
-        // Cerrar última visita si existe
-        if (state.editorial.currentVisit) {
-            state.editorial.currentVisit.endTime = Date.now();
-            state.editorial.visits.push(state.editorial.currentVisit);
-        }
-
-        const finalData = { ...state.editorial, endTime: Date.now(), status: 'ARCHIVED' };
-        saveEditorialDay(finalData);
-
-        console.log(`[Editorial] ⏹ ENDED DAY: ${state.editorial.dayId}`);
-
-        // Logica Reset
-        state.editorial = { status: 'IDLE', dayId: null, startTime: null, visits: [], currentVisit: null };
-        state.autoMode = false; // Seguridad: Apagar auto al terminar
-    }
-    res.writeHead(200, headers);
-    res.end(JSON.stringify({ success: true }));
-    return;
-}
-
-// GET /event/travel/:code (MODIFICADO para registrar visitas)
-if (req.method === 'GET' && apiPath.startsWith('/event/travel/')) {
-    const code = apiPath.split('/').pop();
-    console.log(`[Director] Travel command: ${code}`);
-
-    // 1. Encolar evento de viaje
-    state.eventQueue.push({ type: 'travel_to', code: code });
-
-    // 2. REGISTRO EDITORIAL (Si estamos EN VIVO)
-    if (state.editorial.status === 'LIVE') {
-        const now = Date.now();
-        // Cerrar anterior
-        if (state.editorial.currentVisit) {
-            state.editorial.currentVisit.endTime = now;
-            state.editorial.visits.push(state.editorial.currentVisit);
-        }
-        // Abrir nueva
-        state.editorial.currentVisit = {
-            country: code,
-            startTime: now,
-            endTime: null,
-            mediaShown: []
-        };
-    }
-
-    res.writeHead(200, headers);
-    res.end(JSON.stringify({ success: true }));
-    return;
-}
-
-// ...
-
-// GET /status (Actualizado)
-if (req.method === 'GET' && apiPath === '/status') {
-    res.writeHead(200, headers);
-    res.end(JSON.stringify({
-        autoMode: state.autoMode,
-        currentScene: state.currentScene,
-        telemetry: state.clientTelemetry,
-        queue: state.travelQueue || [],
-        editorial: state.editorial // Exponemos estado editorial
-    }));
-    return;
-}
 
 // Headers CORS
 const headers = {
@@ -168,9 +62,25 @@ function saveLivingScript(data) {
     } catch (e) { console.error("Error saving script:", e); }
 }
 
-// --- UTILIDAD DE GENERACIÓN (THE DREAMER) ---
-// --- UTILIDAD DE GENERACIÓN (MULTI-CEREBRO) ---
+// Helper para guardar el Libro del Día
+function saveEditorialDay(dayData) {
+    const filename = `day-${dayData.dayId.replace(/\s+/g, '_')}-${Date.now()}.json`;
 
+    // Si es TEST, guardar en carpeta separada
+    const subfolder = dayData.isTest ? 'simulations' : 'books';
+    const booksDir = path.join(__dirname, 'data', subfolder);
+
+    if (!fs.existsSync(booksDir)) fs.mkdirSync(booksDir, { recursive: true });
+
+    const filepath = path.join(booksDir, filename);
+
+    try {
+        fs.writeFileSync(filepath, JSON.stringify(dayData, null, 2));
+        console.log(`[Editorial] 📘 ${dayData.isTest ? '[TEST]' : ''} Book Page saved: ${filepath}`);
+    } catch (e) { console.error("Error saving book:", e); }
+}
+
+// --- UTILIDAD DE GENERACIÓN (THE DREAMER) ---
 async function dreamWithHuggingFace(prompt) {
     if (!process.env.HF_API_KEY) return null;
 
@@ -205,7 +115,6 @@ async function dreamWithHuggingFace(prompt) {
 
 async function dreamNewPhrase(category) {
     let prompt = "";
-    // Prompts mejorados para que funcionen bien en ambos modelos
     if (category === 'definition') {
         prompt = "Eres ilfass, una IA viajera y misteriosa. Genera UNA sola frase corta (max 10 palabras) filosófica y poética sobre qué es este viaje digital. Sin explicaciones, solo la frase.";
     } else if (category === 'concept') {
@@ -239,7 +148,7 @@ const server = http.createServer(async (req, res) => {
     // Manejar Preflight CORS
     if (req.method === 'OPTIONS') { res.writeHead(204, headers); res.end(); return; }
 
-    // GET /api/living-script - Frontend pide los bloques de Lego
+    // GET /api/living-script
     if (req.method === 'GET' && apiPath === '/api/living-script') {
         const data = loadLivingScript();
         if (data) {
@@ -252,46 +161,110 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    // POST /api/dream - Trigger asíncrono para generar contenido futuro
+    // POST /api/dream
     if (req.method === 'POST' && apiPath === '/api/dream') {
         res.writeHead(202, headers);
         res.end(JSON.stringify({ status: "Dreaming started..." }));
 
-        // Ejecución en background (Fire & Forget)
-        // Solo soñamos 1 frase por vez para no saturar
         const categories = ['definition', 'concept'];
         const targetCat = categories[Math.floor(Math.random() * categories.length)];
 
         const newPhrase = await dreamNewPhrase(targetCat);
         if (newPhrase) {
             const currentData = loadLivingScript() || { definitions: [], concepts: [], missions: [] };
-
-            // Añadir y limitar a 20 frases para no crecer infinitamente
             if (targetCat === 'definition') currentData.definitions.push(newPhrase);
             if (targetCat === 'concept') currentData.concepts.push(newPhrase);
-
-            // Trim
             if (currentData.definitions.length > 20) currentData.definitions.shift();
-
             saveLivingScript(currentData);
         }
         return;
     }
 
-    // ... (RUTAS VIEJAS DE POLLING MANTENIDAS) ...
+    // POST /event/day/start
+    if (req.method === 'POST' && apiPath === '/event/day/start') {
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', () => {
+            const { id, isTest } = JSON.parse(body || '{}');
+            state.editorial = {
+                status: 'LIVE',
+                dayId: id || `Dia_${new Date().toISOString().split('T')[0]}`,
+                isTest: !!isTest,
+                startTime: Date.now(),
+                visits: [],
+                currentVisit: null
+            };
+            console.log(`[Editorial] ▶ STARTED DAY: ${state.editorial.dayId} (Test: ${state.editorial.isTest})`);
+            res.writeHead(200, headers);
+            res.end(JSON.stringify({ success: true, editorial: state.editorial }));
+        });
+        return;
+    }
+
+    // POST /event/day/end
+    if (req.method === 'POST' && apiPath === '/event/day/end') {
+        if (state.editorial.status === 'LIVE') {
+            // Cerrar última visita si existe
+            if (state.editorial.currentVisit) {
+                state.editorial.currentVisit.endTime = Date.now();
+                state.editorial.visits.push(state.editorial.currentVisit);
+            }
+
+            const finalData = { ...state.editorial, endTime: Date.now(), status: 'ARCHIVED' };
+            saveEditorialDay(finalData);
+
+            console.log(`[Editorial] ⏹ ENDED DAY: ${state.editorial.dayId}`);
+
+            // Logica Reset
+            state.editorial = { status: 'IDLE', dayId: null, isTest: false, startTime: null, visits: [], currentVisit: null };
+            state.autoMode = false;
+        }
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({ success: true }));
+        return;
+    }
+
+    // GET /event/travel/:code
+    if (req.method === 'GET' && apiPath.startsWith('/event/travel/')) {
+        const code = apiPath.split('/').pop();
+        console.log(`[Director] Travel command: ${code}`);
+
+        // 1. Encolar evento de viaje
+        state.eventQueue.push({ type: 'travel_to', code: code });
+
+        // 2. REGISTRO EDITORIAL (Si estamos EN VIVO)
+        if (state.editorial.status === 'LIVE') {
+            const now = Date.now();
+            // Cerrar anterior
+            if (state.editorial.currentVisit) {
+                state.editorial.currentVisit.endTime = now;
+                state.editorial.visits.push(state.editorial.currentVisit);
+            }
+            // Abrir nueva
+            state.editorial.currentVisit = {
+                country: code,
+                startTime: now,
+                endTime: null,
+                mediaShown: []
+            };
+        }
+
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({ success: true }));
+        return;
+    }
+
     // POST /event/auto_toggle
     if (req.method === 'POST' && apiPath === '/event/auto_toggle') {
         state.autoMode = !state.autoMode;
         console.log(`[Director] Auto Mode toggled to: ${state.autoMode}`);
-        // Limpiar cola de eventos automática si se apaga? No necesariamente.
-        // Pero si se enciende, quizás queramos notificar.
         state.eventQueue.push({ type: 'mode_change', autoMode: state.autoMode });
         res.writeHead(200, headers);
         res.end(JSON.stringify({ success: true, autoMode: state.autoMode }));
         return;
     }
 
-    // POST /event/media - Lanzar contenido multimedia
+    // POST /event/media
     if (req.method === 'POST' && apiPath === '/event/media') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -299,7 +272,6 @@ const server = http.createServer(async (req, res) => {
             try {
                 const mediaData = JSON.parse(body);
                 console.log(`[Director] Launching Media: ${JSON.stringify(mediaData)}`);
-                // Encolar evento 'media' para el frontend
                 state.eventQueue.push({
                     type: 'media',
                     url: mediaData.url,
@@ -322,12 +294,13 @@ const server = http.createServer(async (req, res) => {
             autoMode: state.autoMode,
             currentScene: state.currentScene,
             telemetry: state.clientTelemetry,
-            queue: state.travelQueue || []
+            queue: state.travelQueue || [],
+            editorial: state.editorial
         }));
         return;
     }
 
-    // POST /event/queue/add - Añadir a la playlist
+    // POST /event/queue/add
     if (req.method === 'POST' && apiPath === '/event/queue/add') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -349,7 +322,7 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    // POST /event/queue/pop - Consumir siguiente destino (Lo usa el AutoPilot)
+    // POST /event/queue/pop
     if (req.method === 'POST' && apiPath === '/event/queue/pop') {
         const next = (state.travelQueue && state.travelQueue.length > 0) ? state.travelQueue.shift() : null;
         res.writeHead(200, headers);
@@ -357,7 +330,7 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    // POST /api/telemetry - Frontend reporta su estado real
+    // POST /api/telemetry
     if (req.method === 'POST' && apiPath === '/api/telemetry') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -375,7 +348,7 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    // GET /poll
+    // GET /poll (Legacy)
     if (req.method === 'GET' && apiPath === '/poll') {
         res.writeHead(200, headers);
         const response = { autoMode: state.autoMode, events: [...state.eventQueue] };
@@ -384,35 +357,12 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    // Endpoint específico para viajar a un país
-    if (apiPath.startsWith('/event/travel/')) {
-        const targetCountry = apiPath.split('/').pop();
-        state.eventQueue.push({
-            type: 'travel_to',
-            payload: targetCountry
-        });
-        res.writeHead(200, headers);
-        res.end(JSON.stringify({ status: 'queued', country: targetCountry }));
-        return;
-    }
-
-    // Endpoint específico para cambio de escena con payload
+    // Scene change
     if (apiPath.startsWith('/event/scene/')) {
         const targetScene = apiPath.split('/').pop();
-        state.eventQueue.push({
-            type: 'scene_change',
-            payload: targetScene
-        });
+        state.eventQueue.push({ type: 'scene_change', payload: targetScene });
         res.writeHead(200, headers);
         res.end(JSON.stringify({ status: 'queued', scene: targetScene }));
-        return;
-    }
-
-    // Rutas de eventos simples (news, fact)
-    if (apiPath.startsWith('/event/')) {
-        state.eventQueue.push({ type: apiPath.split('/').pop() });
-        res.writeHead(200, headers);
-        res.end(JSON.stringify({ status: 'ok' }));
         return;
     }
 
