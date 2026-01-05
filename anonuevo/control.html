@@ -468,11 +468,11 @@
                     genBtn.style.color = "white";
                     genBtn.style.border = "none";
                     genBtn.onclick = async () => {
-                        const prompt = prompt("Descripción del sueño (Imagen):", `Paisaje onírico de ${countryName}`);
-                        if (prompt) {
+                        const userPrompt = window.prompt("Descripción del sueño (Imagen):", `Paisaje onírico de ${countryName}`);
+                        if (userPrompt) {
                             genBtn.innerText = "Dreaming... ⏳";
                             try {
-                                await api('/api/generate-image', 'POST', { prompt });
+                                await api('/api/generate-image', 'POST', { prompt: userPrompt });
                                 alert("Dream Created! Refreshing...");
                                 loadCountryMedia(); // Recargar
                             } catch (e) {

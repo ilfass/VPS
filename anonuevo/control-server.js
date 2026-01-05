@@ -332,6 +332,25 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // Telemetry (Client updates server)
+    if (req.method === 'POST' && apiPath === '/api/telemetry') {
+        let body = '';
+        req.on('data', c => body += c);
+        req.on('end', () => {
+            const t = JSON.parse(body || '{}');
+            state.clientTelemetry = { ...state.clientTelemetry, ...t, lastUpdate: Date.now() };
+            if (t.country && state.editorial.status === 'LIVE') {
+                // Si estamos en VIVO, actualizamos la visita actual
+                state.editorial.currentVisit = { country: t.country, time: Date.now() };
+                state.editorial.visits.push(state.editorial.currentVisit);
+                saveState();
+            }
+            res.writeHead(200, headers);
+            res.end('{"success":true}');
+        });
+        return;
+    }
+
     res.writeHead(404, headers); res.end('{"error":"Not Found"}');
 });
 
