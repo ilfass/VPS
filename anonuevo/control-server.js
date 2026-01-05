@@ -300,6 +300,18 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, headers);
         res.end('{"success":true}');
         return;
+        return;
+    }
+
+    // Scene Change
+    if (apiPath.startsWith('/event/scene/')) {
+        const targetScene = apiPath.split('/').pop();
+        state.eventQueue.push({ type: 'scene_change', payload: targetScene });
+        state.currentScene = targetScene;
+        saveState();
+        res.writeHead(200, headers);
+        res.end('{"success":true}');
+        return;
     }
 
     // Day controls
