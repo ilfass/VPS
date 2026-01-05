@@ -289,6 +289,17 @@
                 </button>
             </div>
 
+            <div class="panel">
+                <h2>Direct Interventions</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button onclick="triggerEvent('fact')">💡 FACT</button>
+                    <button onclick="triggerEvent('glitch')">⚡ GLITCH</button>
+                    <button onclick="triggerEvent('news')"
+                        style="grid-column: span 2; border-color: var(--danger); color: var(--danger);">🚨 BREAKING
+                        NEWS</button>
+                </div>
+            </div>
+
             <div class="panel" style="flex: 1; min-height: 200px;">
                 <h2>Console Log</h2>
                 <div id="console"
@@ -423,6 +434,16 @@
         async function launchMedia(url) {
             log("Launching Media to Screen...");
             await api('/event/media', 'POST', { url, type: 'image' });
+        }
+
+        async function triggerEvent(type) {
+            log(`Triggering Event: ${type}`);
+            await api(`/event/${type}`);
+        }
+
+        async function triggerForceDream() {
+            log("Forcing Dream Generation...");
+            await api('/api/dream', 'POST');
         }
 
         // --- POLLING ---
