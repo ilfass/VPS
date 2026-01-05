@@ -106,7 +106,10 @@ export default class MapaMode {
             console.log(`[Mapa] Director ordered travel to: ${code}`);
             const countryData = COUNTRY_INFO[code];
             if (countryData) {
-                this.zoomToCountry(countryData.name, code);
+                // CORRECCIÓN: Pasar objeto completo como espera zoomToCountry
+                this.zoomToCountry({ id: code, ...countryData });
+            } else {
+                console.warn(`[Mapa] Country code ${code} not found in database.`);
             }
         });
 
@@ -114,6 +117,20 @@ export default class MapaMode {
         eventManager.on('media', (data) => {
             console.log(`[Mapa] Media Event Received:`, data);
             this.showMediaOverlay(data.url, data.mediaType);
+        });
+
+        // Escuchar evento 'glitch'
+        eventManager.on('glitch', () => {
+            console.log("[Mapa] Triggering Glitch Effect");
+            const mapContainer = document.getElementById('d3-map-container');
+            if (mapContainer) {
+                mapContainer.style.filter = "invert(1) hue-rotate(180deg) blur(2px)";
+                mapContainer.style.transform = "scale(1.02) skewX(2deg)";
+                setTimeout(() => {
+                    mapContainer.style.filter = "none";
+                    mapContainer.style.transform = "none";
+                }, 400); // 400ms glitch
+            }
         });
 
         // 3. Cargar Datos (GeoJSON)
@@ -746,6 +763,57 @@ export default class MapaMode {
                 diaryEl.classList.add('hidden-bottom');
             }, 15000);
         }
+    }
+
+    showMediaOverlay(url, type = 'image') {
+        // Eliminar existente si hay
+        const existing = document.getElementById('media-overlay-container');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'media-overlay-container';
+        overlay.className = 'fade-in';
+        overlay.style.position = 'absolute';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.background = 'rgba(0,0,0,0.9)';
+        overlay.style.display = 'flex';
+        overlay.style.justifyContent = 'center';
+        overlay.style.alignItems = 'center';
+        overlay.style.zIndex = '500';
+        overlay.style.cursor = 'pointer';
+
+        // Cerrar al click
+        overlay.onclick = () => overlay.remove();
+
+        let content;
+        if (type === 'video') {
+            content = document.createElement('video');
+            content.src = url;
+            content.autoplay = true;
+            content.controls = false; // Estilo cinemático
+            content.style.maxWidth = '90%';
+            content.style.maxHeight = '90%';
+            content.style.borderRadius = '8px';
+            content.style.boxShadow = '0 0 50px rgba(0,0,0,0.8)';
+            content.onended = () => overlay.remove(); // Cerrar al terminar
+        } else {
+            content = document.createElement('img');
+            content.src = url;
+            content.style.maxWidth = '90%';
+            content.style.maxHeight = '90%';
+            content.style.borderRadius = '8px';
+            content.style.boxShadow = '0 0 50px rgba(255,255,255,0.1)';
+            content.style.objectFit = 'contain';
+        }
+
+        overlay.appendChild(content);
+        this.container.appendChild(overlay);
+
+        // Sonido de "Open Media" (opcional)
+        // audioManager.playSound('ui_open');
     }
 
     unmount() {

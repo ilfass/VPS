@@ -407,33 +407,55 @@
             await api('/event/auto_toggle', 'POST');
         }
 
-        function loadCountryMedia() {
-            const code = document.getElementById('country-select').value;
+        async function loadCountryMedia() {
+            // Cargar repositorio real del servidor
             const grid = document.getElementById('media-grid');
-            grid.innerHTML = "";
-            const media = MOCK_MEDIA[code] || [];
+            grid.innerHTML = '<div style="grid-column:span 2; text-align:center; padding:20px; color:#555;">Loading Server Media...</div>';
 
-            if (media.length === 0) {
-                grid.innerHTML = '<div style="grid-column:span 2; text-align:center; padding:20px; color:#555;">No media available.</div>';
-                return;
+            try {
+                const mediaFiles = await api('/api/media-list');
+                grid.innerHTML = "";
+
+                if (!mediaFiles || mediaFiles.length === 0) {
+                    grid.innerHTML = '<div style="grid-column:span 2; text-align:center; padding:20px; color:#555;">No media in /anonuevo/media/ folder.</div>';
+                    return;
+                }
+
+                // Filtrar por país si se seleccionó uno? 
+                // Por simplicidad V5: Mostrar todo el banco de medios. El director elige qué lanzar.
+                // En futuro: filtrar por nombre de archivo (ej: argentina_glaciar.jpg)
+
+                const selectedCountryCode = document.getElementById('country-select').value;
+                // Opcional: filtrar si el nombre contiene el código o nombre del país (implementación futura)
+
+                mediaFiles.forEach(m => {
+                    const el = document.createElement('div');
+                    el.style.border = "1px solid #333";
+                    el.style.padding = "5px";
+
+                    let preview = '';
+                    if (m.type === 'video') {
+                        preview = `<div style="height:80px; background:#000; color:#fff; display:flex; align-items:center; justify-content:center;">VIDEO</div>`;
+                    } else {
+                        preview = `<div style="height:80px; background:url('${m.url}') center/cover;"></div>`;
+                    }
+
+                    el.innerHTML = `
+                        ${preview}
+                        <div style="font-size:0.6rem; margin:5px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${m.name}</div>
+                        <button onclick="launchMedia('${m.url}', '${m.type}')" style="font-size:0.6rem; background:#333;">LAUNCH</button>
+                    `;
+                    grid.appendChild(el);
+                });
+            } catch (e) {
+                console.error(e);
+                grid.innerHTML = '<div style="grid-column:span 2; text-align:center; padding:20px; color:red;">Error loading media.</div>';
             }
-
-            media.forEach(m => {
-                const el = document.createElement('div');
-                el.style.border = "1px solid #333";
-                el.style.padding = "5px";
-                el.innerHTML = `
-                    <div style="height:80px; background:url('${m.src}') center/cover;"></div>
-                    <div style="font-size:0.7rem; margin:5px 0;">${m.title}</div>
-                    <button onclick="launchMedia('${m.src}')" style="font-size:0.6rem;">LAUNCH</button>
-                `;
-                grid.appendChild(el);
-            });
         }
 
-        async function launchMedia(url) {
-            log("Launching Media to Screen...");
-            await api('/event/media', 'POST', { url, type: 'image' });
+        async function launchMedia(url, type) {
+            log(`Launching Media: ${url}`);
+            await api('/event/media', 'POST', { url, type });
         }
 
         async function triggerEvent(type) {

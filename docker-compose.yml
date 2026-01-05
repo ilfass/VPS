@@ -80,6 +80,8 @@ services:
     build: ./anonuevo
     expose:
       - "80"
+    volumes:
+      - ./anonuevo/media:/usr/share/nginx/html/media
     restart: always
 
   anonuevo-control:

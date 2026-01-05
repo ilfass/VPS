@@ -161,6 +161,33 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // GET /api/media-list (NUEVO)
+    if (req.method === 'GET' && apiPath === '/api/media-list') {
+        const mediaDir = path.join(__dirname, 'media');
+        try {
+            if (!fs.existsSync(mediaDir)) {
+                res.writeHead(200, headers);
+                res.end(JSON.stringify([]));
+                return;
+            }
+            const files = fs.readdirSync(mediaDir);
+            const mediaFiles = files.filter(f => /\.(jpg|jpeg|png|gif|mp4|webm)$/i.test(f)).map(f => {
+                return {
+                    name: f,
+                    url: `/media/${f}`,
+                    type: /\.(mp4|webm)$/i.test(f) ? 'video' : 'image'
+                };
+            });
+            res.writeHead(200, headers);
+            res.end(JSON.stringify(mediaFiles));
+        } catch (e) {
+            console.error("Media list error:", e);
+            res.writeHead(500, headers);
+            res.end(JSON.stringify({ error: "Media Error" }));
+        }
+        return;
+    }
+
     // POST /api/dream
     if (req.method === 'POST' && apiPath === '/api/dream') {
         res.writeHead(202, headers);
