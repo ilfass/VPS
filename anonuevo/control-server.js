@@ -176,15 +176,23 @@ const server = http.createServer(async (req, res) => {
                 if (stat && stat.isDirectory()) {
                     results = results.concat(getFiles(filePath, path.join(base, file)));
                 } else {
-                    if (/\.(jpg|jpeg|png|gif|mp4|webm)$/i.test(file)) {
-                        // Usar path.posix para asegurar barras normales en URL
+                    if (/\.(jpg|jpeg|png|gif|mp4|webm|mp3|txt|md)$/i.test(file)) {
                         const urlPath = path.posix.join(base, file);
+                        // Extraer primera carpeta como "País"
+                        const parts = base.split(path.sep);
+                        const countryFolder = parts.length > 0 ? parts[0] : 'Global';
+
+                        let type = 'image';
+                        if (/\.(mp4|webm)$/i.test(file)) type = 'video';
+                        if (/\.(mp3|wav)$/i.test(file)) type = 'audio';
+                        if (/\.(txt|md)$/i.test(file)) type = 'text';
+
                         results.push({
-                            name: file, // Nombre solo
-                            path: base, // Carpeta (Pais)
-                            // URL debe ser relativa al servidor web nginx -> /media/Pais/Archivo
+                            name: file,
+                            path: base,
+                            folder: countryFolder,
                             url: `/media/${urlPath.replace(/\\/g, '/')}`,
-                            type: /\.(mp4|webm)$/i.test(file) ? 'video' : 'image'
+                            type: type
                         });
                     }
                 }
