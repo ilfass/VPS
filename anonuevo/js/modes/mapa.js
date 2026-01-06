@@ -37,6 +37,7 @@ export default class MapaMode {
         this.travelTimeout = null;
         this.currentCountryId = null; // Track current country
         this.isNarrating = false; // Flag para prevenir zoom out durante narración
+        this.isNarrating = false; // Flag para prevenir zoom out durante narración
     }
 
     async mount() {
@@ -422,6 +423,12 @@ export default class MapaMode {
     }
 
     cycleZoomOut() {
+        // Verificar si hay una narración en curso - NO interrumpir
+        if (this.isNarrating || audioManager.currentState === AUDIO_STATES.COUNTRY_NARRATION) {
+            console.log('[Mapa] ⚠️ Zoom out cancelado: narración en curso');
+            return;
+        }
+
         this.resetZoom();
         const timing = streamManager.getTimingConfig();
 
@@ -527,9 +534,14 @@ export default class MapaMode {
                     pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
 
                     // Si no hablamos, estamos 'active' en visual un rato y luego salimos
-                    this.travelTimeout = setTimeout(() => {
-                        this.cycleZoomOut();
-                    }, timing.zoomDuration);
+                    // Solo si no hay narración en curso
+                    if (!this.isNarrating) {
+                        this.travelTimeout = setTimeout(() => {
+                            if (!this.isNarrating) {
+                                this.cycleZoomOut();
+                            }
+                        }, timing.zoomDuration);
+                    }
                     return;
                 }
 
@@ -955,10 +967,22 @@ Genera una introducción en primera persona (como ilfass) que:
             // 6. Narrar el relato con subtítulos
             pacingEngine.startEvent(CONTENT_TYPES.VOICE);
             
+            // Cancelar cualquier timeout de zoom out que pueda estar pendiente
+            if (this.travelTimeout) {
+                clearTimeout(this.travelTimeout);
+                this.travelTimeout = null;
+            }
+            
+            // Marcar que estamos narrando para prevenir zoom out
+            this.isNarrating = true;
+            
             // Actualizar subtítulos palabra por palabra
             avatarSubtitlesManager.updateSubtitles(continuousNarrative.narrative, 2.5);
             
             audioManager.speak(continuousNarrative.narrative, 'normal', async () => {
+                // Marcar que terminó la narración
+                this.isNarrating = false;
+                
                 pacingEngine.endCurrentEvent();
                 pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
                 
@@ -984,13 +1008,16 @@ Genera una introducción en primera persona (como ilfass) que:
                 };
                 
                 await countryMemoryManager.saveVisit(target.id, visitData);
-                console.log(`[Mapa] Visita guardada en memoria para ${target.name}`);
+                console.log(`[Mapa] ✅ Visita guardada en memoria para ${target.name}`);
                 
                 // 8. Esperar un momento antes de ocultar y hacer zoom out
                 setTimeout(() => {
                     multimediaOrchestrator.hideAllOverlays();
                     avatarSubtitlesManager.hide();
-                    this.cycleZoomOut();
+                    // Solo hacer zoom out si no hay otra narración iniciándose
+                    if (!this.isNarrating) {
+                        this.cycleZoomOut();
+                    }
                 }, 3000); // 3 segundos para que se vea el subtítulo completo
             });
             
@@ -1006,13 +1033,23 @@ Genera una introducción en primera persona (como ilfass) que:
             
             // NO hacer zoom out automático - esperar a que termine el audio
             // El zoom out se hace en el callback de audioManager.speak
-            if (this.travelTimeout) clearTimeout(this.travelTimeout);
+            if (this.travelTimeout) {
+                clearTimeout(this.travelTimeout);
+                this.travelTimeout = null;
+            }
             
         } catch (e) {
             console.error(`[Mapa] Error en relato continuo:`, e);
+            this.isNarrating = false;
             // Fallback a sistema anterior si falla
             multimediaOrchestrator.hideAllOverlays();
-            this.cycleZoomOut();
+            avatarSubtitlesManager.hide();
+            // Esperar un momento antes de hacer zoom out en caso de error
+            setTimeout(() => {
+                if (!this.isNarrating) {
+                    this.cycleZoomOut();
+                }
+            }, 2000);
         }
     }
 
