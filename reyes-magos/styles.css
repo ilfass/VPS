@@ -6,17 +6,23 @@
 
 body {
     font-family: 'Inter', sans-serif;
-    background: #0a0a0a;
+    background: linear-gradient(180deg, #1a1a3e 0%, #0f0f2e 50%, #0a0a1a 100%);
     color: #fff;
     overflow: hidden;
     height: 100vh;
+    cursor: default !important; /* Cursor normal, no brillante */
+}
+
+* {
+    cursor: default !important; /* Quitar cursor brillante de todos los elementos */
 }
 
 #map-container {
     width: 100%;
     height: 100vh;
     position: relative;
-    background: linear-gradient(180deg, #1a1a2e 0%, #0a0a0a 100%);
+    background: linear-gradient(180deg, #1a1a3e 0%, #0f0f2e 50%, #0a0a1a 100%);
+    /* Fondo más suave y amigable para niños */
 }
 
 #info-overlay {
@@ -33,26 +39,28 @@ body {
 }
 
 .info-content {
-    background: rgba(15, 23, 42, 0.85);
+    background: rgba(30, 40, 60, 0.9);
     backdrop-filter: blur(10px);
-    border: 2px solid rgba(251, 191, 36, 0.3);
-    border-radius: 15px;
+    border: 3px solid rgba(251, 191, 36, 0.5);
+    border-radius: 20px;
     padding: 20px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(251, 191, 36, 0.2);
     pointer-events: auto;
     max-height: 60vh;
     overflow-y: auto;
+    /* Más colorido y amigable para niños */
 }
 
 .info-content h1 {
     font-family: 'Cinzel', serif;
     font-size: 1.5rem;
     font-weight: 700;
-    color: #fbbf24;
+    color: #ffd700;
     text-align: left;
     margin-bottom: 15px;
-    text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.6), 2px 2px 4px rgba(0, 0, 0, 0.5);
     letter-spacing: 1px;
+    /* Título más brillante y divertido */
 }
 
 #current-location {
@@ -147,17 +155,16 @@ body {
 
 /* Estilos del mapa SVG */
 .country {
-    fill: #1e293b;
-    stroke: #334155;
+    fill: #2d3a52;
+    stroke: #4a5568;
     stroke-width: 0.5;
-    cursor: pointer;
     transition: all 0.3s ease;
 }
 
 .country:hover {
-    fill: #334155;
+    fill: #3d4a62;
     stroke: #fbbf24;
-    stroke-width: 1;
+    stroke-width: 1.5;
 }
 
 .country.visited {
@@ -206,12 +213,11 @@ body {
 }
 
 .king-animation {
-    cursor: pointer;
     transition: transform 0.3s ease;
 }
 
 .king-animation:hover {
-    transform: scale(1.2);
+    transform: scale(1.15);
 }
 
 .king-icon-svg {
@@ -228,17 +234,19 @@ body {
     }
 }
 
-/* Animación de brillo para los reyes */
+/* Animación suave para los reyes (menos brillante, más divertida) */
 .king-animation .king-marker {
-    animation: kingGlow 2s ease-in-out infinite;
+    animation: kingBounce 3s ease-in-out infinite;
 }
 
-@keyframes kingGlow {
+@keyframes kingBounce {
     0%, 100% {
-        filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.8));
+        transform: translateY(0);
+        filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.6));
     }
     50% {
-        filter: drop-shadow(0 0 20px rgba(251, 191, 36, 1));
+        transform: translateY(-8px);
+        filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.8));
     }
 }
 

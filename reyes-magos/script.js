@@ -636,28 +636,28 @@ class ReyesMagosMap {
 
     zoomToLocation(location) {
         const [x, y] = this.projection([location.lon, location.lat]);
-        const scale = 4; // Zoom más cercano para ver mejor
+        const scale = 1.3; // Zoom suave para ver todo el mapa (reducido de 4 a 1.3)
         
         // Transformar el grupo contenedor que incluye mapa, ruta y reyes
         if (this.gAll) {
             this.gAll
                 .transition()
-                .duration(2500)
+                .duration(2000)
                 .ease(d3.easeCubicInOut)
                 .attr('transform', `translate(${this.width / 2 - x * scale}, ${this.height / 2 - y * scale}) scale(${scale})`);
         } else {
             // Fallback si gAll no existe aún
             this.gMap
                 .transition()
-                .duration(2500)
+                .duration(2000)
                 .attr('transform', `translate(${this.width / 2 - x * scale}, ${this.height / 2 - y * scale}) scale(${scale})`);
             this.gRoute
                 .transition()
-                .duration(2500)
+                .duration(2000)
                 .attr('transform', `translate(${this.width / 2 - x * scale}, ${this.height / 2 - y * scale}) scale(${scale})`);
             this.gKings
                 .transition()
-                .duration(2500)
+                .duration(2000)
                 .attr('transform', `translate(${this.width / 2 - x * scale}, ${this.height / 2 - y * scale}) scale(${scale})`);
         }
     }
