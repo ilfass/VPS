@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curiosidades - El Viaje de ilfass</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            padding: 2rem;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #4a9eff 0%, #a855f7 50%, #22c55e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 30px rgba(74, 158, 255, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #94a3b8;
+            font-weight: 400;
+        }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 3rem;
+            animation: fadeInUp 0.8s ease 0.2s both;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(74, 158, 255, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+            border: 2px solid rgba(74, 158, 255, 0.3);
+            border-radius: 16px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(74, 158, 255, 0.1) 0%, transparent 70%);
+            animation: rotate 10s linear infinite;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(74, 158, 255, 0.6);
+            box-shadow: 0 10px 30px rgba(74, 158, 255, 0.2);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #4a9eff;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .curiosities-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .curiosity-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+            border: 1px solid rgba(74, 158, 255, 0.2);
+            border-radius: 16px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            animation: slideIn 0.6s ease both;
+            transition: all 0.3s ease;
+        }
+
+        .curiosity-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #4a9eff 0%, #a855f7 50%, #22c55e 100%);
+            transform: scaleX(0);
+            transform-origin: left;
+            animation: expandLine 0.6s ease 0.3s forwards;
+        }
+
+        .curiosity-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            border-color: rgba(74, 158, 255, 0.5);
+            box-shadow: 0 15px 40px rgba(74, 158, 255, 0.15);
+        }
+
+        .curiosity-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .curiosity-icon {
+            font-size: 2rem;
+            animation: bounce 2s ease infinite;
+        }
+
+        .curiosity-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #4a9eff;
+            flex: 1;
+        }
+
+        .curiosity-country {
+            font-size: 0.8rem;
+            color: #22c55e;
+            background: rgba(34, 197, 94, 0.1);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .curiosity-content {
+            font-size: 1rem;
+            line-height: 1.7;
+            color: #e2e8f0;
+            margin-bottom: 1rem;
+        }
+
+        .curiosity-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: #64748b;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(74, 158, 255, 0.1);
+        }
+
+        .curiosity-tags {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            background: rgba(168, 85, 247, 0.2);
+            color: #c084fc;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .tag.culture { background: rgba(74, 158, 255, 0.2); color: #6bb0ff; }
+        .tag.history { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+        .tag.food { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+        .tag.connection { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
+        .tag.fun { background: rgba(236, 72, 153, 0.2); color: #f472b6; }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #94a3b8;
+            font-size: 1.2rem;
+        }
+
+        .spinner {
+            border: 3px solid rgba(74, 158, 255, 0.2);
+            border-top: 3px solid #4a9eff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes expandLine {
+            to {
+                transform: scaleX(1);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #94a3b8;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-state-text {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state-subtext {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            .curiosities-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-bar {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>✨ Curiosidades</h1>
+            <p class="subtitle">Momentos, datos y conexiones del viaje</p>
+        </header>
+
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-value" id="total-curiosities">0</div>
+                <div class="stat-label">Curiosidades</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="total-countries">0</div>
+                <div class="stat-label">Países</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="total-connections">0</div>
+                <div class="stat-label">Conexiones</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="last-update">--</div>
+                <div class="stat-label">Última Actualización</div>
+            </div>
+        </div>
+
+        <div id="curiosities-container">
+            <div class="loading">
+                <div class="spinner"></div>
+                <div>Cargando curiosidades...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/control-api';
+        let curiosities = [];
+        let updateInterval = null;
+
+        // Iconos aleatorios para cada curiosidad
+        const icons = ['🌟', '💡', '🎯', '🔍', '✨', '🎨', '🌍', '🧠', '💫', '🎭', '🎪', '🔮', '⚡', '🎊', '🎈'];
+
+        // Cargar curiosidades desde el servidor
+        async function loadCuriosities() {
+            try {
+                const response = await fetch(`${API_BASE}/api/curiosities`);
+                if (response.ok) {
+                    const data = await response.json();
+                    curiosities = data.curiosities || [];
+                    renderCuriosities();
+                    updateStats();
+                } else {
+                    // Si no existe el endpoint, generar desde memorias
+                    await generateFromMemories();
+                }
+            } catch (e) {
+                console.warn('Error cargando curiosidades, generando desde memorias:', e);
+                await generateFromMemories();
+            }
+        }
+
+        // Generar curiosidades desde las memorias guardadas
+        async function generateFromMemories() {
+            try {
+                const response = await fetch(`${API_BASE}/api/country-memory`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const memories = data.memories || [];
+                    
+                    // Generar curiosidades desde cada memoria
+                    const generated = [];
+                    for (const memory of memories) {
+                        try {
+                            const countryMemory = await fetch(`${API_BASE}/api/country-memory/${memory.countryId}`).then(r => r.json());
+                            if (countryMemory.visits && countryMemory.visits.length > 0) {
+                                for (const visit of countryMemory.visits) {
+                                    if (visit.narrative) {
+                                        // Extraer curiosidades del relato
+                                        const extracted = extractCuriosities(visit.narrative, memory.countryId, visit.timestamp);
+                                        generated.push(...extracted);
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            console.warn(`Error procesando memoria de ${memory.countryId}:`, e);
+                        }
+                    }
+                    
+                    curiosities = generated.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                    renderCuriosities();
+                    updateStats();
+                }
+            } catch (e) {
+                console.error('Error generando curiosidades:', e);
+                showEmptyState();
+            }
+        }
+
+        // Extraer curiosidades de un relato narrativo
+        function extractCuriosities(narrative, countryId, timestamp) {
+            const curiosities = [];
+            const sentences = narrative.split(/[.!?]+/).filter(s => s.trim().length > 20);
+            
+            // Buscar frases interesantes, datos curiosos, conexiones
+            const interestingPatterns = [
+                /(?:descubrí|encontré|me sorprendió|me llamó la atención|interesante|curioso|fascinante|increíble|único|especial)/i,
+                /(?:conecta|vincula|relaciona|similar|parecido|comparte)/i,
+                /(?:tradición|costumbre|ritual|celebración|festival)/i,
+                /(?:historia|época|siglo|año|evento histórico)/i,
+                /(?:comida|plato|ingrediente|sabor|gastronomía)/i
+            ];
+
+            let found = 0;
+            for (const sentence of sentences) {
+                if (found >= 3) break; // Máximo 3 curiosidades por visita
+                
+                const trimmed = sentence.trim();
+                if (trimmed.length < 30 || trimmed.length > 200) continue;
+
+                // Verificar si contiene patrones interesantes
+                const isInteresting = interestingPatterns.some(pattern => pattern.test(trimmed));
+                
+                if (isInteresting) {
+                    const tags = [];
+                    if (/cultura|tradición|costumbre/i.test(trimmed)) tags.push('culture');
+                    if (/historia|época|siglo/i.test(trimmed)) tags.push('history');
+                    if (/comida|plato|ingrediente|gastronomía/i.test(trimmed)) tags.push('food');
+                    if (/conecta|vincula|relaciona|similar/i.test(trimmed)) tags.push('connection');
+                    if (!tags.length) tags.push('fun');
+
+                    curiosities.push({
+                        id: `curiosity-${countryId}-${Date.now()}-${found}`,
+                        title: generateTitle(trimmed),
+                        content: trimmed,
+                        country: getCountryName(countryId),
+                        countryId: countryId,
+                        tags: tags,
+                        timestamp: timestamp || Date.now(),
+                        icon: icons[Math.floor(Math.random() * icons.length)]
+                    });
+                    found++;
+                }
+            }
+
+            return curiosities;
+        }
+
+        // Generar título para una curiosidad
+        function generateTitle(content) {
+            const words = content.split(' ').slice(0, 8).join(' ');
+            if (words.length > 50) {
+                return words.substring(0, 47) + '...';
+            }
+            return words;
+        }
+
+        // Obtener nombre del país
+        function getCountryName(countryId) {
+            const countryMap = {
+                '124': 'Chile', '276': 'Alemania', '528': 'Países Bajos',
+                '616': 'Polonia', '858': 'Uruguay', '032': 'Argentina',
+                '076': 'Brasil', '170': 'Colombia', '218': 'Ecuador',
+                '484': 'México', '604': 'Perú', '840': 'Estados Unidos',
+                '724': 'España', '250': 'Francia', '380': 'Italia', '826': 'Reino Unido'
+            };
+            return countryMap[countryId] || `País ${countryId}`;
+        }
+
+        // Renderizar curiosidades
+        function renderCuriosities() {
+            const container = document.getElementById('curiosities-container');
+            
+            if (curiosities.length === 0) {
+                showEmptyState();
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="curiosities-grid">
+                    ${curiosities.map((curiosity, index) => `
+                        <div class="curiosity-card" style="animation-delay: ${index * 0.1}s">
+                            <div class="curiosity-header">
+                                <span class="curiosity-icon">${curiosity.icon}</span>
+                                <div class="curiosity-title">${curiosity.title}</div>
+                                <span class="curiosity-country">${curiosity.country}</span>
+                            </div>
+                            <div class="curiosity-content">${curiosity.content}</div>
+                            <div class="curiosity-meta">
+                                <div class="curiosity-tags">
+                                    ${curiosity.tags.map(tag => `<span class="tag ${tag}">${tag}</span>`).join('')}
+                                </div>
+                                <div style="font-size: 0.7rem; color: #64748b;">
+                                    ${new Date(curiosity.timestamp).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Mostrar estado vacío
+        function showEmptyState() {
+            const container = document.getElementById('curiosities-container');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🔍</div>
+                    <div class="empty-state-text">Aún no hay curiosidades</div>
+                    <div class="empty-state-subtext">Las curiosidades aparecerán automáticamente durante el viaje</div>
+                </div>
+            `;
+        }
+
+        // Actualizar estadísticas
+        function updateStats() {
+            document.getElementById('total-curiosities').textContent = curiosities.length;
+            
+            const uniqueCountries = new Set(curiosities.map(c => c.countryId));
+            document.getElementById('total-countries').textContent = uniqueCountries.size;
+            
+            const connections = curiosities.filter(c => c.tags.includes('connection')).length;
+            document.getElementById('total-connections').textContent = connections;
+            
+            if (curiosities.length > 0) {
+                const lastUpdate = new Date(Math.max(...curiosities.map(c => c.timestamp)));
+                const now = new Date();
+                const diffMs = now - lastUpdate;
+                const diffMins = Math.floor(diffMs / 60000);
+                
+                let timeText = '';
+                if (diffMins < 1) timeText = 'Ahora';
+                else if (diffMins < 60) timeText = `${diffMins}m`;
+                else {
+                    const hours = Math.floor(diffMins / 60);
+                    timeText = `${hours}h`;
+                }
+                document.getElementById('last-update').textContent = timeText;
+            }
+        }
+
+        // Inicializar
+        loadCuriosities();
+        
+        // Actualizar cada 10 segundos
+        updateInterval = setInterval(() => {
+            loadCuriosities();
+        }, 10000);
+
+        // Escuchar eventos de nuevas curiosidades (WebSocket o polling)
+        setInterval(async () => {
+            try {
+                const response = await fetch(`${API_BASE}/status`);
+                if (response.ok) {
+                    const data = await response.json();
+                    // Si hay nueva actividad, recargar
+                    if (data.editorial && data.editorial.visits) {
+                        const lastVisitTime = Math.max(...data.editorial.visits.map(v => v.timestamp || 0));
+                        const lastCuriosityTime = curiosities.length > 0 ? Math.max(...curiosities.map(c => c.timestamp)) : 0;
+                        
+                        if (lastVisitTime > lastCuriosityTime) {
+                            loadCuriosities();
+                        }
+                    }
+                }
+            } catch (e) {
+                // Silencioso
+            }
+        }, 5000);
+    </script>
+</body>
+
+</html>

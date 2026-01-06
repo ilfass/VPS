@@ -627,6 +627,52 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // Curiosities: Endpoint para obtener curiosidades generadas
+    if (req.method === 'GET' && apiPath === '/api/curiosities') {
+        try {
+            const curiosities = [];
+            
+            // Generar curiosidades desde las memorias
+            if (fs.existsSync(COUNTRY_MEMORIES_DIR)) {
+                const files = fs.readdirSync(COUNTRY_MEMORIES_DIR);
+                for (const file of files) {
+                    if (file.endsWith('.json')) {
+                        try {
+                            const filePath = path.join(COUNTRY_MEMORIES_DIR, file);
+                            const memory = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+                            
+                            if (memory.visits && memory.visits.length > 0) {
+                                for (const visit of memory.visits) {
+                                    if (visit.narrative) {
+                                        // Extraer curiosidades del relato
+                                        const extracted = extractCuriositiesFromNarrative(
+                                            visit.narrative,
+                                            memory.countryId,
+                                            visit.timestamp || visit.visitId
+                                        );
+                                        curiosities.push(...extracted);
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            console.warn(`Error processing memory for curiosities ${file}:`, e.message);
+                        }
+                    }
+                }
+            }
+            
+            // Ordenar por timestamp (más recientes primero)
+            curiosities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            res.writeHead(200, headers);
+            res.end(JSON.stringify({ curiosities, total: curiosities.length }));
+        } catch (e) {
+            res.writeHead(500, headers);
+            res.end(JSON.stringify({ error: e.message }));
+        }
+        return;
+    }
+
     // Country Memory: Cargar memoria de un país específico
     if (req.method === 'GET' && apiPath.startsWith('/api/country-memory/') && !apiPath.endsWith('/visit')) {
         const countryId = apiPath.split('/').pop();
