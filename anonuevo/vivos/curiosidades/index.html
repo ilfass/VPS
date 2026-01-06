@@ -14,109 +14,131 @@
         }
 
         body {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #000;
             color: #f8fafc;
             font-family: 'Inter', sans-serif;
-            min-height: 100vh;
-            padding: 2rem;
-            overflow-x: hidden;
+            position: relative;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+        /* Background con gradiente animado */
+        .background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            z-index: 0;
         }
 
-        header {
-            text-align: center;
-            margin-bottom: 3rem;
-            animation: fadeInDown 0.8s ease;
+        .background::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 30% 50%, rgba(74, 158, 255, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 50%, rgba(168, 85, 247, 0.1) 0%, transparent 50%);
+            animation: pulse 8s ease-in-out infinite;
         }
 
-        h1 {
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        /* Música de fondo */
+        #background-music {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Contenedor principal - sin scroll */
+        .main-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            z-index: 1;
+        }
+
+        /* Header fijo */
+        .header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 2rem 3rem;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, transparent 100%);
+        }
+
+        .title-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .title-icon {
             font-size: 3rem;
+            animation: bounce 2s ease infinite;
+        }
+
+        .title-text {
+            font-size: 2.5rem;
             font-weight: 800;
             background: linear-gradient(135deg, #4a9eff 0%, #a855f7 50%, #22c55e 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            margin-bottom: 0.5rem;
-            text-shadow: 0 0 30px rgba(74, 158, 255, 0.3);
         }
 
-        .subtitle {
-            font-size: 1.2rem;
-            color: #94a3b8;
-            font-weight: 400;
-        }
-
-        .stats-bar {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 3rem;
-            animation: fadeInUp 0.8s ease 0.2s both;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, rgba(74, 158, 255, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
-            border: 2px solid rgba(74, 158, 255, 0.3);
-            border-radius: 16px;
-            padding: 1.5rem;
-            text-align: center;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(74, 158, 255, 0.1) 0%, transparent 70%);
-            animation: rotate 10s linear infinite;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(74, 158, 255, 0.6);
-            box-shadow: 0 10px 30px rgba(74, 158, 255, 0.2);
-        }
-
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: #4a9eff;
+        .stats-mini {
+            display: flex;
+            gap: 2rem;
             font-family: 'JetBrains Mono', monospace;
-            margin-bottom: 0.5rem;
-        }
-
-        .stat-label {
             font-size: 0.9rem;
             color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 1px;
         }
 
-        .curiosities-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
+        .stat-mini {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Contenido central - curiosidad actual */
+        .curiosity-display {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8rem 4rem 12rem;
+            position: relative;
         }
 
         .curiosity-card {
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
-            border: 1px solid rgba(74, 158, 255, 0.2);
-            border-radius: 16px;
-            padding: 1.5rem;
+            max-width: 900px;
+            width: 100%;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
+            border: 2px solid rgba(74, 158, 255, 0.3);
+            border-radius: 24px;
+            padding: 3rem;
             position: relative;
             overflow: hidden;
-            animation: slideIn 0.6s ease both;
-            transition: all 0.3s ease;
+            animation: slideIn 0.8s ease;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
         }
 
         .curiosity-card::before {
@@ -127,263 +149,348 @@
             right: 0;
             height: 4px;
             background: linear-gradient(90deg, #4a9eff 0%, #a855f7 50%, #22c55e 100%);
-            transform: scaleX(0);
-            transform-origin: left;
-            animation: expandLine 0.6s ease 0.3s forwards;
-        }
-
-        .curiosity-card:hover {
-            transform: translateY(-5px) scale(1.02);
-            border-color: rgba(74, 158, 255, 0.5);
-            box-shadow: 0 15px 40px rgba(74, 158, 255, 0.15);
+            animation: expandLine 0.8s ease;
         }
 
         .curiosity-header {
             display: flex;
             align-items: center;
-            gap: 1rem;
-            margin-bottom: 1rem;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
         }
 
         .curiosity-icon {
-            font-size: 2rem;
-            animation: bounce 2s ease infinite;
+            font-size: 4rem;
+            animation: float 3s ease-in-out infinite;
         }
 
-        .curiosity-title {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #4a9eff;
+        .curiosity-title-section {
             flex: 1;
         }
 
+        .curiosity-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #4a9eff;
+            margin-bottom: 0.5rem;
+            line-height: 1.2;
+        }
+
         .curiosity-country {
-            font-size: 0.8rem;
+            display: inline-block;
+            background: rgba(34, 197, 94, 0.2);
             color: #22c55e;
-            background: rgba(34, 197, 94, 0.1);
-            padding: 0.3rem 0.8rem;
+            padding: 0.4rem 1rem;
             border-radius: 20px;
+            font-size: 0.9rem;
             font-weight: 600;
         }
 
-        .curiosity-content {
-            font-size: 1rem;
-            line-height: 1.7;
-            color: #e2e8f0;
-            margin-bottom: 1rem;
+        .curiosity-image-container {
+            width: 100%;
+            height: 300px;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+            background: rgba(0, 0, 0, 0.3);
+            position: relative;
         }
 
-        .curiosity-meta {
+        .curiosity-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            animation: fadeIn 1s ease;
+        }
+
+        .curiosity-image-placeholder {
+            width: 100%;
+            height: 100%;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            font-size: 0.8rem;
-            color: #64748b;
-            padding-top: 1rem;
-            border-top: 1px solid rgba(74, 158, 255, 0.1);
+            justify-content: center;
+            font-size: 4rem;
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        .curiosity-content {
+            font-size: 1.4rem;
+            line-height: 1.8;
+            color: #e2e8f0;
+            margin-bottom: 2rem;
+            min-height: 100px;
         }
 
         .curiosity-tags {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.8rem;
             flex-wrap: wrap;
         }
 
         .tag {
             background: rgba(168, 85, 247, 0.2);
             color: #c084fc;
-            padding: 0.2rem 0.6rem;
+            padding: 0.5rem 1rem;
             border-radius: 12px;
-            font-size: 0.7rem;
+            font-size: 0.85rem;
             font-weight: 600;
+            border: 1px solid rgba(168, 85, 247, 0.3);
         }
 
-        .tag.culture { background: rgba(74, 158, 255, 0.2); color: #6bb0ff; }
-        .tag.history { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
-        .tag.food { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
-        .tag.connection { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
-        .tag.fun { background: rgba(236, 72, 153, 0.2); color: #f472b6; }
+        .tag.culture { background: rgba(74, 158, 255, 0.2); color: #6bb0ff; border-color: rgba(74, 158, 255, 0.3); }
+        .tag.history { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border-color: rgba(245, 158, 11, 0.3); }
+        .tag.food { background: rgba(34, 197, 94, 0.2); color: #4ade80; border-color: rgba(34, 197, 94, 0.3); }
+        .tag.connection { background: rgba(168, 85, 247, 0.2); color: #c084fc; border-color: rgba(168, 85, 247, 0.3); }
+        .tag.fun { background: rgba(236, 72, 153, 0.2); color: #f472b6; border-color: rgba(236, 72, 153, 0.3); }
 
-        .loading {
-            text-align: center;
-            padding: 3rem;
-            color: #94a3b8;
-            font-size: 1.2rem;
+        /* Avatar y subtítulos */
+        .avatar-container {
+            position: absolute;
+            bottom: 2rem;
+            left: 2rem;
+            display: flex;
+            align-items: flex-end;
+            gap: 1rem;
+            z-index: 20;
         }
 
-        .spinner {
-            border: 3px solid rgba(74, 158, 255, 0.2);
-            border-top: 3px solid #4a9eff;
+        .avatar-image {
+            width: 120px;
+            height: 120px;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
+            border: 3px solid rgba(74, 158, 255, 0.5);
+            object-fit: cover;
+            box-shadow: 0 10px 30px rgba(74, 158, 255, 0.3);
+            animation: pulse-avatar 2s ease-in-out infinite;
         }
 
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .avatar-image.speaking {
+            animation: speaking 0.3s infinite alternate;
+            border-color: #4a9eff;
+            box-shadow: 0 0 40px rgba(74, 158, 255, 0.6);
         }
 
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .subtitles-container {
+            background: rgba(15, 23, 42, 0.95);
+            border: 2px solid rgba(74, 158, 255, 0.3);
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            max-width: 500px;
+            backdrop-filter: blur(10px);
         }
 
+        .subtitles-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #e2e8f0;
+            max-height: 4.8em;
+            overflow: hidden;
+        }
+
+        /* Indicador de progreso */
+        .progress-indicator {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: #94a3b8;
+            z-index: 10;
+        }
+
+        .progress-dots {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .progress-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(74, 158, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .progress-dot.active {
+            background: #4a9eff;
+            transform: scale(1.3);
+            box-shadow: 0 0 10px rgba(74, 158, 255, 0.6);
+        }
+
+        /* Animaciones */
         @keyframes slideIn {
             from {
                 opacity: 0;
-                transform: translateX(-30px);
+                transform: translateY(30px) scale(0.95);
             }
             to {
                 opacity: 1;
-                transform: translateX(0);
+                transform: translateY(0) scale(1);
             }
         }
 
         @keyframes expandLine {
+            from {
+                transform: scaleX(0);
+            }
             to {
                 transform: scaleX(1);
             }
         }
 
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
         @keyframes bounce {
-            0%, 100% {
-                transform: translateY(0);
-            }
-            50% {
-                transform: translateY(-10px);
-            }
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
         }
 
-        @keyframes rotate {
-            from {
-                transform: rotate(0deg);
-            }
-            to {
-                transform: rotate(360deg);
-            }
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(5deg); }
         }
 
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
+        @keyframes pulse-avatar {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
         }
 
+        @keyframes speaking {
+            0% { transform: scale(1); box-shadow: 0 0 20px rgba(74, 158, 255, 0.4); }
+            100% { transform: scale(1.08); box-shadow: 0 0 40px rgba(74, 158, 255, 0.8); }
+        }
+
+        /* Estado vacío */
         .empty-state {
             text-align: center;
-            padding: 4rem 2rem;
             color: #94a3b8;
         }
 
-        .empty-state-icon {
-            font-size: 4rem;
-            margin-bottom: 1rem;
+        .empty-icon {
+            font-size: 6rem;
+            margin-bottom: 2rem;
             opacity: 0.5;
         }
 
-        .empty-state-text {
-            font-size: 1.2rem;
+        .empty-text {
+            font-size: 1.5rem;
             margin-bottom: 0.5rem;
         }
 
-        .empty-state-subtext {
-            font-size: 0.9rem;
+        .empty-subtext {
+            font-size: 1rem;
             color: #64748b;
-        }
-
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 2rem;
-            }
-
-            .curiosities-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .stats-bar {
-                grid-template-columns: 1fr;
-            }
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <header>
-            <h1>✨ Curiosidades</h1>
-            <p class="subtitle">Momentos, datos y conexiones del viaje</p>
-        </header>
+    <div class="background"></div>
+    
+    <!-- Música de fondo -->
+    <audio id="background-music" loop>
+        <source src="/media/audio/ambient_base.mp3" type="audio/mpeg">
+    </audio>
 
-        <div class="stats-bar">
-            <div class="stat-card">
-                <div class="stat-value" id="total-curiosities">0</div>
-                <div class="stat-label">Curiosidades</div>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="title-section">
+                <span class="title-icon">✨</span>
+                <span class="title-text">Curiosidades</span>
             </div>
-            <div class="stat-card">
-                <div class="stat-value" id="total-countries">0</div>
-                <div class="stat-label">Países</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="total-connections">0</div>
-                <div class="stat-label">Conexiones</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="last-update">--</div>
-                <div class="stat-label">Última Actualización</div>
+            <div class="stats-mini">
+                <div class="stat-mini">
+                    <span>📊</span>
+                    <span id="stat-total">0</span>
+                </div>
+                <div class="stat-mini">
+                    <span>🌍</span>
+                    <span id="stat-countries">0</span>
+                </div>
             </div>
         </div>
 
-        <div id="curiosities-container">
-            <div class="loading">
-                <div class="spinner"></div>
-                <div>Cargando curiosidades...</div>
+        <!-- Contenido principal -->
+        <div class="curiosity-display" id="curiosity-display">
+            <div class="empty-state">
+                <div class="empty-icon">🔍</div>
+                <div class="empty-text">Cargando curiosidades...</div>
+                <div class="empty-subtext">Las curiosidades aparecerán automáticamente</div>
             </div>
+        </div>
+
+        <!-- Avatar y subtítulos -->
+        <div class="avatar-container" id="avatar-container" style="display: none;">
+            <img src="/avata-placeholder.png" alt="Avatar" class="avatar-image" id="avatar-image" onerror="this.style.display='none'">
+            <div class="subtitles-container">
+                <div class="subtitles-text" id="subtitles-text"></div>
+            </div>
+        </div>
+
+        <!-- Indicador de progreso -->
+        <div class="progress-indicator">
+            <div class="progress-dots" id="progress-dots"></div>
+            <span id="curiosity-counter">0 / 0</span>
         </div>
     </div>
 
     <script>
         const API_BASE = '/control-api';
         let curiosities = [];
-        let updateInterval = null;
+        let currentIndex = 0;
+        let isSpeaking = false;
+        let backgroundMusic = null;
+        let currentUtterance = null;
 
-        // Iconos aleatorios para cada curiosidad
+        // Iconos aleatorios
         const icons = ['🌟', '💡', '🎯', '🔍', '✨', '🎨', '🌍', '🧠', '💫', '🎭', '🎪', '🔮', '⚡', '🎊', '🎈'];
 
-        // Cargar curiosidades desde el servidor
+        // Inicializar música de fondo
+        function initBackgroundMusic() {
+            backgroundMusic = document.getElementById('background-music');
+            if (backgroundMusic) {
+                backgroundMusic.volume = 0.3;
+                backgroundMusic.play().catch(e => {
+                    console.warn('No se pudo reproducir música de fondo:', e);
+                });
+            }
+        }
+
+        // Cargar curiosidades
         async function loadCuriosities() {
             try {
                 const response = await fetch(`${API_BASE}/api/curiosities`);
                 if (response.ok) {
                     const data = await response.json();
                     curiosities = data.curiosities || [];
-                    renderCuriosities();
-                    updateStats();
+                    
+                    if (curiosities.length > 0) {
+                        updateStats();
+                        updateProgressDots();
+                        if (currentIndex >= curiosities.length) {
+                            currentIndex = 0;
+                        }
+                        displayCurrentCuriosity();
+                    } else {
+                        showEmptyState();
+                    }
                 } else {
-                    // Si no existe el endpoint, generar desde memorias
                     await generateFromMemories();
                 }
             } catch (e) {
-                console.warn('Error cargando curiosidades, generando desde memorias:', e);
+                console.warn('Error cargando curiosidades:', e);
                 await generateFromMemories();
             }
         }
 
-        // Generar curiosidades desde las memorias guardadas
+        // Generar desde memorias
         async function generateFromMemories() {
             try {
                 const response = await fetch(`${API_BASE}/api/country-memory`);
@@ -391,7 +498,6 @@
                     const data = await response.json();
                     const memories = data.memories || [];
                     
-                    // Generar curiosidades desde cada memoria
                     const generated = [];
                     for (const memory of memories) {
                         try {
@@ -399,20 +505,25 @@
                             if (countryMemory.visits && countryMemory.visits.length > 0) {
                                 for (const visit of countryMemory.visits) {
                                     if (visit.narrative) {
-                                        // Extraer curiosidades del relato
                                         const extracted = extractCuriosities(visit.narrative, memory.countryId, visit.timestamp);
                                         generated.push(...extracted);
                                     }
                                 }
                             }
                         } catch (e) {
-                            console.warn(`Error procesando memoria de ${memory.countryId}:`, e);
+                            console.warn(`Error procesando memoria:`, e);
                         }
                     }
                     
                     curiosities = generated.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                    renderCuriosities();
-                    updateStats();
+                    
+                    if (curiosities.length > 0) {
+                        updateStats();
+                        updateProgressDots();
+                        displayCurrentCuriosity();
+                    } else {
+                        showEmptyState();
+                    }
                 }
             } catch (e) {
                 console.error('Error generando curiosidades:', e);
@@ -420,12 +531,11 @@
             }
         }
 
-        // Extraer curiosidades de un relato narrativo
+        // Extraer curiosidades
         function extractCuriosities(narrative, countryId, timestamp) {
             const curiosities = [];
             const sentences = narrative.split(/[.!?]+/).filter(s => s.trim().length > 20);
             
-            // Buscar frases interesantes, datos curiosos, conexiones
             const interestingPatterns = [
                 /(?:descubrí|encontré|me sorprendió|me llamó la atención|interesante|curioso|fascinante|increíble|único|especial)/i,
                 /(?:conecta|vincula|relaciona|similar|parecido|comparte)/i,
@@ -436,12 +546,11 @@
 
             let found = 0;
             for (const sentence of sentences) {
-                if (found >= 3) break; // Máximo 3 curiosidades por visita
+                if (found >= 3) break;
                 
                 const trimmed = sentence.trim();
                 if (trimmed.length < 30 || trimmed.length > 200) continue;
 
-                // Verificar si contiene patrones interesantes
                 const isInteresting = interestingPatterns.some(pattern => pattern.test(trimmed));
                 
                 if (isInteresting) {
@@ -452,30 +561,25 @@
                     if (/conecta|vincula|relaciona|similar/i.test(trimmed)) tags.push('connection');
                     if (!tags.length) tags.push('fun');
 
+                    const words = trimmed.split(' ').slice(0, 8).join(' ');
+                    const title = words.length > 50 ? words.substring(0, 47) + '...' : words;
+
                     curiosities.push({
-                        id: `curiosity-${countryId}-${Date.now()}-${found}`,
-                        title: generateTitle(trimmed),
+                        id: `curiosity-${countryId}-${timestamp}-${found}`,
+                        title: title,
                         content: trimmed,
                         country: getCountryName(countryId),
                         countryId: countryId,
                         tags: tags,
                         timestamp: timestamp || Date.now(),
-                        icon: icons[Math.floor(Math.random() * icons.length)]
+                        icon: icons[Math.floor(Math.random() * icons.length)],
+                        imageUrl: null // Se buscará después
                     });
                     found++;
                 }
             }
 
             return curiosities;
-        }
-
-        // Generar título para una curiosidad
-        function generateTitle(content) {
-            const words = content.split(' ').slice(0, 8).join(' ');
-            if (words.length > 50) {
-                return words.substring(0, 47) + '...';
-            }
-            return words;
         }
 
         // Obtener nombre del país
@@ -490,106 +594,213 @@
             return countryMap[countryId] || `País ${countryId}`;
         }
 
-        // Renderizar curiosidades
-        function renderCuriosities() {
-            const container = document.getElementById('curiosities-container');
-            
+        // Buscar imagen para la curiosidad
+        async function findImageForCuriosity(curiosity) {
+            try {
+                // Buscar en media del país
+                const mediaRes = await fetch(`${API_BASE}/api/media-list`);
+                if (mediaRes.ok) {
+                    const mediaList = await mediaRes.json();
+                    const countryMedia = mediaList.filter(m => {
+                        const folder = (m.folder || "").toLowerCase();
+                        const countryName = curiosity.country.toLowerCase();
+                        return folder.includes(countryName) || countryName.includes(folder);
+                    });
+                    
+                    if (countryMedia.length > 0) {
+                        const randomMedia = countryMedia[Math.floor(Math.random() * countryMedia.length)];
+                        return randomMedia.url;
+                    }
+                }
+            } catch (e) {
+                console.warn('Error buscando imagen:', e);
+            }
+            return null;
+        }
+
+        // Mostrar curiosidad actual
+        async function displayCurrentCuriosity() {
             if (curiosities.length === 0) {
                 showEmptyState();
                 return;
             }
 
-            container.innerHTML = `
-                <div class="curiosities-grid">
-                    ${curiosities.map((curiosity, index) => `
-                        <div class="curiosity-card" style="animation-delay: ${index * 0.1}s">
-                            <div class="curiosity-header">
-                                <span class="curiosity-icon">${curiosity.icon}</span>
-                                <div class="curiosity-title">${curiosity.title}</div>
-                                <span class="curiosity-country">${curiosity.country}</span>
-                            </div>
-                            <div class="curiosity-content">${curiosity.content}</div>
-                            <div class="curiosity-meta">
-                                <div class="curiosity-tags">
-                                    ${curiosity.tags.map(tag => `<span class="tag ${tag}">${tag}</span>`).join('')}
-                                </div>
-                                <div style="font-size: 0.7rem; color: #64748b;">
-                                    ${new Date(curiosity.timestamp).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}
-                                </div>
-                            </div>
+            const curiosity = curiosities[currentIndex];
+            
+            // Buscar imagen
+            if (!curiosity.imageUrl) {
+                curiosity.imageUrl = await findImageForCuriosity(curiosity);
+            }
+
+            // Renderizar
+            const display = document.getElementById('curiosity-display');
+            display.innerHTML = `
+                <div class="curiosity-card">
+                    <div class="curiosity-header">
+                        <span class="curiosity-icon">${curiosity.icon}</span>
+                        <div class="curiosity-title-section">
+                            <div class="curiosity-title">${curiosity.title}</div>
+                            <span class="curiosity-country">${curiosity.country}</span>
                         </div>
-                    `).join('')}
+                    </div>
+                    ${curiosity.imageUrl ? `
+                        <div class="curiosity-image-container">
+                            <img src="${curiosity.imageUrl}" alt="${curiosity.country}" class="curiosity-image" onerror="this.parentElement.innerHTML='<div class=\\'curiosity-image-placeholder\\'>${curiosity.icon}</div>'">
+                        </div>
+                    ` : `
+                        <div class="curiosity-image-container">
+                            <div class="curiosity-image-placeholder">${curiosity.icon}</div>
+                        </div>
+                    `}
+                    <div class="curiosity-content">${curiosity.content}</div>
+                    <div class="curiosity-tags">
+                        ${curiosity.tags.map(tag => `<span class="tag ${tag}">${tag}</span>`).join('')}
+                    </div>
                 </div>
             `;
+
+            // Actualizar contador
+            document.getElementById('curiosity-counter').textContent = `${currentIndex + 1} / ${curiosities.length}`;
+
+            // Mostrar avatar y narrar
+            showAvatar();
+            narrateCuriosity(curiosity);
         }
 
-        // Mostrar estado vacío
-        function showEmptyState() {
-            const container = document.getElementById('curiosities-container');
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">🔍</div>
-                    <div class="empty-state-text">Aún no hay curiosidades</div>
-                    <div class="empty-state-subtext">Las curiosidades aparecerán automáticamente durante el viaje</div>
-                </div>
-            `;
+        // Mostrar avatar
+        function showAvatar() {
+            const avatarContainer = document.getElementById('avatar-container');
+            avatarContainer.style.display = 'flex';
+        }
+
+        // Ocultar avatar
+        function hideAvatar() {
+            const avatarContainer = document.getElementById('avatar-container');
+            avatarContainer.style.display = 'none';
+        }
+
+        // Narrar curiosidad
+        function narrateCuriosity(curiosity) {
+            if (isSpeaking) {
+                window.speechSynthesis.cancel();
+            }
+
+            isSpeaking = true;
+            const avatarImage = document.getElementById('avatar-image');
+            const subtitlesText = document.getElementById('subtitles-text');
+
+            // Preparar texto para narración
+            const narrationText = `Curiosidad de ${curiosity.country}: ${curiosity.content}`;
+            const cleanText = narrationText.replace(/[^\w\s.,;:!?áéíóúñüÁÉÍÓÚÑÜ]/g, '');
+
+            // Actualizar subtítulos
+            subtitlesText.textContent = curiosity.content;
+            avatarImage.classList.add('speaking');
+
+            // Crear utterance
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.lang = 'es-ES';
+            utterance.rate = 0.9;
+            utterance.pitch = 1.0;
+            utterance.volume = 1.0;
+
+            // Seleccionar mejor voz
+            const voices = window.speechSynthesis.getVoices();
+            const bestVoice = voices.find(v => v.lang.startsWith('es') && (v.name.includes('Google') || v.name.includes('Microsoft'))) || 
+                            voices.find(v => v.lang.startsWith('es'));
+            if (bestVoice) utterance.voice = bestVoice;
+
+            utterance.onstart = () => {
+                avatarImage.classList.add('speaking');
+            };
+
+            utterance.onend = () => {
+                avatarImage.classList.remove('speaking');
+                isSpeaking = false;
+                
+                // Avanzar a siguiente curiosidad después de 3 segundos
+                setTimeout(() => {
+                    nextCuriosity();
+                }, 3000);
+            };
+
+            utterance.onerror = () => {
+                avatarImage.classList.remove('speaking');
+                isSpeaking = false;
+                setTimeout(() => {
+                    nextCuriosity();
+                }, 3000);
+            };
+
+            currentUtterance = utterance;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // Siguiente curiosidad
+        function nextCuriosity() {
+            if (curiosities.length === 0) return;
+            
+            currentIndex = (currentIndex + 1) % curiosities.length;
+            updateProgressDots();
+            displayCurrentCuriosity();
         }
 
         // Actualizar estadísticas
         function updateStats() {
-            document.getElementById('total-curiosities').textContent = curiosities.length;
-            
+            document.getElementById('stat-total').textContent = curiosities.length;
             const uniqueCountries = new Set(curiosities.map(c => c.countryId));
-            document.getElementById('total-countries').textContent = uniqueCountries.size;
+            document.getElementById('stat-countries').textContent = uniqueCountries.size;
+        }
+
+        // Actualizar puntos de progreso
+        function updateProgressDots() {
+            const dotsContainer = document.getElementById('progress-dots');
+            dotsContainer.innerHTML = '';
             
-            const connections = curiosities.filter(c => c.tags.includes('connection')).length;
-            document.getElementById('total-connections').textContent = connections;
-            
-            if (curiosities.length > 0) {
-                const lastUpdate = new Date(Math.max(...curiosities.map(c => c.timestamp)));
-                const now = new Date();
-                const diffMs = now - lastUpdate;
-                const diffMins = Math.floor(diffMs / 60000);
-                
-                let timeText = '';
-                if (diffMins < 1) timeText = 'Ahora';
-                else if (diffMins < 60) timeText = `${diffMins}m`;
-                else {
-                    const hours = Math.floor(diffMins / 60);
-                    timeText = `${hours}h`;
+            const maxDots = Math.min(curiosities.length, 10);
+            for (let i = 0; i < maxDots; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'progress-dot';
+                if (i === (currentIndex % maxDots)) {
+                    dot.classList.add('active');
                 }
-                document.getElementById('last-update').textContent = timeText;
+                dotsContainer.appendChild(dot);
             }
         }
 
-        // Inicializar
-        loadCuriosities();
-        
-        // Actualizar cada 10 segundos
-        updateInterval = setInterval(() => {
-            loadCuriosities();
-        }, 10000);
+        // Mostrar estado vacío
+        function showEmptyState() {
+            const display = document.getElementById('curiosity-display');
+            display.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">🔍</div>
+                    <div class="empty-text">Aún no hay curiosidades</div>
+                    <div class="empty-subtext">Las curiosidades aparecerán automáticamente durante el viaje</div>
+                </div>
+            `;
+            hideAvatar();
+        }
 
-        // Escuchar eventos de nuevas curiosidades (WebSocket o polling)
-        setInterval(async () => {
-            try {
-                const response = await fetch(`${API_BASE}/status`);
-                if (response.ok) {
-                    const data = await response.json();
-                    // Si hay nueva actividad, recargar
-                    if (data.editorial && data.editorial.visits) {
-                        const lastVisitTime = Math.max(...data.editorial.visits.map(v => v.timestamp || 0));
-                        const lastCuriosityTime = curiosities.length > 0 ? Math.max(...curiosities.map(c => c.timestamp)) : 0;
-                        
-                        if (lastVisitTime > lastCuriosityTime) {
-                            loadCuriosities();
-                        }
-                    }
-                }
-            } catch (e) {
-                // Silencioso
+        // Cargar voces
+        function loadVoices() {
+            if (window.speechSynthesis.getVoices().length > 0) {
+                return;
             }
-        }, 5000);
+            window.speechSynthesis.getVoices();
+        }
+
+        // Inicializar
+        window.addEventListener('load', () => {
+            initBackgroundMusic();
+            loadVoices();
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+            loadCuriosities();
+            
+            // Actualizar cada 15 segundos
+            setInterval(() => {
+                loadCuriosities();
+            }, 15000);
+        });
     </script>
 </body>
 
