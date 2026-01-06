@@ -420,6 +420,9 @@
             if (currentIndex >= script.length) {
                 textDisplay.innerHTML = "<span style='font-size: 1rem; color: #64748b;'>ESPERANDO COMANDO DEL DIRECTOR...</span>";
                 progressBar.style.width = "100%";
+                
+                // Si Dream Mode está ON, cambiar automáticamente a otra página
+                checkDreamModeAndNavigate();
                 return;
             }
             const line = script[currentIndex];
@@ -433,6 +436,29 @@
                     setTimeout(playNextLine, line.delay);
                 });
             }, 500);
+        }
+
+        // Verificar Dream Mode y navegar automáticamente
+        async function checkDreamModeAndNavigate() {
+            try {
+                const res = await fetch('/control-api/status');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.autoMode) {
+                        console.log('🌙 Dream Mode ON: Cambiando automáticamente a otra página...');
+                        // Esperar 2 segundos antes de cambiar
+                        setTimeout(() => {
+                            // Elegir página aleatoria (mapa, diario, estado-actual)
+                            const pages = ['mapa', 'diario', 'estado-actual'];
+                            const randomPage = pages[Math.floor(Math.random() * pages.length)];
+                            console.log(`🎲 Navegando a: ${randomPage}`);
+                            window.location.href = `/vivos/${randomPage}/`;
+                        }, 2000);
+                    }
+                }
+            } catch (e) {
+                console.warn('Error checking Dream Mode:', e);
+            }
         }
 
         // INIT GLOBAL

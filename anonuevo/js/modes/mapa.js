@@ -605,8 +605,20 @@ export default class MapaMode {
                 console.warn('[Mapa] Error guardando presentación:', e);
             }
             
-            // Mantener avatar visible (no ocultar)
-            // El avatar permanecerá visible para los siguientes relatos
+            // Si Dream Mode está ON, cambiar automáticamente a otra página después de la intro
+            if (eventManager.canProceedAuto()) {
+                console.log('[Mapa] Dream Mode ON: Cambiando automáticamente después de intro...');
+                setTimeout(() => {
+                    // Elegir página aleatoria (diario, estado-actual, reflexion)
+                    const pages = ['diario', 'estado-actual', 'reflexion'];
+                    const randomPage = pages[Math.floor(Math.random() * pages.length)];
+                    console.log(`[Mapa] 🎲 Navegando a: ${randomPage}`);
+                    window.location.href = `/vivos/${randomPage}/`;
+                }, 3000); // Esperar 3 segundos para que se vea el subtítulo completo
+            } else {
+                // Mantener avatar visible (no ocultar) si no es Dream Mode
+                // El avatar permanecerá visible para los siguientes relatos
+            }
         });
     }
     
