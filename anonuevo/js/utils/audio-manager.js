@@ -89,6 +89,9 @@ export class AudioManager {
 
         this.cancel();
 
+        // Limpiar texto: eliminar caracteres de escape, texto de debugging, etc.
+        text = this.cleanText(text);
+
         // ** DUCKING **: Bajar música antes de hablar
         if (this.isMusicPlaying) {
             this.fadeAudio(this.musicLayer, this.musicLayer.volume, 0.05, 500); // Bajar a 5% rápido
@@ -119,7 +122,77 @@ export class AudioManager {
         };
 
         this.currentUtterance = utterance;
+        
+        // Notificar que el avatar está hablando
+        this.notifySpeaking(true);
+        
+        utterance.onend = () => {
+            this.notifySpeaking(false);
+            if (!utterance.wasCancelled && onEndCallback) onEndCallback();
+        };
+        
+        utterance.onerror = () => {
+            this.notifySpeaking(false);
+        };
+        
         this.synth.speak(utterance);
+    }
+
+    /**
+     * Limpia el texto eliminando caracteres de escape, debugging, etc.
+     */
+    cleanText(text) {
+        if (!text || typeof text !== 'string') return '';
+        
+        // Eliminar caracteres de escape
+        text = text.replace(/\\n/g, ' ').replace(/\\"/g, '"').replace(/\\'/g, "'");
+        
+        // Eliminar texto de debugging (conteo de palabras, instrucciones, etc.)
+        text = text.replace(/Let's count words:.*?words\./gi, '');
+        text = text.replace(/Words:.*?words\./gi, '');
+        text = text.replace(/\d+ words?\./gi, '');
+        text = text.replace(/Good\. Meets \d+-\d+\./gi, '');
+        text = text.replace(/We included.*?Should be fine\./gi, '');
+        text = text.replace(/Meets \d+-\d+\./gi, '');
+        text = text.replace(/Good\./gi, '');
+        text = text.replace(/Use purely Spanish\./gi, '');
+        text = text.replace(/Should be fine\./gi, '');
+        
+        // Eliminar patrones de debugging comunes
+        text = text.replace(/\[.*?\]/g, ''); // [Debug info]
+        text = text.replace(/\(.*?\)/g, ''); // (Debug info)
+        text = text.replace(/\{.*?\}/g, ''); // {Debug info}
+        
+        // Limpiar espacios múltiples
+        text = text.replace(/\s+/g, ' ').trim();
+        
+        // Eliminar texto que parece ser instrucciones de sistema
+        const lines = text.split('.');
+        text = lines.filter(line => {
+            const lower = line.toLowerCase().trim();
+            return !lower.includes('tool_calls') && 
+                   !lower.includes('json') &&
+                   !lower.startsWith('illones') &&
+                   !lower.includes('count words') &&
+                   !lower.includes('meets') &&
+                   lower.length > 5; // Filtrar líneas muy cortas que suelen ser debugging
+        }).join('. ').trim();
+        
+        return text;
+    }
+
+    /**
+     * Notifica cuando el avatar está hablando (para animaciones)
+     */
+    notifySpeaking(isSpeaking) {
+        const avatarElement = document.querySelector('.avatar-image');
+        if (avatarElement) {
+            if (isSpeaking) {
+                avatarElement.classList.add('speaking');
+            } else {
+                avatarElement.classList.remove('speaking');
+            }
+        }
     }
 
     /**

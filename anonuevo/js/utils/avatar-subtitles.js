@@ -81,15 +81,19 @@ export class AvatarSubtitlesManager {
     }
 
     /**
-     * Actualiza los subtítulos palabra por palabra
+     * Actualiza los subtítulos palabra por palabra (máximo 2 líneas, no acumulativo)
      * @param {string} text - Texto completo a mostrar
      * @param {number} wordsPerSecond - Velocidad de palabras por segundo
      */
     updateSubtitles(text, wordsPerSecond = 2.5) {
         if (!this.subtitlesElement) return;
         
-        this.currentWords = text.split(' ');
+        // Limpiar texto antes de procesar
+        text = this.cleanText(text);
+        
+        this.currentWords = text.split(' ').filter(w => w.trim().length > 0);
         this.wordIndex = 0;
+        this.displayedWords = []; // Palabras actualmente mostradas (máximo para 2 líneas)
         
         // Limpiar intervalo anterior si existe
         if (this.subtitlesInterval) {
@@ -97,17 +101,73 @@ export class AvatarSubtitlesManager {
         }
         
         const interval = 1000 / wordsPerSecond; // ms entre palabras
+        const maxWordsPerLine = 8; // Aproximadamente 8 palabras por línea
+        const maxTotalWords = maxWordsPerLine * 2; // Máximo 2 líneas
         
         this.subtitlesInterval = setInterval(() => {
             if (this.wordIndex < this.currentWords.length) {
-                // Mostrar palabras acumuladas
-                const wordsToShow = this.currentWords.slice(0, this.wordIndex + 1).join(' ');
+                // Agregar nueva palabra
+                this.displayedWords.push(this.currentWords[this.wordIndex]);
+                
+                // Si excede el máximo, eliminar la primera palabra
+                if (this.displayedWords.length > maxTotalWords) {
+                    this.displayedWords.shift();
+                }
+                
+                // Mostrar solo las palabras actuales (no acumulativo)
+                const wordsToShow = this.displayedWords.join(' ');
                 this.subtitlesElement.textContent = wordsToShow;
                 this.wordIndex++;
             } else {
                 clearInterval(this.subtitlesInterval);
+                // Mantener las últimas palabras visibles por un momento antes de limpiar
+                setTimeout(() => {
+                    if (this.wordIndex >= this.currentWords.length) {
+                        this.clearSubtitles();
+                    }
+                }, 2000);
             }
         }, interval);
+    }
+
+    /**
+     * Limpia el texto eliminando caracteres de escape y debugging
+     */
+    cleanText(text) {
+        if (!text || typeof text !== 'string') return '';
+        
+        // Eliminar caracteres de escape
+        text = text.replace(/\\n/g, ' ').replace(/\\"/g, '"').replace(/\\'/g, "'");
+        
+        // Eliminar texto de debugging
+        text = text.replace(/Let's count words:.*?words\./gi, '');
+        text = text.replace(/Words:.*?words\./gi, '');
+        text = text.replace(/\d+ words?\./gi, '');
+        text = text.replace(/Good\. Meets \d+-\d+\./gi, '');
+        text = text.replace(/We included.*?Should be fine\./gi, '');
+        text = text.replace(/Meets \d+-\d+\./gi, '');
+        text = text.replace(/Good\./gi, '');
+        text = text.replace(/Use purely Spanish\./gi, '');
+        text = text.replace(/Should be fine\./gi, '');
+        text = text.replace(/\[.*?\]/g, '');
+        text = text.replace(/\{.*?\}/g, '');
+        
+        // Limpiar espacios múltiples
+        text = text.replace(/\s+/g, ' ').trim();
+        
+        // Filtrar líneas de debugging
+        const lines = text.split('.');
+        text = lines.filter(line => {
+            const lower = line.toLowerCase().trim();
+            return !lower.includes('tool_calls') && 
+                   !lower.includes('json') &&
+                   !lower.startsWith('illones') &&
+                   !lower.includes('count words') &&
+                   !lower.includes('meets') &&
+                   lower.length > 5;
+        }).join('. ').trim();
+        
+        return text;
     }
 
     /**
