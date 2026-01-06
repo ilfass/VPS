@@ -418,6 +418,69 @@ html {
 }
 
 /* Ajustes para pantallas muy grandes (4K) */
+/* Recuadros Multimedia durante Relato */
+.multimedia-overlay {
+    position: absolute;
+    bottom: 100px;
+    right: 40px;
+    width: 400px;
+    max-height: 500px;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 12px;
+    padding: 15px;
+    z-index: 100;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.multimedia-overlay.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.multimedia-overlay.hiding {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.multimedia-overlay img,
+.multimedia-overlay video {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    object-fit: cover;
+    max-height: 400px;
+}
+
+.multimedia-overlay audio {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.multimedia-context {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-top: 10px;
+    font-style: italic;
+    text-align: center;
+    padding-top: 10px;
+    border-top: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+/* Múltiples recuadros apilados */
+.multimedia-overlay:nth-of-type(2) {
+    bottom: 620px; /* Encima del primero */
+}
+
+.multimedia-overlay:nth-of-type(3) {
+    bottom: 1140px; /* Encima del segundo */
+}
+
 @media (min-width: 2500px) {
     .zoom-narrative {
         transform: translateX(-50%) scale(1.5);

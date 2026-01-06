@@ -263,6 +263,10 @@
                     <span>📖 HOJA DEL LIBRO:</span>
                     <span id="book-page" class="stat-val" style="color: #a855f7;">--</span>
                 </div>
+                <div class="stat-row" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border);">
+                    <span>💾 MEMORIA PAÍS:</span>
+                    <span id="country-memory" class="stat-val" style="color: #10b981; font-size: 0.7rem;">--</span>
+                </div>
             </div>
 
             <div class="panel" style="flex: 1;">
@@ -717,6 +721,29 @@
                     const dayInfo = telemetry.day ? ` - Día ${telemetry.day}` : '';
                     bookPageEl.textContent += dayInfo;
                 }
+            }
+            
+            // 5. Memoria del País (NUEVO)
+            const countryMemoryEl = document.getElementById('country-memory');
+            if (countryMemoryEl && data.clientTelemetry && data.clientTelemetry.country && 
+                data.clientTelemetry.country !== 'GLOBAL' && data.clientTelemetry.country !== 'UNKNOWN') {
+                // Cargar memoria del país actual
+                fetch(`/control-api/api/country-memory/${data.clientTelemetry.country}`)
+                    .then(res => res.json())
+                    .then(memory => {
+                        if (memory.totalVisits > 0) {
+                            countryMemoryEl.textContent = `${memory.totalVisits} visita(s)`;
+                            countryMemoryEl.title = `Última visita: ${new Date(memory.lastVisit).toLocaleString('es-ES')}`;
+                        } else {
+                            countryMemoryEl.textContent = 'Primera visita';
+                            countryMemoryEl.title = '';
+                        }
+                    })
+                    .catch(e => {
+                        countryMemoryEl.textContent = '--';
+                    });
+            } else if (countryMemoryEl) {
+                countryMemoryEl.textContent = '--';
             }
         }
 

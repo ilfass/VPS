@@ -572,3 +572,162 @@ El stream puede durar horas en este modo.
 
 ### 36. CONCLUSIÓN TÉCNICA
 Este diseño elimina la presión del tiempo real y devuelve el control total a la **Dirección Editorial**, permitiendo que la IA sea una herramienta de expansión infinita pero siempre dentro de los límites del sentido que le da el humano.
+
+---
+
+## SECCIÓN V: SISTEMA DE RELATOS CONTINUOS Y MEMORIA PERSISTENTE POR PAÍS (2026)
+
+### 37. FILOSOFÍA DEL RELATO CONTINUO
+Cada visita a un país no es un evento aislado. Es un **capítulo en una historia continua** narrada por ilfass en primera persona.
+
+**Principios:**
+*   ilfass cuenta su experiencia como si fuera un viajero real
+*   El relato se construye progresivamente con cada visita
+*   La memoria previa informa y enriquece nuevas visitas
+*   El contenido multimedia acompaña y complementa el relato, no lo reemplaza
+
+### 38. ESTRUCTURA DE UNA VISITA A PAÍS
+
+#### 38.1 Flujo Narrativo de una Visita
+Cuando ilfass visita un país:
+
+1. **Inicio del Relato:**
+   *   Genera un relato continuo con IA (en primera persona, como ilfass)
+   *   El relato incluye: datos del país, qué le genera el país, reflexiones personales
+   *   Si el país ya fue visitado, el relato se basa en la memoria previa y agrega nuevas experiencias
+
+2. **Narración con Multimedia:**
+   *   Durante el relato, aparecen recuadros multimedia que acompañan la narración
+   *   Puede haber múltiples recuadros por país, dependiendo del contenido del relato
+   *   Los recuadros aparecen y desaparecen sincronizados con el relato
+   *   El contenido multimedia puede ser: imágenes generadas con IA, media curado, videos, etc.
+
+3. **Finalización:**
+   *   Cuando termina de hablar del país, se hace zoom out
+   *   Los recuadros multimedia se ocultan
+   *   Todo el relato y contenido generado se guarda en memoria
+
+#### 38.2 Contenido del Relato
+El relato generado por IA debe incluir:
+*   **Datos objetivos:** Información sobre el país (geografía, historia, cultura)
+*   **Experiencia subjetiva:** Qué le genera el país a ilfass, qué siente, qué observa
+*   **Reflexiones:** Pensamientos profundos sobre el lugar, conexiones con otros países visitados
+*   **Continuidad narrativa:** Referencias a visitas anteriores si las hay, evolución de la percepción
+
+### 39. MEMORIA PERSISTENTE POR PAÍS
+
+#### 39.1 Estructura de Memoria
+Cada país tiene una memoria persistente que contiene:
+
+```javascript
+{
+  countryId: "032",
+  countryName: "Argentina",
+  visits: [
+    {
+      visitId: "visit_001",
+      timestamp: 1234567890,
+      dayId: "Día 1", // Día editorial en que ocurrió
+      narrative: "Relato completo generado por IA...",
+      multimedia: [
+        { type: "image", url: "...", timestamp: 1234567891, context: "..." },
+        { type: "video", url: "...", timestamp: 1234567895, context: "..." }
+      ],
+      reflections: ["Reflexión 1", "Reflexión 2"],
+      dataPoints: ["Dato 1", "Dato 2"],
+      emotionalNotes: "Qué le generó el país..."
+    }
+  ],
+  totalVisits: 1,
+  lastVisit: 1234567890,
+  accumulatedNarrative: "Historia acumulada del país..."
+}
+```
+
+#### 39.2 Uso de Memoria en Visitas Subsecuentes
+Cuando ilfass vuelve a visitar un país:
+
+1. **Carga Memoria Previa:**
+   *   Lee todas las visitas anteriores
+   *   Analiza el relato acumulado
+   *   Identifica qué ya se dijo y qué puede agregarse
+
+2. **Generación de Nuevo Relato:**
+   *   El relato nuevo se basa en la memoria previa
+   *   Evita repetir exactamente lo mismo
+   *   Agrega nuevas capas: "La última vez que estuve aquí...", "Ahora veo que...", "Me doy cuenta de que..."
+   *   Construye sobre la historia previa, no la reemplaza
+
+3. **Actualización de Memoria:**
+   *   Guarda la nueva visita
+   *   Actualiza el relato acumulado
+   *   Incrementa el contador de visitas
+
+### 40. SISTEMA DE RECUADROS MULTIMEDIA
+
+#### 40.1 Comportamiento de los Recuadros
+*   **Aparición:** Los recuadros aparecen durante el relato, sincronizados con el contenido
+*   **Contenido:** Puede ser imagen, video, texto, o combinación
+*   **Cantidad:** Depende del relato generado (puede haber 1, 2, 3 o más recuadros)
+*   **Timing:** Cada recuadro tiene un timestamp en el relato que determina cuándo aparece
+*   **Desaparición:** Se ocultan cuando termina el relato del país (zoom out)
+
+#### 40.2 Generación de Contenido Multimedia
+El sistema genera contenido multimedia basado en:
+*   El relato generado (la IA decide qué contenido necesita)
+*   Media curado disponible del país
+*   Generación de imágenes/videos con IA cuando es necesario
+*   Contexto narrativo (qué parte del relato se está contando)
+
+### 41. INTEGRACIÓN CON DÍA EDITORIAL
+
+#### 41.1 Relación con Día Editorial
+*   Cada visita a un país se registra dentro del Día Editorial activo
+*   El Día Editorial contiene todas las visitas de esa sesión
+*   Al cerrar el día, todas las visitas se archivan en la memoria del país
+
+#### 41.2 Persistencia
+*   La memoria de países se guarda en el servidor (archivos JSON o base de datos)
+*   Se carga al iniciar el sistema
+*   Se actualiza en tiempo real durante las visitas
+*   Es accesible para generar el Libro Digital Vivo
+
+### 42. VOZ DE ILFASS EN EL RELATO
+
+#### 42.1 Características de la Voz
+El relato debe sonar como si ilfass lo estuviera contando:
+*   Primera persona: "Estoy en...", "Me llama la atención...", "Siento que..."
+*   Tono reflexivo y observacional
+*   Conexiones personales: "Esto me recuerda a...", "A diferencia de..."
+*   Honestidad emocional: "Me genera...", "Me sorprende...", "Me hace pensar..."
+
+#### 42.2 Continuidad Narrativa
+*   Referencias a países anteriores: "Como en [país anterior], aquí también..."
+*   Evolución de percepción: "La primera vez que vine pensé..., ahora veo que..."
+*   Arco narrativo: El relato construye una historia más grande del viaje completo
+
+### 43. IMPLEMENTACIÓN TÉCNICA
+
+#### 43.1 Componentes Necesarios
+1. **CountryMemoryManager:** Gestiona memoria persistente por país
+2. **ContinuousNarrativeEngine:** Genera relatos continuos basados en memoria
+3. **MultimediaOrchestrator:** Coordina aparición/desaparición de recuadros
+4. **VisitRecorder:** Registra y guarda visitas en tiempo real
+
+#### 43.2 Flujo de Datos
+```
+Zoom In → Cargar Memoria País → Generar Relato Continuo → 
+Narrar con Multimedia → Guardar Visita → Zoom Out
+```
+
+### 44. PRINCIPIOS FINALES DEL RELATO CONTINUO
+
+*   **Cada país tiene una historia que crece con cada visita**
+*   **La memoria no se borra, se acumula**
+*   **El relato es personal y subjetivo, no enciclopédico**
+*   **El multimedia acompaña, no compite con el relato**
+*   **La continuidad narrativa es esencial para la coherencia del proyecto**
+
+---
+
+**Este sistema transforma cada visita en un capítulo de una historia mayor, donde ilfass no solo recorre países, sino que construye una memoria viva y en evolución de su viaje alrededor del mundo.**

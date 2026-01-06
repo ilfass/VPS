@@ -11,6 +11,9 @@ import { contentEngine } from '../utils/content-engine.js';
 import { systemOrchestrator } from '../utils/system-orchestrator.js';
 import { sceneNavigator } from '../utils/scene-navigator.js';
 import { pacingEngine, CONTENT_TYPES } from '../utils/pacing-engine.js';
+import { continuousNarrativeEngine } from '../utils/continuous-narrative-engine.js';
+import { multimediaOrchestrator } from '../utils/multimedia-orchestrator.js';
+import { countryMemoryManager } from '../utils/country-memory-manager.js';
 
 // TEMPLATES eliminados, ahora gestionados por narrativeEngine
 
@@ -178,6 +181,9 @@ export default class MapaMode {
 
             // 9. Inicializar Orquestador del Sistema (Cerebro Central)
             systemOrchestrator.init();
+
+            // 10. Inicializar Multimedia Orchestrator
+            multimediaOrchestrator.init(this.container);
 
             // Registrar manejadores
             eventManager.on('news', () => this.triggerNewsEvent(true)); // true = forzado
@@ -523,71 +529,8 @@ export default class MapaMode {
                     return;
                 }
 
-                const facts = target.facts || (target.fact ? [target.fact] : []);
-
-                if (facts.length > 0) {
-                    // Construir texto
-                    let timeStr = "";
-                    try {
-                        const now = new Date();
-                        timeStr = new Intl.DateTimeFormat('es-ES', {
-                            timeZone: target.timezone,
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            hour12: false
-                        }).format(now);
-                    } catch (e) { timeStr = "--:--"; }
-
-                    // Generar Narrativa con el Motor, pasando el contexto completo
-                    const narrative = narrativeEngine.generateNarrative(target, timeStr, context);
-
-                    // Procesar contenido para derivados (Content Engine)
-                    contentEngine.processContent(narrative);
-                    
-                    // Generar contenido multimedia con IA
-                    this.generateMultimediaContent(target, narrative, context);
-
-                    // Determinar estado del personaje y configuración de voz
-                    // Mapeamos la escena actual (simplificado por ahora a LIVE_MAP)
-                    const avatarState = characterDirector.determineState('LIVE_MAP', context.mode, narrative.type);
-                    const voiceConfig = characterDirector.getVoiceConfig(avatarState);
-
-                    // Verificar si podemos mostrar monetización (Overlay sutil)
-                    const monetization = contentEngine.getMonetizationOverlay({ narrativeType: narrative.type, mode: context.mode });
-                    if (monetization) {
-                        console.log("Monetization Opportunity:", monetization.text);
-                        // Aquí se podría actualizar una UI de soporte discreta
-                    }
-
-                    // Usar AudioManager con configuración de voz dinámica
-                    // Nota: AudioManager necesita actualización para aceptar rate/pitch, por ahora pasamos texto
-                    // En una implementación completa, pasaríamos voiceConfig al speak
-                    // Registrar inicio de evento de VOZ
-                    pacingEngine.startEvent(CONTENT_TYPES.VOICE);
-                    audioManager.speak(narrative.text, 'normal', () => {
-                        // Al terminar de hablar, registramos el fin y pasamos a VISUAL/SILENCE
-                        pacingEngine.endCurrentEvent();
-                        pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
-                    });
-
-                    // Actualizar Diario de Viaje
-                    this.updateDiary(narrative.diaryEntry);
-
-                    // Calcular duración estimada (ajustada por velocidad de voz)
-                    const wordCount = narrative.text.split(' ').length;
-                    const baseSpeed = 2.5 * voiceConfig.rate; // Palabras por segundo ajustadas
-                    const estimatedDuration = Math.max(timing.zoomDuration, (wordCount / baseSpeed) * 1000 + 4000);
-
-                    // Mostrar info visual (usamos el contenido del texto generado o un fact limpio si preferimos)
-                    // Para simplificar visualmente, mostramos el texto generado completo o una parte
-                    this.showCountryInfo(narrative.text, estimatedDuration);
-
-                    // Reajustar el tiempo de viaje para no cortar el audio
-                    if (this.travelTimeout) clearTimeout(this.travelTimeout);
-                    this.travelTimeout = setTimeout(() => {
-                        this.cycleZoomOut();
-                    }, estimatedDuration + 3000); // 3s extra de margen visual
-                }
+                // NUEVO SISTEMA: Relato Continuo con IA
+                this.startContinuousNarrative(target, context, timing);
             });
 
         this.sunGroup.selectAll("circle").transition().duration(3000).attr("r", 15 / scale);
@@ -596,6 +539,9 @@ export default class MapaMode {
     resetZoom(releaseAudio = true) {
         // Detener cualquier viaje automático pendiente
         if (this.travelTimeout) clearTimeout(this.travelTimeout);
+
+        // Ocultar todos los recuadros multimedia
+        multimediaOrchestrator.hideAllOverlays();
 
         this.gCountries.selectAll(".country").classed("active-country", false);
         this.gLabels.selectAll("text").transition().duration(1000).style("opacity", 0);
@@ -611,7 +557,6 @@ export default class MapaMode {
         // TELEMETRÍA: Vuelta a órbita
         eventManager.reportTelemetry('MAPA', 'GLOBAL', 0);
 
-        // Cancelar voz y ocultar cápsula lateral
         // Cancelar voz y ocultar cápsula lateral
         audioManager.cancel();
         if (releaseAudio) {
@@ -840,6 +785,180 @@ export default class MapaMode {
                 .on("end", function() {
                     d3.select(this).remove();
                 });
+        }
+    }
+
+    /**
+     * Inicia el relato continuo para un país
+     * @param {object} target - Información del país
+     * @param {object} context - Contexto actual
+     * @param {object} timing - Configuración de tiempos
+     */
+    async startContinuousNarrative(target, context, timing) {
+        const visitStartTime = Date.now();
+        
+        try {
+            console.log(`[Mapa] Iniciando relato continuo para ${target.name}...`);
+            
+            // Obtener dayId del estado editorial
+            let dayId = 'Unknown';
+            try {
+                const statusRes = await fetch('/control-api/status');
+                if (statusRes.ok) {
+                    const status = await statusRes.json();
+                    if (status.editorial && status.editorial.dayId) {
+                        dayId = status.editorial.dayId;
+                    }
+                }
+            } catch (e) {
+                console.warn('[Mapa] No se pudo obtener dayId:', e);
+            }
+            
+            // Agregar dayId al contexto
+            const enrichedContext = { ...context, dayId };
+            
+            // 1. Generar relato continuo con IA
+            const continuousNarrative = await continuousNarrativeEngine.generateContinuousNarrative(target, enrichedContext);
+            
+            console.log(`[Mapa] Relato generado (${continuousNarrative.narrative.length} caracteres)`);
+            console.log(`[Mapa] Multimedia planificado: ${continuousNarrative.multimedia.length} items`);
+            
+            // 2. Preparar multimedia
+            const multimediaItems = [];
+            
+            for (const mediaPlan of continuousNarrative.multimedia) {
+                // Generar o buscar media según el plan
+                let mediaUrl = null;
+                
+                if (mediaPlan.prompt) {
+                    // Generar con IA
+                    try {
+                        const imageRes = await fetch('/control-api/api/generate-image', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ prompt: mediaPlan.prompt })
+                        });
+                        
+                        if (imageRes.ok) {
+                            const imageData = await imageRes.json();
+                            // El servidor devuelve { url: "...", filename: "..." } o { error: "..." }
+                            if (imageData.url) {
+                                mediaUrl = imageData.url;
+                            } else if (imageData.filename) {
+                                // Construir URL relativa desde el servidor
+                                mediaUrl = `/media/AI_Generated/${imageData.filename}`;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn(`[Mapa] Error generando imagen: ${e}`);
+                    }
+                }
+                
+                // Si no se generó, buscar media curado
+                if (!mediaUrl) {
+                    try {
+                        const mediaRes = await fetch('/control-api/api/media-list');
+                        if (mediaRes.ok) {
+                            const mediaList = await mediaRes.json();
+                            const countryMedia = mediaList.filter(m => {
+                                const folder = (m.folder || "").toLowerCase();
+                                const countryName = target.name.toLowerCase();
+                                return folder.includes(countryName) || countryName.includes(folder);
+                            });
+                            
+                            if (countryMedia.length > 0) {
+                                const randomMedia = countryMedia[Math.floor(Math.random() * countryMedia.length)];
+                                mediaUrl = randomMedia.url;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn(`[Mapa] Error cargando media curado: ${e}`);
+                    }
+                }
+                
+                if (mediaUrl) {
+                    multimediaItems.push({
+                        type: mediaPlan.type || 'image',
+                        url: mediaUrl,
+                        context: mediaPlan.context,
+                        trigger: mediaPlan.trigger || 'start'
+                    });
+                }
+            }
+            
+            // 3. Determinar timing de multimedia basado en el relato
+            const narrativeWords = continuousNarrative.narrative.split(' ');
+            const totalWords = narrativeWords.length;
+            const wordsPerSecond = 2.5; // Velocidad de narración
+            const totalDuration = (totalWords / wordsPerSecond) * 1000;
+            
+            // 4. Mostrar multimedia según triggers
+            multimediaItems.forEach((item, index) => {
+                let delay = 0;
+                if (item.trigger === 'start') delay = 1000;
+                else if (item.trigger === 'mid') delay = totalDuration / 2;
+                else if (item.trigger === 'reflection') delay = totalDuration * 0.7;
+                
+                multimediaOrchestrator.showMediaOverlay(item, delay);
+            });
+            
+            // 5. Narrar el relato
+            pacingEngine.startEvent(CONTENT_TYPES.VOICE);
+            audioManager.speak(continuousNarrative.narrative, 'normal', async () => {
+                pacingEngine.endCurrentEvent();
+                pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+                
+                // 6. Guardar visita en memoria
+                const visitData = {
+                    visitId: `visit_${Date.now()}`,
+                    timestamp: visitStartTime,
+                    dayId: enrichedContext.dayId || 'Unknown',
+                    narrative: continuousNarrative.narrative,
+                    multimedia: multimediaItems.map(item => ({
+                        type: item.type,
+                        url: item.url,
+                        context: item.context,
+                        timestamp: visitStartTime
+                    })),
+                    reflections: continuousNarrative.reflections,
+                    dataPoints: continuousNarrative.dataPoints,
+                    emotionalNotes: continuousNarrative.emotionalNotes,
+                    isFirstVisit: continuousNarrative.isFirstVisit
+                };
+                
+                await countryMemoryManager.saveVisit(target.id, visitData);
+                console.log(`[Mapa] Visita guardada en memoria para ${target.name}`);
+                
+                // 7. Ocultar multimedia y hacer zoom out después de un breve momento
+                setTimeout(() => {
+                    multimediaOrchestrator.hideAllOverlays();
+                    this.cycleZoomOut();
+                }, 2000);
+            });
+            
+            // 8. Actualizar diario con el relato
+            this.updateDiary({
+                country: target.name,
+                time: new Date().toLocaleTimeString('es-ES'),
+                topic: continuousNarrative.isFirstVisit ? 'Primera Visita' : 'Visita Subsecuente',
+                content: continuousNarrative.narrative.substring(0, 200) + '...'
+            });
+            
+            // 9. Mostrar info del país
+            this.showCountryInfo(continuousNarrative.narrative.substring(0, 150) + '...', totalDuration);
+            
+            // Ajustar timeout para el zoom out
+            if (this.travelTimeout) clearTimeout(this.travelTimeout);
+            this.travelTimeout = setTimeout(() => {
+                multimediaOrchestrator.hideAllOverlays();
+                this.cycleZoomOut();
+            }, totalDuration + 5000); // 5s extra después de terminar de hablar
+            
+        } catch (e) {
+            console.error(`[Mapa] Error en relato continuo:`, e);
+            // Fallback a sistema anterior si falla
+            multimediaOrchestrator.hideAllOverlays();
+            this.cycleZoomOut();
         }
     }
 

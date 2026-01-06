@@ -15,6 +15,12 @@ try {
 const PORT = 3005;
 const DATA_FILE = path.join(__dirname, 'data', 'living-script.json');
 const STATE_FILE = path.join(__dirname, 'data', 'server-state.json');
+const COUNTRY_MEMORIES_DIR = path.join(__dirname, 'data', 'country-memories');
+
+// Asegurar que el directorio de memorias existe
+if (!fs.existsSync(COUNTRY_MEMORIES_DIR)) {
+    fs.mkdirSync(COUNTRY_MEMORIES_DIR, { recursive: true });
+}
 
 // Estado Global
 let state = {
@@ -138,12 +144,13 @@ async function dreamWithGrok(prompt) {
             },
             body: JSON.stringify({
                 messages: [
-                    { role: "system", content: "You are ilfass, a poetic cyberpunk AI narrator." },
+                    { role: "system", content: "Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana. Tu voz es reflexiva, observacional y personal. Hablas en primera persona, como si estuvieras pensando en voz alta." },
                     { role: "user", content: prompt }
                 ],
                 model: "grok-4-latest",
                 stream: false,
-                temperature: 0.7
+                temperature: 0.8,
+                max_tokens: 800 // Relatos más largos
             })
         });
         const data = await response.json();
@@ -160,7 +167,15 @@ async function dreamWithOpenAI(prompt) {
     try {
         const resp = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST', headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ model: "gpt-4o", messages: [{ role: "user", content: prompt }], max_tokens: 60 })
+            body: JSON.stringify({ 
+                model: "gpt-4o", 
+                messages: [
+                    { role: "system", content: "Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana. Tu voz es reflexiva, observacional y personal. Hablas en primera persona." },
+                    { role: "user", content: prompt }
+                ], 
+                max_tokens: 800, // Aumentado para relatos más largos
+                temperature: 0.8 // Más creatividad
+            })
         });
         const data = await resp.json();
         return data.choices?.[0]?.message?.content.replace(/"/g, '').trim() || null;
@@ -361,6 +376,120 @@ const server = http.createServer(async (req, res) => {
             }
             res.writeHead(200, headers);
             res.end('{"success":true}');
+        });
+        return;
+    }
+
+    // Country Memory: Cargar memoria de un país
+    if (req.method === 'GET' && apiPath.startsWith('/api/country-memory/')) {
+        const countryId = apiPath.split('/').pop();
+        const memoryFile = path.join(COUNTRY_MEMORIES_DIR, `${countryId}.json`);
+        
+        try {
+            if (fs.existsSync(memoryFile)) {
+                const memory = JSON.parse(fs.readFileSync(memoryFile, 'utf8'));
+                res.writeHead(200, headers);
+                res.end(JSON.stringify(memory));
+            } else {
+                // Retornar estructura vacía
+                res.writeHead(200, headers);
+                res.end(JSON.stringify({
+                    countryId: countryId,
+                    visits: [],
+                    totalVisits: 0,
+                    lastVisit: null,
+                    accumulatedNarrative: ""
+                }));
+            }
+        } catch (e) {
+            console.error("Error loading country memory:", e);
+            res.writeHead(500, headers);
+            res.end('{"error":"Failed to load memory"}');
+        }
+        return;
+    }
+
+    // Country Memory: Guardar visita
+    if (req.method === 'POST' && apiPath.startsWith('/api/country-memory/') && apiPath.endsWith('/visit')) {
+        const countryId = apiPath.split('/')[3];
+        let body = '';
+        req.on('data', c => body += c);
+        req.on('end', () => {
+            try {
+                const visitData = JSON.parse(body || '{}');
+                const memoryFile = path.join(COUNTRY_MEMORIES_DIR, `${countryId}.json`);
+                
+                // Cargar memoria existente o crear nueva
+                let memory = {
+                    countryId: countryId,
+                    visits: [],
+                    totalVisits: 0,
+                    lastVisit: null,
+                    accumulatedNarrative: ""
+                };
+                
+                if (fs.existsSync(memoryFile)) {
+                    memory = JSON.parse(fs.readFileSync(memoryFile, 'utf8'));
+                }
+                
+                // Agregar nueva visita
+                memory.visits.push(visitData);
+                memory.totalVisits = memory.visits.length;
+                memory.lastVisit = visitData.timestamp;
+                
+                // Actualizar narrativa acumulada
+                if (memory.accumulatedNarrative) {
+                    memory.accumulatedNarrative += "\n\n" + visitData.narrative;
+                } else {
+                    memory.accumulatedNarrative = visitData.narrative;
+                }
+                
+                // Guardar
+                fs.writeFileSync(memoryFile, JSON.stringify(memory, null, 2));
+                
+                console.log(`💾 Memoria guardada para país ${countryId} (${memory.totalVisits} visitas)`);
+                
+                res.writeHead(200, headers);
+                res.end(JSON.stringify(memory));
+            } catch (e) {
+                console.error("Error saving visit:", e);
+                res.writeHead(500, headers);
+                res.end('{"error":"Failed to save visit"}');
+            }
+        });
+        return;
+    }
+
+    // Generate Narrative: Endpoint para generar relato con IA
+    if (req.method === 'POST' && apiPath === '/api/generate-narrative') {
+        let body = '';
+        req.on('data', c => body += c);
+        req.on('end', async () => {
+            try {
+                const { prompt } = JSON.parse(body || '{}');
+                if (!prompt) {
+                    res.writeHead(400, headers);
+                    res.end('{"error":"No prompt provided"}');
+                    return;
+                }
+                
+                // Usar el sistema de IA disponible (prioridad: Grok > OpenAI > Gemini > HF)
+                let narrative = await dreamWithGrok(prompt);
+                if (!narrative) narrative = await dreamWithOpenAI(prompt);
+                if (!narrative) narrative = await dreamWithGemini(prompt);
+                if (!narrative) narrative = await dreamWithHF(prompt);
+                
+                if (!narrative) {
+                    narrative = "Estoy observando este lugar. Hay algo que me llama la atención, algo que siento que debo documentar.";
+                }
+                
+                res.writeHead(200, headers);
+                res.end(JSON.stringify({ narrative }));
+            } catch (e) {
+                console.error("Error generating narrative:", e);
+                res.writeHead(500, headers);
+                res.end('{"error":"Failed to generate narrative"}');
+            }
         });
         return;
     }
