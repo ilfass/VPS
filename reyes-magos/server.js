@@ -54,9 +54,11 @@ async function generateImagePollinations(prompt) {
 // Generar imagen con OpenAI (si está disponible)
 async function generateImageOpenAI(prompt) {
     if (!process.env.OPENAI_API_KEY) {
+        console.log("⚠️ No hay OPENAI_API_KEY, usando Pollinations");
         return await generateImagePollinations(prompt);
     }
     try {
+        console.log("🎨 Intentando generar con DALL-E 3...");
         const resp = await fetch('https://api.openai.com/v1/images/generations', {
             method: 'POST',
             headers: {
@@ -70,20 +72,33 @@ async function generateImageOpenAI(prompt) {
                 size: "1024x1024"
             })
         });
+        
+        if (!resp.ok) {
+            const errorData = await resp.json().catch(() => ({}));
+            console.warn(`⚠️ Error DALL-E: ${resp.status} - ${JSON.stringify(errorData)}`);
+            return await generateImagePollinations(prompt);
+        }
+        
         const data = await resp.json();
         if (data.data?.[0]?.url) {
-            const buffer = Buffer.from(await (await fetch(data.data[0].url)).blob().arrayBuffer());
-            const filename = `king_${Date.now()}.png`;
+            const imageUrl = data.data[0].url;
+            console.log(`📥 Descargando imagen de: ${imageUrl}`);
+            const imageResponse = await fetch(imageUrl);
+            const buffer = Buffer.from(await imageResponse.arrayBuffer());
+            const filename = `king_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
             const dir = path.join(__dirname, 'media');
             if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
             fs.writeFileSync(path.join(dir, filename), buffer);
             console.log(`✨ Imagen generada (DALL-E): ${filename}`);
             return { filename, url: `/media/${filename}` };
+        } else {
+            console.warn("⚠️ DALL-E no retornó URL de imagen");
+            return await generateImagePollinations(prompt);
         }
     } catch (e) {
-        console.error("Error OpenAI:", e);
+        console.error("❌ Error OpenAI:", e.message);
+        return await generateImagePollinations(prompt);
     }
-    return await generateImagePollinations(prompt);
 }
 
 // Servidor HTTP
