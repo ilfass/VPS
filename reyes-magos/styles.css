@@ -208,12 +208,40 @@ body {
     animation: float 3s ease-in-out infinite;
 }
 
+.king-animation {
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.king-animation:hover {
+    transform: scale(1.2);
+}
+
+.king-icon-svg {
+    pointer-events: none;
+    user-select: none;
+}
+
 @keyframes float {
     0%, 100% {
         transform: translateY(0);
     }
     50% {
         transform: translateY(-10px);
+    }
+}
+
+/* Animación de brillo para los reyes */
+.king-animation .king-marker {
+    animation: kingGlow 2s ease-in-out infinite;
+}
+
+@keyframes kingGlow {
+    0%, 100% {
+        filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.8));
+    }
+    50% {
+        filter: drop-shadow(0 0 20px rgba(251, 191, 36, 1));
     }
 }
 

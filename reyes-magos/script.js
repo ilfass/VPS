@@ -97,6 +97,9 @@ class ReyesMagosMap {
         // Inicializar música de fondo
         this.initMusic();
         
+        // Inicializar voz en off
+        this.initVoice();
+        
         // Crear SVG
         this.createSVG();
         
@@ -106,19 +109,75 @@ class ReyesMagosMap {
         // Iniciar animación del viaje
         setTimeout(() => this.startJourney(), 2000);
     }
+    
+    initVoice() {
+        // Verificar soporte de Web Speech API
+        if ('speechSynthesis' in window) {
+            this.voiceAvailable = true;
+            // Configurar voz en español
+            const voices = speechSynthesis.getVoices();
+            this.spanishVoice = voices.find(v => v.lang.startsWith('es')) || voices[0];
+        } else {
+            this.voiceAvailable = false;
+            console.warn('Web Speech API no disponible');
+        }
+    }
+    
+    speak(text, callback) {
+        if (!this.voiceAvailable) {
+            if (callback) callback();
+            return;
+        }
+        
+        // Cancelar cualquier narración anterior
+        speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'es-ES';
+        utterance.rate = 0.9; // Velocidad ligeramente más lenta
+        utterance.pitch = 1.0;
+        utterance.volume = 0.8;
+        
+        if (this.spanishVoice) {
+            utterance.voice = this.spanishVoice;
+        }
+        
+        utterance.onend = () => {
+            if (callback) callback();
+        };
+        
+        utterance.onerror = (e) => {
+            console.warn('Error en síntesis de voz:', e);
+            if (callback) callback();
+        };
+        
+        speechSynthesis.speak(utterance);
+    }
 
     initMusic() {
         const audio = document.getElementById('background-music');
         if (audio) {
-            audio.volume = 0.3; // Volumen bajo para música de fondo
+            audio.volume = 0.25; // Volumen bajo para música de fondo
+            // Intentar reproducir automáticamente
             audio.play().catch(e => {
                 console.log('Audio requiere interacción del usuario:', e);
-                // Mostrar mensaje para activar música
-                document.addEventListener('click', () => {
-                    audio.play();
-                }, { once: true });
+                // Intentar reproducir cuando haya interacción
+                const tryPlay = () => {
+                    audio.play().catch(() => {});
+                };
+                document.addEventListener('click', tryPlay, { once: true });
+                document.addEventListener('touchstart', tryPlay, { once: true });
             });
+        } else {
+            // Si no hay archivo de música, usar música online de fondo
+            this.initOnlineMusic();
         }
+    }
+    
+    initOnlineMusic() {
+        // Usar música de dominio público o libre de derechos
+        // Nota: En producción, usar archivo local o servicio de música
+        console.log('No se encontró archivo de música local. Agregar music.mp3 o music.ogg en la carpeta.');
     }
 
     createSVG() {
@@ -296,6 +355,29 @@ class ReyesMagosMap {
         const activeKing = Object.keys(KINGS)[step % 3];
         this.highlightKing(activeKing);
         this.showKingStory(activeKing);
+        
+        // Narrar con voz en off
+        this.narrateLocation(location, activeKing);
+    }
+    
+    /**
+     * Narra la ubicación y la historia con voz en off
+     */
+    narrateLocation(location, activeKing) {
+        const king = KINGS[activeKing];
+        let narration = `Estamos en ${location.name}. ${location.description}. `;
+        
+        if (location.story) {
+            narration += location.story + ' ';
+        }
+        
+        // Agregar información sobre el rey activo
+        if (king && step % 3 === 0) { // Solo mencionar al rey en el primer paso de cada ciclo
+            narration += `En este momento, ${king.name}, quien representa ${king.origin}, guía al grupo. ${king.story}`;
+        }
+        
+        // Hablar con síntesis de voz
+        this.speak(narration);
     }
     
     /**
