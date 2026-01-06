@@ -70,6 +70,66 @@ function loadState() {
 // Cargar estado al inicio
 loadState();
 
+// Función auxiliar para extraer curiosidades de narrativas
+function extractCuriositiesFromNarrative(narrative, countryId, timestamp) {
+    const curiosities = [];
+    const sentences = narrative.split(/[.!?]+/).filter(s => s.trim().length > 20);
+    
+    const interestingPatterns = [
+        /(?:descubrí|encontré|me sorprendió|me llamó la atención|interesante|curioso|fascinante|increíble|único|especial)/i,
+        /(?:conecta|vincula|relaciona|similar|parecido|comparte)/i,
+        /(?:tradición|costumbre|ritual|celebración|festival)/i,
+        /(?:historia|época|siglo|año|evento histórico)/i,
+        /(?:comida|plato|ingrediente|sabor|gastronomía)/i
+    ];
+
+    const icons = ['🌟', '💡', '🎯', '🔍', '✨', '🎨', '🌍', '🧠', '💫', '🎭', '🎪', '🔮', '⚡', '🎊', '🎈'];
+    
+    const countryMap = {
+        '124': 'Chile', '276': 'Alemania', '528': 'Países Bajos',
+        '616': 'Polonia', '858': 'Uruguay', '032': 'Argentina',
+        '076': 'Brasil', '170': 'Colombia', '218': 'Ecuador',
+        '484': 'México', '604': 'Perú', '840': 'Estados Unidos',
+        '724': 'España', '250': 'Francia', '380': 'Italia', '826': 'Reino Unido'
+    };
+
+    let found = 0;
+    for (const sentence of sentences) {
+        if (found >= 3) break;
+        
+        const trimmed = sentence.trim();
+        if (trimmed.length < 30 || trimmed.length > 200) continue;
+
+        const isInteresting = interestingPatterns.some(pattern => pattern.test(trimmed));
+        
+        if (isInteresting) {
+            const tags = [];
+            if (/cultura|tradición|costumbre/i.test(trimmed)) tags.push('culture');
+            if (/historia|época|siglo/i.test(trimmed)) tags.push('history');
+            if (/comida|plato|ingrediente|gastronomía/i.test(trimmed)) tags.push('food');
+            if (/conecta|vincula|relaciona|similar/i.test(trimmed)) tags.push('connection');
+            if (!tags.length) tags.push('fun');
+
+            const words = trimmed.split(' ').slice(0, 8).join(' ');
+            const title = words.length > 50 ? words.substring(0, 47) + '...' : words;
+
+            curiosities.push({
+                id: `curiosity-${countryId}-${timestamp}-${found}`,
+                title: title,
+                content: trimmed,
+                country: countryMap[countryId] || `País ${countryId}`,
+                countryId: countryId,
+                tags: tags,
+                timestamp: timestamp || Date.now(),
+                icon: icons[Math.floor(Math.random() * icons.length)]
+            });
+            found++;
+        }
+    }
+
+    return curiosities;
+}
+
 // --- AI LAYERS ---
 
 // Rate limiting para Pollinations
