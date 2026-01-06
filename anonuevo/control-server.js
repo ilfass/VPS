@@ -648,7 +648,7 @@ const server = http.createServer(async (req, res) => {
                                         const extracted = extractCuriositiesFromNarrative(
                                             visit.narrative,
                                             memory.countryId,
-                                            visit.timestamp || visit.visitId
+                                            visit.timestamp || visit.visitId || Date.now()
                                         );
                                         curiosities.push(...extracted);
                                     }
