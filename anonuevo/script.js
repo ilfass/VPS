@@ -24,7 +24,17 @@ function updateLiveStatus() {
     const day = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
 
     const liveStatus = document.getElementById('liveStatus');
+    if (!liveStatus) {
+        // Elemento no existe en esta página, salir silenciosamente
+        return;
+    }
+    
     const statusText = liveStatus.querySelector('.status-text');
+    if (!statusText) {
+        console.warn('No se encontró .status-text en #liveStatus');
+        return;
+    }
+    
     const videoPlaceholder = document.getElementById('videoPlaceholder');
     const youtubePlayer = document.getElementById('youtubePlayer');
 
@@ -54,6 +64,11 @@ function updateLiveStatus() {
 
 function updateNextStreamInfo() {
     const nextStreamTime = document.getElementById('nextStreamTime');
+    if (!nextStreamTime) {
+        // Elemento no existe en esta página, salir silenciosamente
+        return;
+    }
+    
     const now = new Date();
     const hours = now.getHours();
 
