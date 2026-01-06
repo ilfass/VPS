@@ -195,6 +195,9 @@ export default class MapaMode {
                 // Buscar país por ID (code)
                 // Nota: COUNTRY_INFO usa claves string "032", etc.
                 if (COUNTRY_INFO[code]) {
+                    // Actualizar StreamManager con el nuevo país
+                    streamManager.setCountry(code);
+                    
                     // Cancelar cualquier viaje actual
                     if (this.travelTimeout) clearTimeout(this.travelTimeout);
                     this.resetZoom();
@@ -374,20 +377,18 @@ export default class MapaMode {
             return;
         }
 
-        // Obtener contexto del Stream Manager (País del día, Tema, Modo)
+        // Obtener contexto del Stream Manager
         const context = streamManager.getCurrentContext();
         const timing = streamManager.getTimingConfig();
 
-        // Si estamos en LOOP, comportamiento diferente (quizás random o replay)
-        // Por ahora, en LOOP seguimos la estructura pero con menos voz
-
         let targetId = context.countryId;
 
-        // Fallback si el ID del schedule no existe en nuestra data
-        if (!COUNTRY_INFO[targetId]) {
-            console.warn(`Scheduled country ${targetId} not found, picking random.`);
+        // Si no hay país asignado o el país no existe, elegir uno aleatorio
+        if (!targetId || !COUNTRY_INFO[targetId]) {
+            console.warn(`Country ${targetId} not found or not set, picking random.`);
             const availableIds = Object.keys(COUNTRY_INFO);
             targetId = availableIds[Math.floor(Math.random() * availableIds.length)];
+            streamManager.setCountry(targetId);
         }
 
         const target = { id: targetId, ...COUNTRY_INFO[targetId] }; // Incluye timezone
@@ -405,7 +406,12 @@ export default class MapaMode {
         const timing = streamManager.getTimingConfig();
 
         // Tiempo en vista global antes de volver a entrar
+        // Ahora rotamos a un país diferente en cada ciclo (no forzamos 3 días)
         this.travelTimeout = setTimeout(() => {
+            // Rotar a siguiente país antes del próximo zoom
+            if (eventManager.canProceedAuto()) {
+                streamManager.rotateToNextCountry();
+            }
             this.cycleZoomIn();
         }, timing.globalViewDuration);
     }

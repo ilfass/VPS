@@ -15,16 +15,22 @@ export const JOURNEY_SCHEDULE = [
 export class StreamManager {
     constructor() {
         this.currentMode = STREAM_MODES.NARRATIVE;
-        this.startDate = new Date('2026-01-01T00:00:00'); // Fecha inicio simulada
-
-        // Estado del viaje calculado
+        
+        // Estado del viaje - ahora dinámico, no basado en días calendario
         this.currentCountryId = null;
-        this.dayOfVisit = 1; // 1, 2, 3
-        this.dayTheme = 'HISTORY'; // HISTORY, CULTURE, CURIOSITIES
+        this.lastCountryChange = Date.now();
+        this.visitedCountries = new Set(); // Para evitar repeticiones inmediatas
+        
+        // Temas disponibles (ya no forzamos días 1,2,3)
+        this.availableThemes = ['HISTORY', 'CULTURE', 'CURIOSITIES'];
+        this.currentTheme = 'HISTORY';
     }
 
     init() {
-        this.updateJourneyState();
+        // Inicializar con un país aleatorio si no hay uno asignado
+        if (!this.currentCountryId) {
+            this.pickRandomCountry();
+        }
     }
 
     setMode(mode) {
@@ -36,36 +42,59 @@ export class StreamManager {
         return false;
     }
 
-    updateJourneyState() {
-        // Calcular días transcurridos desde el inicio
-        const now = new Date();
-        const diffTime = Math.abs(now - this.startDate);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        // Cada país son 3 días
-        const countryIndex = Math.floor((diffDays - 1) / 3) % JOURNEY_SCHEDULE.length;
-        this.currentCountryId = JOURNEY_SCHEDULE[countryIndex];
-
-        // Día dentro del país (1, 2 o 3)
-        this.dayOfVisit = ((diffDays - 1) % 3) + 1;
-
-        // Definir tema según el día
-        switch (this.dayOfVisit) {
-            case 1: this.dayTheme = 'HISTORY'; break; // Contexto, Historia
-            case 2: this.dayTheme = 'CULTURE'; break; // Cultura, Gente
-            case 3: this.dayTheme = 'CURIOSITIES'; break; // Curiosidades, Turismo
+    // Cambiar a un país específico (usado por el director o auto-rotación)
+    setCountry(countryId, theme = null) {
+        this.currentCountryId = countryId;
+        this.lastCountryChange = Date.now();
+        this.visitedCountries.add(countryId);
+        
+        // Si se especifica un tema, usarlo; si no, elegir aleatorio
+        if (theme && this.availableThemes.includes(theme)) {
+            this.currentTheme = theme;
+        } else {
+            this.currentTheme = this.availableThemes[Math.floor(Math.random() * this.availableThemes.length)];
         }
+        
+        console.log(`Country changed to: ${countryId}, Theme: ${this.currentTheme}`);
+    }
 
-        console.log(`Journey Update: Country ${this.currentCountryId}, Day ${this.dayOfVisit} (${this.dayTheme})`);
+    // Elegir un país aleatorio (evitando el actual y recientes)
+    pickRandomCountry() {
+        const available = JOURNEY_SCHEDULE.filter(id => id !== this.currentCountryId);
+        if (available.length === 0) {
+            // Si solo hay un país, resetear visited
+            this.visitedCountries.clear();
+            this.currentCountryId = JOURNEY_SCHEDULE[0];
+        } else {
+            const randomIndex = Math.floor(Math.random() * available.length);
+            this.setCountry(available[randomIndex]);
+        }
+    }
+
+    // Rotar a siguiente país (usado por auto-pilot)
+    rotateToNextCountry() {
+        const currentIndex = JOURNEY_SCHEDULE.indexOf(this.currentCountryId);
+        if (currentIndex === -1) {
+            // Si no está en el schedule, elegir aleatorio
+            this.pickRandomCountry();
+        } else {
+            // Ir al siguiente en el schedule, o al primero si es el último
+            const nextIndex = (currentIndex + 1) % JOURNEY_SCHEDULE.length;
+            this.setCountry(JOURNEY_SCHEDULE[nextIndex]);
+        }
     }
 
     getCurrentContext() {
-        this.updateJourneyState();
+        // Si no hay país asignado, elegir uno
+        if (!this.currentCountryId) {
+            this.pickRandomCountry();
+        }
+        
         return {
             mode: this.currentMode,
             countryId: this.currentCountryId,
-            dayOfVisit: this.dayOfVisit,
-            theme: this.dayTheme
+            dayOfVisit: 1, // Mantener compatibilidad pero ya no se usa para lógica de 3 días
+            theme: this.currentTheme
         };
     }
 
