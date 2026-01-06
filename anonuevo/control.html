@@ -1285,11 +1285,87 @@
                     }
                     
                     lastMemoryRefresh = Date.now();
+
+                    // Actualizar lista de memorias en la sección de Hojas del Libro
+                    updateBookMemoriesList(data.memories);
                 }
             } catch (e) {
                 console.error('Error refreshing memories:', e);
                 log(`Error refreshing memories: ${e.message}`, 'error');
             }
+        }
+
+        // Actualizar lista de memorias en la sección de Hojas del Libro
+        function updateBookMemoriesList(memories) {
+            const memoriesListEl = document.getElementById('book-memories-list');
+            const memoryCountEl = document.getElementById('book-memory-count');
+            
+            if (!memories || memories.length === 0) {
+                if (memoriesListEl) {
+                    memoriesListEl.innerHTML = '<div style="text-align: center; padding: 10px; color: var(--text-dim);">No hay memorias guardadas</div>';
+                }
+                if (memoryCountEl) memoryCountEl.textContent = '0';
+                return;
+            }
+
+            // Calcular total de visitas
+            const totalVisits = memories.reduce((sum, m) => sum + (m.totalVisits || 0), 0);
+            if (memoryCountEl) memoryCountEl.textContent = totalVisits;
+
+            // Actualizar total de hojas del libro
+            const fixedPages = 4; // Portada, Intro, Mapa, Índice
+            const dynamicPages = 4; // Diario, Estado Actual, Reflexión, País
+            const totalPages = fixedPages + dynamicPages + totalVisits;
+            const totalPagesEl = document.getElementById('book-total-pages');
+            if (totalPagesEl) totalPagesEl.textContent = totalPages;
+
+            // Renderizar lista de memorias
+            if (memoriesListEl) {
+                memoriesListEl.innerHTML = memories
+                    .sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified))
+                    .map(m => {
+                        const date = new Date(m.lastModified);
+                        const countryName = getCountryName(m.countryId);
+                        return `<div class="book-memory-item" onclick="navigateToPage('/memoria/pais/${countryName.toLowerCase()}/')" title="Ver memoria de ${countryName}">
+                            <div class="memory-header">
+                                <span class="memory-country">${countryName || m.countryId}</span>
+                                <span class="memory-visits">${m.totalVisits} visita${m.totalVisits !== 1 ? 's' : ''}</span>
+                            </div>
+                            <div class="memory-date">${date.toLocaleDateString('es-ES')} ${date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</div>
+                        </div>`;
+                    }).join('');
+            }
+        }
+
+        // Obtener nombre del país desde el ID (mapping básico)
+        function getCountryName(countryId) {
+            // Mapeo básico de códigos ISO a nombres
+            const countryMap = {
+                '124': 'Chile',
+                '276': 'Alemania',
+                '528': 'Países Bajos',
+                '616': 'Polonia',
+                '858': 'Uruguay',
+                '032': 'Argentina',
+                '076': 'Brasil',
+                '170': 'Colombia',
+                '152': 'Chile',
+                '218': 'Ecuador',
+                '484': 'México',
+                '604': 'Perú',
+                '840': 'Estados Unidos',
+                '724': 'España',
+                '250': 'Francia',
+                '380': 'Italia',
+                '826': 'Reino Unido'
+            };
+            return countryMap[countryId] || `País ${countryId}`;
+        }
+
+        // Navegar a una página del libro
+        function navigateToPage(path) {
+            // Abrir en nueva pestaña
+            window.open(path, '_blank');
         }
 
         // START POLLING
