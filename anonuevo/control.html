@@ -1159,11 +1159,86 @@
                 const uniqueCountries = new Set(ed.visits.map(v => v.country));
                 document.getElementById('stat-countries-visited').textContent = uniqueCountries.size;
             }
+
+            // 8. Memory Status (cada 5 segundos para no sobrecargar)
+            if (Date.now() % 5000 < 1000) {
+                refreshMemories();
+            }
+        }
+
+        // Memory Management
+        let lastMemoryRefresh = 0;
+        async function refreshMemories() {
+            try {
+                const data = await api('/api/country-memory');
+                if (data && data.memories) {
+                    document.getElementById('memory-total').textContent = data.total || 0;
+                    
+                    // Encontrar la última modificación
+                    if (data.memories.length > 0) {
+                        const sorted = data.memories.sort((a, b) => 
+                            new Date(b.lastModified) - new Date(a.lastModified)
+                        );
+                        const last = sorted[0];
+                        const lastDate = new Date(last.lastModified);
+                        const now = new Date();
+                        const diffMs = now - lastDate;
+                        const diffMins = Math.floor(diffMs / 60000);
+                        const diffSecs = Math.floor((diffMs % 60000) / 1000);
+                        
+                        let timeAgo = '';
+                        if (diffMins < 1) {
+                            timeAgo = `${diffSecs}s ago`;
+                        } else if (diffMins < 60) {
+                            timeAgo = `${diffMins}m ago`;
+                        } else {
+                            const diffHours = Math.floor(diffMins / 60);
+                            timeAgo = `${diffHours}h ago`;
+                        }
+                        
+                        document.getElementById('memory-last-save').textContent = timeAgo;
+                        document.getElementById('memory-last-save').title = lastDate.toLocaleString('es-ES');
+                    } else {
+                        document.getElementById('memory-last-save').textContent = 'Never';
+                    }
+                    
+                    // Mostrar lista de memorias
+                    const memoryListEl = document.getElementById('memory-list');
+                    if (data.memories.length === 0) {
+                        memoryListEl.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-dim);">No memories yet</div>';
+                    } else {
+                        memoryListEl.innerHTML = data.memories
+                            .sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified))
+                            .slice(0, 10)
+                            .map(m => {
+                                const sizeKB = (m.fileSize / 1024).toFixed(1);
+                                const date = new Date(m.lastModified);
+                                return `
+                                    <div style="padding: 6px 8px; margin-bottom: 4px; background: rgba(34, 197, 94, 0.05); border-left: 3px solid var(--success); border-radius: 4px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <span style="color: var(--success); font-weight: bold;">${m.countryId}</span>
+                                            <span style="font-size: 0.65rem;">${m.totalVisits} visit(s)</span>
+                                        </div>
+                                        <div style="font-size: 0.6rem; color: var(--text-dim); margin-top: 2px;">
+                                            ${sizeKB} KB • ${date.toLocaleDateString('es-ES', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('');
+                    }
+                    
+                    lastMemoryRefresh = Date.now();
+                }
+            } catch (e) {
+                console.error('Error refreshing memories:', e);
+                log(`Error refreshing memories: ${e.message}`, 'error');
+            }
         }
 
         // START POLLING
         setInterval(poll, 1000);
         poll(); // Initial call
+        refreshMemories(); // Initial memory load
     </script>
 </body>
 
