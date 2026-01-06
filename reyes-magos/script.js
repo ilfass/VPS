@@ -130,7 +130,11 @@ class ReyesMagosMap {
     
     speak(text, callback) {
         if (!this.voiceAvailable) {
-            if (callback) callback();
+            // Si no hay voz, esperar un tiempo estimado basado en la longitud del texto
+            const estimatedTime = (text.length / 10) * 1000; // ~10 caracteres por segundo
+            setTimeout(() => {
+                if (callback) callback();
+            }, estimatedTime);
             return;
         }
         
@@ -139,7 +143,7 @@ class ReyesMagosMap {
         
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'es-ES';
-        utterance.rate = 0.9; // Velocidad ligeramente más lenta
+        utterance.rate = 0.85; // Velocidad más lenta para mejor comprensión
         utterance.pitch = 1.0;
         utterance.volume = 0.8;
         
@@ -153,7 +157,11 @@ class ReyesMagosMap {
         
         utterance.onerror = (e) => {
             console.warn('Error en síntesis de voz:', e);
-            if (callback) callback();
+            // Si hay error, esperar tiempo estimado
+            const estimatedTime = (text.length / 10) * 1000;
+            setTimeout(() => {
+                if (callback) callback();
+            }, estimatedTime);
         };
         
         speechSynthesis.speak(utterance);
@@ -312,22 +320,26 @@ class ReyesMagosMap {
 
     startJourney() {
         this.updateLocation(0);
+    }
+    
+    /**
+     * Avanza al siguiente paso cuando la narración termine
+     */
+    async advanceToNextStep() {
+        // Esperar un tiempo adicional después de que termine la narración
+        await new Promise(resolve => setTimeout(resolve, 3000)); // 3 segundos adicionales para leer
         
-        // Avanzar por la ruta cada 8 segundos (más tiempo para leer historias)
-        const interval = setInterval(() => {
-            this.currentStep++;
-            if (this.currentStep >= KINGS_ROUTE.length) {
-                clearInterval(interval);
-                this.completeJourney();
-                // Reiniciar el viaje automáticamente después de 5 segundos para streaming continuo
-                setTimeout(() => {
-                    this.currentStep = 0;
-                    this.startJourney(); // Reiniciar ciclo infinito
-                }, 5000);
-            } else {
-                this.updateLocation(this.currentStep);
-            }
-        }, 8000); // 8 segundos por paso para dar tiempo a leer
+        this.currentStep++;
+        if (this.currentStep >= KINGS_ROUTE.length) {
+            this.completeJourney();
+            // Reiniciar el viaje automáticamente después de 8 segundos para streaming continuo
+            setTimeout(() => {
+                this.currentStep = 0;
+                this.startJourney(); // Reiniciar ciclo infinito
+            }, 8000);
+        } else {
+            this.updateLocation(this.currentStep);
+        }
     }
 
     updateLocation(step) {
@@ -363,26 +375,33 @@ class ReyesMagosMap {
         this.highlightKing(activeKing);
         this.showKingStory(activeKing);
         
-        // Narrar con voz en off
+        // Narrar con voz en off (esto avanzará automáticamente cuando termine)
         this.narrateLocation(location, activeKing);
     }
     
     /**
      * Narra la ubicación y la historia con voz en off (más natural)
+     * Retorna una promesa que se resuelve cuando termina la narración
      */
     narrateLocation(location, activeKing) {
-        const king = KINGS[activeKing];
-        
-        // Usar narrativa natural si está disponible, sino usar la historia
-        let narration = location.naturalNarration || location.story || `${location.description}.`;
-        
-        // Agregar información sobre el rey activo ocasionalmente de forma natural
-        if (king && this.currentStep % 3 === 0) {
-            narration += ` En este momento, ${king.name} guía al grupo. ${king.story}`;
-        }
-        
-        // Hablar con síntesis de voz
-        this.speak(narration);
+        return new Promise((resolve) => {
+            const king = KINGS[activeKing];
+            
+            // Usar narrativa natural si está disponible, sino usar la historia
+            let narration = location.naturalNarration || location.story || `${location.description}.`;
+            
+            // Agregar información sobre el rey activo ocasionalmente de forma natural
+            if (king && this.currentStep % 3 === 0) {
+                narration += ` En este momento, ${king.name} guía al grupo. ${king.story}`;
+            }
+            
+            // Hablar con síntesis de voz y avanzar cuando termine
+            this.speak(narration, () => {
+                // Cuando termine la narración, avanzar al siguiente paso
+                this.advanceToNextStep();
+                resolve();
+            });
+        });
     }
     
     /**
