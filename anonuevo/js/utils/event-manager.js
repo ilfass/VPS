@@ -19,6 +19,15 @@ class EventManager {
         this.handlers[eventType] = callback;
     }
 
+    emit(eventType, payload) {
+        // Disparar evento localmente si hay handler
+        if (this.handlers[eventType]) {
+            this.handlers[eventType](payload);
+        } else {
+            console.warn(`[EventManager] No handler for event: ${eventType}`);
+        }
+    }
+
     startPolling() {
         // Polling rápido para latencia baja en control manual
         this.pollInterval = setInterval(async () => {

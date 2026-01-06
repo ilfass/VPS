@@ -494,22 +494,65 @@ const server = http.createServer(async (req, res) => {
                     return;
                 }
                 
-                // Usar el sistema de IA disponible (prioridad: Grok > OpenAI > Gemini > HF)
-                let narrative = await dreamWithGrok(prompt);
-                if (!narrative) narrative = await dreamWithOpenAI(prompt);
-                if (!narrative) narrative = await dreamWithGemini(prompt);
-                if (!narrative) narrative = await dreamWithHF(prompt);
+                console.log(`[GenerateNarrative] Iniciando generación con prompt de ${prompt.length} caracteres...`);
                 
-                if (!narrative) {
-                    narrative = "Estoy observando este lugar. Hay algo que me llama la atención, algo que siento que debo documentar.";
+                // Usar el sistema de IA disponible (prioridad: Grok > OpenAI > Gemini > HF)
+                // Con timeout más largo para relatos más extensos
+                let narrative = null;
+                
+                try {
+                    narrative = await Promise.race([
+                        dreamWithGrok(prompt),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 30000))
+                    ]);
+                } catch (e) {
+                    console.warn(`[GenerateNarrative] Grok falló o timeout: ${e.message}`);
                 }
+                
+                if (!narrative || narrative.length < 100) {
+                    try {
+                        narrative = await Promise.race([
+                            dreamWithOpenAI(prompt),
+                            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 30000))
+                        ]);
+                    } catch (e) {
+                        console.warn(`[GenerateNarrative] OpenAI falló o timeout: ${e.message}`);
+                    }
+                }
+                
+                if (!narrative || narrative.length < 100) {
+                    try {
+                        narrative = await Promise.race([
+                            dreamWithGemini(prompt),
+                            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 30000))
+                        ]);
+                    } catch (e) {
+                        console.warn(`[GenerateNarrative] Gemini falló o timeout: ${e.message}`);
+                    }
+                }
+                
+                if (!narrative || narrative.length < 100) {
+                    try {
+                        narrative = await dreamWithHF(prompt);
+                    } catch (e) {
+                        console.warn(`[GenerateNarrative] HF falló: ${e.message}`);
+                    }
+                }
+                
+                // Fallback mejorado si todo falla
+                if (!narrative || narrative.length < 100) {
+                    console.warn(`[GenerateNarrative] Usando fallback - todas las IAs fallaron`);
+                    narrative = "Estoy observando este lugar. Hay algo que me llama la atención, algo que siento que debo documentar. El tiempo pasa diferente aquí, o tal vez soy yo quien percibe el tiempo de manera distinta. Cada país tiene su propia historia, su propia cultura, su propia forma de ver el mundo. Y aquí, en este momento, estoy siendo testigo de una pequeña parte de esa historia humana que se desarrolla en tiempo real.";
+                }
+                
+                console.log(`[GenerateNarrative] Relato generado: ${narrative.length} caracteres`);
                 
                 res.writeHead(200, headers);
                 res.end(JSON.stringify({ narrative }));
             } catch (e) {
                 console.error("Error generating narrative:", e);
                 res.writeHead(500, headers);
-                res.end('{"error":"Failed to generate narrative"}');
+                res.end(JSON.stringify({ error: "Failed to generate narrative", message: e.message }));
             }
         });
         return;

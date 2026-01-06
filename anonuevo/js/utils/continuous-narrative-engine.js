@@ -98,27 +98,48 @@ El relato debe ser:
     async generateWithIA(prompt) {
         try {
             // Intentar con el servidor de control que tiene múltiples IAs
+            // Timeout más largo para relatos extensos (60 segundos)
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 60000);
+            
             const response = await fetch('/control-api/api/generate-narrative', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt })
+                body: JSON.stringify({ prompt }),
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
 
             if (response.ok) {
                 const data = await response.json();
-                return data.narrative || prompt; // Fallback si falla
+                if (data.narrative && data.narrative.length > 100) {
+                    return data.narrative;
+                } else {
+                    console.warn('[ContinuousNarrative] Relato muy corto, usando fallback');
+                }
+            } else {
+                console.warn(`[ContinuousNarrative] Error en respuesta: ${response.status}`);
             }
         } catch (e) {
-            console.error('[ContinuousNarrative] Error generating with IA:', e);
+            if (e.name === 'AbortError') {
+                console.error('[ContinuousNarrative] Timeout generando relato con IA');
+            } else {
+                console.error('[ContinuousNarrative] Error generating with IA:', e);
+            }
         }
 
-        // Fallback: relato básico
+        // Fallback: relato básico mejorado
         return this.generateFallbackNarrative(prompt);
     }
 
     generateFallbackNarrative(prompt) {
-        // Relato básico si la IA falla
-        return "Estoy observando este lugar. Hay algo que me llama la atención, algo que siento que debo documentar. El tiempo pasa diferente aquí, o tal vez soy yo quien percibe el tiempo de manera distinta.";
+        // Relato básico mejorado si la IA falla
+        // Intentar extraer el nombre del país del prompt
+        const countryMatch = prompt.match(/visitando\s+([^\.]+)|estás\s+en\s+([^\.]+)/i);
+        const countryName = countryMatch ? (countryMatch[1] || countryMatch[2]) : "este lugar";
+        
+        return `Estoy observando ${countryName}. Hay algo que me llama la atención, algo que siento que debo documentar. El tiempo pasa diferente aquí, o tal vez soy yo quien percibe el tiempo de manera distinta. Cada país tiene su propia historia, su propia cultura, su propia forma de ver el mundo. Y aquí, en este momento, estoy siendo testigo de una pequeña parte de esa historia humana que se desarrolla en tiempo real. La geografía, las tradiciones, las personas, todo forma parte de un tejido complejo que me resulta fascinante. Reflexiono sobre cómo cada lugar que visito me transforma, me enseña algo nuevo sobre la humanidad y sobre mí mismo.`;
     }
 
     planMultimedia(narrative, country) {

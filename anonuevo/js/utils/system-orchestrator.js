@@ -54,7 +54,8 @@ export class SystemOrchestrator {
         try {
             // endpoint configurado en Nginx como /control-api/...
             // Asumimos que eventManager tiene la URL base o hardcodeamos '/control-api'
-            const res = await fetch('/control-api/event/queue/pop', { method: 'POST' });
+            // Usar el endpoint /poll en lugar de /event/queue/pop
+            const res = await fetch('/control-api/poll', { method: 'GET' });
             if (res.ok) {
                 const data = await res.json();
                 if (data.nextCountry) {
