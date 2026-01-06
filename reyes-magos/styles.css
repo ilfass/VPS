@@ -56,12 +56,30 @@ body {
 }
 
 #current-location {
-    font-size: 1.2rem;
-    text-align: center;
+    font-size: 1.1rem;
+    text-align: left;
     color: #e2e8f0;
     margin-bottom: 30px;
+    min-height: 150px;
+    line-height: 1.6;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 15px;
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 10px;
+    border: 1px solid rgba(251, 191, 36, 0.2);
+}
+
+#current-location strong {
+    color: #fbbf24;
+    font-size: 1.3rem;
+    display: block;
+    margin-bottom: 10px;
+}
+
+#current-location em {
+    color: #94a3b8;
     font-style: italic;
-    min-height: 30px;
 }
 
 #kings-info {
@@ -111,6 +129,23 @@ body {
     font-size: 0.9rem;
     color: #94a3b8;
     font-style: italic;
+    margin-bottom: 5px;
+}
+
+.king-story {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+.king-label {
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    font-weight: bold;
+    fill: #fbbf24;
+    text-shadow: 0 0 5px rgba(251, 191, 36, 0.8);
+    pointer-events: none;
 }
 
 /* Estilos del mapa SVG */
