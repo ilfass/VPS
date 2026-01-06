@@ -386,49 +386,87 @@ class ReyesMagosMap {
     animateKingsToLocation(location, step) {
         const [x, y] = this.projection([location.lon, location.lat]);
         
-        // Limpiar marcadores anteriores
-        this.gKings.selectAll('.king-marker').remove();
+        // Limpiar marcadores y animaciones anteriores
+        this.gKings.selectAll('.king-marker, .king-icon-svg, .king-animation, .king-label').remove();
         
         // Crear marcadores para los 3 reyes con pequeñas variaciones de posición
         const kingOffsets = [
-            { x: -15, y: -15 }, // Melchor
+            { x: -25, y: -25 }, // Melchor
             { x: 0, y: 0 },     // Gaspar (centro)
-            { x: 15, y: 15 }    // Baltasar
+            { x: 25, y: 25 }    // Baltasar
         ];
         
         Object.keys(KINGS).forEach((kingName, index) => {
             const king = KINGS[kingName];
             const offset = kingOffsets[index];
             
-            const marker = this.gKings.append('circle')
-                .attr('class', 'king-marker')
-                .attr('cx', x + offset.x)
-                .attr('cy', y + offset.y)
-                .attr('r', 8)
-                .attr('fill', king.color)
-                .attr('stroke', '#fff')
-                .attr('stroke-width', 2)
+            // Grupo para cada rey con animación
+            const kingGroup = this.gKings.append('g')
+                .attr('class', `king-animation king-${kingName}`)
+                .attr('transform', `translate(${x + offset.x}, ${y + offset.y})`)
                 .style('opacity', 0);
             
-            // Animación de entrada
-            marker.transition()
-                .duration(1000)
+            // Círculo de fondo con efecto de brillo
+            kingGroup.append('circle')
+                .attr('class', 'king-marker')
+                .attr('r', 18)
+                .attr('fill', king.color)
+                .attr('stroke', '#fff')
+                .attr('stroke-width', 3)
+                .style('filter', `drop-shadow(0 0 10px ${king.color})`);
+            
+            // Icono de corona más grande
+            kingGroup.append('text')
+                .attr('class', 'king-icon-svg')
+                .attr('text-anchor', 'middle')
+                .attr('dy', '0.35em')
+                .attr('font-size', '24px')
+                .text('👑')
+                .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))');
+            
+            // Animación de entrada con efecto de aparición
+            kingGroup.transition()
+                .duration(1500)
                 .style('opacity', 1)
-                .attr('r', 12);
+                .attr('transform', `translate(${x + offset.x}, ${y + offset.y}) scale(1)`);
+            
+            // Animación continua de flotación
+            kingGroup.transition()
+                .duration(2000)
+                .ease(d3.easeSinInOut)
+                .attr('transform', `translate(${x + offset.x}, ${y + offset.y - 5}) scale(1)`)
+                .transition()
+                .duration(2000)
+                .ease(d3.easeSinInOut)
+                .attr('transform', `translate(${x + offset.x}, ${y + offset.y}) scale(1)`)
+                .on('end', function repeat() {
+                    d3.select(this)
+                        .transition()
+                        .duration(2000)
+                        .ease(d3.easeSinInOut)
+                        .attr('transform', `translate(${x + offset.x}, ${y + offset.y - 5}) scale(1)`)
+                        .transition()
+                        .duration(2000)
+                        .ease(d3.easeSinInOut)
+                        .attr('transform', `translate(${x + offset.x}, ${y + offset.y}) scale(1)`)
+                        .on('end', repeat);
+                });
             
             // Agregar etiqueta con nombre del rey
             this.gKings.append('text')
                 .attr('class', 'king-label')
                 .attr('x', x + offset.x)
-                .attr('y', y + offset.y - 20)
+                .attr('y', y + offset.y - 35)
                 .attr('text-anchor', 'middle')
                 .attr('fill', king.color)
-                .attr('font-size', '12px')
+                .attr('font-size', '14px')
                 .attr('font-weight', 'bold')
+                .attr('font-family', 'Cinzel, serif')
                 .style('opacity', 0)
+                .style('text-shadow', `0 0 10px ${king.color}`)
                 .text(king.name)
                 .transition()
-                .duration(1000)
+                .duration(1500)
                 .style('opacity', 1);
         });
     }
