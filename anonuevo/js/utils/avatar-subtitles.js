@@ -175,7 +175,15 @@ export class AvatarSubtitlesManager {
      */
     setSubtitles(text) {
         if (this.subtitlesElement) {
-            this.subtitlesElement.textContent = text;
+            // Limpiar texto antes de mostrar
+            const cleanedText = this.cleanText(text);
+            // Limitar a 2 líneas
+            const words = cleanedText.split(' ').filter(w => w.trim().length > 0);
+            const maxWords = 16; // Aproximadamente 2 líneas
+            const displayText = words.length > maxWords 
+                ? words.slice(-maxWords).join(' ') 
+                : cleanedText;
+            this.subtitlesElement.textContent = displayText;
         }
     }
 
