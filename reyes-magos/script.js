@@ -162,9 +162,12 @@ class ReyesMagosMap {
         
         // Actualizar texto de ubicación
         const locationEl = document.getElementById('current-location');
-        if (locationEl) {
-            locationEl.textContent = location.description || location.name;
+        if (!locationEl) {
+            console.warn('No se encontró #current-location');
+            return;
         }
+        
+        locationEl.textContent = location.description || location.name;
         
         // Actualizar marcadores en el mapa
         this.updateMapMarkers(location);
@@ -250,7 +253,13 @@ class ReyesMagosMap {
 
     highlightKing(kingName) {
         // Resaltar rey activo en la UI
-        document.querySelectorAll('.king-card').forEach(card => {
+        const kingCards = document.querySelectorAll('.king-card');
+        if (kingCards.length === 0) {
+            console.warn('No se encontraron elementos .king-card');
+            return;
+        }
+        
+        kingCards.forEach(card => {
             card.classList.remove('active');
             if (card.dataset.king === kingName) {
                 card.classList.add('active');
@@ -293,11 +302,38 @@ class ReyesMagosMap {
 }
 
 // Inicializar cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', () => {
-    const map = new ReyesMagosMap();
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initReyesMagos);
+} else {
+    // DOM ya está listo
+    initReyesMagos();
+}
+
+function initReyesMagos() {
+    // Verificar que los elementos necesarios existan
+    const mapContainer = document.getElementById('map-container');
+    const currentLocation = document.getElementById('current-location');
     
-    // Manejar redimensionamiento
-    window.addEventListener('resize', () => {
-        map.handleResize();
-    });
-});
+    if (!mapContainer) {
+        console.error('Error: No se encontró #map-container');
+        return;
+    }
+    
+    if (!currentLocation) {
+        console.error('Error: No se encontró #current-location');
+        return;
+    }
+    
+    try {
+        const map = new ReyesMagosMap();
+        
+        // Manejar redimensionamiento
+        window.addEventListener('resize', () => {
+            if (map && typeof map.handleResize === 'function') {
+                map.handleResize();
+            }
+        });
+    } catch (error) {
+        console.error('Error inicializando mapa de Reyes Magos:', error);
+    }
+}
