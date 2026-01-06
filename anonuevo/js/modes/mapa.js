@@ -926,6 +926,9 @@ export default class MapaMode {
                         context: mediaPlan.context,
                         trigger: mediaPlan.trigger || 'start'
                     });
+                } else {
+                    // Si no se generó imagen, usar media curado como fallback
+                    console.log(`[Mapa] No se pudo generar imagen, usando media curado como fallback`);
                 }
             }
             

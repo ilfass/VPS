@@ -72,29 +72,85 @@ loadState();
 
 // --- AI LAYERS ---
 
-// Nivel 5: Pollinations
+// Rate limiting para Pollinations
+let pollinationsLastRequest = 0;
+const POLLINATIONS_MIN_DELAY = 2000; // 2 segundos entre requests
+
+// Nivel 5: Pollinations (con rate limiting)
 async function generateImagePollinations(prompt) {
+    // Rate limiting: esperar si el último request fue hace menos de 2 segundos
+    const now = Date.now();
+    const timeSinceLastRequest = now - pollinationsLastRequest;
+    if (timeSinceLastRequest < POLLINATIONS_MIN_DELAY) {
+        await new Promise(resolve => setTimeout(resolve, POLLINATIONS_MIN_DELAY - timeSinceLastRequest));
+    }
+    
     console.log("🎨 Fallback to Pollinations...");
     try {
         const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}`;
-        const blob = await (await fetch(url)).blob();
+        const response = await fetch(url);
+        
+        // Verificar si hay error de rate limit
+        if (response.status === 429) {
+            console.warn("⚠️ Pollinations rate limit alcanzado, usando placeholder");
+            return null; // Retornar null para usar fallback
+        }
+        
+        if (!response.ok) {
+            console.warn(`⚠️ Pollinations error: ${response.status}`);
+            return null;
+        }
+        
+        const blob = await response.blob();
         const buffer = Buffer.from(await blob.arrayBuffer());
         const filename = `AI_Pollinations_${Date.now()}.jpg`;
         const dir = path.join(__dirname, 'media', 'AI_Generated');
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(path.join(dir, filename), buffer);
+        pollinationsLastRequest = Date.now();
         console.log(`✨ Saved (Pollinations): ${filename}`);
         return { filename, url: `/media/AI_Generated/${filename}` };
-    } catch (e) { return null; }
+    } catch (e) {
+        console.warn(`⚠️ Pollinations error: ${e.message}`);
+        return null;
+    }
 }
+
 async function dreamWithPollinations(prompt) {
-    try { return (await (await fetch(`https://text.pollinations.ai/${encodeURIComponent(prompt)}`)).text()).trim(); }
-    catch (e) { return "Silencio digital."; }
+    // Rate limiting
+    const now = Date.now();
+    const timeSinceLastRequest = now - pollinationsLastRequest;
+    if (timeSinceLastRequest < POLLINATIONS_MIN_DELAY) {
+        await new Promise(resolve => setTimeout(resolve, POLLINATIONS_MIN_DELAY - timeSinceLastRequest));
+    }
+    
+    try {
+        const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(prompt)}`);
+        
+        if (response.status === 429) {
+            console.warn("⚠️ Pollinations rate limit alcanzado para texto");
+            return null;
+        }
+        
+        if (!response.ok) {
+            return null;
+        }
+        
+        const text = await response.text();
+        pollinationsLastRequest = Date.now();
+        return text.trim();
+    } catch (e) {
+        console.warn(`⚠️ Pollinations texto error: ${e.message}`);
+        return null;
+    }
 }
 
 // Nivel 4: Hugging Face
 async function generateImageHF(prompt) {
-    if (!process.env.HF_API_KEY) return await generateImagePollinations(prompt);
+    if (!process.env.HF_API_KEY) {
+        const pollResult = await generateImagePollinations(prompt);
+        return pollResult || generatePlaceholderImage(prompt);
+    }
     try {
         const resp = await fetch(`https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0`, {
             method: "POST", headers: { "Authorization": `Bearer ${process.env.HF_API_KEY}`, "Content-Type": "application/json" },
@@ -107,18 +163,38 @@ async function generateImageHF(prompt) {
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(path.join(dir, filename), buffer);
         return { filename, url: `/media/AI_Generated/${filename}` };
-    } catch (e) { return await generateImagePollinations(prompt); }
+    } catch (e) {
+        const pollResult = await generateImagePollinations(prompt);
+        return pollResult || generatePlaceholderImage(prompt);
+    }
+}
+
+// Generar imagen placeholder cuando todas las APIs fallan
+function generatePlaceholderImage(prompt) {
+    console.log("📷 Usando placeholder - todas las APIs de imagen fallaron");
+    // Retornar null para que el sistema use media curado en su lugar
+    return null;
 }
 async function dreamWithHF(prompt) {
-    if (!process.env.HF_API_KEY) return await dreamWithPollinations(prompt);
+    if (!process.env.HF_API_KEY) {
+        const pollResult = await dreamWithPollinations(prompt);
+        return pollResult || null;
+    }
     try {
         const resp = await fetch(`https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2`, {
             method: "POST", headers: { "Authorization": `Bearer ${process.env.HF_API_KEY}`, "Content-Type": "application/json" },
             body: JSON.stringify({ inputs: `[INST] ${prompt} [/INST]`, parameters: { max_new_tokens: 100, return_full_text: false } })
         });
         const data = await resp.json();
-        return (data[0]?.generated_text || "").replace(/"/g, '').trim() || await dreamWithPollinations(prompt);
-    } catch (e) { return await dreamWithPollinations(prompt); }
+        const hfText = (data[0]?.generated_text || "").replace(/"/g, '').trim();
+        if (hfText) return hfText;
+        
+        const pollResult = await dreamWithPollinations(prompt);
+        return pollResult || null;
+    } catch (e) {
+        const pollResult = await dreamWithPollinations(prompt);
+        return pollResult || null;
+    }
 }
 
 // Nivel 3: Gemini
@@ -237,9 +313,22 @@ const server = http.createServer(async (req, res) => {
         req.on('end', async () => {
             const { prompt } = JSON.parse(body || '{}');
             if (!prompt) { res.writeHead(400, headers); res.end('{"error":"No prompt"}'); return; }
-            const result = await generateImageOpenAI(prompt);
-            res.writeHead(result ? 200 : 500, headers);
-            res.end(JSON.stringify(result || { error: "Failed" }));
+            
+            try {
+                const result = await generateImageOpenAI(prompt);
+                if (result) {
+                    res.writeHead(200, headers);
+                    res.end(JSON.stringify(result));
+                } else {
+                    // Si todas las APIs fallan, retornar null para que use media curado
+                    res.writeHead(200, headers);
+                    res.end(JSON.stringify({ error: "No se pudo generar imagen, usar media curado", url: null }));
+                }
+            } catch (e) {
+                console.error("Error en generate-image:", e);
+                res.writeHead(200, headers);
+                res.end(JSON.stringify({ error: e.message, url: null }));
+            }
         });
         return;
     }
