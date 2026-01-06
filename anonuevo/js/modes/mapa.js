@@ -57,23 +57,6 @@ export default class MapaMode {
                     <div class="narrative-time" id="narrative-time">--:--</div>
                 </div>
 
-                <!-- Capa 3: Cápsulas Informativas (Lateral Izquierda) -->
-                <div id="info-capsule" class="info-capsule hidden-left">
-                    <div class="capsule-icon">ℹ</div>
-                    <div class="capsule-content" id="capsule-text">...</div>
-                </div>
-
-                <!-- Capa 4: Datos del País (Lateral - Nuevo) -->
-                <div id="country-info-capsule" class="info-capsule country-mode hidden-right">
-                    <div class="capsule-icon">🌍</div>
-                    <div class="capsule-content" id="country-capsule-text">...</div>
-                </div>
-
-                <!-- Capa 5: Noticias Internacionales (Lateral) -->
-                <div id="news-capsule" class="info-capsule news-mode hidden-right">
-                    <div class="capsule-icon">📰</div>
-                    <div class="capsule-content" id="news-capsule-text">...</div>
-                </div>
 
                 <!-- Estado del Sistema (Discreto) -->
                 <div class="system-status" id="broadcast-info">SISTEMA ONLINE</div>
@@ -158,7 +141,6 @@ export default class MapaMode {
             this.startAutoTravel();
 
             // 6. Programar Cápsulas Informativas (cada 2 min)
-            scheduler.addTask('InfoCapsules', 2, () => this.showInfoCapsule());
 
             // 7. Programar Noticias Internacionales (cada 15 min)
             // Usamos un intervalo largo, pero verificamos estado antes de lanzar
@@ -191,7 +173,6 @@ export default class MapaMode {
 
             // Registrar manejadores
             eventManager.on('news', () => this.triggerNewsEvent(true)); // true = forzado
-            eventManager.on('fact', () => this.showInfoCapsule(true));
             eventManager.on('mode_change', (mode) => {
                 if (streamManager.setMode(mode)) {
                     // Actualizar UI o resetear ciclo si es necesario
@@ -605,8 +586,6 @@ export default class MapaMode {
         if (releaseAudio) {
             audioManager.releaseChannel(); // Liberar estado solo si se solicita
         }
-        const capsuleEl = document.getElementById('country-info-capsule');
-        if (capsuleEl) capsuleEl.classList.add('hidden-right');
 
         this.gMap.transition()
             .duration(3000)
@@ -723,24 +702,8 @@ export default class MapaMode {
         // 3. Resetear vista a Global (pero mantener el canal de audio ocupado)
         this.resetZoom(false);
 
-        // 4. Mostrar UI de Noticia
-        const capsuleEl = document.getElementById('news-capsule');
-        const textEl = document.getElementById('news-capsule-text');
-        // infoEl ya está declarado arriba
-
-        // Asegurar que otras cápsulas estén ocultas
-        const generalCapsule = document.getElementById('info-capsule');
-        if (generalCapsule) generalCapsule.classList.add('hidden-left');
-
-        const countryCapsule = document.getElementById('country-info-capsule');
-        if (countryCapsule) countryCapsule.classList.add('hidden-right');
-
-        if (capsuleEl && textEl) {
-            textEl.innerHTML = `<strong>${newsItem.title}</strong><br><span style="font-size:0.9em">${newsItem.summary}</span>`;
-            capsuleEl.classList.remove('hidden-right');
-
-            if (infoEl) infoEl.textContent = "ACTUALIDAD INTERNACIONAL";
-        }
+        // 4. Mostrar info de noticia (sin cápsula)
+        if (infoEl) infoEl.textContent = "ACTUALIDAD INTERNACIONAL";
 
         // 5. Narrar
         const intro = newsProvider.getRandomIntro();
@@ -754,7 +717,6 @@ export default class MapaMode {
             // Callback al terminar de hablar
             this.travelTimeout = setTimeout(() => {
                 // Ocultar UI
-                if (capsuleEl) capsuleEl.classList.add('hidden-right');
                 if (infoEl) infoEl.textContent = "SISTEMA ONLINE";
 
                 // Liberar canal y retomar ciclo
@@ -1001,8 +963,7 @@ export default class MapaMode {
                 content: continuousNarrative.narrative.substring(0, 200) + '...'
             });
             
-            // 9. Mostrar info del país
-            this.showCountryInfo(continuousNarrative.narrative.substring(0, 150) + '...', totalDuration);
+            // 9. Info del país ya se muestra en los subtítulos del avatar
             
             // NO hacer zoom out automático - esperar a que termine el audio
             // El zoom out se hace en el callback de audioManager.speak
