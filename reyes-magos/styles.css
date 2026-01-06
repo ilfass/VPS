@@ -190,12 +190,14 @@ body {
 }
 
 .route-line {
-    stroke: #fbbf24;
-    stroke-width: 3;
+    stroke: #ffd700;
+    stroke-width: 4;
     fill: none;
-    stroke-dasharray: 5,5;
-    animation: dash 20s linear infinite;
-    opacity: 0.6;
+    stroke-dasharray: 15, 8;
+    animation: dash 25s linear infinite;
+    opacity: 0.8;
+    filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.7));
+    /* Ruta más visible y colorida para niños */
 }
 
 @keyframes dash {
