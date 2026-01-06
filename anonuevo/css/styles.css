@@ -451,7 +451,30 @@ html {
     stroke-width: 1.5px !important;
     /* Más grueso */
     z-index: 100;
-    filter: drop_shadow(0 0 15px rgba(251, 191, 36, 0.6));
+    filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.6));
+    animation: countryPulse 2s ease-in-out infinite;
+}
+
+@keyframes countryPulse {
+    0%, 100% {
+        stroke-width: 1.5px;
+        filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.6));
+    }
+    50% {
+        stroke-width: 2.5px;
+        filter: drop-shadow(0 0 25px rgba(251, 191, 36, 0.9));
+    }
+}
+
+/* Efecto de onda expansiva en fronteras */
+.country-ripple {
+    pointer-events: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.ripple-effects {
+    pointer-events: none;
 }
 
 .country-label {

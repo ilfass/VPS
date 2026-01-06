@@ -383,11 +383,21 @@ export default class MapaMode {
 
         let targetId = context.countryId;
 
-        // Si no hay país asignado o el país no existe, elegir uno aleatorio
+        // Si no hay país asignado o el país no existe, elegir uno aleatorio de TODOS los países
         if (!targetId || !COUNTRY_INFO[targetId]) {
-            console.warn(`Country ${targetId} not found or not set, picking random.`);
-            const availableIds = Object.keys(COUNTRY_INFO);
-            targetId = availableIds[Math.floor(Math.random() * availableIds.length)];
+            console.warn(`Country ${targetId} not found or not set, picking random from all countries.`);
+            const allCountryIds = Object.keys(COUNTRY_INFO);
+            // Evitar repetir el último país visitado
+            const recentVisits = streamManager.visitedCountries;
+            const available = allCountryIds.filter(id => !recentVisits.has(id) || recentVisits.size >= allCountryIds.length - 1);
+            
+            if (available.length === 0) {
+                // Si todos fueron visitados, resetear y elegir cualquiera
+                streamManager.visitedCountries.clear();
+                targetId = allCountryIds[Math.floor(Math.random() * allCountryIds.length)];
+            } else {
+                targetId = available[Math.floor(Math.random() * available.length)];
+            }
             streamManager.setCountry(targetId);
         }
 
@@ -462,7 +472,11 @@ export default class MapaMode {
         // Resaltar país
         this.gCountries.selectAll(".country").classed("active-country", false);
         if (feature) {
-            this.gCountries.select(`#country-${target.id}`).classed("active-country", true);
+            const countryPath = this.gCountries.select(`#country-${target.id}`);
+            countryPath.classed("active-country", true);
+            
+            // Crear efecto de onda expansiva en las fronteras
+            this.createRippleEffect(feature, target.id);
         } else {
             this.cycleZoomOut();
             return;
@@ -529,6 +543,9 @@ export default class MapaMode {
 
                     // Procesar contenido para derivados (Content Engine)
                     contentEngine.processContent(narrative);
+                    
+                    // Generar contenido multimedia con IA
+                    this.generateMultimediaContent(target, narrative, context);
 
                     // Determinar estado del personaje y configuración de voz
                     // Mapeamos la escena actual (simplificado por ahora a LIVE_MAP)
@@ -776,6 +793,109 @@ export default class MapaMode {
             setTimeout(() => {
                 diaryEl.classList.add('hidden-bottom');
             }, 15000);
+        }
+    }
+
+    createRippleEffect(feature, countryId) {
+        // Crear grupo para efectos de onda si no existe
+        if (!this.rippleGroup) {
+            this.rippleGroup = this.gMap.append("g").attr("class", "ripple-effects");
+        }
+        
+        // Limpiar ondas anteriores
+        this.rippleGroup.selectAll(".country-ripple").remove();
+        
+        // Crear múltiples ondas expansivas
+        const numRipples = 3;
+        const rippleDuration = 2000;
+        
+        for (let i = 0; i < numRipples; i++) {
+            const ripple = this.rippleGroup.append("path")
+                .datum(feature)
+                .attr("d", this.pathGenerator)
+                .attr("class", "country-ripple")
+                .style("fill", "none")
+                .style("stroke", "#38bdf8")
+                .style("stroke-width", "2px")
+                .style("opacity", 0.9)
+                .style("filter", "drop-shadow(0 0 8px rgba(56, 189, 248, 0.8))");
+            
+            // Animar la onda expansiva usando stroke-width y opacity
+            const startWidth = 2;
+            const endWidth = 12;
+            const startOpacity = 0.9;
+            const endOpacity = 0;
+            
+            ripple
+                .transition()
+                .delay(i * (rippleDuration / numRipples))
+                .duration(rippleDuration)
+                .styleTween("stroke-width", function() {
+                    return d3.interpolateNumber(startWidth, endWidth);
+                })
+                .styleTween("opacity", function() {
+                    return d3.interpolateNumber(startOpacity, endOpacity);
+                })
+                .ease(d3.easeLinear)
+                .on("end", function() {
+                    d3.select(this).remove();
+                });
+        }
+    }
+
+    async generateMultimediaContent(country, narrative, context) {
+        try {
+            console.log(`[Mapa] Generando contenido multimedia para ${country.name}...`);
+            
+            // Generar imagen con IA basada en el país y la narrativa
+            const imagePrompt = `Paisaje representativo de ${country.name}, estilo cinematográfico, alta calidad, sin texto`;
+            
+            const imageRes = await fetch('/control-api/api/generate-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: imagePrompt })
+            });
+            
+            if (imageRes.ok) {
+                const imageData = await imageRes.json();
+                if (imageData.url) {
+                    console.log(`[Mapa] Imagen generada: ${imageData.url}`);
+                    
+                    // Mostrar la imagen después de un breve delay (durante la narración)
+                    setTimeout(() => {
+                        this.showMediaOverlay(imageData.url, 'image');
+                    }, 2000);
+                }
+            }
+            
+            // También buscar media curado del país si existe
+            try {
+                const mediaRes = await fetch('/control-api/api/media-list');
+                if (mediaRes.ok) {
+                    const mediaList = await mediaRes.json();
+                    const countryMedia = mediaList.filter(m => {
+                        const folder = (m.folder || "").toLowerCase();
+                        const countryName = country.name.toLowerCase();
+                        return folder.includes(countryName) || countryName.includes(folder);
+                    });
+                    
+                    if (countryMedia.length > 0) {
+                        // Seleccionar un media aleatorio del país
+                        const randomMedia = countryMedia[Math.floor(Math.random() * countryMedia.length)];
+                        console.log(`[Mapa] Mostrando media curado: ${randomMedia.name}`);
+                        
+                        // Mostrar después de la imagen generada
+                        setTimeout(() => {
+                            this.showMediaOverlay(randomMedia.url, randomMedia.type || 'image');
+                        }, 8000);
+                    }
+                }
+            } catch (e) {
+                console.warn("[Mapa] Error cargando media curado:", e);
+            }
+            
+        } catch (e) {
+            console.error("[Mapa] Error generando contenido multimedia:", e);
         }
     }
 

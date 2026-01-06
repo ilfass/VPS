@@ -1,3 +1,4 @@
+import { COUNTRY_INFO } from '../data/country-info.js';
 
 export const STREAM_MODES = {
     NARRATIVE: 'NARRATIVE',       // Contenido fuerte, narración frecuente
@@ -58,30 +59,38 @@ export class StreamManager {
         console.log(`Country changed to: ${countryId}, Theme: ${this.currentTheme}`);
     }
 
-    // Elegir un país aleatorio (evitando el actual y recientes)
+    // Elegir un país aleatorio de TODOS los países disponibles (no solo el schedule)
     pickRandomCountry() {
-        const available = JOURNEY_SCHEDULE.filter(id => id !== this.currentCountryId);
+        const allCountryIds = Object.keys(COUNTRY_INFO);
+        
+        // Filtrar el país actual y los recientemente visitados (últimos 10 para más variedad)
+        const recentArray = Array.from(this.visitedCountries).slice(-10);
+        const available = allCountryIds.filter(id => 
+            id !== this.currentCountryId && !recentArray.includes(id)
+        );
+        
         if (available.length === 0) {
-            // Si solo hay un país, resetear visited
+            // Si no hay disponibles, resetear visited y elegir cualquiera excepto el actual
             this.visitedCountries.clear();
-            this.currentCountryId = JOURNEY_SCHEDULE[0];
+            const allExceptCurrent = allCountryIds.filter(id => id !== this.currentCountryId);
+            if (allExceptCurrent.length > 0) {
+                const randomIndex = Math.floor(Math.random() * allExceptCurrent.length);
+                this.setCountry(allExceptCurrent[randomIndex]);
+            } else {
+                // Si solo hay un país, resetear visited
+                this.visitedCountries.clear();
+                this.setCountry(allCountryIds[0]);
+            }
         } else {
             const randomIndex = Math.floor(Math.random() * available.length);
             this.setCountry(available[randomIndex]);
         }
     }
 
-    // Rotar a siguiente país (usado por auto-pilot)
+    // Rotar a siguiente país (usado por auto-pilot) - ahora completamente aleatorio
     rotateToNextCountry() {
-        const currentIndex = JOURNEY_SCHEDULE.indexOf(this.currentCountryId);
-        if (currentIndex === -1) {
-            // Si no está en el schedule, elegir aleatorio
-            this.pickRandomCountry();
-        } else {
-            // Ir al siguiente en el schedule, o al primero si es el último
-            const nextIndex = (currentIndex + 1) % JOURNEY_SCHEDULE.length;
-            this.setCountry(JOURNEY_SCHEDULE[nextIndex]);
-        }
+        // Usar selección aleatoria en lugar de seguir el schedule
+        this.pickRandomCountry();
     }
 
     getCurrentContext() {
