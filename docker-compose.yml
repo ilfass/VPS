@@ -106,6 +106,18 @@ services:
       - "80"
     restart: always
 
+  reyes-magos-api:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./reyes-magos:/app
+    expose:
+      - "3006"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    command: sh -c "node server.js"
+    restart: always
+
   webhook:
     image: node:20-alpine
     working_dir: /app

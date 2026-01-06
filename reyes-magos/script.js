@@ -11,8 +11,9 @@ const KINGS_ROUTE = [
         lon: 53.6880, 
         country: "Iran", 
         description: "Inicio del viaje desde el Oriente",
-        story: "Melchor, Gaspar y Baltasar partieron desde las tierras de Persia, siguiendo la estrella que brillaba en el cielo. Cada uno llevaba su regalo: Melchor el oro, Gaspar el incienso, y Baltasar la mirra. La estrella los guiaba hacia el oeste, hacia una tierra prometida.",
-        placeInfo: "Persia, cuna de grandes imperios y sabiduría antigua. Desde aquí, los tres sabios iniciaron su peregrinación siguiendo la señal celestial."
+        story: "Imagínense, amigos. Melchor, Gaspar y Baltasar comenzaron su increíble viaje desde las tierras de Persia. Cada uno llevaba consigo un regalo especial: Melchor traía oro, Gaspar incienso, y Baltasar mirra. Y ahí arriba, brillando en el cielo, una estrella los guiaba hacia el oeste, hacia una tierra que cambiaría el mundo para siempre.",
+        placeInfo: "Persia, cuna de grandes imperios y sabiduría antigua. Desde aquí, los tres sabios iniciaron su peregrinación siguiendo la señal celestial.",
+        naturalNarration: "Desde Persia, los tres reyes comenzaron su viaje. La estrella brillaba en el cielo, guiándolos hacia el oeste. Cada uno llevaba su regalo: Melchor el oro, Gaspar el incienso, y Baltasar la mirra."
     },
     { 
         name: "Babilonia", 
@@ -21,7 +22,8 @@ const KINGS_ROUTE = [
         country: "Iraq", 
         description: "Pasando por las antiguas tierras de Babilonia",
         story: "Al cruzar Babilonia, los reyes recordaron las profecías antiguas sobre un Mesías que nacería en Belén. Melchor, el más anciano, conocía las escrituras y guiaba al grupo con su sabiduría. Las ruinas de la antigua Babilonia les recordaban la grandeza de los imperios pasados.",
-        placeInfo: "Babilonia, donde una vez se alzaron los Jardines Colgantes. Los reyes pasaron por estas tierras históricas, siguiendo su camino hacia el oeste."
+        placeInfo: "Babilonia, donde una vez se alzaron los Jardines Colgantes. Los reyes pasaron por estas tierras históricas, siguiendo su camino hacia el oeste.",
+        naturalNarration: "Cruzando Babilonia, Melchor recordó las antiguas profecías. Él, siendo el más sabio, guiaba al grupo. Las ruinas les hablaban de imperios pasados, pero ellos buscaban algo más grande."
     },
     { 
         name: "Damasco", 
@@ -30,7 +32,8 @@ const KINGS_ROUTE = [
         country: "Syria", 
         description: "Cruzando Damasco, ciudad de comercio",
         story: "En Damasco, Gaspar, el rey de la media edad, se maravilló con los aromas del incienso que él mismo portaba. La ciudad era un cruce de caminos donde se encontraban caravanas de todo el mundo conocido. Aquí descansaron y repusieron fuerzas antes de continuar.",
-        placeInfo: "Damasco, una de las ciudades más antiguas del mundo. Centro de comercio donde las rutas de Oriente y Occidente se encontraban."
+        placeInfo: "Damasco, una de las ciudades más antiguas del mundo. Centro de comercio donde las rutas de Oriente y Occidente se encontraban.",
+        naturalNarration: "En Damasco, Gaspar se detuvo a admirar los aromas. La ciudad bullía con comerciantes de todas partes. Aquí descansaron un momento, reponiendo fuerzas para continuar su viaje."
     },
     { 
         name: "Jerusalén", 
@@ -39,7 +42,8 @@ const KINGS_ROUTE = [
         country: "Israel", 
         description: "Consultando al rey Herodes",
         story: "Al llegar a Jerusalén, los reyes consultaron al rey Herodes sobre el nacimiento del nuevo rey. Herodes, temeroso, les pidió que le informaran cuando encontraran al niño. Pero los reyes, guiados por la estrella y su sabiduría, continuaron su camino hacia Belén sin volver.",
-        placeInfo: "Jerusalén, la ciudad santa. Aquí los reyes se encontraron con Herodes, pero su destino estaba más al sur, en la pequeña Belén."
+        placeInfo: "Jerusalén, la ciudad santa. Aquí los reyes se encontraron con Herodes, pero su destino estaba más al sur, en la pequeña Belén.",
+        naturalNarration: "En Jerusalén, los reyes hablaron con Herodes. Él les pidió que le avisaran cuando encontraran al niño, pero algo en su mirada no les gustó. Confiando en la estrella, siguieron su camino hacia Belén."
     },
     { 
         name: "Belén", 
@@ -48,7 +52,8 @@ const KINGS_ROUTE = [
         country: "Palestine", 
         description: "Llegada al pesebre del Niño Jesús",
         story: "Finalmente, la estrella se detuvo sobre Belén. Los tres reyes magos encontraron al Niño Jesús en un humilde pesebre. Melchor ofreció su oro, símbolo de realeza. Gaspar presentó el incienso, símbolo de divinidad. Y Baltasar entregó la mirra, símbolo de humanidad y sacrificio. Adoraron al niño y partieron por otro camino, evitando a Herodes.",
-        placeInfo: "Belén, la pequeña ciudad donde nació el Salvador. Aquí culminó el viaje de los tres reyes magos, encontrando al Niño Jesús en un pesebre."
+        placeInfo: "Belén, la pequeña ciudad donde nació el Salvador. Aquí culminó el viaje de los tres reyes magos, encontrando al Niño Jesús en un pesebre.",
+        naturalNarration: "Y finalmente, la estrella se detuvo sobre Belén. Allí encontraron al Niño Jesús. Melchor entregó su oro, Gaspar su incienso, y Baltasar su mirra. Adoraron al niño y partieron por otro camino, sabiendo que habían cumplido su misión."
     }
 ];
 
@@ -345,8 +350,10 @@ class ReyesMagosMap {
         // Actualizar marcadores en el mapa con animación de los reyes
         this.updateMapMarkers(location);
         
-        // Animar los tres reyes moviéndose hacia el punto
-        this.animateKingsToLocation(location, step);
+        // Animar los tres reyes moviéndose hacia el punto (con imágenes IA)
+        this.animateKingsToLocation(location, step).catch(e => {
+            console.warn('Error animando reyes:', e);
+        });
         
         // Actualizar países visitados
         this.updateVisitedCountries(step);
@@ -361,19 +368,17 @@ class ReyesMagosMap {
     }
     
     /**
-     * Narra la ubicación y la historia con voz en off
+     * Narra la ubicación y la historia con voz en off (más natural)
      */
     narrateLocation(location, activeKing) {
         const king = KINGS[activeKing];
-        let narration = `Estamos en ${location.name}. ${location.description}. `;
         
-        if (location.story) {
-            narration += location.story + ' ';
-        }
+        // Usar narrativa natural si está disponible, sino usar la historia
+        let narration = location.naturalNarration || location.story || `${location.description}.`;
         
-        // Agregar información sobre el rey activo ocasionalmente
-        if (king && this.currentStep % 3 === 0) { // Solo mencionar al rey en el primer paso de cada ciclo
-            narration += ` En este momento, ${king.name}, quien representa ${king.origin}, guía al grupo. ${king.story}`;
+        // Agregar información sobre el rey activo ocasionalmente de forma natural
+        if (king && this.currentStep % 3 === 0) {
+            narration += ` En este momento, ${king.name} guía al grupo. ${king.story}`;
         }
         
         // Hablar con síntesis de voz
@@ -381,24 +386,63 @@ class ReyesMagosMap {
     }
     
     /**
-     * Anima los tres reyes magos moviéndose hacia la ubicación actual
+     * Genera imagen de un rey usando IA
      */
-    animateKingsToLocation(location, step) {
+    async generateKingImage(kingName, location) {
+        // Si ya tenemos la imagen en cache, usarla
+        if (this.kingImages[kingName]) {
+            return this.kingImages[kingName];
+        }
+        
+        try {
+            const response = await fetch(`${this.apiBase}/api/generate-king-image`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    kingName: kingName,
+                    location: location.name,
+                    context: `traveling through ${location.name}, following the star`
+                })
+            });
+            
+            const result = await response.json();
+            if (result.url) {
+                this.kingImages[kingName] = result.url;
+                return result.url;
+            }
+        } catch (e) {
+            console.warn('No se pudo generar imagen con IA:', e);
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Anima los tres reyes magos moviéndose hacia la ubicación actual (con imágenes IA)
+     */
+    async animateKingsToLocation(location, step) {
         const [x, y] = this.projection([location.lon, location.lat]);
         
         // Limpiar marcadores y animaciones anteriores
-        this.gKings.selectAll('.king-marker, .king-icon-svg, .king-animation, .king-label').remove();
+        this.gKings.selectAll('.king-marker, .king-icon-svg, .king-animation, .king-label, .king-image').remove();
         
         // Crear marcadores para los 3 reyes con pequeñas variaciones de posición
         const kingOffsets = [
-            { x: -25, y: -25 }, // Melchor
+            { x: -30, y: -30 }, // Melchor
             { x: 0, y: 0 },     // Gaspar (centro)
-            { x: 25, y: 25 }    // Baltasar
+            { x: 30, y: 30 }    // Baltasar
         ];
+        
+        // Generar imágenes en paralelo
+        const imagePromises = Object.keys(KINGS).map(async (kingName) => {
+            return await this.generateKingImage(kingName, location);
+        });
+        const images = await Promise.all(imagePromises);
         
         Object.keys(KINGS).forEach((kingName, index) => {
             const king = KINGS[kingName];
             const offset = kingOffsets[index];
+            const kingImage = images[index];
             
             // Grupo para cada rey con animación
             const kingGroup = this.gKings.append('g')
@@ -406,23 +450,36 @@ class ReyesMagosMap {
                 .attr('transform', `translate(${x + offset.x}, ${y + offset.y})`)
                 .style('opacity', 0);
             
-            // Círculo de fondo con efecto de brillo
-            kingGroup.append('circle')
-                .attr('class', 'king-marker')
-                .attr('r', 18)
-                .attr('fill', king.color)
-                .attr('stroke', '#fff')
-                .attr('stroke-width', 3)
-                .style('filter', `drop-shadow(0 0 10px ${king.color})`);
-            
-            // Icono de corona más grande
-            kingGroup.append('text')
-                .attr('class', 'king-icon-svg')
-                .attr('text-anchor', 'middle')
-                .attr('dy', '0.35em')
-                .attr('font-size', '24px')
-                .text('👑')
-                .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))');
+            // Si tenemos imagen generada con IA, usarla
+            if (kingImage) {
+                const imageSize = 60;
+                kingGroup.append('image')
+                    .attr('class', 'king-image')
+                    .attr('href', kingImage)
+                    .attr('x', -imageSize/2)
+                    .attr('y', -imageSize/2)
+                    .attr('width', imageSize)
+                    .attr('height', imageSize)
+                    .attr('clip-path', 'circle(30px)')
+                    .style('filter', `drop-shadow(0 0 15px ${king.color})`);
+            } else {
+                // Fallback: círculo con corona
+                kingGroup.append('circle')
+                    .attr('class', 'king-marker')
+                    .attr('r', 25)
+                    .attr('fill', king.color)
+                    .attr('stroke', '#fff')
+                    .attr('stroke-width', 3)
+                    .style('filter', `drop-shadow(0 0 10px ${king.color})`);
+                
+                kingGroup.append('text')
+                    .attr('class', 'king-icon-svg')
+                    .attr('text-anchor', 'middle')
+                    .attr('dy', '0.35em')
+                    .attr('font-size', '28px')
+                    .text('👑')
+                    .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))');
+            }
             
             // Animación de entrada con efecto de aparición
             kingGroup.transition()
@@ -456,7 +513,7 @@ class ReyesMagosMap {
             this.gKings.append('text')
                 .attr('class', 'king-label')
                 .attr('x', x + offset.x)
-                .attr('y', y + offset.y - 35)
+                .attr('y', y + offset.y - 45)
                 .attr('text-anchor', 'middle')
                 .attr('fill', king.color)
                 .attr('font-size', '14px')
