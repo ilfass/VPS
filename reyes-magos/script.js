@@ -257,16 +257,25 @@ class ReyesMagosMap {
             this.gStars = this.svg.append('g').attr('class', 'stars-group');
         }
         
-        const starCount = 80;
+        const starCount = 120; // Más estrellas para niños
+        
+        // Colores variados para estrellas más divertidas
+        const starColors = ['#fff', '#ffd700', '#ffeb3b', '#fff9c4', '#ffe082'];
         
         for (let i = 0; i < starCount; i++) {
+            const size = Math.random() * 3 + 1.5; // Estrellas más grandes
+            const color = starColors[Math.floor(Math.random() * starColors.length)];
+            const delay = Math.random() * 2;
+            
             this.gStars.append('circle')
                 .attr('class', 'star')
                 .attr('cx', Math.random() * this.width)
                 .attr('cy', Math.random() * this.height)
-                .attr('r', Math.random() * 2 + 1)
-                .attr('fill', '#fff')
-                .style('opacity', Math.random() * 0.5 + 0.3);
+                .attr('r', size)
+                .attr('fill', color)
+                .style('opacity', Math.random() * 0.6 + 0.4)
+                .style('animation', `twinkle ${2 + Math.random() * 2}s ease-in-out infinite`)
+                .style('animation-delay', `${delay}s`);
         }
         
         // Agregar estrella especial de Belén (más grande y brillante)
@@ -517,49 +526,69 @@ class ReyesMagosMap {
                         .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))');
                 });
             } else {
-                // Fallback: círculo con corona
+                // Fallback: círculo con corona más grande y divertido
+                const markerSize = 35; // Más grande para niños
                 kingGroup.append('circle')
                     .attr('class', 'king-marker')
-                    .attr('r', 25)
+                    .attr('r', markerSize)
                     .attr('fill', king.color)
                     .attr('stroke', '#fff')
-                    .attr('stroke-width', 3)
-                    .style('filter', `drop-shadow(0 0 10px ${king.color})`);
+                    .attr('stroke-width', 4)
+                    .style('filter', `drop-shadow(0 0 15px ${king.color})`);
                 
+                // Corona más grande y animada
                 kingGroup.append('text')
                     .attr('class', 'king-icon-svg')
                     .attr('text-anchor', 'middle')
                     .attr('dy', '0.35em')
-                    .attr('font-size', '28px')
+                    .attr('font-size', '40px')
                     .text('👑')
-                    .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))');
+                    .style('filter', 'drop-shadow(0 3px 6px rgba(0,0,0,0.6))')
+                    .style('animation', 'crownWiggle 2s ease-in-out infinite');
+                
+                // Agregar emoji de regalo
+                kingGroup.append('text')
+                    .attr('class', 'king-gift-emoji')
+                    .attr('text-anchor', 'middle')
+                    .attr('x', 0)
+                    .attr('y', markerSize + 15)
+                    .attr('font-size', '24px')
+                    .text(king.gift === 'Oro' ? '💰' : king.gift === 'Incienso' ? '🕯️' : '🧴')
+                    .style('opacity', 0.9)
+                    .style('animation', 'giftBounce 1.5s ease-in-out infinite');
             }
             
-            // Animación de entrada con efecto de aparición
+            // Animación de entrada divertida (escala y rotación)
             kingGroup.transition()
-                .duration(1500)
+                .duration(1000)
                 .style('opacity', 1)
-                .attr('transform', `translate(${x + offset.x}, ${y + offset.y}) scale(1)`);
-            
-            // Animación continua de flotación
-            kingGroup.transition()
-                .duration(2000)
-                .ease(d3.easeSinInOut)
-                .attr('transform', `translate(${x + offset.x}, ${y + offset.y - 5}) scale(1)`)
+                .attr('transform', `translate(${x + offset.x}, ${y + offset.y}) scale(1.2) rotate(5)`)
                 .transition()
-                .duration(2000)
+                .duration(500)
+                .attr('transform', `translate(${x + offset.x}, ${y + offset.y}) scale(1) rotate(0)`);
+            
+            // Crear partículas de celebración cuando aparecen
+            this.createCelebrationParticles(x + offset.x, y + offset.y, king.color);
+            
+            // Animación continua más divertida (flotación con rotación suave)
+            kingGroup.transition()
+                .duration(2500)
                 .ease(d3.easeSinInOut)
-                .attr('transform', `translate(${x + offset.x}, ${y + offset.y}) scale(1)`)
+                .attr('transform', `translate(${x + offset.x}, ${y + offset.y - 8}) scale(1.05) rotate(-3)`)
+                .transition()
+                .duration(2500)
+                .ease(d3.easeSinInOut)
+                .attr('transform', `translate(${x + offset.x}, ${y + offset.y}) scale(1) rotate(3)`)
                 .on('end', function repeat() {
                     d3.select(this)
                         .transition()
-                        .duration(2000)
+                        .duration(2500)
                         .ease(d3.easeSinInOut)
-                        .attr('transform', `translate(${x + offset.x}, ${y + offset.y - 5}) scale(1)`)
+                        .attr('transform', `translate(${x + offset.x}, ${y + offset.y - 8}) scale(1.05) rotate(-3)`)
                         .transition()
-                        .duration(2000)
+                        .duration(2500)
                         .ease(d3.easeSinInOut)
-                        .attr('transform', `translate(${x + offset.x}, ${y + offset.y}) scale(1)`)
+                        .attr('transform', `translate(${x + offset.x}, ${y + offset.y}) scale(1) rotate(3)`)
                         .on('end', repeat);
                 });
             
@@ -580,6 +609,41 @@ class ReyesMagosMap {
                 .duration(1500)
                 .style('opacity', 1);
         });
+    }
+    
+    /**
+     * Crea partículas de celebración cuando los reyes llegan
+     */
+    createCelebrationParticles(x, y, color) {
+        const particleCount = 12;
+        const particleGroup = this.gKings.append('g')
+            .attr('class', 'celebration-particles')
+            .attr('transform', `translate(${x}, ${y})`);
+        
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (Math.PI * 2 * i) / particleCount;
+            const distance = 30 + Math.random() * 20;
+            const finalX = Math.cos(angle) * distance;
+            const finalY = Math.sin(angle) * distance;
+            
+            const particle = particleGroup.append('circle')
+                .attr('r', 4 + Math.random() * 3)
+                .attr('fill', color)
+                .attr('cx', 0)
+                .attr('cy', 0)
+                .style('opacity', 1);
+            
+            particle.transition()
+                .duration(1000)
+                .ease(d3.easeExpOut)
+                .attr('cx', finalX)
+                .attr('cy', finalY)
+                .style('opacity', 0)
+                .remove();
+        }
+        
+        // Remover el grupo después de la animación
+        setTimeout(() => particleGroup.remove(), 1100);
     }
     
     /**
@@ -697,30 +761,77 @@ class ReyesMagosMap {
     completeJourney() {
         const locationEl = document.getElementById('current-location');
         if (locationEl) {
-            locationEl.innerHTML = "✨ <strong>Los Reyes Magos han llegado a Belén</strong><br><br>Melchor, Gaspar y Baltasar han adorado al Niño Jesús y ofrecido sus regalos: Oro, Incienso y Mirra. Han cumplido su misión siguiendo la estrella de Belén.<br><br><em>El viaje continuará en breve...</em>";
+            locationEl.innerHTML = "🎉✨ <strong>¡Los Reyes Magos han llegado a Belén!</strong> ✨🎉<br><br>👑 Melchor, 👑 Gaspar y 👑 Baltasar han adorado al Niño Jesús y ofrecido sus regalos: 💰 Oro, 🕯️ Incienso y 🧴 Mirra. Han cumplido su misión siguiendo la estrella de Belén. ⭐<br><br><em>El viaje continuará en breve...</em>";
         }
         
-        // Efecto especial al finalizar - los tres reyes juntos
-        this.gKings.selectAll('.king-marker')
-            .transition()
-            .duration(1000)
-            .attr('r', 15)
-            .style('opacity', 0.8)
-            .transition()
-            .duration(1000)
-            .attr('r', 12)
-            .style('opacity', 1);
+        // Gran celebración cuando llegan a Belén
+        this.createBigCelebration();
         
-        // Efecto de brillo en todos los reyes
-        this.gKings.selectAll('.king-marker')
+        // Efecto especial al finalizar - los tres reyes juntos con animación divertida
+        this.gKings.selectAll('.king-animation')
             .transition()
-            .duration(500)
-            .attr('r', 18)
-            .style('filter', 'drop-shadow(0 0 20px rgba(251, 191, 36, 1))')
+            .duration(800)
+            .attr('transform', (d, i) => {
+                const [x, y] = this.projection([KINGS_ROUTE[KINGS_ROUTE.length - 1].lon, KINGS_ROUTE[KINGS_ROUTE.length - 1].lat]);
+                const offsets = [{ x: -30, y: -30 }, { x: 0, y: 0 }, { x: 30, y: 30 }];
+                return `translate(${x + offsets[i].x}, ${y + offsets[i].y}) scale(1.4) rotate(5)`;
+            })
             .transition()
-            .duration(500)
-            .attr('r', 12)
-            .style('filter', 'drop-shadow(0 0 10px rgba(251, 191, 36, 0.8))');
+            .duration(800)
+            .attr('transform', (d, i) => {
+                const [x, y] = this.projection([KINGS_ROUTE[KINGS_ROUTE.length - 1].lon, KINGS_ROUTE[KINGS_ROUTE.length - 1].lat]);
+                const offsets = [{ x: -30, y: -30 }, { x: 0, y: 0 }, { x: 30, y: 30 }];
+                return `translate(${x + offsets[i].x}, ${y + offsets[i].y}) scale(1.2) rotate(-5)`;
+            })
+            .transition()
+            .duration(800)
+            .attr('transform', (d, i) => {
+                const [x, y] = this.projection([KINGS_ROUTE[KINGS_ROUTE.length - 1].lon, KINGS_ROUTE[KINGS_ROUTE.length - 1].lat]);
+                const offsets = [{ x: -30, y: -30 }, { x: 0, y: 0 }, { x: 30, y: 30 }];
+                return `translate(${x + offsets[i].x}, ${y + offsets[i].y}) scale(1) rotate(0)`;
+            });
+    }
+    
+    /**
+     * Crea una gran celebración cuando llegan a Belén
+     */
+    createBigCelebration() {
+        const [x, y] = this.projection([KINGS_ROUTE[KINGS_ROUTE.length - 1].lon, KINGS_ROUTE[KINGS_ROUTE.length - 1].lat]);
+        
+        // Muchas partículas de celebración
+        for (let i = 0; i < 5; i++) {
+            setTimeout(() => {
+                this.createCelebrationParticles(x, y, '#ffd700');
+                this.createCelebrationParticles(x, y, '#ff6b6b');
+                this.createCelebrationParticles(x, y, '#4ecdc4');
+            }, i * 200);
+        }
+        
+        // Estrellas brillantes alrededor
+        for (let i = 0; i < 20; i++) {
+            const angle = (Math.PI * 2 * i) / 20;
+            const distance = 50 + Math.random() * 30;
+            const starX = x + Math.cos(angle) * distance;
+            const starY = y + Math.sin(angle) * distance;
+            
+            const star = this.gStars.append('circle')
+                .attr('class', 'celebration-star')
+                .attr('cx', starX)
+                .attr('cy', starY)
+                .attr('r', 3)
+                .attr('fill', '#ffd700')
+                .style('opacity', 0);
+            
+            star.transition()
+                .duration(500)
+                .style('opacity', 1)
+                .attr('r', 6)
+                .transition()
+                .duration(2000)
+                .style('opacity', 0)
+                .attr('r', 3)
+                .remove();
+        }
     }
 
     handleResize() {
