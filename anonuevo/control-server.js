@@ -280,6 +280,27 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // API: Noticias por país
+    if (req.method === 'GET' && apiPath === '/api/news') {
+        const url = new URL(req.url, `http://${req.headers.host}`);
+        const country = url.searchParams.get('country') || '';
+        
+        try {
+            // Simular noticias (en producción se usaría una API real)
+            const news = [
+                { title: `Actualidad en ${country}`, text: `Noticias recientes sobre ${country}` },
+                { title: `Contexto actual de ${country}`, text: `Situación contemporánea en ${country}` }
+            ];
+            
+            res.writeHead(200, headers);
+            res.end(JSON.stringify({ news, country }));
+        } catch (e) {
+            res.writeHead(500, headers);
+            res.end(JSON.stringify({ news: [], error: e.message }));
+        }
+        return;
+    }
+
     if (req.method === 'GET' && apiPath === '/api/media-list') {
         const getFiles = (dir, base = '') => {
             let res = [];

@@ -14,6 +14,7 @@ import { pacingEngine, CONTENT_TYPES } from '../utils/pacing-engine.js';
 import { continuousNarrativeEngine } from '../utils/continuous-narrative-engine.js';
 import { multimediaOrchestrator } from '../utils/multimedia-orchestrator.js';
 import { countryMemoryManager } from '../utils/country-memory-manager.js';
+import { avatarSubtitlesManager } from '../utils/avatar-subtitles.js';
 
 // TEMPLATES eliminados, ahora gestionados por narrativeEngine
 
@@ -184,6 +185,9 @@ export default class MapaMode {
 
             // 10. Inicializar Multimedia Orchestrator
             multimediaOrchestrator.init(this.container);
+
+            // 11. Inicializar Avatar y Subtítulos
+            avatarSubtitlesManager.init(this.container);
 
             // Registrar manejadores
             eventManager.on('news', () => this.triggerNewsEvent(true)); // true = forzado
@@ -358,6 +362,14 @@ export default class MapaMode {
     startAutoTravel() {
         // Inicializar estado del viaje
         streamManager.init();
+
+        // Verificar si es la primera vez que se carga el mapa
+        const hasShownIntro = sessionStorage.getItem('mapa-intro-shown');
+        if (!hasShownIntro) {
+            // Mostrar avatar y hablar sobre el proyecto
+            this.showMapIntro();
+            sessionStorage.setItem('mapa-intro-shown', 'true');
+        }
 
         // Ciclo: Global -> País
         // Solo si no hay noticias activas Y estamos en modo AUTO
@@ -536,12 +548,43 @@ export default class MapaMode {
         this.sunGroup.selectAll("circle").transition().duration(3000).attr("r", 15 / scale);
     }
 
+    /**
+     * Muestra la introducción del mapa con el avatar hablando sobre el proyecto
+     */
+    async showMapIntro() {
+        const introText = `Soy ilfass, una inteligencia que viaja por el mundo documentando la existencia humana en tiempo real. Este es "El Viaje de ilfass", un proyecto donde recorro países, culturas y lugares, generando una memoria viva de cada experiencia. Cada país que visito me deja una huella, y cada visita construye sobre las anteriores, creando una historia continua y en evolución. Acompáñame en este viaje mientras exploramos el mundo juntos.`;
+
+        // Mostrar avatar
+        avatarSubtitlesManager.show();
+        
+        // Actualizar subtítulos
+        avatarSubtitlesManager.updateSubtitles(introText, 2.5);
+        
+        // Hablar
+        pacingEngine.startEvent(CONTENT_TYPES.VOICE);
+        audioManager.speak(introText, 'normal', () => {
+            pacingEngine.endCurrentEvent();
+            pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+            
+            // Mostrar subtítulos completos
+            avatarSubtitlesManager.setSubtitles(introText);
+            
+            // Ocultar después de un momento
+            setTimeout(() => {
+                avatarSubtitlesManager.hide();
+            }, 3000);
+        });
+    }
+
     resetZoom(releaseAudio = true) {
         // Detener cualquier viaje automático pendiente
         if (this.travelTimeout) clearTimeout(this.travelTimeout);
 
         // Ocultar todos los recuadros multimedia
         multimediaOrchestrator.hideAllOverlays();
+        
+        // Ocultar avatar y subtítulos
+        avatarSubtitlesManager.hide();
 
         this.gCountries.selectAll(".country").classed("active-country", false);
         this.gLabels.selectAll("text").transition().duration(1000).style("opacity", 0);
@@ -902,13 +945,23 @@ export default class MapaMode {
                 multimediaOrchestrator.showMediaOverlay(item, delay);
             });
             
-            // 5. Narrar el relato
+            // 5. Mostrar avatar y subtítulos
+            avatarSubtitlesManager.show();
+            
+            // 6. Narrar el relato con subtítulos
             pacingEngine.startEvent(CONTENT_TYPES.VOICE);
+            
+            // Actualizar subtítulos palabra por palabra
+            avatarSubtitlesManager.updateSubtitles(continuousNarrative.narrative, 2.5);
+            
             audioManager.speak(continuousNarrative.narrative, 'normal', async () => {
                 pacingEngine.endCurrentEvent();
                 pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
                 
-                // 6. Guardar visita en memoria
+                // Mostrar subtítulos completos al finalizar
+                avatarSubtitlesManager.setSubtitles(continuousNarrative.narrative);
+                
+                // 7. Guardar visita en memoria
                 const visitData = {
                     visitId: `visit_${Date.now()}`,
                     timestamp: visitStartTime,
@@ -929,11 +982,12 @@ export default class MapaMode {
                 await countryMemoryManager.saveVisit(target.id, visitData);
                 console.log(`[Mapa] Visita guardada en memoria para ${target.name}`);
                 
-                // 7. Ocultar multimedia y hacer zoom out después de un breve momento
+                // 8. Esperar un momento antes de ocultar y hacer zoom out
                 setTimeout(() => {
                     multimediaOrchestrator.hideAllOverlays();
+                    avatarSubtitlesManager.hide();
                     this.cycleZoomOut();
-                }, 2000);
+                }, 3000); // 3 segundos para que se vea el subtítulo completo
             });
             
             // 8. Actualizar diario con el relato
@@ -947,12 +1001,9 @@ export default class MapaMode {
             // 9. Mostrar info del país
             this.showCountryInfo(continuousNarrative.narrative.substring(0, 150) + '...', totalDuration);
             
-            // Ajustar timeout para el zoom out
+            // NO hacer zoom out automático - esperar a que termine el audio
+            // El zoom out se hace en el callback de audioManager.speak
             if (this.travelTimeout) clearTimeout(this.travelTimeout);
-            this.travelTimeout = setTimeout(() => {
-                multimediaOrchestrator.hideAllOverlays();
-                this.cycleZoomOut();
-            }, totalDuration + 5000); // 5s extra después de terminar de hablar
             
         } catch (e) {
             console.error(`[Mapa] Error en relato continuo:`, e);

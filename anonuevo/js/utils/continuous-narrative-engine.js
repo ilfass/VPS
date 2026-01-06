@@ -21,11 +21,25 @@ export class ContinuousNarrativeEngine {
         const previousVisits = await countryMemoryManager.getPreviousVisits(country.id);
         const hasBeenVisited = previousVisits.length > 0;
         const accumulatedNarrative = await countryMemoryManager.getAccumulatedNarrative(country.id);
+        
+        // 2. Obtener noticias actuales del país
+        let currentNews = '';
+        try {
+            const newsRes = await fetch(`/control-api/api/news?country=${encodeURIComponent(country.name)}`);
+            if (newsRes.ok) {
+                const newsData = await newsRes.json();
+                if (newsData.news && newsData.news.length > 0) {
+                    currentNews = newsData.news.slice(0, 3).map(n => n.title || n.text).join('. ');
+                }
+            }
+        } catch (e) {
+            console.warn(`[ContinuousNarrative] Error obteniendo noticias: ${e}`);
+        }
 
-        // 2. Construir prompt para IA
-        const prompt = this.buildNarrativePrompt(country, context, hasBeenVisited, accumulatedNarrative, previousVisits);
+        // 3. Construir prompt para IA
+        const prompt = this.buildNarrativePrompt(country, context, hasBeenVisited, accumulatedNarrative, previousVisits, currentNews);
 
-        // 3. Generar relato con IA
+        // 4. Generar relato con IA
         const narrative = await this.generateWithIA(prompt);
 
         // 4. Extraer información del relato para multimedia
@@ -45,7 +59,7 @@ export class ContinuousNarrativeEngine {
         };
     }
 
-    buildNarrativePrompt(country, context, hasBeenVisited, accumulatedNarrative, previousVisits) {
+    buildNarrativePrompt(country, context, hasBeenVisited, accumulatedNarrative, previousVisits, currentNews = '') {
         let prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana en tiempo real.
 
 Estás visitando ${country.name}.`;
@@ -56,14 +70,23 @@ Estás visitando ${country.name}.`;
             prompt += `\n\nEs tu primera vez aquí.`;
         }
 
-        prompt += `\n\nGenera un relato en primera persona (como ilfass) que incluya:
-1. Datos objetivos sobre el país (geografía, historia, cultura)
-2. Qué te genera este lugar (sensaciones, emociones, observaciones)
-3. Reflexiones personales sobre el país
-4. Conexiones con otros lugares que has visitado (si aplica)
-5. Pensamientos profundos sobre la humanidad y este lugar específico
+        prompt += `\n\nGenera un relato completo y detallado en primera persona (como ilfass) que incluya TODOS estos elementos:
 
-El relato debe ser natural, como si estuvieras pensando en voz alta. Debe tener entre 300 y 500 palabras. Usa primera persona: "Estoy en...", "Me llama la atención...", "Siento que...", "Me genera...", "Reflexiono sobre...".`;
+1. **CULTURA DEL PAÍS**: Tradiciones, costumbres, formas de vida, identidad cultural
+2. **HISTORIA**: Eventos históricos relevantes, épocas importantes, transformaciones
+3. **COMIDAS TÍPICAS**: Platos tradicionales, ingredientes característicos, cultura gastronómica
+4. **LUGARES DESTACADOS**: Ciudades, monumentos, paisajes, sitios emblemáticos y qué sensación generan
+5. **SENSACIONES Y EMOCIONES**: Qué te genera este lugar, qué sientes al estar aquí, qué observas
+6. **PERSONALIDADES Y PERSONAJES**: Figuras históricas, culturales, artísticas relevantes del país
+7. **VINCULACIÓN CON OTROS PAÍSES**: Conexiones históricas, culturales, económicas con otros lugares que has visitado o conoces
+8. **NOTICIAS ACTUALES**: Situación actual del país, eventos recientes, contexto contemporáneo${currentNews ? `\n\nNoticias recientes del país: ${currentNews}` : ''}
+
+El relato debe ser:
+- Natural y fluido, como si estuvieras pensando en voz alta
+- Entre 500 y 800 palabras (más completo y detallado)
+- En primera persona: "Estoy en...", "Me llama la atención...", "Siento que...", "Me genera...", "Reflexiono sobre...", "He descubierto que..."
+- Personal y subjetivo, no solo enciclopédico
+- Conectar todos los elementos de forma narrativa coherente`;
 
         if (context.theme) {
             prompt += `\n\nEnfócate especialmente en: ${context.theme}`;
