@@ -131,19 +131,32 @@ const server = http.createServer(async (req, res) => {
                     return;
                 }
 
-                // Crear prompt para la imagen
-                const prompt = `A majestic ancient wise king, ${kingName}, traveling through ${location || 'ancient lands'}, wearing royal robes and crown, carrying a gift, in the style of classical nativity art, detailed, beautiful, ${context || ''}`;
+                // Crear prompts más específicos y detallados para cada rey
+                let prompt = '';
+                if (kingName === 'melchor') {
+                    prompt = `A wise old European king with white beard, Melchior, wearing golden royal robes and ornate crown, carrying gold gift, traveling on camel through ${location || 'ancient Middle Eastern landscape'}, following a bright star in the night sky, classical nativity scene style, detailed, beautiful, warm lighting, oil painting style`;
+                } else if (kingName === 'gaspar') {
+                    prompt = `A middle-aged Asian king, Gaspar, wearing blue royal robes and crown, carrying incense gift, traveling on camel through ${location || 'ancient Middle Eastern landscape'}, following a bright star in the night sky, classical nativity scene style, detailed, beautiful, warm lighting, oil painting style`;
+                } else if (kingName === 'baltasar') {
+                    prompt = `A young African king, Balthazar, wearing green royal robes and crown, carrying myrrh gift, traveling on camel through ${location || 'ancient Middle Eastern landscape'}, following a bright star in the night sky, classical nativity scene style, detailed, beautiful, warm lighting, oil painting style`;
+                } else {
+                    prompt = `A majestic ancient wise king, ${kingName}, wearing royal robes and crown, carrying a gift, traveling through ${location || 'ancient lands'}, following a bright star, classical nativity art style, detailed, beautiful, ${context || ''}`;
+                }
+                
+                console.log(`🎨 Generando imagen para ${kingName} con prompt: ${prompt.substring(0, 100)}...`);
                 
                 const result = await generateImageOpenAI(prompt);
                 if (result) {
+                    console.log(`✅ Imagen generada exitosamente: ${result.url}`);
                     res.writeHead(200, headers);
                     res.end(JSON.stringify(result));
                 } else {
+                    console.warn(`⚠️ No se pudo generar imagen para ${kingName}`);
                     res.writeHead(200, headers);
                     res.end(JSON.stringify({ error: "No se pudo generar imagen", url: null }));
                 }
             } catch (e) {
-                console.error("Error:", e);
+                console.error("Error generando imagen:", e);
                 res.writeHead(500, headers);
                 res.end(JSON.stringify({ error: e.message }));
             }

@@ -409,11 +409,14 @@ class ReyesMagosMap {
      */
     async generateKingImage(kingName, location) {
         // Si ya tenemos la imagen en cache, usarla
-        if (this.kingImages[kingName]) {
-            return this.kingImages[kingName];
+        const cacheKey = `${kingName}_${location.name}`;
+        if (this.kingImages[cacheKey]) {
+            console.log(`✅ Usando imagen en cache para ${kingName} en ${location.name}`);
+            return this.kingImages[cacheKey];
         }
         
         try {
+            console.log(`🎨 Generando imagen para ${kingName} en ${location.name}...`);
             const response = await fetch(`${this.apiBase}/api/generate-king-image`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -424,13 +427,23 @@ class ReyesMagosMap {
                 })
             });
             
+            if (!response.ok) {
+                console.warn(`⚠️ Error HTTP ${response.status} al generar imagen`);
+                return null;
+            }
+            
             const result = await response.json();
             if (result.url) {
-                this.kingImages[kingName] = result.url;
-                return result.url;
+                // Construir la URL completa
+                const fullUrl = result.url.startsWith('http') ? result.url : `${this.apiBase}${result.url}`;
+                this.kingImages[cacheKey] = fullUrl;
+                console.log(`✅ Imagen generada exitosamente: ${fullUrl}`);
+                return fullUrl;
+            } else if (result.error) {
+                console.warn(`⚠️ Error del servidor: ${result.error}`);
             }
         } catch (e) {
-            console.warn('No se pudo generar imagen con IA:', e);
+            console.warn('❌ No se pudo generar imagen con IA:', e.message);
         }
         
         return null;
@@ -471,16 +484,38 @@ class ReyesMagosMap {
             
             // Si tenemos imagen generada con IA, usarla
             if (kingImage) {
-                const imageSize = 60;
-                kingGroup.append('image')
+                const imageSize = 80; // Imagen más grande para mejor visibilidad
+                const imageElement = kingGroup.append('image')
                     .attr('class', 'king-image')
                     .attr('href', kingImage)
                     .attr('x', -imageSize/2)
                     .attr('y', -imageSize/2)
                     .attr('width', imageSize)
                     .attr('height', imageSize)
-                    .attr('clip-path', 'circle(30px)')
-                    .style('filter', `drop-shadow(0 0 15px ${king.color})`);
+                    .style('filter', `drop-shadow(0 0 15px ${king.color})`)
+                    .style('clip-path', 'circle(40px)');
+                
+                // Manejar errores de carga de imagen
+                imageElement.on('error', function() {
+                    console.warn(`⚠️ Error cargando imagen para ${kingName}, usando fallback`);
+                    d3.select(this).remove();
+                    // Crear fallback
+                    kingGroup.append('circle')
+                        .attr('class', 'king-marker')
+                        .attr('r', 25)
+                        .attr('fill', king.color)
+                        .attr('stroke', '#fff')
+                        .attr('stroke-width', 3)
+                        .style('filter', `drop-shadow(0 0 10px ${king.color})`);
+                    
+                    kingGroup.append('text')
+                        .attr('class', 'king-icon-svg')
+                        .attr('text-anchor', 'middle')
+                        .attr('dy', '0.35em')
+                        .attr('font-size', '28px')
+                        .text('👑')
+                        .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))');
+                });
             } else {
                 // Fallback: círculo con corona
                 kingGroup.append('circle')
