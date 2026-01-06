@@ -750,6 +750,25 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // Serve control.html
+    if (apiPath === '/control.html' || apiPath === '/') {
+        const htmlPath = path.join(__dirname, 'control.html');
+        try {
+            if (fs.existsSync(htmlPath)) {
+                const html = fs.readFileSync(htmlPath, 'utf8');
+                res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+                res.end(html);
+            } else {
+                res.writeHead(404, headers);
+                res.end('{"error":"control.html not found"}');
+            }
+        } catch (e) {
+            res.writeHead(500, headers);
+            res.end('{"error":"Failed to read control.html"}');
+        }
+        return;
+    }
+
     res.writeHead(404, headers); res.end('{"error":"Not Found"}');
 });
 
