@@ -371,9 +371,9 @@ class ReyesMagosMap {
             narration += location.story + ' ';
         }
         
-        // Agregar información sobre el rey activo
-        if (king && step % 3 === 0) { // Solo mencionar al rey en el primer paso de cada ciclo
-            narration += `En este momento, ${king.name}, quien representa ${king.origin}, guía al grupo. ${king.story}`;
+        // Agregar información sobre el rey activo ocasionalmente
+        if (king && this.currentStep % 3 === 0) { // Solo mencionar al rey en el primer paso de cada ciclo
+            narration += ` En este momento, ${king.name}, quien representa ${king.origin}, guía al grupo. ${king.story}`;
         }
         
         // Hablar con síntesis de voz
