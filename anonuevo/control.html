@@ -608,6 +608,60 @@
                     <div style="text-align: center; padding: 20px;">Click Refresh to load</div>
                 </div>
             </div>
+
+            <div class="panel" style="flex: 1;">
+                <h2>📚 Hojas del Libro</h2>
+                <div style="margin-bottom: 12px;">
+                    <div style="font-size: 0.7rem; color: var(--text-dim); margin-bottom: 8px;">
+                        <strong style="color: var(--accent);">Total: <span id="book-total-pages">14</span> hojas</strong>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 16px;">
+                    <h3 style="font-size: 0.75rem; color: var(--accent); margin-bottom: 8px; text-transform: uppercase;">📄 Hojas Fijas</h3>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 6px;">
+                        <button onclick="navigateToPage('/vivos/portada/')" class="book-page-btn" title="Portada del Viaje">
+                            📖 Portada
+                        </button>
+                        <button onclick="navigateToPage('/vivos/intro/')" class="book-page-btn" title="Introducción / Acto Cero">
+                            🎬 Introducción
+                        </button>
+                        <button onclick="navigateToPage('/vivos/mapa/')" class="book-page-btn" title="Mapa Global">
+                            🌍 Mapa Global
+                        </button>
+                        <button onclick="navigateToPage('/memoria/indice/')" class="book-page-btn" title="Índice Global">
+                            📑 Índice
+                        </button>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <h3 style="font-size: 0.75rem; color: var(--accent); margin-bottom: 8px; text-transform: uppercase;">⚡ Hojas Dinámicas</h3>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 6px;">
+                        <button onclick="navigateToPage('/vivos/diario/')" class="book-page-btn" title="Diario de Viaje">
+                            📔 Diario
+                        </button>
+                        <button onclick="navigateToPage('/vivos/estado-actual/')" class="book-page-btn" title="Estado Actual">
+                            ⚡ Estado Actual
+                        </button>
+                        <button onclick="navigateToPage('/vivos/reflexion/')" class="book-page-btn" title="Reflexión">
+                            💭 Reflexión
+                        </button>
+                        <button onclick="navigateToPage('/vivos/pais/')" class="book-page-btn" title="Página de País">
+                            🏳️ País
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="font-size: 0.75rem; color: var(--success); margin-bottom: 8px; text-transform: uppercase;">
+                        💾 Memorias (<span id="book-memory-count">6</span> visitas)
+                    </h3>
+                    <div id="book-memories-list" style="max-height: 200px; overflow-y: auto; font-family: 'JetBrains Mono'; font-size: 0.7rem;">
+                        <div style="text-align: center; padding: 10px; color: var(--text-dim);">Cargando memorias...</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- COL 2: LIVE CONTENT & MEDIA -->
@@ -1164,6 +1218,9 @@
             if (Date.now() % 5000 < 1000) {
                 refreshMemories();
             }
+
+            // 9. Actualizar total de hojas del libro
+            updateBookPagesCount();
         }
 
         // Memory Management
