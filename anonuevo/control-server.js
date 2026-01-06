@@ -492,12 +492,56 @@ const server = http.createServer(async (req, res) => {
     // Travel
     if (apiPath.startsWith('/event/travel/')) {
         state.eventQueue.push({ type: 'travel_to', payload: apiPath.split('/').pop() });
-        // Podríamos guardar el país actual en el state si quisiéramos persistencia de ubicación
-        // state.clientTelemetry.country = ... (mejor esperar telemetría real)
         saveState();
         res.writeHead(200, headers);
         res.end('{"success":true}');
         return;
+    }
+
+    // Queue management
+    if (req.method === 'POST' && apiPath === '/event/queue/add') {
+        let body = '';
+        req.on('data', c => body += c);
+        req.on('end', () => {
+            const { code } = JSON.parse(body || '{}');
+            if (code) {
+                if (!state.travelQueue) state.travelQueue = [];
+                state.travelQueue.push(code);
+                saveState();
+            }
+            res.writeHead(200, headers);
+            res.end('{"success":true}');
+        });
+        return;
+    }
+
+    if (req.method === 'POST' && apiPath === '/event/queue/clear') {
+        state.travelQueue = [];
+        saveState();
+        res.writeHead(200, headers);
+        res.end('{"success":true}');
+        return;
+    }
+
+    // Narration controls
+    if (req.method === 'POST' && apiPath === '/event/pause') {
+        state.eventQueue.push({ type: 'pause_narration' });
+        res.writeHead(200, headers);
+        res.end('{"success":true}');
+        return;
+    }
+
+    if (req.method === 'POST' && apiPath === '/event/resume') {
+        state.eventQueue.push({ type: 'resume_narration' });
+        res.writeHead(200, headers);
+        res.end('{"success":true}');
+        return;
+    }
+
+    if (req.method === 'POST' && apiPath === '/event/skip') {
+        state.eventQueue.push({ type: 'skip_current' });
+        res.writeHead(200, headers);
+        res.end('{"success":true}');
         return;
     }
 

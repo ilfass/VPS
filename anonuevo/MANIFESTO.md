@@ -25,7 +25,6 @@ Esto no es un experimento de IA aislado
 
 *   Un explorador digital (ilfass) recorre el mundo
 *   El recorrido está planificado por continentes y países
-*   Cada país se vive durante 3 días
 *   El proyecto finaliza el 31 de diciembre, con un cierre reflexivo global
 
 #### 1.2 Qué lo hace único
@@ -73,12 +72,9 @@ Esto no es un experimento de IA aislado
 ### 3. ESTRUCTURA TEMPORAL DEL VIAJE
 #### 3.1 Calendario General
 *   Viaje continuo hasta el 31 de diciembre
-*   Organización por: **Continente** → **País** → **Día (1, 2, 3)**
+*   Organización por: **Continente** → **País** → **Visitas Dinámicas**
 
-#### 3.2 Estructura fija por país (OBLIGATORIA)
-*   **Día 1 — Contexto:** Historia, Geografía, Arqueología, Situación actual.
-*   **Día 2 — Cultura:** Vida cotidiana, Personas, Costumbres, Comida, Identidad cultural.
-*   **Día 3 — Curiosidades + Reflexión:** Datos singulares, Secretos, Recomendaciones, Comparaciones, **Reflexión subjetiva obligatoria**.
+El recorrido es flexible y dinámico. Cada país puede ser visitado múltiples veces, y cada visita genera contenido narrativo único basado en la memoria acumulada y el contexto actual.
 
 ---
 
@@ -116,7 +112,7 @@ Funciona como: Memoria, Archivo, Documento cultural, Experiencia asincrónica.
 2.  Índice global
 3.  Página por continente
 4.  Página por país
-5.  Día 1 / Día 2 / Día 3
+5.  Visitas y reflexiones por país
 6.  Reflexión
 7.  Diario de viaje (timeline)
 8.  Estado actual
@@ -142,9 +138,7 @@ El libro:
 *   `/memoria/indice/`
 *   `/memoria/continente/{nombre}/`
 *   `/memoria/pais/{pais}/`
-*   `/memoria/pais/{pais}/dia-1/`
-*   `/memoria/pais/{pais}/dia-2/`
-*   `/memoria/pais/{pais}/dia-3/`
+*   `/memoria/pais/{pais}/visitas/`
 *   `/memoria/pais/{pais}/reflexion/`
 
 👉 Cada página es una hoja distinta del libro  
@@ -627,7 +621,7 @@ Cada país tiene una memoria persistente que contiene:
     {
       visitId: "visit_001",
       timestamp: 1234567890,
-      dayId: "Día 1", // Día editorial en que ocurrió
+      dayId: "Día Editorial X", // Día editorial en que ocurrió
       narrative: "Relato completo generado por IA...",
       multimedia: [
         { type: "image", url: "...", timestamp: 1234567891, context: "..." },

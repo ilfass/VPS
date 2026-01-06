@@ -4,83 +4,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DIRECCIÓN EDITORIAL - ILFASS V5</title>
+    <title>DIRECCIÓN EDITORIAL - ILFASS V6</title>
     <link
         href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap"
         rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #09090b;
-            --panel-bg: #18181b;
-            --border: #27272a;
-            --text-main: #e4e4e7;
-            --accent: #38bdf8;
-            --danger: #ef4444;
-            --success: #10b981;
+            --bg-dark: #0a0a0f;
+            --panel-bg: #1a1a24;
+            --panel-hover: #252530;
+            --border: #2a2a3a;
+            --border-light: #3a3a4a;
+            --text-main: #e8e8f0;
+            --text-dim: #a0a0b0;
+            --accent: #4a9eff;
+            --accent-hover: #6bb0ff;
+            --danger: #ff4444;
+            --danger-hover: #ff6666;
+            --success: #22c55e;
+            --success-hover: #4ade80;
             --warning: #f59e0b;
+            --purple: #a855f7;
+            --purple-hover: #c084fc;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
-            background-color: var(--bg-dark);
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f1a 100%);
             color: var(--text-main);
             font-family: 'Inter', sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 16px;
             font-size: 14px;
             height: 100vh;
             overflow: hidden;
             display: grid;
             grid-template-rows: auto 1fr;
-            gap: 20px;
+            gap: 16px;
         }
 
         /* TOP BAR: EDITORIAL CONTROL */
         .editorial-bar {
-            background: #000;
+            background: linear-gradient(135deg, #000 0%, #1a1a24 100%);
             border: 1px solid var(--border);
-            padding: 15px;
-            border-radius: 8px;
+            padding: 16px 24px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
         .rec-indicator {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             font-family: 'JetBrains Mono';
-            font-weight: bold;
-            color: #555;
+            font-weight: 700;
+            color: var(--text-dim);
+            font-size: 0.85rem;
         }
 
         .rec-dot {
-            width: 12px;
-            height: 12px;
+            width: 14px;
+            height: 14px;
             border-radius: 50%;
             background: #333;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
         }
 
         .rec-live .rec-dot {
             background: var(--danger);
-            animation: pulseRec 1s infinite;
+            box-shadow: 0 0 12px rgba(255, 68, 68, 0.6);
+            animation: pulseRec 1.5s infinite;
         }
 
         .rec-live span {
             color: var(--danger);
+            text-shadow: 0 0 8px rgba(255, 68, 68, 0.4);
         }
 
         @keyframes pulseRec {
-            50% {
-                opacity: 0.5;
-            }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.1); }
+        }
+
+        .session-info {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .session-timer {
+            font-family: 'JetBrains Mono';
+            color: var(--accent);
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-shadow: 0 0 8px rgba(74, 158, 255, 0.3);
+        }
+
+        .session-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
         }
 
         /* MAIN GRID */
         .main-grid {
             display: grid;
-            grid-template-columns: 350px 1fr 350px;
-            gap: 20px;
+            grid-template-columns: 380px 1fr 380px;
+            gap: 16px;
             height: 100%;
             overflow: hidden;
         }
@@ -88,75 +124,199 @@
         .col {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 16px;
             overflow-y: auto;
-            height: 100%;
+            overflow-x: hidden;
+        }
+
+        .col::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .col::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+
+        .col::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        .col::-webkit-scrollbar-thumb:hover {
+            background: var(--border-light);
         }
 
         /* PANELS */
         .panel {
             background: var(--panel-bg);
             border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 15px;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .panel:hover {
+            border-color: var(--border-light);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
         h2 {
             font-family: 'JetBrains Mono';
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
-            color: #71717a;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 8px;
-            margin: 0 0 15px 0;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 10px;
+            margin: 0 0 18px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        h2::before {
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: var(--accent);
+            border-radius: 2px;
         }
 
         /* CONTROLS */
         button {
             font-family: 'JetBrains Mono';
-            background: #27272a;
-            color: white;
-            border: 1px solid #3f3f46;
-            padding: 10px;
+            background: linear-gradient(135deg, #27272a 0%, #1f1f2a 100%);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 12px 16px;
             cursor: pointer;
-            border-radius: 4px;
+            border-radius: 8px;
             text-transform: uppercase;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
+            font-weight: 600;
             width: 100%;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        button:hover:not(:disabled)::before {
+            width: 300px;
+            height: 300px;
         }
 
         button:hover:not(:disabled) {
             border-color: var(--accent);
             color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(74, 158, 255, 0.2);
         }
 
         button:active:not(:disabled) {
-            transform: translateY(1px);
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--success) 0%, #16a34a 100%);
+            color: white;
+            border: none;
+            font-weight: 700;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: linear-gradient(135deg, var(--success-hover) 0%, var(--success) 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(34, 197, 94, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+            color: white;
+            border: none;
+            font-weight: 700;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: linear-gradient(135deg, var(--danger-hover) 0%, var(--danger) 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(255, 68, 68, 0.4);
+        }
+
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 0.65rem;
+            width: auto;
         }
 
         input,
         select {
-            background: #000;
+            background: #0a0a0f;
             border: 1px solid var(--border);
-            color: white;
-            padding: 8px;
+            color: var(--text-main);
+            padding: 10px 12px;
             width: 100%;
             font-family: 'JetBrains Mono';
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.1);
         }
 
         /* STATUS */
         .stat-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 5px;
-            font-size: 0.8rem;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 0.85rem;
+            padding: 8px 0;
+        }
+
+        .stat-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .stat-label {
+            color: var(--text-dim);
+            font-weight: 500;
         }
 
         .stat-val {
             font-family: 'JetBrains Mono';
             color: var(--accent);
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .stat-section {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
         }
 
         /* DREAM MODE SWITCH */
@@ -164,25 +324,196 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: rgba(168, 85, 247, 0.1);
-            padding: 10px;
-            border: 1px solid #a855f7;
-            border-radius: 4px;
-            margin-top: 10px;
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
+            padding: 14px 16px;
+            border: 2px solid var(--purple);
+            border-radius: 8px;
+            margin-top: 12px;
+            transition: all 0.3s;
+        }
+
+        .dream-switch:hover {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.25) 0%, rgba(139, 92, 246, 0.15) 100%);
+            box-shadow: 0 0 16px rgba(168, 85, 247, 0.3);
         }
 
         .dream-label {
-            color: #a855f7;
-            font-weight: bold;
+            color: var(--purple);
+            font-weight: 700;
             font-family: 'JetBrains Mono';
+            font-size: 0.8rem;
         }
 
         .active-red {
-            background-color: rgba(220, 38, 38, 0.2) !important;
-            border-color: #ef4444 !important;
-            color: #ef4444 !important;
-            box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+            background: linear-gradient(135deg, rgba(220, 38, 38, 0.3) 0%, rgba(239, 68, 68, 0.2) 100%) !important;
+            border-color: var(--danger) !important;
+            color: var(--danger) !important;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
             animation: pulseRec 2s infinite;
+        }
+
+        /* MEDIA GRID */
+        #media-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            overflow-y: auto;
+            max-height: 500px;
+            padding: 4px;
+        }
+
+        .media-item {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px;
+            background: #0f0f1a;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .media-item:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(74, 158, 255, 0.2);
+        }
+
+        /* CONSOLE */
+        #console {
+            font-family: 'JetBrains Mono';
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            overflow-y: auto;
+            max-height: 400px;
+            line-height: 1.6;
+            padding: 8px;
+            background: #0a0a0f;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        #console div {
+            margin-bottom: 4px;
+            padding: 4px 8px;
+            border-left: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        #console div:hover {
+            background: rgba(74, 158, 255, 0.05);
+            border-left-color: var(--accent);
+        }
+
+        /* ACTIVE MEDIA INDICATOR */
+        #active-media-indicator {
+            background: linear-gradient(135deg, rgba(74, 158, 255, 0.15) 0%, rgba(74, 158, 255, 0.05) 100%);
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            font-family: 'JetBrains Mono';
+            font-size: 0.75rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* PLAYLIST */
+        #playlist-container {
+            font-family: 'JetBrains Mono';
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            line-height: 2;
+            padding: 8px;
+            background: #0a0a0f;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            min-height: 100px;
+        }
+
+        #playlist-container div {
+            padding: 6px 8px;
+            margin-bottom: 4px;
+            background: rgba(74, 158, 255, 0.05);
+            border-left: 3px solid var(--accent);
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        #playlist-container div:hover {
+            background: rgba(74, 158, 255, 0.1);
+            transform: translateX(4px);
+        }
+
+        /* STATS PANEL */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(74, 158, 255, 0.1) 0%, rgba(74, 158, 255, 0.05) 100%);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-card-value {
+            font-family: 'JetBrains Mono';
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .stat-card-label {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        /* QUICK ACTIONS */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .quick-action-btn {
+            padding: 10px;
+            font-size: 0.65rem;
+        }
+
+        /* FILTERS */
+        .media-filters {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .filter-btn {
+            flex: 1;
+            padding: 6px 10px;
+            font-size: 0.65rem;
+            background: #0a0a0f;
+        }
+
+        .filter-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
         }
     </style>
 </head>
@@ -191,138 +522,168 @@
 
     <!-- TOP BAR: SESSION CONTROL -->
     <div class="editorial-bar">
-        <div style="display: flex; gap: 20px; align-items: center;">
+        <div class="session-info">
             <div id="rec-status" class="rec-indicator">
                 <div class="rec-dot"></div>
                 <span>SESSION IDLE</span>
             </div>
-            <div id="session-timer" style="font-family: 'JetBrains Mono'; color: #888;">00:00:00</div>
+            <div id="session-timer" class="session-timer">00:00:00</div>
+            <div style="font-family: 'JetBrains Mono'; font-size: 0.75rem; color: var(--text-dim);">
+                <span id="current-scene-display">--</span>
+            </div>
         </div>
 
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 5px; color: #888; font-size: 0.7rem;">
+        <div class="session-controls">
+            <div style="display: flex; align-items: center; gap: 8px; color: var(--text-dim); font-size: 0.7rem;">
                 <input type="checkbox" id="sim-mode" style="width: auto; margin: 0;">
                 <label for="sim-mode">TEST MODE</label>
             </div>
-            <input type="text" id="day-id-input" placeholder="ID del Día (ej: Día 1)" style="width: 150px; margin: 0;">
-            <button onclick="startDay()" id="btn-start-day"
-                style="width: auto; background: var(--success); color: black; font-weight: bold;">
+            <input type="text" id="day-id-input" placeholder="Día Editorial ID" style="width: 180px; margin: 0;">
+            <button onclick="startDay()" id="btn-start-day" class="btn-primary btn-small">
                 ▶ START DAY
             </button>
-            <button onclick="endDay()" id="btn-end-day"
-                style="width: auto; background: var(--danger); color: white; display: none;">
-                ⏹ END SESSION & ARCHIVE
+            <button onclick="endDay()" id="btn-end-day" class="btn-danger btn-small" style="display: none;">
+                ⏹ END SESSION
             </button>
         </div>
     </div>
 
     <div class="main-grid">
 
-        <!-- COL 1: NAVIGATION & PLAYLIST -->
+        <!-- COL 1: NAVIGATION & CONTROL -->
         <div class="col">
             <div class="panel">
-                <h2>Navigation (Director)</h2>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 15px;">
+                <h2>🎬 Navigation</h2>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px;">
                     <button onclick="changeScene('intro')">🏠 Cover</button>
                     <button onclick="changeScene('mapa')">🌍 Map</button>
                     <button onclick="changeScene('reflexion')">📖 Book</button>
                     <button onclick="changeScene('pais')">🏳️ Detail</button>
+                    <button onclick="changeScene('diario')">📔 Diary</button>
+                    <button onclick="changeScene('estado-actual')">⚡ Status</button>
                 </div>
 
-                <h2 style="margin-top: 20px;">Flight Control</h2>
+                <h2 style="margin-top: 20px;">✈️ Flight Control</h2>
                 <select id="country-select" onchange="loadCountryMedia()">
                     <option value="" disabled selected>Select Destination...</option>
                 </select>
-                <div style="display: flex; gap: 5px;">
-                    <button onclick="travelNow()">✈️ FLY NOW</button>
-                    <button onclick="addToQueue()" style="width: 50px;">+</button>
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="travelNow()" style="flex: 1;">✈️ FLY NOW</button>
+                    <button onclick="addToQueue()" class="btn-small" style="width: 60px;">+</button>
+                    <button onclick="clearQueue()" class="btn-small" style="width: 60px;" title="Clear Queue">🗑️</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>📊 Statistics</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-card-value" id="stat-total-visits">0</div>
+                        <div class="stat-card-label">Total Visits</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-value" id="stat-countries-visited">0</div>
+                        <div class="stat-card-label">Countries</div>
+                    </div>
                 </div>
             </div>
 
             <div class="panel" style="flex: 1;">
-                <h2>Travel Playlist</h2>
-                <div id="playlist-container" style="font-family: 'JetBrains Mono'; font-size: 0.8rem; color: #aaa;">
-                    (Empty Queue)
-                </div>
+                <h2>🎵 Travel Playlist</h2>
+                <div id="playlist-container">(Empty Queue)</div>
             </div>
         </div>
 
-        <!-- COL 2: LIVE CONTENT (M.C.D) -->
+        <!-- COL 2: LIVE CONTENT & MEDIA -->
         <div class="col">
             <div class="panel">
-                <h2>Live Context</h2>
+                <h2>📡 Live Context</h2>
                 <div class="stat-row">
-                    <span>ACTIVE VISIT:</span>
+                    <span class="stat-label">ACTIVE VISIT:</span>
                     <span id="live-visit" class="stat-val">NONE</span>
                 </div>
                 <div class="stat-row">
-                    <span>DURATION:</span>
+                    <span class="stat-label">DURATION:</span>
                     <span id="visit-timer" class="stat-val">--:--</span>
                 </div>
-                <div class="stat-row" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border);">
-                    <span>📖 HOJA DEL LIBRO:</span>
-                    <span id="book-page" class="stat-val" style="color: #a855f7;">--</span>
-                </div>
-                <div class="stat-row" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border);">
-                    <span>💾 MEMORIA PAÍS:</span>
-                    <span id="country-memory" class="stat-val" style="color: #10b981; font-size: 0.7rem;">--</span>
+                <div class="stat-section">
+                    <div class="stat-row">
+                        <span class="stat-label">📖 HOJA DEL LIBRO:</span>
+                        <span id="book-page" class="stat-val" style="color: var(--purple);">--</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">💾 MEMORIA PAÍS:</span>
+                        <span id="country-memory" class="stat-val" style="color: var(--success); font-size: 0.75rem;">--</span>
+                    </div>
                 </div>
             </div>
 
             <div class="panel" style="flex: 1;">
-                <h2>Media Repository (Curated)</h2>
+                <h2>🎨 Media Repository</h2>
                 
                 <!-- Indicador de Media Activo -->
-                <div id="active-media-indicator" style="display: none; background: rgba(56, 189, 248, 0.1); border: 1px solid var(--accent); border-radius: 4px; padding: 10px; margin-bottom: 10px; font-family: 'JetBrains Mono'; font-size: 0.7rem;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="color: var(--accent);">▶</span>
-                        <span style="color: #94a3b8;">Lanzando:</span>
-                        <span id="active-media-name" style="color: var(--accent); font-weight: bold;"></span>
+                <div id="active-media-indicator" style="display: none;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="color: var(--accent); font-size: 1.2rem;">▶</span>
+                        <div style="flex: 1;">
+                            <div style="color: var(--accent); font-weight: bold; margin-bottom: 4px;" id="active-media-name"></div>
+                            <div style="font-size: 0.65rem; color: var(--text-dim);" id="active-media-url"></div>
+                        </div>
                     </div>
-                    <div style="font-size: 0.65rem; color: #64748b; margin-top: 5px;" id="active-media-url"></div>
                 </div>
                 
-                <div id="media-grid"
-                    style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; overflow-y: auto; max-height: 400px;">
-                    <div style="grid-column: span 2; text-align: center; padding: 40px; color: #444;">Select a country
-                        to load media.</div>
+                <div id="media-grid">
+                    <div style="grid-column: span 2; text-align: center; padding: 40px; color: var(--text-dim);">
+                        Select a country to load media.
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- COL 3: AI & NEURAL CORE -->
+        <!-- COL 3: AI & INTERVENTIONS -->
         <div class="col">
             <div class="panel">
-                <h2>Neural Core Control</h2>
+                <h2>🧠 Neural Core</h2>
 
                 <div class="dream-switch">
-                    <span class="dream-label">DREAM MODE (Auto)</span>
-                    <button id="btn-dream-toggle" onclick="toggleDreamMode()" style="width: 80px;">OFF</button>
+                    <span class="dream-label">DREAM MODE</span>
+                    <button id="btn-dream-toggle" onclick="toggleDreamMode()" style="width: 90px;">OFF</button>
                 </div>
-                <div style="font-size: 0.7rem; color: #a855f7; margin-top: 5px; text-align: center;">
-                    If ON: AI controls navigation & media autonomously.
+                <div style="font-size: 0.7rem; color: var(--purple); margin-top: 8px; text-align: center; padding: 8px; background: rgba(168, 85, 247, 0.05); border-radius: 6px;">
+                    AI controls navigation & media autonomously when ON
                 </div>
 
-                <button onclick="triggerForceDream()" style="margin-top: 15px; border-color: #a855f7; color: #a855f7;">
-                    Force Single Dream Gen
-                </button>
+                <div class="quick-actions">
+                    <button onclick="triggerForceDream()" style="border-color: var(--purple); color: var(--purple);">✨ Dream</button>
+                    <button onclick="generateNarrative()" style="border-color: var(--accent); color: var(--accent);">📝 Narrate</button>
+                    <button onclick="generateImage()" style="border-color: var(--warning); color: var(--warning);">🎨 Image</button>
+                </div>
             </div>
 
             <div class="panel">
-                <h2>Direct Interventions</h2>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <h2>⚡ Direct Interventions</h2>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
                     <button onclick="triggerEvent('fact')">💡 FACT</button>
                     <button onclick="triggerEvent('glitch')">⚡ GLITCH</button>
-                    <button onclick="triggerEvent('news')"
-                        style="grid-column: span 2; border-color: var(--danger); color: var(--danger);">🚨 BREAKING
-                        NEWS</button>
+                    <button onclick="triggerEvent('news')" style="grid-column: span 2; border-color: var(--danger); color: var(--danger);">
+                        🚨 BREAKING NEWS
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>🎛️ Advanced Controls</h2>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                    <button onclick="pauseNarration()">⏸️ PAUSE</button>
+                    <button onclick="resumeNarration()">▶️ RESUME</button>
+                    <button onclick="skipCurrent()">⏭️ SKIP</button>
+                    <button onclick="reloadScene()">🔄 RELOAD</button>
                 </div>
             </div>
 
             <div class="panel" style="flex: 1; min-height: 200px;">
-                <h2>Console Log</h2>
-                <div id="console"
-                    style="font-family: 'JetBrains Mono'; font-size: 0.7rem; color: #666; overflow-y: auto;"></div>
+                <h2>📋 Console Log</h2>
+                <div id="console"></div>
             </div>
         </div>
 
@@ -341,19 +702,10 @@
             { code: '484', name: 'Mexico' }, { code: '710', name: 'South Africa' }
         ];
 
-        const MOCK_MEDIA = {
-            '032': [
-                { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Glaciar_Perito_Moreno_-_Santa_Cruz_-_Argentina.jpg/800px-Glaciar_Perito_Moreno_-_Santa_Cruz_-_Argentina.jpg', title: 'Perito Moreno' },
-                { src: 'https://media.istockphoto.com/id/1146311634/es/foto/obelisco-buenos-aires-argentina.jpg?s=612x612&w=0&k=20&c=XMrz330d-i-4LqW8S2R2c5g9-k0Wb0d4E8q7G9n8G5k=', title: 'Obelisco' }
-            ],
-            '392': [
-                { src: 'https://dummyimage.com/600x400/000/fff&text=Tokyo+Skyline', title: 'Tokyo Night' },
-                { src: 'https://dummyimage.com/600x400/000/fff&text=Kyoto+Garden', title: 'Kyoto Garden' }
-            ]
-        };
-
         let sessionActive = false;
         let dreamMode = false;
+        let globalMediaCache = [];
+        let currentTypeFilter = 'ALL';
 
         // --- INIT ---
         window.onload = () => {
@@ -369,11 +721,15 @@
         };
 
         // --- API & LOG ---
-        function log(msg) {
+        function log(msg, type = 'info') {
             const c = document.getElementById('console');
             const d = document.createElement('div');
-            d.innerText = `> ${msg}`;
+            const timestamp = new Date().toLocaleTimeString('es-ES');
+            const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '>';
+            d.innerText = `[${timestamp}] ${icon} ${msg}`;
+            d.style.color = type === 'error' ? '#ff6666' : type === 'success' ? '#4ade80' : type === 'warning' ? '#fbbf24' : 'var(--text-dim)';
             c.prepend(d);
+            if (c.children.length > 100) c.removeChild(c.lastChild);
         }
 
         async function api(path, method = 'GET', body = {}) {
@@ -383,72 +739,121 @@
                 if (body) opts.body = JSON.stringify(body);
                 const res = await fetch(`/control-api${path}`, opts);
                 return await res.json();
-            } catch (e) { console.error(e); return null; }
+            } catch (e) { 
+                log(`API Error: ${e.message}`, 'error');
+                return null; 
+            }
         }
 
         // --- EDITORIAL ACTIONS ---
         async function startDay() {
             const id = document.getElementById('day-id-input').value;
             const isTest = document.getElementById('sim-mode').checked;
-            if (!id) return alert("Enter Day ID");
-            log(`Starting Editorial Day: ${id} (Test: ${isTest})`);
-            await api('/event/day/start', 'POST', { id, isTest });
+            if (!id) {
+                alert("Enter Day ID");
+                return;
+            }
+            log(`Starting Editorial Day: ${id} (Test: ${isTest})`, 'info');
+            const result = await api('/event/day/start', 'POST', { id, isTest });
+            if (result) log(`Day started successfully`, 'success');
         }
 
         async function endDay() {
-            if (!confirm("End Season and Archive?")) return;
-            log("Ending Session...");
-            await api('/event/day/end', 'POST');
+            if (!confirm("End Session and Archive?")) return;
+            log("Ending Session...", 'warning');
+            const result = await api('/event/day/end', 'POST');
+            if (result) log(`Session ended successfully`, 'success');
         }
 
         async function changeScene(name) {
-            log(`Scene -> ${name}`);
+            log(`Scene -> ${name}`, 'info');
             await api(`/event/scene/${name}`);
         }
 
         async function travelNow() {
             const code = document.getElementById('country-select').value;
             if (!code) return;
-            log(`Flying to: ${code}`);
+            log(`Flying to: ${code}`, 'info');
             await api(`/event/travel/${code}`);
         }
 
         async function addToQueue() {
             const code = document.getElementById('country-select').value;
             if (!code) return;
-            log(`+ Queue: ${code}`);
+            log(`+ Queue: ${code}`, 'info');
             await api('/event/queue/add', 'POST', { code });
         }
 
+        async function clearQueue() {
+            if (!confirm("Clear entire queue?")) return;
+            log("Clearing queue...", 'warning');
+            await api('/event/queue/clear', 'POST');
+        }
+
         async function toggleDreamMode() {
-            // This is the new AUTO toggle
-            log("Toggling Dream/Auto Mode...");
+            log("Toggling Dream/Auto Mode...", 'info');
             await api('/event/auto_toggle', 'POST');
         }
 
-        let globalMediaCache = [];
-        let currentTypeFilter = 'ALL';
+        async function generateNarrative() {
+            const code = document.getElementById('country-select').value;
+            if (!code) {
+                alert("Select a country first");
+                return;
+            }
+            log("Generating narrative...", 'info');
+            await api('/api/generate-narrative', 'POST', { countryCode: code });
+        }
+
+        async function generateImage() {
+            const code = document.getElementById('country-select').value;
+            if (!code) {
+                alert("Select a country first");
+                return;
+            }
+            const prompt = window.prompt("Image prompt:", "");
+            if (!prompt) return;
+            log("Generating image...", 'info');
+            await api('/api/generate-image', 'POST', { prompt });
+        }
+
+        async function pauseNarration() {
+            log("Pausing narration...", 'warning');
+            await api('/event/pause', 'POST');
+        }
+
+        async function resumeNarration() {
+            log("Resuming narration...", 'info');
+            await api('/event/resume', 'POST');
+        }
+
+        async function skipCurrent() {
+            log("Skipping current...", 'warning');
+            await api('/event/skip', 'POST');
+        }
+
+        async function reloadScene() {
+            log("Reloading scene...", 'warning');
+            window.location.reload();
+        }
 
         async function loadCountryMedia() {
-            // Cargar repositorio real del servidor
             const gridContainer = document.getElementById('media-grid').parentNode;
             if (!document.getElementById('media-filters')) {
                 const filterDiv = document.createElement('div');
                 filterDiv.id = 'media-filters';
-                filterDiv.style.marginBottom = '10px';
-                filterDiv.style.display = 'flex';
-                filterDiv.style.gap = '5px';
+                filterDiv.className = 'media-filters';
                 filterDiv.innerHTML = `
-                    <button onclick="setMediaFilter('ALL')" style="flex:1; padding:2px; font-size:0.7rem;">ALL</button>
-                    <button onclick="setMediaFilter('image')" style="flex:1; padding:2px; font-size:0.7rem;">IMG</button>
-                    <button onclick="setMediaFilter('video')" style="flex:1; padding:2px; font-size:0.7rem;">VID</button>
-                    <button onclick="setMediaFilter('AI')" style="flex:1; padding:2px; font-size:0.7rem; color:cyan; border-color:cyan;">AI</button>
+                    <button class="filter-btn active" onclick="setMediaFilter('ALL')">ALL</button>
+                    <button class="filter-btn" onclick="setMediaFilter('image')">IMG</button>
+                    <button class="filter-btn" onclick="setMediaFilter('video')">VID</button>
+                    <button class="filter-btn" onclick="setMediaFilter('AI')" style="color:cyan; border-color:cyan;">AI</button>
                 `;
                 gridContainer.insertBefore(filterDiv, document.getElementById('media-grid'));
             }
 
             const grid = document.getElementById('media-grid');
-            grid.innerHTML = '<div style="grid-column:span 2; text-align:center; padding:20px; color:#555;">Loading Server Media...</div>';
+            grid.innerHTML = '<div style="grid-column:span 2; text-align:center; padding:20px; color:var(--text-dim);">Loading Server Media...</div>';
 
             try {
                 const mediaFiles = await api('/api/media-list');
@@ -456,12 +861,14 @@
                 renderMediaGrid();
             } catch (e) {
                 console.error(e);
-                grid.innerHTML = '<div style="grid-column:span 2; text-align:center; padding:20px; color:red;">Error loading media.</div>';
+                grid.innerHTML = '<div style="grid-column:span 2; text-align:center; padding:20px; color:var(--danger);">Error loading media.</div>';
             }
         }
 
         function setMediaFilter(type) {
             currentTypeFilter = type;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
             renderMediaGrid();
         }
 
@@ -469,12 +876,12 @@
             const grid = document.getElementById('media-grid');
             grid.innerHTML = "";
             const selectEl = document.getElementById('country-select');
-            const rawText = selectEl.options[selectEl.selectedIndex].text;
+            const rawText = selectEl.options[selectEl.selectedIndex]?.text || '';
             const countryName = rawText.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '').trim();
 
             const controlsDiv = document.getElementById('media-filters');
 
-            // 1. Botón Generate AI
+            // Botón Generate AI
             let genBtn = document.getElementById('ai-gen-btn');
             if (currentTypeFilter === 'AI') {
                 if (!genBtn) {
@@ -482,7 +889,7 @@
                     genBtn.id = 'ai-gen-btn';
                     genBtn.innerText = "✨ CREATE NEW DREAM";
                     genBtn.style.width = "100%";
-                    genBtn.style.marginBottom = "5px";
+                    genBtn.style.marginBottom = "8px";
                     genBtn.style.background = "linear-gradient(45deg, #a855f7, #ec4899)";
                     genBtn.style.color = "white";
                     genBtn.style.border = "none";
@@ -492,27 +899,27 @@
                             genBtn.innerText = "Dreaming... ⏳";
                             try {
                                 await api('/api/generate-image', 'POST', { prompt: userPrompt });
-                                alert("Dream Created! Refreshing...");
-                                loadCountryMedia(); // Recargar
+                                log("Dream created!", 'success');
+                                loadCountryMedia();
                             } catch (e) {
-                                alert("Error dreaming: " + e);
+                                log(`Error dreaming: ${e}`, 'error');
                             } finally {
                                 genBtn.innerText = "✨ CREATE NEW DREAM";
                             }
                         }
                     };
-                    controlsDiv.appendChild(genBtn);
+                    controlsDiv.after(genBtn);
                 }
                 genBtn.style.display = 'block';
             } else {
                 if (genBtn) genBtn.style.display = 'none';
             }
 
-            // 2. Checkbox Narración
+            // Checkbox Narración
             if (!document.getElementById('narrate-toggle-div')) {
                 const narrateDiv = document.createElement('div');
                 narrateDiv.id = 'narrate-toggle-div';
-                narrateDiv.innerHTML = `<label style="font-size:0.7rem; color:#ccc; display:flex; align-items:center; gap:5px; margin-bottom:5px;"><input type="checkbox" id="narrate-checkbox" checked> 🗣️ Narrate with AI</label>`;
+                narrateDiv.innerHTML = `<label style="font-size:0.7rem; color:var(--text-dim); display:flex; align-items:center; gap:8px; margin-bottom:8px; padding:8px; background:rgba(74,158,255,0.05); border-radius:6px;"><input type="checkbox" id="narrate-checkbox" checked> 🗣️ Narrate with AI</label>`;
                 controlsDiv.after(narrateDiv);
             }
 
@@ -529,29 +936,27 @@
             });
 
             if (filtered.length === 0) {
-                grid.innerHTML = `<div style="grid-column:span 2; text-align:center; padding:20px; color:#555;">No media for ${countryName}.<br><small>Upload to /media/${countryName}/</small></div>`;
+                grid.innerHTML = `<div style="grid-column:span 2; text-align:center; padding:20px; color:var(--text-dim);">No media for ${countryName}.<br><small>Upload to /media/${countryName}/</small></div>`;
                 return;
             }
 
             filtered.forEach(m => {
                 const el = document.createElement('div');
-                el.style.border = "1px solid #333";
-                el.style.padding = "5px";
+                el.className = 'media-item';
 
                 let preview = '';
-                if (m.type === 'video') preview = `<div style="height:80px; background:#000; color:#fff; display:flex; align-items:center; justify-content:center;">🎥</div>`;
-                else if (m.type === 'audio') preview = `<div style="height:80px; background:#222; color:#fff; display:flex; align-items:center; justify-content:center;">🎵</div>`;
-                else preview = `<div style="height:80px; background:url('${m.url}') center/cover;"></div>`;
+                if (m.type === 'video') preview = `<div style="height:100px; background:#000; color:#fff; display:flex; align-items:center; justify-content:center; border-radius:6px;">🎥</div>`;
+                else if (m.type === 'audio') preview = `<div style="height:100px; background:#222; color:#fff; display:flex; align-items:center; justify-content:center; border-radius:6px;">🎵</div>`;
+                else preview = `<div style="height:100px; background:url('${m.url}') center/cover; border-radius:6px;"></div>`;
 
-                // Escapar comillas para evitar problemas en onclick
                 const safeUrl = m.url.replace(/'/g, "\\'");
                 const safeName = m.name.replace(/'/g, "\\'");
                 const safeType = m.type.replace(/'/g, "\\'");
                 
                 el.innerHTML = `
                     ${preview}
-                    <div style="font-size:0.6rem; margin:5px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${m.name}</div>
-                    <button onclick="launchMedia('${safeUrl}', '${safeType}', '${safeName}')" style="font-size:0.6rem; background:#333; width:100%;" data-media-name="${safeName}" data-media-url="${safeUrl}">LAUNCH</button>
+                    <div style="font-size:0.65rem; margin:8px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-dim);">${m.name}</div>
+                    <button onclick="launchMedia('${safeUrl}', '${safeType}', '${safeName}')" style="font-size:0.65rem; background:#27272a; width:100%;" data-media-name="${safeName}" data-media-url="${safeUrl}">LAUNCH</button>
                 `;
                 grid.appendChild(el);
             });
@@ -563,12 +968,10 @@
             const narrateEl = document.getElementById('narrate-checkbox');
             const narrate = narrateEl ? narrateEl.checked : false;
             
-            // Mostrar indicador visual
             const indicator = document.getElementById('active-media-indicator');
             const mediaName = document.getElementById('active-media-name');
             const mediaUrl = document.getElementById('active-media-url');
             
-            // Resaltar el botón que se presionó (definir antes de usarlo en callbacks)
             const buttons = document.querySelectorAll(`button[data-media-url="${url}"]`);
             
             if (indicator && mediaName && mediaUrl) {
@@ -584,12 +987,11 @@
                 });
             }
             
-            log(`🚀 Launching Media: ${name} (${type}) - Narrate: ${narrate}`);
+            log(`🚀 Launching Media: ${name} (${type}) - Narrate: ${narrate}`, 'info');
             
-            // Función para restaurar botones
             const restoreButtons = () => {
                 buttons.forEach(btn => {
-                    btn.style.background = '#333';
+                    btn.style.background = '#27272a';
                     btn.style.color = 'white';
                     btn.textContent = 'LAUNCH';
                     btn.disabled = false;
@@ -600,39 +1002,35 @@
                 const result = await api('/event/media', 'POST', { url, type, name, narrate });
                 
                 if (result && result.success) {
-                    log(`✅ Media launched successfully`);
+                    log(`✅ Media launched successfully`, 'success');
                     if (result.narrative) {
-                        log(`📝 Narrative generated: "${result.narrative}"`);
+                        log(`📝 Narrative: "${result.narrative}"`, 'info');
                     }
                     
-                    // Mantener indicador visible por 5 segundos
                     setTimeout(() => {
-                        if (indicator) {
-                            indicator.style.display = 'none';
-                        }
+                        if (indicator) indicator.style.display = 'none';
                         restoreButtons();
                     }, 5000);
                 } else {
                     throw new Error('Launch failed');
                 }
             } catch (e) {
-                log(`❌ Error launching media: ${e.message}`);
+                log(`❌ Error launching media: ${e.message}`, 'error');
                 if (indicator) indicator.style.display = 'none';
                 restoreButtons();
             }
         }
 
         async function triggerEvent(type) {
-            log(`Triggering Event: ${type}`);
+            log(`Triggering Event: ${type}`, 'warning');
             await api(`/event/${type}`);
         }
 
         async function triggerForceDream() {
-            log("Forcing Dream Generation...");
+            log("Forcing Dream Generation...", 'info');
             await api('/api/dream', 'POST');
         }
 
-        // Mapeo de escenas a hojas del libro según el manifiesto
         function getBookPageFromScene(scene, telemetry) {
             const sceneMap = {
                 'intro': '📖 Portada del Viaje',
@@ -658,7 +1056,6 @@
             const recStatus = document.getElementById('rec-status');
             const btnStart = document.getElementById('btn-start-day');
             const btnEnd = document.getElementById('btn-end-day');
-            const navCols = document.querySelectorAll('.col');
 
             if (sessionActive) {
                 recStatus.className = "rec-indicator rec-live";
@@ -667,14 +1064,12 @@
                 btnEnd.style.display = 'block';
                 document.getElementById('day-id-input').style.display = 'none';
 
-                // Timer
                 const diff = Math.floor((Date.now() - ed.startTime) / 1000);
                 const h = Math.floor(diff / 3600).toString().padStart(2, '0');
                 const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
                 const s = (diff % 60).toString().padStart(2, '0');
                 document.getElementById('session-timer').innerText = `${h}:${m}:${s}`;
 
-                // Live Visit
                 if (ed.currentVisit) {
                     document.getElementById('live-visit').innerText = ed.currentVisit.country;
                 } else {
@@ -690,7 +1085,11 @@
                 document.getElementById('session-timer').innerText = "00:00:00";
             }
 
-            // 2. Playlist
+            // 2. Current Scene
+            const currentScene = data.currentScene || 'intro';
+            document.getElementById('current-scene-display').textContent = `Scene: ${currentScene.toUpperCase()}`;
+
+            // 3. Playlist
             const pl = document.getElementById('playlist-container');
             if (data.queue && data.queue.length) {
                 pl.innerHTML = data.queue.map((c, i) => `<div>${i + 1}. ${c}</div>`).join('');
@@ -698,7 +1097,7 @@
                 pl.innerText = "(Empty Queue)";
             }
 
-            // 3. Dream Mode
+            // 4. Dream Mode
             const btnDream = document.getElementById('btn-dream-toggle');
             if (data.autoMode) {
                 btnDream.innerText = "ON";
@@ -708,26 +1107,18 @@
                 btnDream.className = "";
             }
             
-            // 4. Hoja del Libro (NUEVO)
+            // 5. Hoja del Libro
             const bookPageEl = document.getElementById('book-page');
             if (bookPageEl) {
-                const currentScene = data.currentScene || 'intro';
                 const telemetry = data.clientTelemetry || {};
                 const bookPage = getBookPageFromScene(currentScene, telemetry);
                 bookPageEl.textContent = bookPage;
-                
-                // Agregar información adicional si hay país activo
-                if (telemetry.country && telemetry.country !== 'GLOBAL' && telemetry.country !== 'UNKNOWN') {
-                    const dayInfo = telemetry.day ? ` - Día ${telemetry.day}` : '';
-                    bookPageEl.textContent += dayInfo;
-                }
             }
             
-            // 5. Memoria del País (NUEVO)
+            // 6. Memoria del País
             const countryMemoryEl = document.getElementById('country-memory');
             if (countryMemoryEl && data.clientTelemetry && data.clientTelemetry.country && 
                 data.clientTelemetry.country !== 'GLOBAL' && data.clientTelemetry.country !== 'UNKNOWN') {
-                // Cargar memoria del país actual
                 fetch(`/control-api/api/country-memory/${data.clientTelemetry.country}`)
                     .then(res => res.json())
                     .then(memory => {
@@ -744,6 +1135,13 @@
                     });
             } else if (countryMemoryEl) {
                 countryMemoryEl.textContent = '--';
+            }
+
+            // 7. Statistics
+            if (ed.visits) {
+                document.getElementById('stat-total-visits').textContent = ed.visits.length;
+                const uniqueCountries = new Set(ed.visits.map(v => v.country));
+                document.getElementById('stat-countries-visited').textContent = uniqueCountries.size;
             }
         }
 
