@@ -593,8 +593,42 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    // Country Memory: Cargar memoria de un país
-    if (req.method === 'GET' && apiPath.startsWith('/api/country-memory/')) {
+    // Country Memory: Listar todas las memorias
+    if (req.method === 'GET' && apiPath === '/api/country-memory') {
+        try {
+            const memories = [];
+            if (fs.existsSync(COUNTRY_MEMORIES_DIR)) {
+                const files = fs.readdirSync(COUNTRY_MEMORIES_DIR);
+                for (const file of files) {
+                    if (file.endsWith('.json')) {
+                        try {
+                            const filePath = path.join(COUNTRY_MEMORIES_DIR, file);
+                            const memory = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+                            const stats = fs.statSync(filePath);
+                            memories.push({
+                                countryId: memory.countryId,
+                                totalVisits: memory.totalVisits || 0,
+                                lastVisit: memory.lastVisit,
+                                fileSize: stats.size,
+                                lastModified: stats.mtime.toISOString()
+                            });
+                        } catch (e) {
+                            console.warn(`Error reading memory file ${file}:`, e.message);
+                        }
+                    }
+                }
+            }
+            res.writeHead(200, headers);
+            res.end(JSON.stringify({ memories, total: memories.length }));
+        } catch (e) {
+            res.writeHead(500, headers);
+            res.end(JSON.stringify({ error: e.message }));
+        }
+        return;
+    }
+
+    // Country Memory: Cargar memoria de un país específico
+    if (req.method === 'GET' && apiPath.startsWith('/api/country-memory/') && !apiPath.endsWith('/visit')) {
         const countryId = apiPath.split('/').pop();
         const memoryFile = path.join(COUNTRY_MEMORIES_DIR, `${countryId}.json`);
         

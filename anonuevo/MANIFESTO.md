@@ -64,6 +64,20 @@ Esto no es un experimento de IA aislado
 *   Mostrar contenido puntual
 *   Interrumpir la automatización
 *   Pausar, acelerar o ralentizar el ritmo
+*   Monitorear el estado de las memorias guardadas
+*   Verificar que todo el contenido generado se está guardando correctamente
+*   Controlar la generación de narrativas e imágenes con IA
+*   Gestionar la cola de viajes y limpiarla cuando sea necesario
+
+**Panel de Control V6 - Características:**
+*   **Diseño Profesional:** Interfaz moderna con gradientes, animaciones y mejor organización visual
+*   **Estadísticas en Tiempo Real:** Total de visitas, países visitados, estado de sesión
+*   **Monitoreo de Memorias:** Visualización del estado de guardado de memorias por país
+*   **Controles Avanzados:** Pause, Resume, Skip, Reload para control total del flujo narrativo
+*   **Quick Actions:** Generación rápida de narrativas e imágenes con IA
+*   **Gestión de Cola:** Agregar países a la cola, limpiar cola, ver playlist de viajes
+*   **Console Log Mejorado:** Timestamps, tipos de mensaje (info, success, error, warning)
+*   **Feedback Visual:** Indicadores activos, animaciones de estado, mejor UX
 
 👉 **El sistema obedece, nunca discute una orden humana.**
 

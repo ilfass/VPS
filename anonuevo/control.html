@@ -592,6 +592,22 @@
                 <h2>🎵 Travel Playlist</h2>
                 <div id="playlist-container">(Empty Queue)</div>
             </div>
+
+            <div class="panel">
+                <h2>💾 Memory Status</h2>
+                <div class="stat-row">
+                    <span class="stat-label">Total Memories:</span>
+                    <span id="memory-total" class="stat-val" style="color: var(--success);">--</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Last Save:</span>
+                    <span id="memory-last-save" class="stat-val" style="font-size: 0.7rem;">--</span>
+                </div>
+                <button onclick="refreshMemories()" style="margin-top: 12px; font-size: 0.7rem; padding: 8px;">🔄 Refresh</button>
+                <div id="memory-list" style="margin-top: 12px; max-height: 200px; overflow-y: auto; font-family: 'JetBrains Mono'; font-size: 0.7rem; color: var(--text-dim);">
+                    <div style="text-align: center; padding: 20px;">Click Refresh to load</div>
+                </div>
+            </div>
         </div>
 
         <!-- COL 2: LIVE CONTENT & MEDIA -->
