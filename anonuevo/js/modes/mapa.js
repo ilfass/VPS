@@ -36,6 +36,7 @@ export default class MapaMode {
         this.currentZoom = d3.zoomIdentity;
         this.travelTimeout = null;
         this.currentCountryId = null; // Track current country
+        this.isNarrating = false; // Flag para prevenir zoom out durante narración
     }
 
     async mount() {
@@ -201,9 +202,8 @@ export default class MapaMode {
                         audioManager.requestChannel(AUDIO_STATES.COUNTRY_NARRATION);
 
                         this.zoomToCountry({ id: code, ...COUNTRY_INFO[code] });
-                        // Programar salida manual (o dejar estático si es manual? 
-                        // El requerimiento dice "sin estados inconsistentes", mejor mantener ciclo de salida)
-                        this.travelTimeout = setTimeout(() => this.cycleZoomOut(), 20000);
+                        // NO programar zoom out automático - el relato controlará cuándo hacer zoom out
+                        // El zoom out se hará cuando termine la narración en startContinuousNarrative
                     }, 1000);
                 } else {
                     console.warn(`Country code ${code} not found`);
@@ -409,12 +409,16 @@ export default class MapaMode {
 
         const target = { id: targetId, ...COUNTRY_INFO[targetId] }; // Incluye timezone
 
+        // Cancelar cualquier timeout anterior
+        if (this.travelTimeout) {
+            clearTimeout(this.travelTimeout);
+            this.travelTimeout = null;
+        }
+
         this.zoomToCountry(target);
 
-        // Duración del zoom basada en el modo
-        this.travelTimeout = setTimeout(() => {
-            this.cycleZoomOut();
-        }, timing.zoomDuration);
+        // NO establecer timeout automático - el zoom out se hará cuando termine el relato
+        // El relato controlará cuándo hacer zoom out en su callback
     }
 
     cycleZoomOut() {
