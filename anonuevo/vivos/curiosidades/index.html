@@ -652,7 +652,7 @@
                             <div class="curiosity-image-placeholder">${curiosity.icon}</div>
                         </div>
                     `}
-                    <div class="curiosity-content">${curiosity.content}</div>
+                    <div class="curiosity-content" id="curiosity-narrative">${curiosity.content}</div>
                     <div class="curiosity-tags">
                         ${curiosity.tags.map(tag => `<span class="tag ${tag}">${tag}</span>`).join('')}
                     </div>
@@ -662,7 +662,7 @@
             // Actualizar contador
             document.getElementById('curiosity-counter').textContent = `${currentIndex + 1} / ${curiosities.length}`;
 
-            // Mostrar avatar y narrar
+            // Mostrar avatar y narrar (la narrativa natural se actualizará automáticamente)
             showAvatar();
             narrateCuriosity(curiosity);
         }
@@ -679,8 +679,79 @@
             avatarContainer.style.display = 'none';
         }
 
-        // Narrar curiosidad
-        function narrateCuriosity(curiosity) {
+        // Generar narrativa natural conectando curiosidades
+        async function generateNaturalNarrative(curiosities, currentIndex) {
+            if (curiosities.length === 0) return null;
+
+            const current = curiosities[currentIndex];
+            const previous = currentIndex > 0 ? curiosities[currentIndex - 1] : null;
+            const next = currentIndex < curiosities.length - 1 ? curiosities[currentIndex + 1] : null;
+
+            // Construir contexto para IA
+            let context = `Estoy compartiendo curiosidades del viaje. La curiosidad actual es sobre ${current.country}: "${current.content}"`;
+            
+            if (previous) {
+                context += `\n\nAcabé de hablar sobre ${previous.country}: "${previous.content.substring(0, 100)}..."`;
+            }
+            
+            if (next) {
+                context += `\n\nPróximamente hablaré sobre ${next.country}: "${next.content.substring(0, 100)}..."`;
+            }
+
+            const prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana en tiempo real.
+
+${context}
+
+Genera una narrativa natural y fluida en primera persona que:
+- Conecte esta curiosidad con el viaje de forma natural
+- No suene como una lista, sino como una historia continua
+- Use transiciones naturales si hay una curiosidad previa
+- Sea conversacional, como si estuvieras pensando en voz alta
+- Tenga entre 80 y 150 palabras
+- En primera persona: "Me llama la atención...", "Descubrí que...", "Es fascinante cómo...", "Me pregunto si..."
+
+NO repitas literalmente la curiosidad. Cuenta una historia alrededor de ella.`;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/generate-narrative`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.narrative || null;
+                }
+            } catch (e) {
+                console.warn('Error generando narrativa natural:', e);
+            }
+
+            // Fallback: narrativa simple pero natural
+            return generateFallbackNarrative(current, previous);
+        }
+
+        // Narrativa de fallback más natural
+        function generateFallbackNarrative(current, previous) {
+            const connectors = [
+                `Me llama la atención algo sobre ${current.country}`,
+                `Hay algo fascinante que descubrí en ${current.country}`,
+                `En ${current.country} me encontré con algo que me sorprendió`,
+                `Una de las cosas que más me impactó de ${current.country}`
+            ];
+
+            const connector = connectors[Math.floor(Math.random() * connectors.length)];
+            
+            if (previous && Math.random() > 0.5) {
+                return `${connector}. ${current.content}. Y esto me hace pensar en cómo cada lugar tiene sus propias historias que contar.`;
+            }
+            
+            return `${connector}. ${current.content}. Es increíble cómo cada país guarda secretos y conexiones que solo se revelan cuando te detienes a observar.`;
+        }
+
+        // Narrar curiosidad con narrativa natural
+        async function narrateCuriosity(curiosity) {
+            let naturalNarrative = null;
             if (isSpeaking) {
                 window.speechSynthesis.cancel();
             }
@@ -689,12 +760,24 @@
             const avatarImage = document.getElementById('avatar-image');
             const subtitlesText = document.getElementById('subtitles-text');
 
-            // Preparar texto para narración
-            const narrationText = `Curiosidad de ${curiosity.country}: ${curiosity.content}`;
-            const cleanText = narrationText.replace(/[^\w\s.,;:!?áéíóúñüÁÉÍÓÚÑÜ]/g, '');
+            // Generar narrativa natural
+            naturalNarrative = await generateNaturalNarrative(curiosities, currentIndex);
+            
+            if (!naturalNarrative) {
+                naturalNarrative = generateFallbackNarrative(curiosity, currentIndex > 0 ? curiosities[currentIndex - 1] : null);
+            }
 
-            // Actualizar subtítulos
-            subtitlesText.textContent = curiosity.content;
+            // Actualizar el contenido visual con la narrativa natural
+            const narrativeEl = document.getElementById('curiosity-narrative');
+            if (narrativeEl) {
+                narrativeEl.textContent = naturalNarrative;
+            }
+
+            // Limpiar texto para narración
+            const cleanText = naturalNarrative.replace(/[^\w\s.,;:!?áéíóúñüÁÉÍÓÚÑÜ]/g, '');
+
+            // Actualizar subtítulos con la narrativa natural
+            subtitlesText.textContent = naturalNarrative;
             avatarImage.classList.add('speaking');
 
             // Crear utterance
@@ -710,6 +793,11 @@
                             voices.find(v => v.lang.startsWith('es'));
             if (bestVoice) utterance.voice = bestVoice;
 
+            // Configuración de voz más natural y conversacional
+            utterance.rate = 0.85; // Un poco más lento para sonar más natural
+            utterance.pitch = 0.95; // Ligeramente más grave
+            utterance.volume = 1.0;
+
             utterance.onstart = () => {
                 avatarImage.classList.add('speaking');
             };
@@ -718,22 +806,26 @@
                 avatarImage.classList.remove('speaking');
                 isSpeaking = false;
                 
-                // Avanzar a siguiente curiosidad después de 3 segundos
+                // Pausa más natural antes de continuar (4-6 segundos)
+                const pauseTime = 4000 + Math.random() * 2000;
                 setTimeout(() => {
                     nextCuriosity();
-                }, 3000);
+                }, pauseTime);
             };
 
             utterance.onerror = () => {
                 avatarImage.classList.remove('speaking');
                 isSpeaking = false;
+                const pauseTime = 4000 + Math.random() * 2000;
                 setTimeout(() => {
                     nextCuriosity();
-                }, 3000);
+                }, pauseTime);
             };
 
             currentUtterance = utterance;
             window.speechSynthesis.speak(utterance);
+            
+            return naturalNarrative;
         }
 
         // Siguiente curiosidad
