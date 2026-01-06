@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Viaje de los Reyes Magos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson@3"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="map-container"></div>
+    
+    <!-- Overlay de información -->
+    <div id="info-overlay">
+        <div class="info-content">
+            <h1>El Viaje de los Reyes Magos</h1>
+            <p id="current-location">Preparando el viaje...</p>
+            <div id="kings-info">
+                <div class="king-card" data-king="melchor">
+                    <div class="king-icon">👑</div>
+                    <div class="king-name">Melchor</div>
+                    <div class="king-gift">Oro</div>
+                </div>
+                <div class="king-card" data-king="gaspar">
+                    <div class="king-icon">👑</div>
+                    <div class="king-name">Gaspar</div>
+                    <div class="king-gift">Incienso</div>
+                </div>
+                <div class="king-card" data-king="baltasar">
+                    <div class="king-icon">👑</div>
+                    <div class="king-name">Baltasar</div>
+                    <div class="king-gift">Mirra</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio para música de fondo -->
+    <audio id="background-music" loop>
+        <source src="music.mp3" type="audio/mpeg">
+        <source src="music.ogg" type="audio/ogg">
+    </audio>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
