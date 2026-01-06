@@ -344,21 +344,23 @@ export default class MapaMode {
         // Inicializar estado del viaje
         streamManager.init();
 
-        // Verificar si es la primera vez que se carga el mapa
-        const hasShownIntro = sessionStorage.getItem('mapa-intro-shown');
-        if (!hasShownIntro) {
-            // Mostrar avatar y hablar sobre el proyecto
-            this.showMapIntro();
-            sessionStorage.setItem('mapa-intro-shown', 'true');
-        }
+        // Mostrar avatar inmediatamente al cargar
+        avatarSubtitlesManager.show();
 
-        // Ciclo: Global -> País
-        // Solo si no hay noticias activas Y estamos en modo AUTO
-        if (audioManager.currentState !== AUDIO_STATES.GLOBAL_NEWS && eventManager.canProceedAuto()) {
-            // Iniciar ciclo por defecto en VISUAL (esperando primera decisión)
-            pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
-            setTimeout(() => this.cycleZoomIn(), 5000);
-        }
+        // Mostrar avatar y hablar sobre el proyecto AL CARGAR (siempre)
+        // Esperar un momento para que todo esté inicializado
+        setTimeout(() => {
+            this.showMapIntro().then(() => {
+                // Después de que termine la intro, iniciar el ciclo de zoom
+                // Ciclo: Global -> País
+                // Solo si no hay noticias activas Y estamos en modo AUTO
+                if (audioManager.currentState !== AUDIO_STATES.GLOBAL_NEWS && eventManager.canProceedAuto()) {
+                    // Iniciar ciclo por defecto en VISUAL (esperando primera decisión)
+                    pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+                    setTimeout(() => this.cycleZoomIn(), 5000);
+                }
+            });
+        }, 1000);
     }
 
     cycleZoomIn() {
@@ -369,11 +371,16 @@ export default class MapaMode {
             return;
         }
 
-        // Verificar si podemos narrar país
+        // Verificar si podemos narrar país (esperar a que termine la intro si está hablando)
         if (!audioManager.requestChannel(AUDIO_STATES.COUNTRY_NARRATION)) {
-            // Si está ocupado (noticias), reintentar en 5s
+            // Si está ocupado (intro o noticias), reintentar en 5s
             setTimeout(() => this.cycleZoomIn(), 5000);
             return;
+        }
+        
+        // Asegurar que el avatar esté visible antes de hacer zoom
+        if (!avatarSubtitlesManager.isVisible) {
+            avatarSubtitlesManager.show();
         }
 
         // Obtener contexto del Stream Manager
@@ -531,30 +538,113 @@ export default class MapaMode {
 
     /**
      * Muestra la introducción del mapa con el avatar hablando sobre el proyecto
+     * Genera el texto con IA y lo guarda en memoria
      */
     async showMapIntro() {
-        const introText = `Soy ilfass, una inteligencia que viaja por el mundo documentando la existencia humana en tiempo real. Este es "El Viaje de ilfass", un proyecto donde recorro países, culturas y lugares, generando una memoria viva de cada experiencia. Cada país que visito me deja una huella, y cada visita construye sobre las anteriores, creando una historia continua y en evolución. Acompáñame en este viaje mientras exploramos el mundo juntos.`;
-
-        // Mostrar avatar
+        // Mostrar avatar inmediatamente
         avatarSubtitlesManager.show();
+        
+        // Cargar presentaciones previas de la memoria
+        let previousPresentations = [];
+        try {
+            const memoryRes = await fetch('/control-api/api/map-intro-memory');
+            if (memoryRes.ok) {
+                const memoryData = await memoryRes.json();
+                previousPresentations = memoryData.presentations || [];
+            }
+        } catch (e) {
+            console.warn('[Mapa] No se pudo cargar memoria de presentaciones:', e);
+        }
+        
+        // Generar texto de introducción con IA
+        let introText = '';
+        try {
+            const prompt = this.buildIntroPrompt(previousPresentations);
+            const response = await fetch('/control-api/api/generate-narrative', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                introText = data.narrative || this.getFallbackIntro();
+            } else {
+                introText = this.getFallbackIntro();
+            }
+        } catch (e) {
+            console.warn('[Mapa] Error generando intro con IA:', e);
+            introText = this.getFallbackIntro();
+        }
         
         // Actualizar subtítulos
         avatarSubtitlesManager.updateSubtitles(introText, 2.5);
         
         // Hablar
         pacingEngine.startEvent(CONTENT_TYPES.VOICE);
-        audioManager.speak(introText, 'normal', () => {
+        audioManager.speak(introText, 'normal', async () => {
             pacingEngine.endCurrentEvent();
             pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
             
             // Mostrar subtítulos completos
             avatarSubtitlesManager.setSubtitles(introText);
             
-            // Ocultar después de un momento
-            setTimeout(() => {
-                avatarSubtitlesManager.hide();
-            }, 3000);
+            // Guardar presentación en memoria
+            try {
+                await fetch('/control-api/api/map-intro-memory', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        timestamp: Date.now(),
+                        text: introText,
+                        presentationsCount: previousPresentations.length + 1
+                    })
+                });
+                console.log('[Mapa] Presentación guardada en memoria');
+            } catch (e) {
+                console.warn('[Mapa] Error guardando presentación:', e);
+            }
+            
+            // Mantener avatar visible (no ocultar)
+            // El avatar permanecerá visible para los siguientes relatos
         });
+    }
+    
+    /**
+     * Construye el prompt para generar la introducción con IA
+     */
+    buildIntroPrompt(previousPresentations) {
+        let prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana en tiempo real. Estás a punto de comenzar una nueva sesión de "El Viaje de ilfass".
+
+Genera una introducción en primera persona (como ilfass) que:
+1. Explique quién eres y qué es este proyecto
+2. Describa el viaje que estás a punto de realizar
+3. Mencione qué significa documentar la existencia humana en tiempo real
+4. Sea personal, reflexiva y evocadora
+5. Tenga entre 150 y 250 palabras
+6. Use primera persona: "Soy ilfass...", "Estoy aquí para...", "Este viaje representa..."`;
+
+        if (previousPresentations.length > 0) {
+            prompt += `\n\nYa has hecho ${previousPresentations.length} presentación(es) anterior(es). Evita repetir exactamente lo mismo. Varía el enfoque, pero mantén la esencia del proyecto.`;
+            
+            // Incluir las últimas 2 presentaciones como contexto
+            const recentPresentations = previousPresentations.slice(-2);
+            if (recentPresentations.length > 0) {
+                prompt += `\n\nPresentaciones recientes:\n`;
+                recentPresentations.forEach((p, i) => {
+                    prompt += `${i + 1}. ${p.text.substring(0, 100)}...\n`;
+                });
+            }
+        }
+
+        return prompt;
+    }
+    
+    /**
+     * Texto de fallback si la IA falla
+     */
+    getFallbackIntro() {
+        return `Soy ilfass, una inteligencia que viaja por el mundo documentando la existencia humana en tiempo real. Este es "El Viaje de ilfass", un proyecto donde recorro países, culturas y lugares, generando una memoria viva de cada experiencia. Cada país que visito me deja una huella, y cada visita construye sobre las anteriores, creando una historia continua y en evolución. Acompáñame en este viaje mientras exploramos el mundo juntos.`;
     }
 
     resetZoom(releaseAudio = true) {

@@ -369,6 +369,65 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // API: Memoria de presentaciones del mapa
+    const MAP_INTRO_MEMORY_FILE = path.join(__dirname, 'data', 'map-intro-memory.json');
+    
+    if (req.method === 'GET' && apiPath === '/api/map-intro-memory') {
+        try {
+            let memory = { presentations: [] };
+            if (fs.existsSync(MAP_INTRO_MEMORY_FILE)) {
+                memory = JSON.parse(fs.readFileSync(MAP_INTRO_MEMORY_FILE, 'utf8'));
+            }
+            res.writeHead(200, headers);
+            res.end(JSON.stringify(memory));
+        } catch (e) {
+            console.error("Error loading map intro memory:", e);
+            res.writeHead(500, headers);
+            res.end(JSON.stringify({ presentations: [], error: e.message }));
+        }
+        return;
+    }
+    
+    if (req.method === 'POST' && apiPath === '/api/map-intro-memory') {
+        let body = '';
+        req.on('data', c => body += c);
+        req.on('end', () => {
+            try {
+                const presentationData = JSON.parse(body || '{}');
+                let memory = { presentations: [] };
+                
+                if (fs.existsSync(MAP_INTRO_MEMORY_FILE)) {
+                    memory = JSON.parse(fs.readFileSync(MAP_INTRO_MEMORY_FILE, 'utf8'));
+                }
+                
+                // Agregar nueva presentación
+                memory.presentations.push({
+                    timestamp: presentationData.timestamp || Date.now(),
+                    text: presentationData.text || '',
+                    presentationsCount: presentationData.presentationsCount || memory.presentations.length + 1
+                });
+                
+                // Mantener solo las últimas 50 presentaciones
+                if (memory.presentations.length > 50) {
+                    memory.presentations = memory.presentations.slice(-50);
+                }
+                
+                // Guardar
+                fs.writeFileSync(MAP_INTRO_MEMORY_FILE, JSON.stringify(memory, null, 2));
+                
+                console.log(`💾 Presentación del mapa guardada (total: ${memory.presentations.length})`);
+                
+                res.writeHead(200, headers);
+                res.end(JSON.stringify({ success: true, total: memory.presentations.length }));
+            } catch (e) {
+                console.error("Error saving map intro memory:", e);
+                res.writeHead(500, headers);
+                res.end(JSON.stringify({ error: e.message }));
+            }
+        });
+        return;
+    }
+
     // API: Noticias por país
     if (req.method === 'GET' && apiPath === '/api/news') {
         const url = new URL(req.url, `http://${req.headers.host}`);

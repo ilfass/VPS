@@ -51,7 +51,15 @@ export class AvatarSubtitlesManager {
      * Muestra el avatar y subtítulos
      */
     show() {
-        if (!this.avatarElement || !this.subtitlesElement) return;
+        // Si el avatar aún no está creado, crearlo primero
+        if (!this.avatarElement || !this.subtitlesElement) {
+            if (this.container) {
+                this.createAvatarUI();
+            } else {
+                console.warn('[AvatarSubtitles] Container no inicializado');
+                return;
+            }
+        }
         
         const container = document.getElementById('avatar-subtitles-container');
         if (container) {
