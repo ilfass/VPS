@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Curiosidades - El Viaje de ilfass</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -25,32 +25,42 @@
             position: relative;
         }
 
-        /* Background con gradiente animado */
-        .background {
+        /* Fondo con nombre del país */
+        .country-background {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
             z-index: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
         }
 
-        .background::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at 30% 50%, rgba(74, 158, 255, 0.1) 0%, transparent 50%),
-                        radial-gradient(circle at 70% 50%, rgba(168, 85, 247, 0.1) 0%, transparent 50%);
-            animation: pulse 8s ease-in-out infinite;
+        .country-name-bg {
+            font-size: 25vw;
+            font-weight: 900;
+            color: rgba(74, 158, 255, 0.08);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            white-space: nowrap;
+            font-family: 'Inter', sans-serif;
+            animation: fadeInScale 1s ease;
+            user-select: none;
+            text-shadow: 0 0 100px rgba(74, 158, 255, 0.1);
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 0.5; }
-            50% { opacity: 1; }
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
 
         /* Música de fondo */
@@ -60,17 +70,17 @@
             pointer-events: none;
         }
 
-        /* Contenedor principal - sin scroll */
+        /* Contenedor principal */
         .main-container {
             position: relative;
             width: 100vw;
             height: 100vh;
+            z-index: 1;
             display: flex;
             flex-direction: column;
-            z-index: 1;
         }
 
-        /* Header fijo */
+        /* Header minimalista */
         .header {
             position: absolute;
             top: 0;
@@ -81,7 +91,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, transparent 100%);
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
         }
 
         .title-section {
@@ -91,214 +101,169 @@
         }
 
         .title-icon {
-            font-size: 3rem;
+            font-size: 2rem;
             animation: bounce 2s ease infinite;
         }
 
         .title-text {
-            font-size: 2.5rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #4a9eff 0%, #a855f7 50%, #22c55e 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.9);
         }
 
         .stats-mini {
             display: flex;
             gap: 2rem;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.9rem;
-            color: #94a3b8;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
         }
 
-        .stat-mini {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        /* Contenido central - curiosidad actual */
-        .curiosity-display {
+        /* Contenido multimedia central */
+        .media-container {
             flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 8rem 4rem 12rem;
+            padding: 8rem 4rem 16rem;
             position: relative;
         }
 
-        .curiosity-card {
-            max-width: 900px;
+        .media-content {
+            position: relative;
             width: 100%;
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
-            border: 2px solid rgba(74, 158, 255, 0.3);
+            max-width: 1200px;
+            height: 70vh;
             border-radius: 24px;
-            padding: 3rem;
-            position: relative;
             overflow: hidden;
-            animation: slideIn 0.8s ease;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-        }
-
-        .curiosity-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #4a9eff 0%, #a855f7 50%, #22c55e 100%);
-            animation: expandLine 0.8s ease;
-        }
-
-        .curiosity-header {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .curiosity-icon {
-            font-size: 4rem;
-            animation: float 3s ease-in-out infinite;
-        }
-
-        .curiosity-title-section {
-            flex: 1;
-        }
-
-        .curiosity-title {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #4a9eff;
-            margin-bottom: 0.5rem;
-            line-height: 1.2;
-        }
-
-        .curiosity-country {
-            display: inline-block;
-            background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
-            padding: 0.4rem 1rem;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 600;
-        }
-
-        .curiosity-image-container {
-            width: 100%;
-            height: 300px;
-            border-radius: 16px;
-            overflow: hidden;
-            margin-bottom: 2rem;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+            animation: slideInMedia 1s ease;
             background: rgba(0, 0, 0, 0.3);
-            position: relative;
         }
 
-        .curiosity-image {
+        @keyframes slideInMedia {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .media-image,
+        .media-video {
             width: 100%;
             height: 100%;
             object-fit: cover;
             animation: fadeIn 1s ease;
         }
 
-        .curiosity-image-placeholder {
+        .media-animation {
             width: 100%;
             height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 4rem;
-            color: rgba(255, 255, 255, 0.2);
+            background: linear-gradient(135deg, rgba(74, 158, 255, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+            position: relative;
+            overflow: hidden;
         }
 
-        .curiosity-content {
-            font-size: 1.4rem;
-            line-height: 1.8;
-            color: #e2e8f0;
-            margin-bottom: 2rem;
-            min-height: 100px;
+        .media-animation::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(74, 158, 255, 0.2) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
         }
 
-        .curiosity-tags {
-            display: flex;
-            gap: 0.8rem;
-            flex-wrap: wrap;
+        .media-animation-icon {
+            font-size: 15rem;
+            z-index: 1;
+            animation: float 4s ease-in-out infinite;
         }
 
-        .tag {
-            background: rgba(168, 85, 247, 0.2);
-            color: #c084fc;
-            padding: 0.5rem 1rem;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            border: 1px solid rgba(168, 85, 247, 0.3);
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
 
-        .tag.culture { background: rgba(74, 158, 255, 0.2); color: #6bb0ff; border-color: rgba(74, 158, 255, 0.3); }
-        .tag.history { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border-color: rgba(245, 158, 11, 0.3); }
-        .tag.food { background: rgba(34, 197, 94, 0.2); color: #4ade80; border-color: rgba(34, 197, 94, 0.3); }
-        .tag.connection { background: rgba(168, 85, 247, 0.2); color: #c084fc; border-color: rgba(168, 85, 247, 0.3); }
-        .tag.fun { background: rgba(236, 72, 153, 0.2); color: #f472b6; border-color: rgba(236, 72, 153, 0.3); }
+        @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-30px) scale(1.1); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
 
         /* Avatar y subtítulos */
         .avatar-container {
             position: absolute;
-            bottom: 2rem;
-            left: 2rem;
+            bottom: 3rem;
+            left: 3rem;
             display: flex;
             align-items: flex-end;
-            gap: 1rem;
+            gap: 1.5rem;
             z-index: 20;
+            max-width: 60%;
         }
 
         .avatar-image {
-            width: 120px;
-            height: 120px;
+            width: 140px;
+            height: 140px;
             border-radius: 50%;
-            border: 3px solid rgba(74, 158, 255, 0.5);
+            border: 4px solid rgba(74, 158, 255, 0.5);
             object-fit: cover;
-            box-shadow: 0 10px 30px rgba(74, 158, 255, 0.3);
+            box-shadow: 0 15px 40px rgba(74, 158, 255, 0.4);
             animation: pulse-avatar 2s ease-in-out infinite;
+            flex-shrink: 0;
         }
 
         .avatar-image.speaking {
             animation: speaking 0.3s infinite alternate;
             border-color: #4a9eff;
-            box-shadow: 0 0 40px rgba(74, 158, 255, 0.6);
+            box-shadow: 0 0 50px rgba(74, 158, 255, 0.8);
         }
 
         .subtitles-container {
-            background: rgba(15, 23, 42, 0.95);
-            border: 2px solid rgba(74, 158, 255, 0.3);
-            border-radius: 16px;
-            padding: 1rem 1.5rem;
-            max-width: 500px;
-            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid rgba(74, 158, 255, 0.4);
+            border-radius: 20px;
+            padding: 1.5rem 2rem;
+            backdrop-filter: blur(20px);
+            flex: 1;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
         }
 
         .subtitles-text {
-            font-size: 1.1rem;
-            line-height: 1.6;
+            font-size: 1.3rem;
+            line-height: 1.8;
             color: #e2e8f0;
-            max-height: 4.8em;
+            max-height: 5.4em;
             overflow: hidden;
         }
 
         /* Indicador de progreso */
         .progress-indicator {
             position: absolute;
-            bottom: 2rem;
-            right: 2rem;
+            bottom: 3rem;
+            right: 3rem;
             display: flex;
             align-items: center;
             gap: 1rem;
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.9rem;
-            color: #94a3b8;
+            color: rgba(255, 255, 255, 0.7);
             z-index: 10;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 0.8rem 1.5rem;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
         }
 
         .progress-dots {
@@ -316,60 +281,31 @@
 
         .progress-dot.active {
             background: #4a9eff;
-            transform: scale(1.3);
-            box-shadow: 0 0 10px rgba(74, 158, 255, 0.6);
+            transform: scale(1.4);
+            box-shadow: 0 0 12px rgba(74, 158, 255, 0.8);
         }
 
         /* Animaciones */
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(30px) scale(0.95);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-
-        @keyframes expandLine {
-            from {
-                transform: scaleX(0);
-            }
-            to {
-                transform: scaleX(1);
-            }
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
         @keyframes bounce {
             0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-15px) rotate(5deg); }
+            50% { transform: translateY(-8px); }
         }
 
         @keyframes pulse-avatar {
             0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+            50% { transform: scale(1.03); }
         }
 
         @keyframes speaking {
             0% { transform: scale(1); box-shadow: 0 0 20px rgba(74, 158, 255, 0.4); }
-            100% { transform: scale(1.08); box-shadow: 0 0 40px rgba(74, 158, 255, 0.8); }
+            100% { transform: scale(1.1); box-shadow: 0 0 50px rgba(74, 158, 255, 0.9); }
         }
 
         /* Estado vacío */
         .empty-state {
             text-align: center;
-            color: #94a3b8;
+            color: rgba(255, 255, 255, 0.6);
+            padding: 4rem;
         }
 
         .empty-icon {
@@ -385,14 +321,17 @@
 
         .empty-subtext {
             font-size: 1rem;
-            color: #64748b;
+            color: rgba(255, 255, 255, 0.4);
         }
     </style>
 </head>
 
 <body>
-    <div class="background"></div>
-    
+    <!-- Fondo con nombre del país -->
+    <div class="country-background">
+        <div class="country-name-bg" id="country-name-bg">Cargando...</div>
+    </div>
+
     <!-- Música de fondo -->
     <audio id="background-music" loop>
         <source src="/media/audio/ambient_base.mp3" type="audio/mpeg">
@@ -417,8 +356,8 @@
             </div>
         </div>
 
-        <!-- Contenido principal -->
-        <div class="curiosity-display" id="curiosity-display">
+        <!-- Contenido multimedia central -->
+        <div class="media-container" id="media-container">
             <div class="empty-state">
                 <div class="empty-icon">🔍</div>
                 <div class="empty-text">Cargando curiosidades...</div>
@@ -448,15 +387,15 @@
         let isSpeaking = false;
         let backgroundMusic = null;
         let currentUtterance = null;
+        let currentMediaElement = null;
 
-        // Iconos aleatorios
         const icons = ['🌟', '💡', '🎯', '🔍', '✨', '🎨', '🌍', '🧠', '💫', '🎭', '🎪', '🔮', '⚡', '🎊', '🎈'];
 
         // Inicializar música de fondo
         function initBackgroundMusic() {
             backgroundMusic = document.getElementById('background-music');
             if (backgroundMusic) {
-                backgroundMusic.volume = 0.3;
+                backgroundMusic.volume = 0.25;
                 backgroundMusic.play().catch(e => {
                     console.warn('No se pudo reproducir música de fondo:', e);
                 });
@@ -561,19 +500,16 @@
                     if (/conecta|vincula|relaciona|similar/i.test(trimmed)) tags.push('connection');
                     if (!tags.length) tags.push('fun');
 
-                    const words = trimmed.split(' ').slice(0, 8).join(' ');
-                    const title = words.length > 50 ? words.substring(0, 47) + '...' : words;
-
                     curiosities.push({
                         id: `curiosity-${countryId}-${timestamp}-${found}`,
-                        title: title,
                         content: trimmed,
                         country: getCountryName(countryId),
                         countryId: countryId,
                         tags: tags,
                         timestamp: timestamp || Date.now(),
                         icon: icons[Math.floor(Math.random() * icons.length)],
-                        imageUrl: null // Se buscará después
+                        mediaUrl: null,
+                        mediaType: null
                     });
                     found++;
                 }
@@ -594,10 +530,9 @@
             return countryMap[countryId] || `País ${countryId}`;
         }
 
-        // Buscar imagen para la curiosidad
-        async function findImageForCuriosity(curiosity) {
+        // Buscar contenido multimedia
+        async function findMediaForCuriosity(curiosity) {
             try {
-                // Buscar en media del país
                 const mediaRes = await fetch(`${API_BASE}/api/media-list`);
                 if (mediaRes.ok) {
                     const mediaList = await mediaRes.json();
@@ -609,11 +544,14 @@
                     
                     if (countryMedia.length > 0) {
                         const randomMedia = countryMedia[Math.floor(Math.random() * countryMedia.length)];
-                        return randomMedia.url;
+                        return {
+                            url: randomMedia.url,
+                            type: randomMedia.type || 'image'
+                        };
                     }
                 }
             } catch (e) {
-                console.warn('Error buscando imagen:', e);
+                console.warn('Error buscando media:', e);
             }
             return null;
         }
@@ -627,44 +565,56 @@
 
             const curiosity = curiosities[currentIndex];
             
-            // Buscar imagen
-            if (!curiosity.imageUrl) {
-                curiosity.imageUrl = await findImageForCuriosity(curiosity);
+            // Actualizar nombre del país en el fondo
+            document.getElementById('country-name-bg').textContent = curiosity.country.toUpperCase();
+
+            // Buscar contenido multimedia
+            if (!curiosity.mediaUrl) {
+                const media = await findMediaForCuriosity(curiosity);
+                if (media) {
+                    curiosity.mediaUrl = media.url;
+                    curiosity.mediaType = media.type;
+                }
             }
 
-            // Renderizar
-            const display = document.getElementById('curiosity-display');
-            display.innerHTML = `
-                <div class="curiosity-card">
-                    <div class="curiosity-header">
-                        <span class="curiosity-icon">${curiosity.icon}</span>
-                        <div class="curiosity-title-section">
-                            <div class="curiosity-title">${curiosity.title}</div>
-                            <span class="curiosity-country">${curiosity.country}</span>
+            // Renderizar contenido multimedia
+            const container = document.getElementById('media-container');
+            let mediaHTML = '';
+
+            if (curiosity.mediaUrl) {
+                if (curiosity.mediaType === 'video') {
+                    mediaHTML = `
+                        <div class="media-content">
+                            <video class="media-video" autoplay loop muted playsinline>
+                                <source src="${curiosity.mediaUrl}" type="video/mp4">
+                            </video>
+                        </div>
+                    `;
+                } else {
+                    mediaHTML = `
+                        <div class="media-content">
+                            <img src="${curiosity.mediaUrl}" alt="${curiosity.country}" class="media-image" onerror="this.parentElement.innerHTML='<div class=\\'media-animation\\'><div class=\\'media-animation-icon\\'>${curiosity.icon}</div></div>'">
+                        </div>
+                    `;
+                }
+            } else {
+                mediaHTML = `
+                    <div class="media-content">
+                        <div class="media-animation">
+                            <div class="media-animation-icon">${curiosity.icon}</div>
                         </div>
                     </div>
-                    ${curiosity.imageUrl ? `
-                        <div class="curiosity-image-container">
-                            <img src="${curiosity.imageUrl}" alt="${curiosity.country}" class="curiosity-image" onerror="this.parentElement.innerHTML='<div class=\\'curiosity-image-placeholder\\'>${curiosity.icon}</div>'">
-                        </div>
-                    ` : `
-                        <div class="curiosity-image-container">
-                            <div class="curiosity-image-placeholder">${curiosity.icon}</div>
-                        </div>
-                    `}
-                    <div class="curiosity-content" id="curiosity-narrative">${curiosity.content}</div>
-                    <div class="curiosity-tags">
-                        ${curiosity.tags.map(tag => `<span class="tag ${tag}">${tag}</span>`).join('')}
-                    </div>
-                </div>
-            `;
+                `;
+            }
+
+            container.innerHTML = mediaHTML;
 
             // Actualizar contador
             document.getElementById('curiosity-counter').textContent = `${currentIndex + 1} / ${curiosities.length}`;
 
-            // Mostrar avatar y narrar (la narrativa natural se actualizará automáticamente)
+            // Mostrar avatar y narrar
             showAvatar();
-            narrateCuriosity(curiosity);
+            await narrateCuriosity(curiosity);
         }
 
         // Mostrar avatar
@@ -679,23 +629,18 @@
             avatarContainer.style.display = 'none';
         }
 
-        // Generar narrativa natural conectando curiosidades
-        async function generateNaturalNarrative(curiosities, currentIndex) {
-            if (curiosities.length === 0) return null;
-
-            const current = curiosities[currentIndex];
+        // Generar narrativa sobre el contenido multimedia
+        async function generateMediaNarrative(curiosity) {
             const previous = currentIndex > 0 ? curiosities[currentIndex - 1] : null;
-            const next = currentIndex < curiosities.length - 1 ? curiosities[currentIndex + 1] : null;
-
-            // Construir contexto para IA
-            let context = `Estoy compartiendo curiosidades del viaje. La curiosidad actual es sobre ${current.country}: "${current.content}"`;
             
-            if (previous) {
-                context += `\n\nAcabé de hablar sobre ${previous.country}: "${previous.content.substring(0, 100)}..."`;
+            let context = `Estoy mostrando contenido multimedia sobre ${curiosity.country}. La curiosidad es: "${curiosity.content}"`;
+            
+            if (curiosity.mediaUrl) {
+                context += `\n\nEstoy mostrando ${curiosity.mediaType === 'video' ? 'un video' : 'una imagen'} de ${curiosity.country}.`;
             }
             
-            if (next) {
-                context += `\n\nPróximamente hablaré sobre ${next.country}: "${next.content.substring(0, 100)}..."`;
+            if (previous) {
+                context += `\n\nAcabé de hablar sobre ${previous.country}.`;
             }
 
             const prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana en tiempo real.
@@ -703,14 +648,15 @@
 ${context}
 
 Genera una narrativa natural y fluida en primera persona que:
-- Conecte esta curiosidad con el viaje de forma natural
+- Hable sobre el contenido multimedia que se está mostrando (imagen o video)
+- Conecte la curiosidad con el viaje de forma natural
+- Aporte información adicional, datos interesantes o reflexiones sobre lo que se ve
 - No suene como una lista, sino como una historia continua
-- Use transiciones naturales si hay una curiosidad previa
-- Sea conversacional, como si estuvieras pensando en voz alta
-- Tenga entre 80 y 150 palabras
-- En primera persona: "Me llama la atención...", "Descubrí que...", "Es fascinante cómo...", "Me pregunto si..."
+- Sea conversacional, como si estuvieras pensando en voz alta mientras observas
+- Tenga entre 100 y 180 palabras
+- En primera persona: "Mientras observo esta imagen...", "Este video me muestra...", "Lo que más me llama la atención es...", "Me pregunto si..."
 
-NO repitas literalmente la curiosidad. Cuenta una historia alrededor de ella.`;
+NO repitas literalmente la curiosidad. Habla sobre lo que ves en el contenido multimedia y aporta nuevos datos, conexiones o reflexiones.`;
 
             try {
                 const response = await fetch(`${API_BASE}/api/generate-narrative`, {
@@ -724,34 +670,28 @@ NO repitas literalmente la curiosidad. Cuenta una historia alrededor de ella.`;
                     return data.narrative || null;
                 }
             } catch (e) {
-                console.warn('Error generando narrativa natural:', e);
+                console.warn('Error generando narrativa:', e);
             }
 
-            // Fallback: narrativa simple pero natural
-            return generateFallbackNarrative(current, previous);
+            // Fallback natural
+            return generateFallbackNarrative(curiosity);
         }
 
-        // Narrativa de fallback más natural
-        function generateFallbackNarrative(current, previous) {
-            const connectors = [
-                `Me llama la atención algo sobre ${current.country}`,
-                `Hay algo fascinante que descubrí en ${current.country}`,
-                `En ${current.country} me encontré con algo que me sorprendió`,
-                `Una de las cosas que más me impactó de ${current.country}`
+        // Narrativa de fallback
+        function generateFallbackNarrative(curiosity) {
+            const starters = [
+                `Mientras observo este contenido de ${curiosity.country}`,
+                `Este material visual de ${curiosity.country} me muestra`,
+                `Lo que veo aquí sobre ${curiosity.country} me hace pensar`,
+                `Al contemplar este contenido de ${curiosity.country}`
             ];
-
-            const connector = connectors[Math.floor(Math.random() * connectors.length)];
             
-            if (previous && Math.random() > 0.5) {
-                return `${connector}. ${current.content}. Y esto me hace pensar en cómo cada lugar tiene sus propias historias que contar.`;
-            }
-            
-            return `${connector}. ${current.content}. Es increíble cómo cada país guarda secretos y conexiones que solo se revelan cuando te detienes a observar.`;
+            const starter = starters[Math.floor(Math.random() * starters.length)];
+            return `${starter}, ${curiosity.content}. Es fascinante cómo cada lugar guarda historias que solo se revelan cuando te detienes a observar con atención.`;
         }
 
-        // Narrar curiosidad con narrativa natural
+        // Narrar curiosidad
         async function narrateCuriosity(curiosity) {
-            let naturalNarrative = null;
             if (isSpeaking) {
                 window.speechSynthesis.cancel();
             }
@@ -760,31 +700,25 @@ NO repitas literalmente la curiosidad. Cuenta una historia alrededor de ella.`;
             const avatarImage = document.getElementById('avatar-image');
             const subtitlesText = document.getElementById('subtitles-text');
 
-            // Generar narrativa natural
-            naturalNarrative = await generateNaturalNarrative(curiosities, currentIndex);
+            // Generar narrativa sobre el contenido multimedia
+            let naturalNarrative = await generateMediaNarrative(curiosity);
             
             if (!naturalNarrative) {
-                naturalNarrative = generateFallbackNarrative(curiosity, currentIndex > 0 ? curiosities[currentIndex - 1] : null);
-            }
-
-            // Actualizar el contenido visual con la narrativa natural
-            const narrativeEl = document.getElementById('curiosity-narrative');
-            if (narrativeEl) {
-                narrativeEl.textContent = naturalNarrative;
+                naturalNarrative = generateFallbackNarrative(curiosity);
             }
 
             // Limpiar texto para narración
             const cleanText = naturalNarrative.replace(/[^\w\s.,;:!?áéíóúñüÁÉÍÓÚÑÜ]/g, '');
 
-            // Actualizar subtítulos con la narrativa natural
+            // Actualizar subtítulos
             subtitlesText.textContent = naturalNarrative;
             avatarImage.classList.add('speaking');
 
             // Crear utterance
             const utterance = new SpeechSynthesisUtterance(cleanText);
             utterance.lang = 'es-ES';
-            utterance.rate = 0.9;
-            utterance.pitch = 1.0;
+            utterance.rate = 0.85;
+            utterance.pitch = 0.95;
             utterance.volume = 1.0;
 
             // Seleccionar mejor voz
@@ -792,11 +726,6 @@ NO repitas literalmente la curiosidad. Cuenta una historia alrededor de ella.`;
             const bestVoice = voices.find(v => v.lang.startsWith('es') && (v.name.includes('Google') || v.name.includes('Microsoft'))) || 
                             voices.find(v => v.lang.startsWith('es'));
             if (bestVoice) utterance.voice = bestVoice;
-
-            // Configuración de voz más natural y conversacional
-            utterance.rate = 0.85; // Un poco más lento para sonar más natural
-            utterance.pitch = 0.95; // Ligeramente más grave
-            utterance.volume = 1.0;
 
             utterance.onstart = () => {
                 avatarImage.classList.add('speaking');
@@ -806,7 +735,6 @@ NO repitas literalmente la curiosidad. Cuenta una historia alrededor de ella.`;
                 avatarImage.classList.remove('speaking');
                 isSpeaking = false;
                 
-                // Pausa más natural antes de continuar (4-6 segundos)
                 const pauseTime = 4000 + Math.random() * 2000;
                 setTimeout(() => {
                     nextCuriosity();
@@ -824,8 +752,6 @@ NO repitas literalmente la curiosidad. Cuenta una historia alrededor de ella.`;
 
             currentUtterance = utterance;
             window.speechSynthesis.speak(utterance);
-            
-            return naturalNarrative;
         }
 
         // Siguiente curiosidad
@@ -862,8 +788,8 @@ NO repitas literalmente la curiosidad. Cuenta una historia alrededor de ella.`;
 
         // Mostrar estado vacío
         function showEmptyState() {
-            const display = document.getElementById('curiosity-display');
-            display.innerHTML = `
+            const container = document.getElementById('media-container');
+            container.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-icon">🔍</div>
                     <div class="empty-text">Aún no hay curiosidades</div>
