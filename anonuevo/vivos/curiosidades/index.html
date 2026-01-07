@@ -94,6 +94,22 @@
             background: linear-gradient(180deg, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
         }
 
+        /* Bandera del país */
+        .country-flag {
+            position: absolute;
+            top: 2rem;
+            right: 3rem;
+            font-size: 8rem;
+            z-index: 15;
+            animation: flagFloat 3s ease-in-out infinite;
+            filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.5));
+        }
+
+        @keyframes flagFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(2deg); }
+        }
+
         .title-section {
             display: flex;
             align-items: center;
@@ -509,7 +525,8 @@
                         timestamp: timestamp || Date.now(),
                         icon: icons[Math.floor(Math.random() * icons.length)],
                         mediaUrl: null,
-                        mediaType: null
+                        mediaType: null,
+                        flag: getCountryFlag(countryId)
                     });
                     found++;
                 }
@@ -530,29 +547,88 @@
             return countryMap[countryId] || `País ${countryId}`;
         }
 
+        // Obtener emoji de bandera del país
+        function getCountryFlag(countryId) {
+            const flagMap = {
+                '032': '🇦🇷', '076': '🇧🇷', '170': '🇨🇴', '152': '🇨🇱', '218': '🇪🇨',
+                '484': '🇲🇽', '604': '🇵🇪', '858': '🇺🇾', '124': '🇨🇱',
+                '276': '🇩🇪', '528': '🇳🇱', '616': '🇵🇱',
+                '840': '🇺🇸', '724': '🇪🇸', '250': '🇫🇷', '380': '🇮🇹', '826': '🇬🇧'
+            };
+            return flagMap[countryId] || '🌍';
+        }
+
         // Buscar contenido multimedia
         async function findMediaForCuriosity(curiosity) {
             try {
                 const mediaRes = await fetch(`${API_BASE}/api/media-list`);
                 if (mediaRes.ok) {
                     const mediaList = await mediaRes.json();
+                    
+                    // Buscar por nombre del país en folder o path
                     const countryMedia = mediaList.filter(m => {
                         const folder = (m.folder || "").toLowerCase();
+                        const path = (m.path || "").toLowerCase();
+                        const url = (m.url || "").toLowerCase();
                         const countryName = curiosity.country.toLowerCase();
-                        return folder.includes(countryName) || countryName.includes(folder);
+                        
+                        return folder.includes(countryName) || 
+                               countryName.includes(folder) ||
+                               path.includes(countryName) ||
+                               url.includes(countryName);
                     });
                     
                     if (countryMedia.length > 0) {
                         const randomMedia = countryMedia[Math.floor(Math.random() * countryMedia.length)];
+                        // Asegurar que la URL sea absoluta
+                        let mediaUrl = randomMedia.url;
+                        if (!mediaUrl.startsWith('http') && !mediaUrl.startsWith('/')) {
+                            mediaUrl = '/' + mediaUrl;
+                        }
+                        if (mediaUrl.startsWith('/media/')) {
+                            // Ya es absoluta
+                        } else if (!mediaUrl.startsWith('http')) {
+                            mediaUrl = '/media/' + mediaUrl;
+                        }
+                        
                         return {
-                            url: randomMedia.url,
-                            type: randomMedia.type || 'image'
+                            url: mediaUrl,
+                            type: randomMedia.type || (mediaUrl.match(/\.(mp4|webm|ogg)$/i) ? 'video' : 'image')
                         };
                     }
                 }
             } catch (e) {
                 console.warn('Error buscando media:', e);
             }
+            
+            // Si no hay media, intentar generar imagen con IA basada en el país
+            try {
+                const imageRes = await fetch(`${API_BASE}/api/generate-image`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        prompt: `Beautiful landscape or cultural scene from ${curiosity.country}, high quality, cinematic, vibrant colors`
+                    })
+                });
+                
+                if (imageRes.ok) {
+                    const imageData = await imageRes.json();
+                    if (imageData.url) {
+                        return {
+                            url: imageData.url.startsWith('http') ? imageData.url : '/' + imageData.url,
+                            type: 'image'
+                        };
+                    } else if (imageData.filename) {
+                        return {
+                            url: `/media/AI_Generated/${imageData.filename}`,
+                            type: 'image'
+                        };
+                    }
+                }
+            } catch (e) {
+                console.warn('Error generando imagen con IA:', e);
+            }
+            
             return null;
         }
 
@@ -577,23 +653,44 @@
                 }
             }
 
+            // Actualizar bandera del país
+            const flagEl = document.getElementById('country-flag');
+            if (flagEl) {
+                flagEl.textContent = getCountryFlag(curiosity.countryId);
+            } else {
+                // Crear elemento de bandera si no existe
+                const flag = document.createElement('div');
+                flag.id = 'country-flag';
+                flag.className = 'country-flag';
+                flag.textContent = getCountryFlag(curiosity.countryId);
+                document.querySelector('.main-container').appendChild(flag);
+            }
+
             // Renderizar contenido multimedia
             const container = document.getElementById('media-container');
             let mediaHTML = '';
 
             if (curiosity.mediaUrl) {
-                if (curiosity.mediaType === 'video') {
+                // Asegurar URL absoluta
+                let mediaUrl = curiosity.mediaUrl;
+                if (!mediaUrl.startsWith('http') && !mediaUrl.startsWith('/')) {
+                    mediaUrl = '/' + mediaUrl;
+                }
+                
+                if (curiosity.mediaType === 'video' || mediaUrl.match(/\.(mp4|webm|ogg)$/i)) {
                     mediaHTML = `
                         <div class="media-content">
                             <video class="media-video" autoplay loop muted playsinline>
-                                <source src="${curiosity.mediaUrl}" type="video/mp4">
+                                <source src="${mediaUrl}" type="video/mp4">
+                                <source src="${mediaUrl}" type="video/webm">
                             </video>
                         </div>
                     `;
                 } else {
                     mediaHTML = `
                         <div class="media-content">
-                            <img src="${curiosity.mediaUrl}" alt="${curiosity.country}" class="media-image" onerror="this.parentElement.innerHTML='<div class=\\'media-animation\\'><div class=\\'media-animation-icon\\'>${curiosity.icon}</div></div>'">
+                            <img src="${mediaUrl}" alt="${curiosity.country}" class="media-image" 
+                                 onerror="console.warn('Error cargando imagen:', '${mediaUrl}'); this.parentElement.innerHTML='<div class=\\'media-animation\\'><div class=\\'media-animation-icon\\'>${curiosity.icon}</div></div>'">
                         </div>
                     `;
                 }
