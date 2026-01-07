@@ -404,6 +404,10 @@
         let backgroundMusic = null;
         let currentUtterance = null;
         let currentMediaElement = null;
+        
+        // Historial de países recientes para evitar repeticiones
+        const recentCountries = [];
+        const MAX_RECENT_COUNTRIES = 5;
 
         const icons = ['🌟', '💡', '🎯', '🔍', '✨', '🎨', '🌍', '🧠', '💫', '🎭', '🎪', '🔮', '⚡', '🎊', '🎈'];
 
