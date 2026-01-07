@@ -590,20 +590,34 @@
                     if (countryMedia.length > 0) {
                         const randomMedia = countryMedia[Math.floor(Math.random() * countryMedia.length)];
                         // Asegurar que la URL sea absoluta
-                        let mediaUrl = randomMedia.url;
+                        let mediaUrl = randomMedia.url || '';
+                        
+                        // Si no tiene URL, construirla desde path y name
+                        if (!mediaUrl && randomMedia.path && randomMedia.name) {
+                            const pathParts = randomMedia.path.split(/[/\\]/).filter(p => p);
+                            mediaUrl = '/media/' + pathParts.join('/') + '/' + randomMedia.name;
+                        }
+                        
+                        // Normalizar URL
                         if (!mediaUrl.startsWith('http') && !mediaUrl.startsWith('/')) {
                             mediaUrl = '/' + mediaUrl;
                         }
-                        if (mediaUrl.startsWith('/media/')) {
-                            // Ya es absoluta
-                        } else if (!mediaUrl.startsWith('http')) {
-                            mediaUrl = '/media/' + mediaUrl;
+                        
+                        // Asegurar que empiece con /media/
+                        if (!mediaUrl.startsWith('/media/') && !mediaUrl.startsWith('http')) {
+                            mediaUrl = '/media/' + mediaUrl.replace(/^\//, '');
                         }
+                        
+                        const mediaType = randomMedia.type || (mediaUrl.match(/\.(mp4|webm|ogg)$/i) ? 'video' : 'image');
+                        
+                        console.log(`[Curiosidades] Media seleccionada:`, mediaUrl, 'Tipo:', mediaType);
                         
                         return {
                             url: mediaUrl,
-                            type: randomMedia.type || (mediaUrl.match(/\.(mp4|webm|ogg)$/i) ? 'video' : 'image')
+                            type: mediaType
                         };
+                    } else {
+                        console.warn(`[Curiosidades] No se encontró media para ${curiosity.country} en`, mediaList.length, 'archivos totales');
                     }
                 }
             } catch (e) {
