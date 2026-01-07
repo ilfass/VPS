@@ -612,7 +612,7 @@
             // Actualizar contador
             document.getElementById('curiosity-counter').textContent = `${currentIndex + 1} / ${curiosities.length}`;
 
-            // Mostrar avatar y narrar
+            // Mostrar avatar y narrar (espera a que termine completamente)
             showAvatar();
             await narrateCuriosity(curiosity);
         }
@@ -692,8 +692,11 @@ NO repitas literalmente la curiosidad. Habla sobre lo que ves en el contenido mu
 
         // Narrar curiosidad
         async function narrateCuriosity(curiosity) {
-            if (isSpeaking) {
+            // Cancelar cualquier speech anterior y esperar a que termine
+            if (isSpeaking || window.speechSynthesis.speaking) {
                 window.speechSynthesis.cancel();
+                // Esperar un momento para que se cancele completamente
+                await new Promise(resolve => setTimeout(resolve, 500));
             }
 
             isSpeaking = true;
@@ -727,40 +730,84 @@ NO repitas literalmente la curiosidad. Habla sobre lo que ves en el contenido mu
                             voices.find(v => v.lang.startsWith('es'));
             if (bestVoice) utterance.voice = bestVoice;
 
-            utterance.onstart = () => {
-                avatarImage.classList.add('speaking');
-            };
+            // Promise para esperar a que termine el speech
+            const speechPromise = new Promise((resolve) => {
+                let resolved = false;
 
-            utterance.onend = () => {
-                avatarImage.classList.remove('speaking');
-                isSpeaking = false;
-                
-                const pauseTime = 4000 + Math.random() * 2000;
-                setTimeout(() => {
-                    nextCuriosity();
-                }, pauseTime);
-            };
+                utterance.onstart = () => {
+                    avatarImage.classList.add('speaking');
+                    console.log('[Curiosidades] Speech iniciado');
+                };
 
-            utterance.onerror = () => {
-                avatarImage.classList.remove('speaking');
-                isSpeaking = false;
-                const pauseTime = 4000 + Math.random() * 2000;
+                utterance.onend = () => {
+                    if (resolved) return;
+                    resolved = true;
+                    console.log('[Curiosidades] Speech terminado completamente');
+                    avatarImage.classList.remove('speaking');
+                    isSpeaking = false;
+                    
+                    // Pausa antes de cambiar (5-7 segundos)
+                    const pauseTime = 5000 + Math.random() * 2000;
+                    setTimeout(() => {
+                        resolve();
+                    }, pauseTime);
+                };
+
+                utterance.onerror = (e) => {
+                    if (resolved) return;
+                    resolved = true;
+                    console.warn('[Curiosidades] Error en speech:', e);
+                    avatarImage.classList.remove('speaking');
+                    isSpeaking = false;
+                    
+                    // Pausa antes de cambiar incluso si hay error
+                    const pauseTime = 5000 + Math.random() * 2000;
+                    setTimeout(() => {
+                        resolve();
+                    }, pauseTime);
+                };
+
+                // Timeout de seguridad (máximo 60 segundos)
                 setTimeout(() => {
-                    nextCuriosity();
-                }, pauseTime);
-            };
+                    if (!resolved) {
+                        resolved = true;
+                        console.warn('[Curiosidades] Timeout de seguridad en speech');
+                        avatarImage.classList.remove('speaking');
+                        isSpeaking = false;
+                        window.speechSynthesis.cancel();
+                        resolve();
+                    }
+                }, 60000);
+            });
 
             currentUtterance = utterance;
             window.speechSynthesis.speak(utterance);
+
+            // Esperar a que termine completamente antes de continuar
+            await speechPromise;
+            
+            // Solo avanzar cuando el speech haya terminado completamente
+            nextCuriosity();
         }
 
         // Siguiente curiosidad
-        function nextCuriosity() {
+        async function nextCuriosity() {
             if (curiosities.length === 0) return;
+            
+            // Asegurar que no hay speech en curso
+            if (window.speechSynthesis.speaking) {
+                console.log('[Curiosidades] Esperando a que termine el speech antes de cambiar...');
+                return;
+            }
+
+            if (isSpeaking) {
+                console.log('[Curiosidades] Esperando a que termine isSpeaking...');
+                return;
+            }
             
             currentIndex = (currentIndex + 1) % curiosities.length;
             updateProgressDots();
-            displayCurrentCuriosity();
+            await displayCurrentCuriosity();
         }
 
         // Actualizar estadísticas
@@ -814,9 +861,11 @@ NO repitas literalmente la curiosidad. Habla sobre lo que ves en el contenido mu
             window.speechSynthesis.onvoiceschanged = loadVoices;
             loadCuriosities();
             
-            // Actualizar cada 15 segundos
+            // Actualizar cada 15 segundos (solo si no está hablando)
             setInterval(() => {
-                loadCuriosities();
+                if (!isSpeaking && !window.speechSynthesis.speaking) {
+                    loadCuriosities();
+                }
             }, 15000);
         });
     </script>
