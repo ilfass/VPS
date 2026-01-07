@@ -427,6 +427,12 @@
                     curiosities = data.curiosities || [];
                     
                     if (curiosities.length > 0) {
+                        // Mezclar aleatoriamente si hay nuevas curiosidades
+                        if (curiosities.length !== (window.lastCuriositiesCount || 0)) {
+                            curiosities = curiosities.sort(() => Math.random() - 0.5);
+                            currentIndex = Math.floor(Math.random() * curiosities.length);
+                            window.lastCuriositiesCount = curiosities.length;
+                        }
                         updateStats();
                         updateProgressDots();
                         if (currentIndex >= curiosities.length) {
@@ -470,9 +476,12 @@
                         }
                     }
                     
-                    curiosities = generated.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                    // Mezclar aleatoriamente las curiosidades para que no siempre empiece con la misma
+                    curiosities = generated.sort(() => Math.random() - 0.5);
                     
                     if (curiosities.length > 0) {
+                        // Empezar en un índice aleatorio
+                        currentIndex = Math.floor(Math.random() * curiosities.length);
                         updateStats();
                         updateProgressDots();
                         displayCurrentCuriosity();
@@ -644,13 +653,16 @@
             // Actualizar nombre del país en el fondo
             document.getElementById('country-name-bg').textContent = curiosity.country.toUpperCase();
 
-            // Buscar contenido multimedia
-            if (!curiosity.mediaUrl) {
-                const media = await findMediaForCuriosity(curiosity);
-                if (media) {
-                    curiosity.mediaUrl = media.url;
-                    curiosity.mediaType = media.type;
-                }
+            // Buscar contenido multimedia (siempre buscar para asegurar que tenemos la URL correcta)
+            const media = await findMediaForCuriosity(curiosity);
+            if (media) {
+                curiosity.mediaUrl = media.url;
+                curiosity.mediaType = media.type;
+                console.log('[Curiosidades] Media encontrada:', media.url, 'Tipo:', media.type);
+            } else {
+                console.warn('[Curiosidades] No se encontró media para', curiosity.country);
+                curiosity.mediaUrl = null;
+                curiosity.mediaType = null;
             }
 
             // Actualizar bandera del país
@@ -677,10 +689,13 @@
                     mediaUrl = '/' + mediaUrl;
                 }
                 
+                // Verificar que la URL sea válida
+                console.log('[Curiosidades] Intentando cargar media:', mediaUrl, 'Tipo:', curiosity.mediaType);
+                
                 if (curiosity.mediaType === 'video' || mediaUrl.match(/\.(mp4|webm|ogg)$/i)) {
                     mediaHTML = `
                         <div class="media-content">
-                            <video class="media-video" autoplay loop muted playsinline>
+                            <video class="media-video" autoplay loop muted playsinline onerror="console.error('Error cargando video:', '${mediaUrl}'); this.parentElement.innerHTML='<div class=\\'media-animation\\'><div class=\\'media-animation-icon\\'>${curiosity.icon}</div></div>'">
                                 <source src="${mediaUrl}" type="video/mp4">
                                 <source src="${mediaUrl}" type="video/webm">
                             </video>
@@ -690,11 +705,13 @@
                     mediaHTML = `
                         <div class="media-content">
                             <img src="${mediaUrl}" alt="${curiosity.country}" class="media-image" 
-                                 onerror="console.warn('Error cargando imagen:', '${mediaUrl}'); this.parentElement.innerHTML='<div class=\\'media-animation\\'><div class=\\'media-animation-icon\\'>${curiosity.icon}</div></div>'">
+                                 onload="console.log('Imagen cargada exitosamente:', '${mediaUrl}')"
+                                 onerror="console.error('Error cargando imagen:', '${mediaUrl}'); this.parentElement.innerHTML='<div class=\\'media-animation\\'><div class=\\'media-animation-icon\\'>${curiosity.icon}</div></div>'">
                         </div>
                     `;
                 }
             } else {
+                console.warn('[Curiosidades] No hay mediaUrl para', curiosity.country, '- mostrando animación');
                 mediaHTML = `
                     <div class="media-content">
                         <div class="media-animation">
@@ -950,6 +967,52 @@ NO repitas literalmente la curiosidad. Habla sobre lo que ves en el contenido mu
             }
             window.speechSynthesis.getVoices();
         }
+
+        // Escuchar mensajes del panel de control
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type) {
+                switch (event.data.type) {
+                    case 'pause-speech':
+                        if (window.speechSynthesis.speaking) {
+                            window.speechSynthesis.cancel();
+                            isSpeaking = false;
+                            const avatarImage = document.getElementById('avatar-image');
+                            if (avatarImage) avatarImage.classList.remove('speaking');
+                            console.log('[Curiosidades] Speech pausado por panel de control');
+                        }
+                        break;
+                    case 'resume-speech':
+                        // No hay resume automático, pero se puede implementar si es necesario
+                        console.log('[Curiosidades] Comando resume recibido');
+                        break;
+                    case 'skip-speech':
+                        if (window.speechSynthesis.speaking) {
+                            window.speechSynthesis.cancel();
+                            isSpeaking = false;
+                            const avatarImage = document.getElementById('avatar-image');
+                            if (avatarImage) avatarImage.classList.remove('speaking');
+                            console.log('[Curiosidades] Speech saltado por panel de control');
+                            // Avanzar a siguiente curiosidad
+                            setTimeout(() => {
+                                nextCuriosity();
+                            }, 500);
+                        }
+                        break;
+                }
+            }
+        });
+
+        // Exponer función para cancelar speech desde fuera
+        window.cancelCuriositiesSpeech = function() {
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+                isSpeaking = false;
+                const avatarImage = document.getElementById('avatar-image');
+                if (avatarImage) avatarImage.classList.remove('speaking');
+                return true;
+            }
+            return false;
+        };
 
         // Inicializar
         window.addEventListener('load', () => {
