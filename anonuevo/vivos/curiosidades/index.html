@@ -625,33 +625,50 @@
             }
             
             // Si no hay media, intentar generar imagen con IA basada en el país
+            console.log(`[Curiosidades] No se encontró media para ${curiosity.country}, generando con IA...`);
             try {
                 const imageRes = await fetch(`${API_BASE}/api/generate-image`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        prompt: `Beautiful landscape or cultural scene from ${curiosity.country}, high quality, cinematic, vibrant colors`
+                        prompt: `Beautiful landscape or cultural scene from ${curiosity.country}, high quality, cinematic, vibrant colors, professional photography`
                     })
                 });
                 
                 if (imageRes.ok) {
                     const imageData = await imageRes.json();
+                    console.log('[Curiosidades] Respuesta de generación IA:', imageData);
+                    
                     if (imageData.url) {
+                        let imageUrl = imageData.url;
+                        if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+                            imageUrl = '/' + imageUrl;
+                        }
+                        if (!imageUrl.startsWith('/media/') && !imageUrl.startsWith('http')) {
+                            imageUrl = '/media/' + imageUrl.replace(/^\//, '');
+                        }
+                        console.log('[Curiosidades] Imagen generada con IA:', imageUrl);
                         return {
-                            url: imageData.url.startsWith('http') ? imageData.url : '/' + imageData.url,
+                            url: imageUrl,
                             type: 'image'
                         };
                     } else if (imageData.filename) {
+                        const imageUrl = `/media/AI_Generated/${imageData.filename}`;
+                        console.log('[Curiosidades] Imagen generada con IA (filename):', imageUrl);
                         return {
-                            url: `/media/AI_Generated/${imageData.filename}`,
+                            url: imageUrl,
                             type: 'image'
                         };
                     }
+                } else {
+                    const errorText = await imageRes.text();
+                    console.warn('[Curiosidades] Error en respuesta de generación IA:', imageRes.status, errorText);
                 }
             } catch (e) {
                 console.warn('Error generando imagen con IA:', e);
             }
             
+            console.warn(`[Curiosidades] No se pudo obtener media para ${curiosity.country}`);
             return null;
         }
 
@@ -719,8 +736,8 @@
                     mediaHTML = `
                         <div class="media-content">
                             <img src="${mediaUrl}" alt="${curiosity.country}" class="media-image" 
-                                 onload="console.log('Imagen cargada exitosamente:', '${mediaUrl}')"
-                                 onerror="console.error('Error cargando imagen:', '${mediaUrl}'); this.parentElement.innerHTML='<div class=\\'media-animation\\'><div class=\\'media-animation-icon\\'>${curiosity.icon}</div></div>'">
+                                 onload="console.log('[Curiosidades] ✅ Imagen cargada exitosamente:', '${mediaUrl}')"
+                                 onerror="console.error('[Curiosidades] ❌ Error cargando imagen:', '${mediaUrl}', 'Status:', this.naturalWidth === 0 ? '404 o formato inválido' : 'Error de carga'); this.parentElement.innerHTML='<div class=\\'media-animation\\'><div class=\\'media-animation-icon\\'>${curiosity.icon}</div></div>'">
                         </div>
                     `;
                 }
