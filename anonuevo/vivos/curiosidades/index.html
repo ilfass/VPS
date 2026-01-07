@@ -757,6 +757,14 @@
             // Actualizar contador
             document.getElementById('curiosity-counter').textContent = `${currentIndex + 1} / ${curiosities.length}`;
 
+            // Actualizar historial de países recientes
+            if (curiosity.countryId) {
+                recentCountries.push(curiosity.countryId);
+                if (recentCountries.length > MAX_RECENT_COUNTRIES) {
+                    recentCountries.shift(); // Eliminar el más antiguo
+                }
+            }
+            
             // Mostrar avatar y narrar (espera a que termine completamente)
             showAvatar();
             await narrateCuriosity(curiosity);
@@ -788,18 +796,37 @@
                 context += `\n\nAcabé de hablar sobre ${previous.country}.`;
             }
 
+            // Variaciones de inicio para evitar repetición
+            const narrativeStarters = [
+                "Este contenido visual",
+                "Lo que captura mi atención aquí",
+                "Al detenerme en este material",
+                "Este registro visual",
+                "Lo que observo en este momento",
+                "Este fragmento de ${curiosity.country}",
+                "Al contemplar este contenido",
+                "Este material me transporta",
+                "Lo que revela esta imagen",
+                "Este documento visual",
+                "Al analizar lo que veo",
+                "Este contenido me invita a reflexionar"
+            ];
+            
+            const starter = narrativeStarters[Math.floor(Math.random() * narrativeStarters.length)];
+            
             const prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana en tiempo real.
 
 ${context}
 
 Genera una narrativa natural y fluida en primera persona que:
+- Empiece de forma variada (NO uses siempre "Mientras observo esta imagen")
 - Hable sobre el contenido multimedia que se está mostrando (imagen o video)
 - Conecte la curiosidad con el viaje de forma natural
 - Aporte información adicional, datos interesantes o reflexiones sobre lo que se ve
 - No suene como una lista, sino como una historia continua
 - Sea conversacional, como si estuvieras pensando en voz alta mientras observas
 - Tenga entre 100 y 180 palabras
-- En primera persona: "Mientras observo esta imagen...", "Este video me muestra...", "Lo que más me llama la atención es...", "Me pregunto si..."
+- Varía el inicio: usa diferentes formas de comenzar (${starter}..., Este material..., Lo que veo aquí..., Al detenerme..., etc.)
 
 NO repitas literalmente la curiosidad. Habla sobre lo que ves en el contenido multimedia y aporta nuevos datos, conexiones o reflexiones.`;
 
@@ -858,8 +885,31 @@ NO repitas literalmente la curiosidad. Habla sobre lo que ves en el contenido mu
             // Limpiar texto para narración
             const cleanText = naturalNarrative.replace(/[^\w\s.,;:!?áéíóúñüÁÉÍÓÚÑÜ]/g, '');
 
-            // Actualizar subtítulos
-            subtitlesText.textContent = naturalNarrative;
+            // Preparar subtítulos sincronizados palabra por palabra
+            const words = cleanText.split(/\s+/).filter(w => w.trim().length > 0);
+            let currentWordIndex = 0;
+            const maxWordsPerLine = 8;
+            const maxTotalWords = maxWordsPerLine * 2; // 2 líneas
+            let displayedWords = [];
+
+            // Función para actualizar subtítulos mostrando solo las últimas palabras
+            const updateSubtitles = () => {
+                if (currentWordIndex < words.length) {
+                    displayedWords.push(words[currentWordIndex]);
+                    
+                    // Si excede el máximo, eliminar la primera palabra
+                    if (displayedWords.length > maxTotalWords) {
+                        displayedWords.shift();
+                    }
+                    
+                    // Mostrar solo las palabras actuales (no acumulativo)
+                    subtitlesText.textContent = displayedWords.join(' ');
+                    currentWordIndex++;
+                }
+            };
+
+            // Limpiar subtítulos inicialmente
+            subtitlesText.textContent = '';
             avatarImage.classList.add('speaking');
 
             // Crear utterance
@@ -875,6 +925,13 @@ NO repitas literalmente la curiosidad. Habla sobre lo que ves en el contenido mu
                             voices.find(v => v.lang.startsWith('es'));
             if (bestVoice) utterance.voice = bestVoice;
 
+            // Sincronizar subtítulos con la voz usando eventos boundary
+            utterance.onboundary = (event) => {
+                if (event.name === 'word' || event.name === 'sentence') {
+                    updateSubtitles();
+                }
+            };
+
             // Promise para esperar a que termine el speech
             const speechPromise = new Promise((resolve) => {
                 let resolved = false;
@@ -882,14 +939,29 @@ NO repitas literalmente la curiosidad. Habla sobre lo que ves en el contenido mu
                 utterance.onstart = () => {
                     avatarImage.classList.add('speaking');
                     console.log('[Curiosidades] Speech iniciado');
+                    // Mostrar primera palabra inmediatamente
+                    if (words.length > 0) {
+                        updateSubtitles();
+                    }
                 };
 
                 utterance.onend = () => {
                     if (resolved) return;
                     resolved = true;
                     console.log('[Curiosidades] Speech terminado completamente');
+                    
+                    // Mostrar todas las palabras restantes al final
+                    while (currentWordIndex < words.length) {
+                        updateSubtitles();
+                    }
+                    
                     avatarImage.classList.remove('speaking');
                     isSpeaking = false;
+                    
+                    // Mantener subtítulos visibles por 2 segundos antes de limpiar
+                    setTimeout(() => {
+                        subtitlesText.textContent = '';
+                    }, 2000);
                     
                     // Pausa antes de cambiar (5-7 segundos)
                     const pauseTime = 5000 + Math.random() * 2000;
@@ -935,7 +1007,7 @@ NO repitas literalmente la curiosidad. Habla sobre lo que ves en el contenido mu
             nextCuriosity();
         }
 
-        // Siguiente curiosidad
+        // Siguiente curiosidad (evitando repeticiones inmediatas)
         async function nextCuriosity() {
             if (curiosities.length === 0) return;
             
@@ -950,7 +1022,25 @@ NO repitas literalmente la curiosidad. Habla sobre lo que ves en el contenido mu
                 return;
             }
             
-            currentIndex = (currentIndex + 1) % curiosities.length;
+            // Si hay suficientes curiosidades, evitar países recientes
+            if (curiosities.length > MAX_RECENT_COUNTRIES && recentCountries.length > 0) {
+                let attempts = 0;
+                let nextIndex;
+                
+                do {
+                    nextIndex = Math.floor(Math.random() * curiosities.length);
+                    attempts++;
+                } while (
+                    attempts < 20 && // Máximo 20 intentos
+                    recentCountries.includes(curiosities[nextIndex]?.countryId)
+                );
+                
+                currentIndex = nextIndex;
+            } else {
+                // Si hay pocas curiosidades, simplemente avanzar
+                currentIndex = (currentIndex + 1) % curiosities.length;
+            }
+            
             updateProgressDots();
             await displayCurrentCuriosity();
         }

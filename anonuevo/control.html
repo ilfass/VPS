@@ -900,17 +900,10 @@
                 log("Speech cancelado localmente", 'info');
             }
             
-            // Intentar cancelar en la página de curiosidades si existe
-            try {
-                const curiositiesWindow = window.open('', '_blank');
-                if (curiositiesWindow && curiositiesWindow.cancelCuriositiesSpeech) {
-                    curiositiesWindow.cancelCuriositiesSpeech();
-                }
-            } catch (e) {
-                // No se puede acceder, intentar con broadcast
-                if (window.broadcastChannel) {
-                    window.broadcastChannel.postMessage({ type: 'pause-speech' });
-                }
+            // Enviar comando a todas las ventanas abiertas usando BroadcastChannel
+            if (window.broadcastChannel) {
+                window.broadcastChannel.postMessage({ type: 'pause_narration' });
+                log("Comando pause enviado vía BroadcastChannel", 'info');
             }
             
             await api('/event/pause', 'POST');
