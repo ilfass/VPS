@@ -968,39 +968,80 @@ NO repitas literalmente la curiosidad. Habla sobre lo que ves en el contenido mu
             window.speechSynthesis.getVoices();
         }
 
-        // Escuchar mensajes del panel de control
+        // Escuchar mensajes del panel de control y BroadcastChannel
+        if (typeof BroadcastChannel !== 'undefined') {
+            const broadcastChannel = new BroadcastChannel('curiosities-control');
+            broadcastChannel.onmessage = (event) => {
+                if (event.data && event.data.type) {
+                    handleControlCommand(event.data.type);
+                }
+            };
+        }
+
+        // Escuchar mensajes postMessage
         window.addEventListener('message', (event) => {
             if (event.data && event.data.type) {
-                switch (event.data.type) {
-                    case 'pause-speech':
-                        if (window.speechSynthesis.speaking) {
-                            window.speechSynthesis.cancel();
-                            isSpeaking = false;
-                            const avatarImage = document.getElementById('avatar-image');
-                            if (avatarImage) avatarImage.classList.remove('speaking');
-                            console.log('[Curiosidades] Speech pausado por panel de control');
-                        }
-                        break;
-                    case 'resume-speech':
-                        // No hay resume automático, pero se puede implementar si es necesario
-                        console.log('[Curiosidades] Comando resume recibido');
-                        break;
-                    case 'skip-speech':
-                        if (window.speechSynthesis.speaking) {
-                            window.speechSynthesis.cancel();
-                            isSpeaking = false;
-                            const avatarImage = document.getElementById('avatar-image');
-                            if (avatarImage) avatarImage.classList.remove('speaking');
-                            console.log('[Curiosidades] Speech saltado por panel de control');
-                            // Avanzar a siguiente curiosidad
-                            setTimeout(() => {
-                                nextCuriosity();
-                            }, 500);
-                        }
-                        break;
-                }
+                handleControlCommand(event.data.type);
             }
         });
+
+        // Función para manejar comandos de control
+        function handleControlCommand(command) {
+            switch (command) {
+                case 'pause-speech':
+                case 'pause':
+                    if (window.speechSynthesis.speaking || isSpeaking) {
+                        window.speechSynthesis.cancel();
+                        isSpeaking = false;
+                        const avatarImage = document.getElementById('avatar-image');
+                        if (avatarImage) avatarImage.classList.remove('speaking');
+                        console.log('[Curiosidades] ⏸️ Speech pausado por panel de control');
+                    }
+                    break;
+                case 'resume-speech':
+                case 'resume':
+                    console.log('[Curiosidades] ▶️ Comando resume recibido');
+                    // El resume se maneja automáticamente al avanzar
+                    break;
+                case 'skip-speech':
+                case 'skip':
+                    if (window.speechSynthesis.speaking || isSpeaking) {
+                        window.speechSynthesis.cancel();
+                        isSpeaking = false;
+                        const avatarImage = document.getElementById('avatar-image');
+                        if (avatarImage) avatarImage.classList.remove('speaking');
+                        console.log('[Curiosidades] ⏭️ Speech saltado por panel de control');
+                        // Avanzar a siguiente curiosidad inmediatamente
+                        setTimeout(() => {
+                            nextCuriosity();
+                        }, 300);
+                    }
+                    break;
+            }
+        }
+
+        // Polling para verificar comandos del servidor
+        setInterval(async () => {
+            try {
+                const response = await fetch(`${API_BASE}/poll`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.events && data.events.length > 0) {
+                        for (const event of data.events) {
+                            if (event.type === 'pause_narration' || event.type === 'pause') {
+                                handleControlCommand('pause');
+                            } else if (event.type === 'skip_current' || event.type === 'skip') {
+                                handleControlCommand('skip');
+                            } else if (event.type === 'resume_narration' || event.type === 'resume') {
+                                handleControlCommand('resume');
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                // Silencioso
+            }
+        }, 2000);
 
         // Exponer función para cancelar speech desde fuera
         window.cancelCuriositiesSpeech = function() {

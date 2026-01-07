@@ -893,6 +893,26 @@
 
         async function pauseNarration() {
             log("Pausing narration...", 'warning');
+            
+            // Cancelar speech localmente si está activo
+            if (window.speechSynthesis && window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+                log("Speech cancelado localmente", 'info');
+            }
+            
+            // Intentar cancelar en la página de curiosidades si existe
+            try {
+                const curiositiesWindow = window.open('', '_blank');
+                if (curiositiesWindow && curiositiesWindow.cancelCuriositiesSpeech) {
+                    curiositiesWindow.cancelCuriositiesSpeech();
+                }
+            } catch (e) {
+                // No se puede acceder, intentar con broadcast
+                if (window.broadcastChannel) {
+                    window.broadcastChannel.postMessage({ type: 'pause-speech' });
+                }
+            }
+            
             await api('/event/pause', 'POST');
         }
 
@@ -903,6 +923,25 @@
 
         async function skipCurrent() {
             log("Skipping current...", 'warning');
+            
+            // Cancelar speech inmediatamente
+            if (window.speechSynthesis && window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+                log("Speech cancelado para skip", 'warning');
+            }
+            
+            // Intentar cancelar en curiosidades
+            try {
+                const curiositiesWindow = window.open('', '_blank');
+                if (curiositiesWindow && curiositiesWindow.cancelCuriositiesSpeech) {
+                    curiositiesWindow.cancelCuriositiesSpeech();
+                }
+            } catch (e) {
+                if (window.broadcastChannel) {
+                    window.broadcastChannel.postMessage({ type: 'skip-speech' });
+                }
+            }
+            
             await api('/event/skip', 'POST');
         }
 
