@@ -220,8 +220,24 @@ export class AudioManager {
         };
         
         utterance.onerror = (e) => {
-            console.error("[AudioManager] ❌ Error en voz:", e);
+            console.error("[AudioManager] ❌ Error en voz:", e.error, e);
             this.notifySpeaking(false);
+            
+            // Si el error es 'not-allowed', intentar desbloquear y reintentar
+            if (e.error === 'not-allowed') {
+                console.warn("[AudioManager] ⚠️ SpeechSynthesis bloqueado, intentando desbloquear...");
+                try {
+                    this.synth.cancel();
+                    this.synth.resume();
+                    // Esperar un momento y reintentar
+                    setTimeout(() => {
+                        console.log("[AudioManager] 🔄 Reintentando hablar después de desbloquear...");
+                        this.speak(text, priority, onEndCallback);
+                    }, 500);
+                } catch (retryError) {
+                    console.error("[AudioManager] ❌ No se pudo desbloquear SpeechSynthesis:", retryError);
+                }
+            }
         };
         
         // Esperar a que las voces estén cargadas
@@ -285,7 +301,7 @@ export class AudioManager {
         };
         
         utterance.onerror = (e) => {
-            console.error("[AudioManager] ❌ Error en voz:", e);
+            console.error("[AudioManager] ❌ Error en voz (selectVoice):", e.error, e);
             this.notifySpeaking(false);
         };
     }
