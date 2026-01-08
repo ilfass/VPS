@@ -1036,18 +1036,105 @@ Genera una introducción en primera persona (como ilfass) que:
             // Marcar que estamos narrando para prevenir zoom out
             this.isNarrating = true;
             
-            // Actualizar subtítulos palabra por palabra
-            avatarSubtitlesManager.updateSubtitles(continuousNarrative.narrative, 2.5);
+            // Preparar subtítulos sincronizados con la voz usando eventos boundary
+            const cleanNarrative = continuousNarrative.narrative.replace(/[^\w\s.,;:!?áéíóúñüÁÉÍÓÚÑÜ]/g, '');
+            const words = cleanNarrative.split(/\s+/).filter(w => w.trim().length > 0);
+            let currentWordIndex = 0;
+            const maxWordsPerLine = 10;
+            const maxTotalWords = maxWordsPerLine * 2; // 2 líneas
+            let displayedWords = [];
             
-            audioManager.speak(continuousNarrative.narrative, 'normal', async () => {
-                // Marcar que terminó la narración
-                this.isNarrating = false;
+            // Función para actualizar subtítulos mostrando solo las últimas palabras
+            const updateSubtitlesSync = () => {
+                if (currentWordIndex < words.length) {
+                    displayedWords.push(words[currentWordIndex]);
+                    
+                    // Si excede el máximo, eliminar la primera palabra
+                    if (displayedWords.length > maxTotalWords) {
+                        displayedWords.shift();
+                    }
+                    
+                    // Mostrar solo las palabras actuales (no acumulativo)
+                    const wordsToShow = displayedWords.join(' ');
+                    avatarSubtitlesManager.setSubtitles(wordsToShow);
+                    currentWordIndex++;
+                }
+            };
+            
+            // Limpiar subtítulos inicialmente
+            avatarSubtitlesManager.clearSubtitles();
+            
+            // Usar audioManager pero con sincronización de subtítulos mejorada
+            // El audioManager maneja el ducking y la voz, pero sincronizamos subtítulos manualmente
+            const originalSpeak = audioManager.speak.bind(audioManager);
+            
+            // Crear utterance para sincronización
+            const utterance = new SpeechSynthesisUtterance(cleanNarrative);
+            utterance.lang = 'es-ES';
+            utterance.rate = 0.85;
+            utterance.pitch = 0.95;
+            utterance.volume = 1.0;
+            
+            // Seleccionar mejor voz
+            const voices = window.speechSynthesis.getVoices();
+            const bestVoice = voices.find(v => v.lang.startsWith('es') && (v.name.includes('Google') || v.name.includes('Microsoft'))) || 
+                            voices.find(v => v.lang.startsWith('es'));
+            if (bestVoice) utterance.voice = bestVoice;
+            
+            // Sincronizar subtítulos con la voz usando eventos boundary
+            utterance.onboundary = (event) => {
+                if (event.name === 'word' || event.name === 'sentence') {
+                    updateSubtitlesSync();
+                }
+            };
+            
+            utterance.onstart = () => {
+                // Mostrar primera palabra inmediatamente
+                if (words.length > 0) {
+                    updateSubtitlesSync();
+                }
+            };
+            
+            // Bajar música antes de hablar (ducking)
+            if (audioManager.isMusicPlaying) {
+                audioManager.fadeAudio(audioManager.musicLayer, audioManager.musicLayer.volume, 0.05, 500);
+            }
+            
+            // Hablar directamente con speechSynthesis para tener control completo de los eventos
+            window.speechSynthesis.speak(utterance);
+            
+            // Esperar a que termine el speech
+            const speechPromise = new Promise((resolve) => {
+                utterance.onend = () => {
+                    // Mostrar todas las palabras restantes al final
+                    while (currentWordIndex < words.length) {
+                        updateSubtitlesSync();
+                    }
+                    resolve();
+                };
                 
-                pacingEngine.endCurrentEvent();
-                pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
-                
-                // Mostrar subtítulos completos al finalizar
-                avatarSubtitlesManager.setSubtitles(continuousNarrative.narrative);
+                utterance.onerror = () => {
+                    resolve();
+                };
+            });
+            
+            await speechPromise;
+            
+            // Restaurar música después de hablar
+            if (audioManager.isMusicPlaying) {
+                audioManager.fadeAudio(audioManager.musicLayer, audioManager.musicLayer.volume, 0.3, 1000);
+            }
+            
+            // Marcar que terminó la narración
+            this.isNarrating = false;
+            
+            pacingEngine.endCurrentEvent();
+            pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+            
+            // Mantener subtítulos visibles por 2 segundos antes de limpiar
+            setTimeout(() => {
+                avatarSubtitlesManager.clearSubtitles();
+            }, 2000);
                 
                 // 7. Guardar visita en memoria
                 const visitData = {

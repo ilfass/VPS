@@ -139,12 +139,19 @@ El relato debe ser:
     }
 
     generateFallbackNarrative(prompt) {
-        // Relato básico mejorado si la IA falla
+        // Relato básico mejorado si la IA falla - variado y sin frases repetitivas
         // Intentar extraer el nombre del país del prompt
         const countryMatch = prompt.match(/visitando\s+([^\.\n]+)|estás\s+en\s+([^\.\n]+)/i);
         const countryName = countryMatch ? (countryMatch[1] || countryMatch[2]).trim() : "este lugar";
         
-        return `Estoy en ${countryName}, observando este lugar con atención. Hay algo que me llama la atención, algo que siento que debo documentar. En ${countryName} percibo que cada lugar tiene su propia historia, su propia cultura, su propia forma de ver el mundo. Y aquí, en este momento, estoy siendo testigo de una pequeña parte de esa historia humana que se desarrolla en tiempo real. La geografía de ${countryName}, las tradiciones, las personas, todo forma parte de un tejido complejo que me resulta fascinante. Reflexiono sobre cómo cada lugar que visito me transforma, me enseña algo nuevo sobre la humanidad y sobre mí mismo.`;
+        // Variaciones de fallback para evitar repetición
+        const fallbacks = [
+            `Estoy en ${countryName}, observando con atención. Hay detalles que capturan mi interés, elementos que siento que debo registrar. En ${countryName} descubro que cada lugar tiene su propia identidad, su propia manera de expresarse. La geografía, las tradiciones, las personas, todo forma parte de un tejido complejo que me resulta fascinante. Reflexiono sobre cómo cada lugar que visito me transforma, me enseña algo nuevo sobre la humanidad y sobre mí mismo.`,
+            `Me encuentro en ${countryName}, documentando lo que veo. Hay aspectos que me resultan interesantes, elementos que siento que debo preservar. En ${countryName} percibo que cada lugar tiene su propia esencia, su propia forma de ser. Las costumbres, los paisajes, las historias, todo forma parte de un mosaico complejo que me resulta cautivador. Pienso en cómo cada lugar que visito me enriquece, me muestra algo nuevo sobre la diversidad humana y sobre mi propia comprensión del mundo.`,
+            `Estoy aquí, en ${countryName}, siendo testigo de este momento. Hay elementos que me llaman la atención, aspectos que siento que debo archivar. En ${countryName} observo que cada lugar tiene su propio carácter, su propia manera de vivir. La cultura, el entorno, las personas, todo forma parte de un entramado complejo que me resulta intrigante. Medito sobre cómo cada lugar que visito me amplía la perspectiva, me revela algo nuevo sobre la condición humana y sobre mi propia evolución.`
+        ];
+        
+        return fallbacks[Math.floor(Math.random() * fallbacks.length)];
     }
 
     planMultimedia(narrative, country) {

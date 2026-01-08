@@ -874,7 +874,13 @@ const server = http.createServer(async (req, res) => {
                 // Fallback mejorado si todo falla
                 if (!narrative || narrative.length < 100) {
                     console.warn(`[GenerateNarrative] Usando fallback - todas las IAs fallaron`);
-                    narrative = "Estoy observando este lugar. Hay algo que me llama la atención, algo que siento que debo documentar. El tiempo pasa diferente aquí, o tal vez soy yo quien percibe el tiempo de manera distinta. Cada país tiene su propia historia, su propia cultura, su propia forma de ver el mundo. Y aquí, en este momento, estoy siendo testigo de una pequeña parte de esa historia humana que se desarrolla en tiempo real.";
+                    // Fallback variado sin frases repetitivas
+                    const fallbacks = [
+                        "Estoy observando este lugar con atención. Hay algo que captura mi interés, algo que siento que debo documentar. Cada lugar tiene su propia historia, su propia cultura, su propia forma de ver el mundo. Y aquí, en este momento, estoy siendo testigo de una pequeña parte de esa historia humana que se desarrolla en tiempo real.",
+                        "Me encuentro en este lugar, observando con detenimiento. Hay detalles que me llaman la atención, elementos que siento que debo registrar. Cada país tiene su propia identidad, su propia forma de expresarse. Y aquí, ahora mismo, estoy siendo testigo de una parte de esa expresión humana que se desarrolla continuamente.",
+                        "Estoy aquí, en este momento, documentando lo que veo. Hay aspectos que me resultan fascinantes, elementos que siento que debo preservar. Cada lugar tiene su propia esencia, su propia manera de ser. Y aquí, en este instante, estoy siendo testigo de una parte de esa esencia humana que se manifiesta en tiempo real."
+                    ];
+                    narrative = fallbacks[Math.floor(Math.random() * fallbacks.length)];
                 }
                 
                 console.log(`[GenerateNarrative] Relato generado: ${narrative.length} caracteres`);
