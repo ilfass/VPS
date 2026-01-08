@@ -710,44 +710,33 @@ export default class MapaMode {
         utterance.rate = 0.95;
         utterance.volume = 1.0;
         
-        // Dividir el texto en frases para actualizar subtítulos progresivamente
-        const cleanText = immediateIntroText.replace(/\.\s+/g, '.|').split('|').filter(f => f.trim().length > 0);
-        let currentPhraseIndex = 0;
+        // Dividir el texto en palabras para actualizar subtítulos progresivamente
+        const words = immediateIntroText.split(' ').filter(w => w.trim().length > 0);
+        let wordsSpoken = 0;
+        const maxWordsPerSubtitle = 16; // Aproximadamente 2 líneas
         
         // Sincronizar subtítulos con la voz usando onstart y onboundary
         utterance.onstart = () => {
             console.log('[Mapa] ✅ Voz iniciada, mostrando subtítulos del texto inicial');
-            // Mostrar primera frase inmediatamente
-            if (cleanText.length > 0) {
-                avatarSubtitlesManager.setSubtitles(cleanText[0]);
-            }
+            // Mostrar primeras palabras inmediatamente
+            const initialWords = words.slice(0, maxWordsPerSubtitle).join(' ');
+            avatarSubtitlesManager.setSubtitles(initialWords);
+            wordsSpoken = 0;
         };
         
-        // Actualizar subtítulos frase por frase mientras se habla
+        // Actualizar subtítulos palabra por palabra mientras se habla
         utterance.onboundary = (event) => {
-            if (event.name === 'sentence' || event.name === 'word') {
-                // Calcular qué frase debería mostrarse basado en la posición
-                const charIndex = event.charIndex;
-                let totalChars = 0;
-                let targetPhraseIndex = 0;
+            if (event.name === 'word') {
+                wordsSpoken++;
                 
-                for (let i = 0; i < cleanText.length; i++) {
-                    totalChars += cleanText[i].length;
-                    if (charIndex < totalChars) {
-                        targetPhraseIndex = i;
-                        break;
-                    }
-                }
+                // Calcular qué palabras mostrar (últimas maxWordsPerSubtitle palabras)
+                const startIndex = Math.max(0, wordsSpoken - maxWordsPerSubtitle);
+                const endIndex = Math.min(words.length, wordsSpoken);
+                const wordsToShow = words.slice(startIndex, endIndex).join(' ');
                 
-                // Si cambió la frase, actualizar subtítulos
-                if (targetPhraseIndex !== currentPhraseIndex && targetPhraseIndex < cleanText.length) {
-                    currentPhraseIndex = targetPhraseIndex;
-                    // Mostrar la frase actual y la siguiente (máximo 2 líneas)
-                    const phrasesToShow = cleanText.slice(
-                        Math.max(0, currentPhraseIndex),
-                        Math.min(cleanText.length, currentPhraseIndex + 2)
-                    ).join(' ');
-                    avatarSubtitlesManager.setSubtitles(phrasesToShow);
+                // Actualizar subtítulos con las palabras actuales
+                if (wordsToShow.trim().length > 0) {
+                    avatarSubtitlesManager.setSubtitles(wordsToShow);
                 }
             }
         };
@@ -756,19 +745,40 @@ export default class MapaMode {
         utterance.onend = async () => {
             console.log('[Mapa] ✅ Texto inicial terminado, esperando texto completo...');
             
-            // Esperar a que el texto completo esté listo (o timeout)
-            const fullIntroText = await Promise.race([
-                generateFullIntroPromise,
-                new Promise(resolve => setTimeout(() => resolve(null), 5000)) // Timeout de 5 segundos
-            ]);
+            // Esperar a que el texto completo esté listo (con timeout más largo)
+            let fullIntroText = null;
+            try {
+                fullIntroText = await Promise.race([
+                    generateFullIntroPromise,
+                    new Promise(resolve => setTimeout(() => resolve(null), 10000)) // Timeout de 10 segundos
+                ]);
+            } catch (e) {
+                console.warn('[Mapa] Error esperando texto completo:', e);
+            }
+            
+            // Si aún no está listo, esperar un poco más y verificar de nuevo
+            if (!fullIntroText) {
+                console.log('[Mapa] ⏳ Texto completo aún no listo, esperando 3 segundos más...');
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                // Verificar si ya está resuelto
+                try {
+                    fullIntroText = await Promise.race([
+                        generateFullIntroPromise,
+                        new Promise(resolve => setTimeout(() => resolve(null), 100)) // Timeout corto solo para verificar
+                    ]);
+                } catch (e) {
+                    // Ignorar errores
+                }
+            }
             
             // Si hay texto completo y es diferente, continuar hablando con él
             if (fullIntroText && fullIntroText !== immediateIntroText && fullIntroText.length > immediateIntroText.length) {
                 console.log('[Mapa] 🔊 Continuando con texto completo generado');
                 
-                // Dividir el texto completo en frases
-                const fullCleanText = fullIntroText.replace(/\.\s+/g, '.|').split('|').filter(f => f.trim().length > 0);
-                let fullCurrentPhraseIndex = 0;
+                // Dividir el texto completo en palabras para actualizar subtítulos progresivamente
+                const fullWords = fullIntroText.split(' ').filter(w => w.trim().length > 0);
+                let fullWordsSpoken = 0;
+                const maxWordsPerSubtitle = 16; // Aproximadamente 2 líneas
                 
                 // Crear nuevo utterance para el texto completo
                 const fullUtterance = new SpeechSynthesisUtterance(fullIntroText);
@@ -779,34 +789,25 @@ export default class MapaMode {
                 // Sincronizar subtítulos cuando empiece a hablar el texto completo
                 fullUtterance.onstart = () => {
                     console.log('[Mapa] ✅ Voz del texto completo iniciada, actualizando subtítulos');
-                    // Mostrar primera frase del texto completo
-                    if (fullCleanText.length > 0) {
-                        avatarSubtitlesManager.setSubtitles(fullCleanText[0]);
-                    }
+                    // Mostrar primeras palabras del texto completo
+                    const initialWords = fullWords.slice(0, maxWordsPerSubtitle).join(' ');
+                    avatarSubtitlesManager.setSubtitles(initialWords);
+                    fullWordsSpoken = 0;
                 };
                 
-                // Actualizar subtítulos frase por frase
+                // Actualizar subtítulos palabra por palabra
                 fullUtterance.onboundary = (event) => {
-                    if (event.name === 'sentence' || event.name === 'word') {
-                        const charIndex = event.charIndex;
-                        let totalChars = 0;
-                        let targetPhraseIndex = 0;
+                    if (event.name === 'word') {
+                        fullWordsSpoken++;
                         
-                        for (let i = 0; i < fullCleanText.length; i++) {
-                            totalChars += fullCleanText[i].length;
-                            if (charIndex < totalChars) {
-                                targetPhraseIndex = i;
-                                break;
-                            }
-                        }
+                        // Calcular qué palabras mostrar (últimas maxWordsPerSubtitle palabras)
+                        const startIndex = Math.max(0, fullWordsSpoken - maxWordsPerSubtitle);
+                        const endIndex = Math.min(fullWords.length, fullWordsSpoken);
+                        const wordsToShow = fullWords.slice(startIndex, endIndex).join(' ');
                         
-                        if (targetPhraseIndex !== fullCurrentPhraseIndex && targetPhraseIndex < fullCleanText.length) {
-                            fullCurrentPhraseIndex = targetPhraseIndex;
-                            const phrasesToShow = fullCleanText.slice(
-                                Math.max(0, fullCurrentPhraseIndex),
-                                Math.min(fullCleanText.length, fullCurrentPhraseIndex + 2)
-                            ).join(' ');
-                            avatarSubtitlesManager.setSubtitles(phrasesToShow);
+                        // Actualizar subtítulos con las palabras actuales
+                        if (wordsToShow.trim().length > 0) {
+                            avatarSubtitlesManager.setSubtitles(wordsToShow);
                         }
                     }
                 };
