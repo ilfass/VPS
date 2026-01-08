@@ -1064,11 +1064,8 @@ Genera una introducción en primera persona (como ilfass) que:
             // Limpiar subtítulos inicialmente
             avatarSubtitlesManager.clearSubtitles();
             
-            // Usar audioManager pero con sincronización de subtítulos mejorada
-            // El audioManager maneja el ducking y la voz, pero sincronizamos subtítulos manualmente
-            const originalSpeak = audioManager.speak.bind(audioManager);
-            
             // Crear utterance para sincronización
+            const cleanNarrative = continuousNarrative.narrative.replace(/[^\w\s.,;:!?áéíóúñüÁÉÍÓÚÑÜ]/g, '');
             const utterance = new SpeechSynthesisUtterance(cleanNarrative);
             utterance.lang = 'es-ES';
             utterance.rate = 0.85;
@@ -1135,38 +1132,37 @@ Genera una introducción en primera persona (como ilfass) que:
             setTimeout(() => {
                 avatarSubtitlesManager.clearSubtitles();
             }, 2000);
-                
-                // 7. Guardar visita en memoria
-                const visitData = {
-                    visitId: `visit_${Date.now()}`,
-                    timestamp: visitStartTime,
-                    dayId: enrichedContext.dayId || 'Unknown',
-                    narrative: continuousNarrative.narrative,
-                    multimedia: multimediaItems.map(item => ({
-                        type: item.type,
-                        url: item.url,
-                        context: item.context,
-                        timestamp: visitStartTime
-                    })),
-                    reflections: continuousNarrative.reflections,
-                    dataPoints: continuousNarrative.dataPoints,
-                    emotionalNotes: continuousNarrative.emotionalNotes,
-                    isFirstVisit: continuousNarrative.isFirstVisit
-                };
-                
-                await countryMemoryManager.saveVisit(target.id, visitData);
-                console.log(`[Mapa] ✅ Visita guardada en memoria para ${target.name}`);
-                
-                // 8. Esperar un momento antes de ocultar y hacer zoom out
-                setTimeout(() => {
-                    multimediaOrchestrator.hideAllOverlays();
-                    avatarSubtitlesManager.hide();
-                    // Solo hacer zoom out si no hay otra narración iniciándose
-                    if (!this.isNarrating) {
-                        this.cycleZoomOut();
-                    }
-                }, 3000); // 3 segundos para que se vea el subtítulo completo
-            });
+            
+            // 7. Guardar visita en memoria
+            const visitData = {
+                visitId: `visit_${Date.now()}`,
+                timestamp: visitStartTime,
+                dayId: enrichedContext.dayId || 'Unknown',
+                narrative: continuousNarrative.narrative,
+                multimedia: multimediaItems.map(item => ({
+                    type: item.type,
+                    url: item.url,
+                    context: item.context,
+                    timestamp: visitStartTime
+                })),
+                reflections: continuousNarrative.reflections,
+                dataPoints: continuousNarrative.dataPoints,
+                emotionalNotes: continuousNarrative.emotionalNotes,
+                isFirstVisit: continuousNarrative.isFirstVisit
+            };
+            
+            await countryMemoryManager.saveVisit(target.id, visitData);
+            console.log(`[Mapa] ✅ Visita guardada en memoria para ${target.name}`);
+            
+            // 8. Esperar un momento antes de ocultar y hacer zoom out
+            setTimeout(() => {
+                multimediaOrchestrator.hideAllOverlays();
+                avatarSubtitlesManager.hide();
+                // Solo hacer zoom out si no hay otra narración iniciándose
+                if (!this.isNarrating) {
+                    this.cycleZoomOut();
+                }
+            }, 3000); // 3 segundos para que se vea el subtítulo completo
             
             // 8. Actualizar diario con el relato
             this.updateDiary({
