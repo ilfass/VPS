@@ -888,29 +888,49 @@ NO repitas literalmente la curiosidad. Habla sobre lo que ves en el contenido mu
 
             // Limpiar texto para narración
             const cleanText = naturalNarrative.replace(/[^\w\s.,;:!?áéíóúñüÁÉÍÓÚÑÜ]/g, '');
-
-            // Preparar subtítulos sincronizados palabra por palabra
-            const words = cleanText.split(/\s+/).filter(w => w.trim().length > 0);
-            let currentWordIndex = 0;
-            const maxWordsPerLine = 8;
-            const maxTotalWords = maxWordsPerLine * 2; // 2 líneas
-            let displayedWords = [];
-
-            // Función para actualizar subtítulos mostrando solo las últimas palabras
-            const updateSubtitles = () => {
-                if (currentWordIndex < words.length) {
-                    displayedWords.push(words[currentWordIndex]);
-                    
-                    // Si excede el máximo, eliminar la primera palabra
-                    if (displayedWords.length > maxTotalWords) {
-                        displayedWords.shift();
+            
+            // Dividir en frases (por puntos, comas, o pausas naturales)
+            const sentences = cleanText
+                .split(/([.!?]+\s+|,\s+)/)
+                .filter(s => s.trim().length > 0)
+                .map(s => s.trim());
+            
+            // Agrupar frases en bloques de ~2 líneas (máximo 16-18 palabras por bloque)
+            const phraseBlocks = [];
+            let currentBlock = [];
+            let currentWordCount = 0;
+            const maxWordsPerBlock = 16; // Aproximadamente 2 líneas
+            
+            for (const sentence of sentences) {
+                const wordCount = sentence.split(/\s+/).filter(w => w.trim().length > 0).length;
+                
+                if (currentWordCount + wordCount <= maxWordsPerBlock && currentBlock.length > 0) {
+                    // Agregar a bloque actual
+                    currentBlock.push(sentence);
+                    currentWordCount += wordCount;
+                } else {
+                    // Guardar bloque anterior y empezar uno nuevo
+                    if (currentBlock.length > 0) {
+                        phraseBlocks.push({
+                            text: currentBlock.join(' '),
+                            wordCount: currentWordCount
+                        });
                     }
-                    
-                    // Mostrar solo las palabras actuales (no acumulativo)
-                    subtitlesText.textContent = displayedWords.join(' ');
-                    currentWordIndex++;
+                    currentBlock = [sentence];
+                    currentWordCount = wordCount;
                 }
-            };
+            }
+            
+            // Agregar último bloque
+            if (currentBlock.length > 0) {
+                phraseBlocks.push({
+                    text: currentBlock.join(' '),
+                    wordCount: currentWordCount
+                });
+            }
+            
+            let currentPhraseIndex = 0;
+            let wordsSpoken = 0;
 
             // Limpiar subtítulos inicialmente
             subtitlesText.textContent = '';
