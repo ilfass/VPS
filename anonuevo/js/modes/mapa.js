@@ -1064,8 +1064,7 @@ Genera una introducción en primera persona (como ilfass) que:
             // Limpiar subtítulos inicialmente
             avatarSubtitlesManager.clearSubtitles();
             
-            // Crear utterance para sincronización
-            const cleanNarrative = continuousNarrative.narrative.replace(/[^\w\s.,;:!?áéíóúñüÁÉÍÓÚÑÜ]/g, '');
+            // Crear utterance para sincronización (usar cleanNarrative ya declarado arriba)
             const utterance = new SpeechSynthesisUtterance(cleanNarrative);
             utterance.lang = 'es-ES';
             utterance.rate = 0.85;
