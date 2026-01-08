@@ -690,12 +690,26 @@ export default class MapaMode {
         })();
         
         // Empezar a hablar INMEDIATAMENTE con el texto inicial (no esperar)
-        avatarSubtitlesManager.setSubtitles(immediateIntroText);
+        // IMPORTANTE: Establecer subtítulos SOLO cuando realmente se empiece a hablar
         console.log('[Mapa] 🔊 Hablando texto inicial inmediatamente');
-        audioManager.speak(immediateIntroText, 'normal', async () => {
+        
+        // Usar speechSynthesis directamente para tener control de eventos y sincronizar subtítulos
+        const utterance = new SpeechSynthesisUtterance(immediateIntroText);
+        utterance.lang = 'es-ES';
+        utterance.rate = 0.95;
+        utterance.volume = 1.0;
+        
+        // Sincronizar subtítulos con la voz usando onstart
+        utterance.onstart = () => {
+            console.log('[Mapa] ✅ Voz iniciada, mostrando subtítulos del texto inicial');
+            avatarSubtitlesManager.setSubtitles(immediateIntroText);
+        };
+        
+        // Cuando termine el texto inicial, continuar con el completo si está listo
+        utterance.onend = async () => {
             console.log('[Mapa] ✅ Texto inicial terminado, esperando texto completo...');
             
-            // Después de que termine el texto inicial, esperar a que el texto completo esté listo
+            // Esperar a que el texto completo esté listo (o timeout)
             const fullIntroText = await Promise.race([
                 generateFullIntroPromise,
                 new Promise(resolve => setTimeout(() => resolve(null), 5000)) // Timeout de 5 segundos
@@ -704,26 +718,61 @@ export default class MapaMode {
             // Si hay texto completo y es diferente, continuar hablando con él
             if (fullIntroText && fullIntroText !== immediateIntroText && fullIntroText.length > immediateIntroText.length) {
                 console.log('[Mapa] 🔊 Continuando con texto completo generado');
-                avatarSubtitlesManager.setSubtitles(fullIntroText);
-                audioManager.speak(fullIntroText, 'normal', async () => {
+                
+                // Crear nuevo utterance para el texto completo
+                const fullUtterance = new SpeechSynthesisUtterance(fullIntroText);
+                fullUtterance.lang = 'es-ES';
+                fullUtterance.rate = 0.95;
+                fullUtterance.volume = 1.0;
+                
+                // Sincronizar subtítulos cuando empiece a hablar el texto completo
+                fullUtterance.onstart = () => {
+                    console.log('[Mapa] ✅ Voz del texto completo iniciada, actualizando subtítulos');
+                    avatarSubtitlesManager.setSubtitles(fullIntroText);
+                };
+                
+                fullUtterance.onend = async () => {
                     await this.finishMapIntro(fullIntroText, previousPresentations);
-                });
+                };
+                
+                fullUtterance.onerror = (e) => {
+                    console.error('[Mapa] ❌ Error en voz del texto completo:', e);
+                    this.finishMapIntro(fullIntroText, previousPresentations);
+                };
+                
+                // Seleccionar voz y hablar
+                const voices = window.speechSynthesis.getVoices();
+                const spanishVoice = voices.find(v => v.lang.includes('es')) || voices[0];
+                if (spanishVoice) fullUtterance.voice = spanishVoice;
+                
+                window.speechSynthesis.speak(fullUtterance);
             } else {
                 // Si no hay texto completo, terminar con el inicial
                 console.log('[Mapa] ✅ Terminando con texto inicial (no se generó completo)');
                 await this.finishMapIntro(immediateIntroText, previousPresentations);
             }
-        });
+        };
         
-        // En paralelo, esperar a que el texto completo esté listo para actualizar si aún está hablando el inicial
-        generateFullIntroPromise.then(fullIntroText => {
-            if (fullIntroText && fullIntroText !== immediateIntroText && fullIntroText.length > immediateIntroText.length) {
-                // Si el texto completo está listo y aún estamos hablando el inicial, actualizar subtítulos
-                // (pero no interrumpir el audio, solo actualizar subtítulos)
-                console.log('[Mapa] 📝 Texto completo listo, actualizando subtítulos');
-                avatarSubtitlesManager.setSubtitles(fullIntroText);
-            }
-        });
+        utterance.onerror = (e) => {
+            console.error('[Mapa] ❌ Error en voz del texto inicial:', e);
+            this.finishMapIntro(immediateIntroText, previousPresentations);
+        };
+        
+        // Seleccionar voz y hablar
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length === 0) {
+            // Esperar a que las voces estén cargadas
+            window.speechSynthesis.onvoiceschanged = () => {
+                const voicesRetry = window.speechSynthesis.getVoices();
+                const spanishVoice = voicesRetry.find(v => v.lang.includes('es')) || voicesRetry[0];
+                if (spanishVoice) utterance.voice = spanishVoice;
+                window.speechSynthesis.speak(utterance);
+            };
+        } else {
+            const spanishVoice = voices.find(v => v.lang.includes('es')) || voices[0];
+            if (spanishVoice) utterance.voice = spanishVoice;
+            window.speechSynthesis.speak(utterance);
+        }
         
         // Mostrar contenido multimedia global (imagen del mundo, viaje, etc.)
         try {
