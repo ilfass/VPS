@@ -712,37 +712,70 @@ export default class MapaMode {
         
         // Dividir el texto en palabras para actualizar subtítulos progresivamente
         const words = immediateIntroText.split(' ').filter(w => w.trim().length > 0);
-        let wordsSpoken = 0;
+        let wordsShown = 0;
         const maxWordsPerSubtitle = 16; // Aproximadamente 2 líneas
         
-        // Sincronizar subtítulos con la voz usando onstart y onboundary
+        // Calcular tiempo estimado por palabra (basado en rate 0.95)
+        // Rate 0.95 significa ~95 palabras por minuto = ~1.58 palabras por segundo = ~630ms por palabra
+        const msPerWord = 630;
+        let subtitleInterval = null;
+        
+        // Sincronizar subtítulos con la voz usando onstart y intervalo de tiempo
         utterance.onstart = () => {
             console.log('[Mapa] ✅ Voz iniciada, mostrando subtítulos del texto inicial');
+            wordsShown = 0;
+            
             // Mostrar primeras palabras inmediatamente
             const initialWords = words.slice(0, maxWordsPerSubtitle).join(' ');
             avatarSubtitlesManager.setSubtitles(initialWords);
-            wordsSpoken = 0;
+            wordsShown = maxWordsPerSubtitle;
+            
+            // Actualizar subtítulos palabra por palabra usando intervalo de tiempo
+            subtitleInterval = setInterval(() => {
+                if (wordsShown < words.length) {
+                    // Calcular qué palabras mostrar (últimas maxWordsPerSubtitle palabras)
+                    const startIndex = Math.max(0, wordsShown - maxWordsPerSubtitle);
+                    const endIndex = Math.min(words.length, wordsShown + 1);
+                    const wordsToShow = words.slice(startIndex, endIndex).join(' ');
+                    
+                    // Actualizar subtítulos con las palabras actuales
+                    if (wordsToShow.trim().length > 0) {
+                        avatarSubtitlesManager.setSubtitles(wordsToShow);
+                    }
+                    wordsShown++;
+                } else {
+                    // Si ya mostramos todas las palabras, limpiar intervalo
+                    if (subtitleInterval) {
+                        clearInterval(subtitleInterval);
+                        subtitleInterval = null;
+                    }
+                }
+            }, msPerWord);
         };
         
-        // Actualizar subtítulos palabra por palabra mientras se habla
-        utterance.onboundary = (event) => {
-            if (event.name === 'word') {
-                wordsSpoken++;
-                
-                // Calcular qué palabras mostrar (últimas maxWordsPerSubtitle palabras)
-                const startIndex = Math.max(0, wordsSpoken - maxWordsPerSubtitle);
-                const endIndex = Math.min(words.length, wordsSpoken);
-                const wordsToShow = words.slice(startIndex, endIndex).join(' ');
-                
-                // Actualizar subtítulos con las palabras actuales
-                if (wordsToShow.trim().length > 0) {
-                    avatarSubtitlesManager.setSubtitles(wordsToShow);
-                }
+        // Limpiar intervalo cuando termine o haya error
+        utterance.onend = () => {
+            if (subtitleInterval) {
+                clearInterval(subtitleInterval);
+                subtitleInterval = null;
+            }
+        };
+        
+        utterance.onerror = () => {
+            if (subtitleInterval) {
+                clearInterval(subtitleInterval);
+                subtitleInterval = null;
             }
         };
         
         // Cuando termine el texto inicial, continuar con el completo si está listo
         utterance.onend = async () => {
+            // Limpiar intervalo de subtítulos si aún está activo
+            if (subtitleInterval) {
+                clearInterval(subtitleInterval);
+                subtitleInterval = null;
+            }
+            
             console.log('[Mapa] ✅ Texto inicial terminado, esperando texto completo...');
             
             // Esperar a que el texto completo esté listo (con timeout más largo)
@@ -777,8 +810,12 @@ export default class MapaMode {
                 
                 // Dividir el texto completo en palabras para actualizar subtítulos progresivamente
                 const fullWords = fullIntroText.split(' ').filter(w => w.trim().length > 0);
-                let fullWordsSpoken = 0;
+                let fullWordsShown = 0;
                 const maxWordsPerSubtitle = 16; // Aproximadamente 2 líneas
+                
+                // Calcular tiempo estimado por palabra (basado en rate 0.95)
+                const msPerWord = 630;
+                let fullSubtitleInterval = null;
                 
                 // Crear nuevo utterance para el texto completo
                 const fullUtterance = new SpeechSynthesisUtterance(fullIntroText);
@@ -789,26 +826,48 @@ export default class MapaMode {
                 // Sincronizar subtítulos cuando empiece a hablar el texto completo
                 fullUtterance.onstart = () => {
                     console.log('[Mapa] ✅ Voz del texto completo iniciada, actualizando subtítulos');
+                    fullWordsShown = 0;
+                    
                     // Mostrar primeras palabras del texto completo
                     const initialWords = fullWords.slice(0, maxWordsPerSubtitle).join(' ');
                     avatarSubtitlesManager.setSubtitles(initialWords);
-                    fullWordsSpoken = 0;
+                    fullWordsShown = maxWordsPerSubtitle;
+                    
+                    // Actualizar subtítulos palabra por palabra usando intervalo de tiempo
+                    fullSubtitleInterval = setInterval(() => {
+                        if (fullWordsShown < fullWords.length) {
+                            // Calcular qué palabras mostrar (últimas maxWordsPerSubtitle palabras)
+                            const startIndex = Math.max(0, fullWordsShown - maxWordsPerSubtitle);
+                            const endIndex = Math.min(fullWords.length, fullWordsShown + 1);
+                            const wordsToShow = fullWords.slice(startIndex, endIndex).join(' ');
+                            
+                            // Actualizar subtítulos con las palabras actuales
+                            if (wordsToShow.trim().length > 0) {
+                                avatarSubtitlesManager.setSubtitles(wordsToShow);
+                            }
+                            fullWordsShown++;
+                        } else {
+                            // Si ya mostramos todas las palabras, limpiar intervalo
+                            if (fullSubtitleInterval) {
+                                clearInterval(fullSubtitleInterval);
+                                fullSubtitleInterval = null;
+                            }
+                        }
+                    }, msPerWord);
                 };
                 
-                // Actualizar subtítulos palabra por palabra
-                fullUtterance.onboundary = (event) => {
-                    if (event.name === 'word') {
-                        fullWordsSpoken++;
-                        
-                        // Calcular qué palabras mostrar (últimas maxWordsPerSubtitle palabras)
-                        const startIndex = Math.max(0, fullWordsSpoken - maxWordsPerSubtitle);
-                        const endIndex = Math.min(fullWords.length, fullWordsSpoken);
-                        const wordsToShow = fullWords.slice(startIndex, endIndex).join(' ');
-                        
-                        // Actualizar subtítulos con las palabras actuales
-                        if (wordsToShow.trim().length > 0) {
-                            avatarSubtitlesManager.setSubtitles(wordsToShow);
-                        }
+                // Limpiar intervalo cuando termine o haya error
+                fullUtterance.onend = () => {
+                    if (fullSubtitleInterval) {
+                        clearInterval(fullSubtitleInterval);
+                        fullSubtitleInterval = null;
+                    }
+                };
+                
+                fullUtterance.onerror = () => {
+                    if (fullSubtitleInterval) {
+                        clearInterval(fullSubtitleInterval);
+                        fullSubtitleInterval = null;
                     }
                 };
                 
