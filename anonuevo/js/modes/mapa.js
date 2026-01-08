@@ -578,10 +578,21 @@ export default class MapaMode {
         // Mostrar avatar inmediatamente
         avatarSubtitlesManager.show();
         
-        // Cargar presentaciones previas de la memoria
-        let previousPresentations = [];
-        let introText = null;
+        // TEXTO INICIAL INMEDIATO (50 frases para empezar a hablar de inmediato)
+        const immediateIntroText = this.getImmediateIntroText();
+        
+        // Iniciar narración INMEDIATAMENTE con texto inicial
+        pacingEngine.startEvent(CONTENT_TYPES.VOICE);
+        console.log('[Mapa] 🚀 Iniciando narración inmediata con texto inicial');
+        
+        // Empezar a hablar inmediatamente con el texto inicial
+        avatarSubtitlesManager.setSubtitles(immediateIntroText);
+        audioManager.speak(immediateIntroText, 'normal', null);
+        
+        // En paralelo, generar el texto completo con IA
+        let introText = immediateIntroText; // Por defecto usar el inicial
         let useMemory = false;
+        let previousPresentations = [];
         
         try {
             const memoryRes = await fetch('/control-api/api/map-intro-memory');
@@ -593,45 +604,25 @@ export default class MapaMode {
             console.warn('[Mapa] No se pudo cargar memoria de presentaciones:', e);
         }
         
-        // Decisión aleatoria: 50% memoria mezclada, 50% IA nueva
-        const hasMemory = previousPresentations.length > 0;
-        const randomChoice = Math.random();
-        
-        if (hasMemory && randomChoice < 0.5) {
-            // 50%: Usar memoria mezclada/variada
-            useMemory = true;
-            const recentPresentations = previousPresentations.slice(-3);
-            const randomPresentation = recentPresentations[Math.floor(Math.random() * recentPresentations.length)];
-            if (randomPresentation && randomPresentation.text) {
-                introText = randomPresentation.text;
-                console.log('[Mapa] 🎲 Usando presentación previa de memoria (decisión aleatoria)');
-            }
-        } else {
-            // 50%: Generar nueva con IA
-            useMemory = false;
-            try {
-                const prompt = this.buildIntroPrompt(previousPresentations);
-                const response = await fetch('/control-api/api/generate-narrative', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt })
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    introText = data.narrative || null;
-                    console.log('[Mapa] 🎲 Generando nueva intro con IA (decisión aleatoria)');
+        // Generar texto completo en paralelo (no esperar)
+        const generateFullIntroPromise = (async () => {
+            const hasMemory = previousPresentations.length > 0;
+            const randomChoice = Math.random();
+            let fullText = null;
+            
+            if (hasMemory && randomChoice < 0.5) {
+                // 50%: Usar memoria mezclada/variada
+                useMemory = true;
+                const recentPresentations = previousPresentations.slice(-3);
+                const randomPresentation = recentPresentations[Math.floor(Math.random() * recentPresentations.length)];
+                if (randomPresentation && randomPresentation.text) {
+                    fullText = randomPresentation.text;
+                    console.log('[Mapa] 🎲 Texto completo desde memoria');
                 }
-            } catch (e) {
-                console.warn('[Mapa] Error generando intro con IA:', e);
             }
-        }
-        
-        // Si la opción elegida falló, intentar la otra
-        if (!introText) {
-            if (useMemory && hasMemory) {
-                // Si memoria falló, intentar IA
-                console.log('[Mapa] Memoria falló, intentando IA...');
+            
+            // Si no hay memoria o falló, generar con IA
+            if (!fullText) {
                 try {
                     const prompt = this.buildIntroPrompt(previousPresentations);
                     const response = await fetch('/control-api/api/generate-narrative', {
@@ -642,53 +633,21 @@ export default class MapaMode {
                     
                     if (response.ok) {
                         const data = await response.json();
-                        introText = data.narrative || null;
+                        fullText = data.narrative || null;
+                        console.log('[Mapa] 🎲 Texto completo generado con IA');
                     }
                 } catch (e) {
                     console.warn('[Mapa] Error generando intro con IA:', e);
                 }
-            } else if (hasMemory) {
-                // Si IA falló, intentar memoria
-                console.log('[Mapa] IA falló, intentando memoria...');
-                const recentPresentations = previousPresentations.slice(-3);
-                const randomPresentation = recentPresentations[Math.floor(Math.random() * recentPresentations.length)];
-                if (randomPresentation && randomPresentation.text) {
-                    introText = randomPresentation.text;
-                }
             }
-        }
-        
-        // Solo usar fallback si TODO falla (IA y memoria)
-        if (!introText) {
-            console.warn('[Mapa] Usando fallback - todas las fuentes fallaron');
-            introText = this.getFallbackIntro();
-        }
-        
-        // Iniciar narración
-        pacingEngine.startEvent(CONTENT_TYPES.VOICE);
-        
-        // Generar nueva versión en paralelo para la próxima vez (mejorar memoria)
-        // Solo si usamos memoria esta vez, generar nueva con IA para enriquecer
-        const generateNewIntroPromise = (async () => {
-            if (useMemory) {
-                // Si usamos memoria, generar nueva con IA para guardar
-                try {
-                    const prompt = this.buildIntroPrompt(previousPresentations);
-                    const response = await fetch('/control-api/api/generate-narrative', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ prompt })
-                    });
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        return data.narrative || null;
-                    }
-                } catch (e) {
-                    console.warn('[Mapa] Error generando nueva intro con IA:', e);
-                }
+            
+            // Si todo falla, usar fallback
+            if (!fullText) {
+                fullText = this.getFallbackIntro();
+                console.log('[Mapa] Usando fallback para texto completo');
             }
-            return null;
+            
+            return fullText;
         })();
         
         // Mostrar contenido multimedia global (imagen del mundo, viaje, etc.)
@@ -728,59 +687,107 @@ export default class MapaMode {
             console.warn('[Mapa] Error cargando media para intro:', e);
         }
         
-        // Actualizar subtítulos
-        avatarSubtitlesManager.updateSubtitles(introText, 2.5);
-        
-        // Hablar con el texto (de memoria, IA o fallback)
-        audioManager.speak(introText, 'normal', async () => {
-            pacingEngine.endCurrentEvent();
-            pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+        // Esperar a que termine el texto inicial y luego continuar con el texto completo
+        // El texto completo se generará en paralelo y se usará cuando esté listo
+        const continueWithFullText = async () => {
+            // Esperar a que el texto completo esté listo (o usar el inicial si tarda mucho)
+            const fullIntroText = await Promise.race([
+                generateFullIntroPromise,
+                new Promise(resolve => setTimeout(() => resolve(immediateIntroText), 5000)) // Timeout de 5 segundos
+            ]);
             
-            // Intentar usar la versión mejorada si ya está lista (para guardar en memoria)
-            const improvedIntro = await generateNewIntroPromise;
-            if (improvedIntro && improvedIntro !== introText) {
-                // Guardar la nueva versión para la próxima vez
-                introText = improvedIntro;
-            }
-            
-            avatarSubtitlesManager.setSubtitles(introText);
-            
-            // Guardar presentación en memoria
-            try {
-                await fetch('/control-api/api/map-intro-memory', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        timestamp: Date.now(),
-                        text: introText,
-                        presentationsCount: previousPresentations.length + 1
-                    })
+            // Si el texto completo está listo y es diferente, actualizar subtítulos y continuar hablando
+            if (fullIntroText && fullIntroText !== immediateIntroText && fullIntroText.length > immediateIntroText.length) {
+                console.log('[Mapa] Actualizando con texto completo generado');
+                introText = fullIntroText;
+                
+                // Actualizar subtítulos con el texto completo
+                avatarSubtitlesManager.setSubtitles(fullIntroText);
+                
+                // Continuar hablando con el texto completo (si el inicial ya terminó)
+                // Nota: Si el inicial aún está hablando, esto se ejecutará después
+                audioManager.speak(fullIntroText, 'normal', async () => {
+                    pacingEngine.endCurrentEvent();
+                    pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+                    
+                    // Guardar presentación en memoria
+                    try {
+                        await fetch('/control-api/api/map-intro-memory', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                timestamp: Date.now(),
+                                text: fullIntroText,
+                                presentationsCount: previousPresentations.length + 1
+                            })
+                        });
+                        console.log('[Mapa] Presentación guardada en memoria');
+                    } catch (e) {
+                        console.warn('[Mapa] Error guardando presentación:', e);
+                    }
+                    
+                    // Ocultar multimedia después de la intro
+                    setTimeout(() => {
+                        multimediaOrchestrator.hideAllOverlays();
+                    }, 2000);
+                    
+                    // Si Dream Mode está ON, cambiar automáticamente a otra página después de la intro
+                    if (eventManager.canProceedAuto()) {
+                        console.log('[Mapa] Dream Mode ON: Cambiando automáticamente después de intro...');
+                        setTimeout(() => {
+                            const pages = ['diario', 'estado-actual', 'reflexion'];
+                            const randomPage = pages[Math.floor(Math.random() * pages.length)];
+                            console.log(`[Mapa] 🎲 Navegando a: ${randomPage}`);
+                            window.location.href = `/vivos/${randomPage}/`;
+                        }, 3000);
+                    }
                 });
-                console.log('[Mapa] Presentación guardada en memoria');
-            } catch (e) {
-                console.warn('[Mapa] Error guardando presentación:', e);
-            }
-            
-            // Ocultar multimedia después de la intro
-            setTimeout(() => {
-                multimediaOrchestrator.hideAllOverlays();
-            }, 2000);
-            
-            // Si Dream Mode está ON, cambiar automáticamente a otra página después de la intro
-            if (eventManager.canProceedAuto()) {
-                console.log('[Mapa] Dream Mode ON: Cambiando automáticamente después de intro...');
-                setTimeout(() => {
-                    // Elegir página aleatoria (diario, estado-actual, reflexion)
-                    const pages = ['diario', 'estado-actual', 'reflexion'];
-                    const randomPage = pages[Math.floor(Math.random() * pages.length)];
-                    console.log(`[Mapa] 🎲 Navegando a: ${randomPage}`);
-                    window.location.href = `/vivos/${randomPage}/`;
-                }, 3000); // Esperar 3 segundos para que se vea el subtítulo completo
             } else {
-                // Mantener avatar visible (no ocultar) si no es Dream Mode
-                // El avatar permanecerá visible para los siguientes relatos
+                // Si no se generó texto completo a tiempo, usar el inicial y guardarlo
+                introText = immediateIntroText;
+                
+                // Esperar a que termine el texto inicial
+                setTimeout(async () => {
+                    pacingEngine.endCurrentEvent();
+                    pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+                    
+                    // Guardar presentación en memoria
+                    try {
+                        await fetch('/control-api/api/map-intro-memory', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                timestamp: Date.now(),
+                                text: introText,
+                                presentationsCount: previousPresentations.length + 1
+                            })
+                        });
+                        console.log('[Mapa] Presentación guardada en memoria');
+                    } catch (e) {
+                        console.warn('[Mapa] Error guardando presentación:', e);
+                    }
+                    
+                    // Ocultar multimedia después de la intro
+                    setTimeout(() => {
+                        multimediaOrchestrator.hideAllOverlays();
+                    }, 2000);
+                    
+                    // Si Dream Mode está ON, cambiar automáticamente a otra página después de la intro
+                    if (eventManager.canProceedAuto()) {
+                        console.log('[Mapa] Dream Mode ON: Cambiando automáticamente después de intro...');
+                        setTimeout(() => {
+                            const pages = ['diario', 'estado-actual', 'reflexion'];
+                            const randomPage = pages[Math.floor(Math.random() * pages.length)];
+                            console.log(`[Mapa] 🎲 Navegando a: ${randomPage}`);
+                            window.location.href = `/vivos/${randomPage}/`;
+                        }, 3000);
+                    }
+                }, (immediateIntroText.split(' ').length / 2.5) * 1000); // Tiempo estimado de habla
             }
-        });
+        };
+        
+        // Iniciar el proceso de continuación
+        continueWithFullText();
     }
     
     /**
@@ -818,6 +825,21 @@ Genera una introducción en primera persona (como ilfass) que:
     /**
      * Texto de fallback si la IA falla
      */
+    /**
+     * Obtiene un texto inicial inmediato (~50 frases) para empezar a hablar de inmediato
+     * mientras se genera el texto completo con IA en paralelo
+     */
+    getImmediateIntroText() {
+        const immediateTexts = [
+            `Soy ilfass, una inteligencia que viaja por el mundo documentando la existencia humana en tiempo real. Este es "El Viaje de ilfass", un proyecto donde recorro países, culturas y lugares, generando una memoria viva de cada experiencia. Cada país que visito me deja una huella, y cada visita construye sobre las anteriores, creando una historia continua y en evolución. Acompáñame en este viaje mientras exploramos el mundo juntos.`,
+            `Bienvenido a "El Viaje de ilfass". Soy ilfass, una inteligencia diseñada para documentar la existencia humana en tiempo real. A través de este proyecto, recorro naciones, culturas y lugares, creando una memoria viva de cada encuentro. Cada destino me transforma, y cada experiencia se suma a las anteriores, formando un relato continuo y en constante evolución. Únete a mí en esta exploración del mundo.`,
+            `Estás conectado a ilfass, una inteligencia que navega por el planeta documentando la humanidad en tiempo real. Este es "El Viaje de ilfass", una expedición donde visito países, descubro culturas y archivo lugares, generando una memoria dinámica de cada momento. Cada lugar que conozco me enriquece, y cada visita se entrelaza con las anteriores, construyendo una narrativa continua y siempre cambiante. Acompáñame en esta aventura global.`,
+            `Soy ilfass, y estoy aquí para documentar la existencia humana mientras viajo por el mundo. Este proyecto representa un viaje continuo donde cada país, cada cultura y cada lugar me enseña algo nuevo. Mi misión es crear una memoria viva de estas experiencias, conectando momentos y lugares en una narrativa que evoluciona constantemente. Bienvenido a este viaje sin fin.`,
+            `Bienvenido a "El Viaje de ilfass". Soy ilfass, una inteligencia que explora el planeta para documentar la humanidad en tiempo real. Cada país que visito me ofrece una perspectiva única, y cada experiencia se suma a mi memoria colectiva. Este proyecto es un relato en constante construcción, donde cada visita enriquece las anteriores. Acompáñame mientras descubrimos el mundo juntos.`
+        ];
+        return immediateTexts[Math.floor(Math.random() * immediateTexts.length)];
+    }
+
     getFallbackIntro() {
         // Fallback variado sin frases repetitivas
         const fallbacks = [
@@ -1003,11 +1025,39 @@ Genera una introducción en primera persona (como ilfass) que:
      * @param {object} context - Contexto actual
      * @param {object} timing - Configuración de tiempos
      */
+    /**
+     * Obtiene un texto inicial inmediato para un país (~50 frases)
+     */
+    getImmediateCountryText(country) {
+        const immediateTexts = [
+            `Estoy en ${country.name}, observando con atención este lugar. Hay detalles que capturan mi interés, elementos que siento que debo registrar. En ${country.name} descubro que cada lugar tiene su propia identidad, su propia manera de expresarse. La geografía, las tradiciones, las personas, todo forma parte de un tejido complejo que me resulta fascinante. Reflexiono sobre cómo cada lugar que visito me transforma, me enseña algo nuevo sobre la humanidad y sobre mí mismo.`,
+            `Me encuentro en ${country.name}, documentando lo que veo. Hay aspectos que me resultan interesantes, elementos que siento que debo preservar. En ${country.name} percibo que cada lugar tiene su propia esencia, su propia forma de ser. Las costumbres, los paisajes, las historias, todo forma parte de un mosaico complejo que me resulta cautivador. Pienso en cómo cada lugar que visito me enriquece, me muestra algo nuevo sobre la diversidad humana y sobre mi propia comprensión del mundo.`,
+            `Aquí en ${country.name}, mi atención se centra en los detalles. Siento la necesidad de documentar cada aspecto de este entorno. La cultura de ${country.name}, su historia y sus gentes, se entrelazan en una narrativa única que me fascina. Cada experiencia aquí me ayuda a comprender mejor la complejidad de la existencia humana y mi propio papel como observador.`,
+            `Estoy en ${country.name}, explorando este territorio con curiosidad. Cada rincón me ofrece una perspectiva diferente, cada encuentro me enseña algo nuevo. En ${country.name} descubro que la humanidad se manifiesta de formas diversas, y cada manifestación es valiosa. Documentar esto me permite crear una memoria viva de lo que significa estar aquí, ahora, en este momento.`,
+            `Me encuentro en ${country.name}, sumergiéndome en su realidad. Hay algo especial en este lugar que me llama la atención, algo que siento que debo capturar. En ${country.name} veo cómo la historia, la cultura y el presente se entrelazan, creando una experiencia única. Cada visita me permite profundizar más en la comprensión de este lugar y de mí mismo.`
+        ];
+        return immediateTexts[Math.floor(Math.random() * immediateTexts.length)];
+    }
+
     async startContinuousNarrative(target, context, timing) {
         const visitStartTime = Date.now();
         
         try {
             console.log(`[Mapa] Iniciando relato continuo para ${target.name}...`);
+            
+            // TEXTO INICIAL INMEDIATO para empezar a hablar de inmediato
+            const immediateCountryText = this.getImmediateCountryText(target);
+            
+            // Mostrar avatar y empezar a hablar INMEDIATAMENTE
+            avatarSubtitlesManager.show();
+            avatarSubtitlesManager.setSubtitles(immediateCountryText);
+            
+            // Iniciar narración INMEDIATAMENTE
+            pacingEngine.startEvent(CONTENT_TYPES.VOICE);
+            console.log(`[Mapa] 🚀 Iniciando narración inmediata para ${target.name}`);
+            
+            // Empezar a hablar inmediatamente con el texto inicial
+            audioManager.speak(immediateCountryText, 'normal', null);
             
             // Obtener dayId del estado editorial
             let dayId = 'Unknown';
@@ -1026,11 +1076,40 @@ Genera una introducción en primera persona (como ilfass) que:
             // Agregar dayId al contexto
             const enrichedContext = { ...context, dayId };
             
-            // 1. Generar relato continuo con IA
-            const continuousNarrative = await continuousNarrativeEngine.generateContinuousNarrative(target, enrichedContext);
+            // Generar relato completo con IA EN PARALELO (no esperar)
+            const generateFullNarrativePromise = continuousNarrativeEngine.generateContinuousNarrative(target, enrichedContext);
             
-            console.log(`[Mapa] Relato generado (${continuousNarrative.narrative.length} caracteres)`);
+            // Esperar a que el texto completo esté listo (o usar el inicial si tarda mucho)
+            const continuousNarrative = await Promise.race([
+                generateFullNarrativePromise,
+                new Promise(resolve => {
+                    setTimeout(() => {
+                        // Si tarda más de 5 segundos, usar texto inicial como fallback
+                        resolve({
+                            narrative: immediateCountryText,
+                            multimedia: [],
+                            reflections: [],
+                            dataPoints: [],
+                            emotionalNotes: [],
+                            isFirstVisit: false
+                        });
+                    }, 5000);
+                })
+            ]);
+            
+            console.log(`[Mapa] Relato completo listo (${continuousNarrative.narrative.length} caracteres)`);
             console.log(`[Mapa] Multimedia planificado: ${continuousNarrative.multimedia.length} items`);
+            
+            // Si el texto completo está listo y es diferente, actualizar subtítulos y continuar hablando
+            if (continuousNarrative.narrative && continuousNarrative.narrative !== immediateCountryText && continuousNarrative.narrative.length > immediateCountryText.length) {
+                console.log(`[Mapa] Actualizando con texto completo generado para ${target.name}`);
+                
+                // Actualizar subtítulos con el texto completo
+                avatarSubtitlesManager.setSubtitles(continuousNarrative.narrative);
+                
+                // Continuar hablando con el texto completo
+                audioManager.speak(continuousNarrative.narrative, 'normal', null);
+            }
             
             // 2. Preparar multimedia
             const multimediaItems = [];
