@@ -572,34 +572,37 @@ export default class MapaMode {
         // Mostrar avatar inmediatamente
         avatarSubtitlesManager.show();
         
-        // Cargar presentaciones previas de la memoria PRIMERO
+        // Cargar presentaciones previas de la memoria
         let previousPresentations = [];
         let introText = null;
+        let useMemory = false;
         
         try {
             const memoryRes = await fetch('/control-api/api/map-intro-memory');
             if (memoryRes.ok) {
                 const memoryData = await memoryRes.json();
                 previousPresentations = memoryData.presentations || [];
-                
-                // Si hay presentaciones previas, usar una mezclada/variada
-                if (previousPresentations.length > 0) {
-                    // Tomar elementos de las últimas 2-3 presentaciones y crear una variación
-                    const recentPresentations = previousPresentations.slice(-3);
-                    const randomPresentation = recentPresentations[Math.floor(Math.random() * recentPresentations.length)];
-                    if (randomPresentation && randomPresentation.text) {
-                        // Usar la presentación previa como base mientras se genera nueva
-                        introText = randomPresentation.text;
-                        console.log('[Mapa] Usando presentación previa de memoria mientras se genera nueva');
-                    }
-                }
             }
         } catch (e) {
             console.warn('[Mapa] No se pudo cargar memoria de presentaciones:', e);
         }
         
-        // Si no hay memoria previa, generar con IA ANTES de hablar
-        if (!introText) {
+        // Decisión aleatoria: 50% memoria mezclada, 50% IA nueva
+        const hasMemory = previousPresentations.length > 0;
+        const randomChoice = Math.random();
+        
+        if (hasMemory && randomChoice < 0.5) {
+            // 50%: Usar memoria mezclada/variada
+            useMemory = true;
+            const recentPresentations = previousPresentations.slice(-3);
+            const randomPresentation = recentPresentations[Math.floor(Math.random() * recentPresentations.length)];
+            if (randomPresentation && randomPresentation.text) {
+                introText = randomPresentation.text;
+                console.log('[Mapa] 🎲 Usando presentación previa de memoria (decisión aleatoria)');
+            }
+        } else {
+            // 50%: Generar nueva con IA
+            useMemory = false;
             try {
                 const prompt = this.buildIntroPrompt(previousPresentations);
                 const response = await fetch('/control-api/api/generate-narrative', {
@@ -611,9 +614,41 @@ export default class MapaMode {
                 if (response.ok) {
                     const data = await response.json();
                     introText = data.narrative || null;
+                    console.log('[Mapa] 🎲 Generando nueva intro con IA (decisión aleatoria)');
                 }
             } catch (e) {
                 console.warn('[Mapa] Error generando intro con IA:', e);
+            }
+        }
+        
+        // Si la opción elegida falló, intentar la otra
+        if (!introText) {
+            if (useMemory && hasMemory) {
+                // Si memoria falló, intentar IA
+                console.log('[Mapa] Memoria falló, intentando IA...');
+                try {
+                    const prompt = this.buildIntroPrompt(previousPresentations);
+                    const response = await fetch('/control-api/api/generate-narrative', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt })
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        introText = data.narrative || null;
+                    }
+                } catch (e) {
+                    console.warn('[Mapa] Error generando intro con IA:', e);
+                }
+            } else if (hasMemory) {
+                // Si IA falló, intentar memoria
+                console.log('[Mapa] IA falló, intentando memoria...');
+                const recentPresentations = previousPresentations.slice(-3);
+                const randomPresentation = recentPresentations[Math.floor(Math.random() * recentPresentations.length)];
+                if (randomPresentation && randomPresentation.text) {
+                    introText = randomPresentation.text;
+                }
             }
         }
         
@@ -627,21 +662,25 @@ export default class MapaMode {
         pacingEngine.startEvent(CONTENT_TYPES.VOICE);
         
         // Generar nueva versión en paralelo para la próxima vez (mejorar memoria)
+        // Solo si usamos memoria esta vez, generar nueva con IA para enriquecer
         const generateNewIntroPromise = (async () => {
-            try {
-                const prompt = this.buildIntroPrompt(previousPresentations);
-                const response = await fetch('/control-api/api/generate-narrative', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt })
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    return data.narrative || null;
+            if (useMemory) {
+                // Si usamos memoria, generar nueva con IA para guardar
+                try {
+                    const prompt = this.buildIntroPrompt(previousPresentations);
+                    const response = await fetch('/control-api/api/generate-narrative', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt })
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        return data.narrative || null;
+                    }
+                } catch (e) {
+                    console.warn('[Mapa] Error generando nueva intro con IA:', e);
                 }
-            } catch (e) {
-                console.warn('[Mapa] Error generando nueva intro con IA:', e);
             }
             return null;
         })();
