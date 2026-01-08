@@ -609,10 +609,6 @@ export default class MapaMode {
         pacingEngine.startEvent(CONTENT_TYPES.VOICE);
         console.log('[Mapa] 🚀 Iniciando narración inmediata con texto inicial');
         
-        // Empezar a hablar inmediatamente con el texto inicial
-        avatarSubtitlesManager.setSubtitles(immediateIntroText);
-        audioManager.speak(immediateIntroText, 'normal', null);
-        
         // En paralelo, generar el texto completo con IA
         let introText = immediateIntroText; // Por defecto usar el inicial
         let useMemory = false;
@@ -673,6 +669,59 @@ export default class MapaMode {
             
             return fullText;
         })();
+        
+        // Esperar a que el texto completo esté listo (o usar el inicial si tarda mucho)
+        const fullIntroText = await Promise.race([
+            generateFullIntroPromise,
+            new Promise(resolve => setTimeout(() => resolve(immediateIntroText), 3000)) // Timeout de 3 segundos
+        ]);
+        
+        // Usar el texto completo si está disponible, sino el inicial
+        const finalIntroText = (fullIntroText && fullIntroText !== immediateIntroText && fullIntroText.length > immediateIntroText.length) 
+            ? fullIntroText 
+            : immediateIntroText;
+        
+        introText = finalIntroText;
+        
+        // Empezar a hablar con el texto final (completo o inicial)
+        avatarSubtitlesManager.setSubtitles(finalIntroText);
+        audioManager.speak(finalIntroText, 'normal', async () => {
+            // Callback cuando termine de hablar
+            pacingEngine.endCurrentEvent();
+            pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+            
+            // Guardar presentación en memoria
+            try {
+                await fetch('/control-api/api/map-intro-memory', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        timestamp: Date.now(),
+                        text: finalIntroText,
+                        presentationsCount: previousPresentations.length + 1
+                    })
+                });
+                console.log('[Mapa] Presentación guardada en memoria');
+            } catch (e) {
+                console.warn('[Mapa] Error guardando presentación:', e);
+            }
+            
+            // Ocultar multimedia después de la intro
+            setTimeout(() => {
+                multimediaOrchestrator.hideAllOverlays();
+            }, 2000);
+            
+            // Si Dream Mode está ON, cambiar automáticamente a otra página después de la intro
+            if (eventManager.canProceedAuto()) {
+                console.log('[Mapa] Dream Mode ON: Cambiando automáticamente después de intro...');
+                setTimeout(() => {
+                    const pages = ['diario', 'estado-actual', 'reflexion'];
+                    const randomPage = pages[Math.floor(Math.random() * pages.length)];
+                    console.log(`[Mapa] 🎲 Navegando a: ${randomPage}`);
+                    window.location.href = `/vivos/${randomPage}/`;
+                }, 3000);
+            }
+        });
         
         // Mostrar contenido multimedia global (imagen del mundo, viaje, etc.)
         try {
