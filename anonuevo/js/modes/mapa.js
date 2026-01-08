@@ -223,7 +223,7 @@ export default class MapaMode {
 
         this.svg = container.append("svg")
             .attr("viewBox", `0 0 ${this.width} ${this.height}`)
-            .attr("preserveAspectRatio", "xMidYMid cover")
+            .attr("preserveAspectRatio", "xMidYMid slice")
             .style("width", "100%")
             .style("height", "100%");
 
@@ -574,6 +574,11 @@ export default class MapaMode {
     async showMapIntro() {
         // Asegurar que el mapa esté en zoom out (vista global)
         this.resetZoom(false); // No liberar audio aún
+        
+        // Asegurar que el avatar esté inicializado antes de usarlo
+        if (!avatarSubtitlesManager.container) {
+            avatarSubtitlesManager.init(this.container);
+        }
         
         // Mostrar avatar inmediatamente
         avatarSubtitlesManager.show();

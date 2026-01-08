@@ -16,9 +16,10 @@ export class AudioManager {
         this.isMusicPlaying = false;
 
         // Lista de tracks de música ambiente (rotación automática)
+        // Usar rutas absolutas para evitar problemas de resolución
         this.tracks = [
-            'assets/audio/ambient_base.mp3',
-            'assets/audio/ambient_base.mp3', // Por ahora el mismo, pero se pueden agregar más
+            '/media/audio/ambient_base.mp3',
+            '/media/audio/ambient_base.mp3', // Por ahora el mismo, pero se pueden agregar más
         ];
         this.currentTrackIndex = 0;
     }
