@@ -16,10 +16,10 @@ export class AudioManager {
         this.isMusicPlaying = false;
 
         // Lista de tracks de música ambiente (rotación automática)
-        // Usar rutas absolutas para evitar problemas de resolución
+        // Usar rutas relativas desde la raíz del proyecto
         this.tracks = [
-            '/media/audio/ambient_base.mp3',
-            '/media/audio/ambient_base.mp3', // Por ahora el mismo, pero se pueden agregar más
+            'assets/audio/ambient_base.mp3',
+            'assets/audio/ambient_base.mp3', // Por ahora el mismo, pero se pueden agregar más
         ];
         this.currentTrackIndex = 0;
     }
@@ -75,12 +75,31 @@ export class AudioManager {
     startAmbience() {
         if (!this.musicLayer) this.init();
 
-        this.musicLayer.play().then(() => {
-            this.isMusicPlaying = true;
-            this.fadeAudio(this.musicLayer, 0.0, 0.3, 2000); // Subir a 30% volumen
-        }).catch(e => {
-            console.warn("[AudioManager] Autoplay blocked or track missing:", e);
-        });
+        console.log("[AudioManager] Intentando reproducir música:", this.musicLayer.src);
+        
+        // Intentar reproducir
+        const playPromise = this.musicLayer.play();
+        
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                this.isMusicPlaying = true;
+                console.log("[AudioManager] ✅ Música iniciada correctamente");
+                this.fadeAudio(this.musicLayer, 0.0, 0.3, 2000); // Subir a 30% volumen
+            }).catch(e => {
+                console.warn("[AudioManager] ⚠️ Autoplay blocked or track missing:", e);
+                console.warn("[AudioManager] Ruta del audio:", this.musicLayer.src);
+                // Intentar de nuevo después de un momento (puede que necesite interacción del usuario)
+                setTimeout(() => {
+                    this.musicLayer.play().then(() => {
+                        this.isMusicPlaying = true;
+                        console.log("[AudioManager] ✅ Música iniciada en segundo intento");
+                        this.fadeAudio(this.musicLayer, 0.0, 0.3, 2000);
+                    }).catch(e2 => {
+                        console.error("[AudioManager] ❌ No se pudo reproducir música:", e2);
+                    });
+                }, 1000);
+            });
+        }
     }
 
     /**
@@ -118,12 +137,22 @@ export class AudioManager {
     }
 
     speak(text, priority = 'normal', onEndCallback = null) {
-        if (!this.synth) return;
+        if (!this.synth) {
+            console.warn("[AudioManager] ⚠️ SpeechSynthesis no disponible");
+            return;
+        }
 
         this.cancel();
 
         // Limpiar texto: eliminar caracteres de escape, texto de debugging, etc.
         text = this.cleanText(text);
+        
+        if (!text || text.trim().length === 0) {
+            console.warn("[AudioManager] ⚠️ Texto vacío, no se puede hablar");
+            return;
+        }
+
+        console.log("[AudioManager] 🔊 Hablando:", text.substring(0, 50) + "...");
 
         // ** DUCKING **: Bajar música antes de hablar
         if (this.isMusicPlaying) {
@@ -133,42 +162,73 @@ export class AudioManager {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'es-ES';
         utterance.rate = 0.95;
+        utterance.volume = 1.0; // Asegurar volumen máximo
         utterance.wasCancelled = false;
 
-        const voices = this.synth.getVoices().filter(v => v.lang.includes('es'));
-        if (voices.length > 0) {
+        // Esperar a que las voces estén cargadas
+        const getVoices = () => {
+            const voices = this.synth.getVoices();
+            if (voices.length === 0) {
+                // Si no hay voces aún, esperar un momento
+                setTimeout(() => {
+                    const voicesRetry = this.synth.getVoices();
+                    if (voicesRetry.length > 0) {
+                        this.selectVoice(utterance, voicesRetry, priority);
+                        this.synth.speak(utterance);
+                    } else {
+                        console.warn("[AudioManager] ⚠️ No se encontraron voces disponibles");
+                        this.synth.speak(utterance); // Intentar sin voz específica
+                    }
+                }, 100);
+            } else {
+                this.selectVoice(utterance, voices, priority);
+                this.synth.speak(utterance);
+            }
+        };
+
+        // Intentar obtener voces inmediatamente
+        getVoices();
+        
+        // También escuchar el evento de voces cargadas
+        if (this.synth.onvoiceschanged !== null) {
+            this.synth.onvoiceschanged = getVoices;
+        }
+    }
+    
+    selectVoice(utterance, voices, priority) {
+        const spanishVoices = voices.filter(v => v.lang.includes('es'));
+        if (spanishVoices.length > 0) {
             if (priority === 'news') {
-                utterance.voice = voices.length > 1 ? voices[1] : voices[0];
+                utterance.voice = spanishVoices.length > 1 ? spanishVoices[1] : spanishVoices[0];
                 utterance.pitch = 1.05;
             } else {
-                utterance.voice = voices[0];
+                utterance.voice = spanishVoices[0];
                 utterance.pitch = 1.0;
             }
+            console.log("[AudioManager] ✅ Voz seleccionada:", utterance.voice.name);
+        } else {
+            console.warn("[AudioManager] ⚠️ No se encontraron voces en español, usando voz por defecto");
         }
-
-        utterance.onend = () => {
-            if (!utterance.wasCancelled && onEndCallback) onEndCallback();
-            // El releaseChannel se encargará de subir la música de nuevo, pero a veces
-            // el callback es quien maneja esa lógica superior.
-            // Si nadie llama a releaseChannel pronto, podríamos forzar restore aquí,
-            // pero mejor respetar el control externo.
-        };
 
         this.currentUtterance = utterance;
         
         // Notificar que el avatar está hablando
         this.notifySpeaking(true);
         
+        utterance.onstart = () => {
+            console.log("[AudioManager] ✅ Voz iniciada correctamente");
+        };
+        
         utterance.onend = () => {
+            console.log("[AudioManager] ✅ Voz terminada");
             this.notifySpeaking(false);
             if (!utterance.wasCancelled && onEndCallback) onEndCallback();
         };
         
-        utterance.onerror = () => {
+        utterance.onerror = (e) => {
+            console.error("[AudioManager] ❌ Error en voz:", e);
             this.notifySpeaking(false);
         };
-        
-        this.synth.speak(utterance);
     }
 
     /**
