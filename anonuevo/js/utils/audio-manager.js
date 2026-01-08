@@ -15,11 +15,12 @@ export class AudioManager {
         this.musicLayer = null; // Elemento de Audio HTML5
         this.isMusicPlaying = false;
 
-        // Simulación de tracks (esto vendría de archivos reales en prod)
-        // Usamos URLs de placeholder que funcionen o tracks locales si existen
+        // Lista de tracks de música ambiente (rotación automática)
         this.tracks = [
-            'assets/audio/ambient_base.mp3', // Placeholder
+            'assets/audio/ambient_base.mp3',
+            'assets/audio/ambient_base.mp3', // Por ahora el mismo, pero se pueden agregar más
         ];
+        this.currentTrackIndex = 0;
     }
 
     init() {
@@ -28,12 +29,43 @@ export class AudioManager {
         this.musicLayer.loop = true;
         this.musicLayer.volume = 0.0; // Inicia en silencio y hace fade in
 
-        // Solo para demo, intentar cargar si existe, si no, fallará silenciosamente
-        // En un entorno real, aseguraríamos que estos assets existan
-        this.musicLayer.src = this.tracks[0];
+        // Cargar el primer track
+        this.loadTrack(this.currentTrackIndex);
+
+        // Cuando termine un track (si no está en loop), cargar el siguiente
+        this.musicLayer.addEventListener('ended', () => {
+            this.nextTrack();
+        });
 
         // Autoplay policy puede bloquear esto hasta interacción del usuario
         // El botón "Iniciar Sistema" del index.html debería desbloquearlo
+    }
+    
+    /**
+     * Carga un track específico
+     */
+    loadTrack(index) {
+        if (index >= 0 && index < this.tracks.length) {
+            this.currentTrackIndex = index;
+            if (this.musicLayer) {
+                const wasPlaying = !this.musicLayer.paused;
+                const currentVolume = this.musicLayer.volume;
+                this.musicLayer.src = this.tracks[index];
+                if (wasPlaying) {
+                    this.musicLayer.play().catch(e => {
+                        console.warn("[AudioManager] Error playing track:", e);
+                    });
+                }
+            }
+        }
+    }
+    
+    /**
+     * Cambia al siguiente track
+     */
+    nextTrack() {
+        const nextIndex = (this.currentTrackIndex + 1) % this.tracks.length;
+        this.loadTrack(nextIndex);
     }
 
     /**

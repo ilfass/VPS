@@ -348,6 +348,11 @@ export default class MapaMode {
         // Mostrar avatar inmediatamente al cargar
         avatarSubtitlesManager.show();
 
+        // Iniciar música de fondo
+        if (!audioManager.isMusicPlaying) {
+            audioManager.startAmbience();
+        }
+        
         // Mostrar avatar y hablar sobre el proyecto AL CARGAR (siempre)
         // Esperar un momento para que todo esté inicializado
         setTimeout(() => {
