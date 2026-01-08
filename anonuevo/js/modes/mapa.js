@@ -1101,15 +1101,24 @@ Genera una introducción en primera persona (como ilfass) que:
             console.log(`[Mapa] Multimedia planificado: ${continuousNarrative.multimedia.length} items`);
             
             // Si el texto completo está listo y es diferente, actualizar subtítulos y continuar hablando
+            // Cancelar el texto inicial si aún está hablando y usar el completo
+            let finalNarrative = immediateCountryText;
             if (continuousNarrative.narrative && continuousNarrative.narrative !== immediateCountryText && continuousNarrative.narrative.length > immediateCountryText.length) {
                 console.log(`[Mapa] Actualizando con texto completo generado para ${target.name}`);
+                finalNarrative = continuousNarrative.narrative;
+                
+                // Cancelar el texto inicial si aún está hablando
+                audioManager.cancel();
                 
                 // Actualizar subtítulos con el texto completo
-                avatarSubtitlesManager.setSubtitles(continuousNarrative.narrative);
+                avatarSubtitlesManager.setSubtitles(finalNarrative);
                 
                 // Continuar hablando con el texto completo
-                audioManager.speak(continuousNarrative.narrative, 'normal', null);
+                audioManager.speak(finalNarrative, 'normal', null);
             }
+            
+            // Usar el texto final (completo o inicial) para el resto del proceso
+            continuousNarrative.narrative = finalNarrative;
             
             // 2. Preparar multimedia
             const multimediaItems = [];
