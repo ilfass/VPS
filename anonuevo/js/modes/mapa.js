@@ -1053,6 +1053,11 @@ Genera una introducción en primera persona (como ilfass) que:
             // TEXTO INICIAL INMEDIATO para empezar a hablar de inmediato
             const immediateCountryText = this.getImmediateCountryText(target);
             
+            // Asegurar que el avatar esté inicializado antes de usarlo
+            if (!avatarSubtitlesManager.container) {
+                avatarSubtitlesManager.init(this.container);
+            }
+            
             // Mostrar avatar y empezar a hablar INMEDIATAMENTE
             avatarSubtitlesManager.show();
             avatarSubtitlesManager.setSubtitles(immediateCountryText);
