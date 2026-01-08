@@ -355,17 +355,21 @@ export default class MapaMode {
         
         // Mostrar avatar y hablar sobre el proyecto AL CARGAR (siempre)
         // Esperar un momento para que todo esté inicializado
-        setTimeout(() => {
-            this.showMapIntro().then(() => {
-                // Después de que termine la intro, iniciar el ciclo de zoom
-                // Ciclo: Global -> País
-                // Solo si no hay noticias activas Y estamos en modo AUTO
+        setTimeout(async () => {
+            // Esperar a que termine completamente la intro ANTES de hacer zoom
+            await this.showMapIntro();
+            
+            // Después de que termine la intro, esperar un momento adicional antes de iniciar el ciclo de zoom
+            // Esto asegura que el mapa permanezca en zoom out durante toda la intro general
+            setTimeout(() => {
+                // Solo iniciar ciclo de zoom si no hay noticias activas Y estamos en modo AUTO
                 if (audioManager.currentState !== AUDIO_STATES.GLOBAL_NEWS && eventManager.canProceedAuto()) {
                     // Iniciar ciclo por defecto en VISUAL (esperando primera decisión)
                     pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
-                    setTimeout(() => this.cycleZoomIn(), 5000);
+                    // Esperar un poco más antes de hacer zoom in para asegurar que la intro terminó
+                    setTimeout(() => this.cycleZoomIn(), 3000);
                 }
-            });
+            }, 2000); // Esperar 2 segundos adicionales después de que termine la intro
         }, 1000);
     }
 
@@ -568,27 +572,62 @@ export default class MapaMode {
         // Mostrar avatar inmediatamente
         avatarSubtitlesManager.show();
         
-        // Usar fallback inmediatamente mientras se genera con IA
-        let introText = this.getFallbackIntro();
-        avatarSubtitlesManager.updateSubtitles(introText, 2.5);
-        
-        // Iniciar narración con fallback mientras se genera la versión mejorada
-        pacingEngine.startEvent(CONTENT_TYPES.VOICE);
-        
-        // Cargar presentaciones previas de la memoria y generar mejor versión en paralelo
+        // Cargar presentaciones previas de la memoria PRIMERO
         let previousPresentations = [];
+        let introText = null;
+        
         try {
             const memoryRes = await fetch('/control-api/api/map-intro-memory');
             if (memoryRes.ok) {
                 const memoryData = await memoryRes.json();
                 previousPresentations = memoryData.presentations || [];
+                
+                // Si hay presentaciones previas, usar una mezclada/variada
+                if (previousPresentations.length > 0) {
+                    // Tomar elementos de las últimas 2-3 presentaciones y crear una variación
+                    const recentPresentations = previousPresentations.slice(-3);
+                    const randomPresentation = recentPresentations[Math.floor(Math.random() * recentPresentations.length)];
+                    if (randomPresentation && randomPresentation.text) {
+                        // Usar la presentación previa como base mientras se genera nueva
+                        introText = randomPresentation.text;
+                        console.log('[Mapa] Usando presentación previa de memoria mientras se genera nueva');
+                    }
+                }
             }
         } catch (e) {
             console.warn('[Mapa] No se pudo cargar memoria de presentaciones:', e);
         }
         
-        // Generar texto de introducción con IA en paralelo (no esperar)
-        const generateIntroPromise = (async () => {
+        // Si no hay memoria previa, generar con IA ANTES de hablar
+        if (!introText) {
+            try {
+                const prompt = this.buildIntroPrompt(previousPresentations);
+                const response = await fetch('/control-api/api/generate-narrative', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    introText = data.narrative || null;
+                }
+            } catch (e) {
+                console.warn('[Mapa] Error generando intro con IA:', e);
+            }
+        }
+        
+        // Solo usar fallback si TODO falla (IA y memoria)
+        if (!introText) {
+            console.warn('[Mapa] Usando fallback - todas las fuentes fallaron');
+            introText = this.getFallbackIntro();
+        }
+        
+        // Iniciar narración
+        pacingEngine.startEvent(CONTENT_TYPES.VOICE);
+        
+        // Generar nueva versión en paralelo para la próxima vez (mejorar memoria)
+        const generateNewIntroPromise = (async () => {
             try {
                 const prompt = this.buildIntroPrompt(previousPresentations);
                 const response = await fetch('/control-api/api/generate-narrative', {
@@ -602,7 +641,7 @@ export default class MapaMode {
                     return data.narrative || null;
                 }
             } catch (e) {
-                console.warn('[Mapa] Error generando intro con IA:', e);
+                console.warn('[Mapa] Error generando nueva intro con IA:', e);
             }
             return null;
         })();
@@ -644,19 +683,22 @@ export default class MapaMode {
             console.warn('[Mapa] Error cargando media para intro:', e);
         }
         
-        // Hablar con el texto inicial (fallback o mejorado si ya está listo)
+        // Actualizar subtítulos
+        avatarSubtitlesManager.updateSubtitles(introText, 2.5);
+        
+        // Hablar con el texto (de memoria, IA o fallback)
         audioManager.speak(introText, 'normal', async () => {
             pacingEngine.endCurrentEvent();
             pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
             
-            // Intentar usar la versión mejorada si ya está lista
-            const improvedIntro = await generateIntroPromise;
+            // Intentar usar la versión mejorada si ya está lista (para guardar en memoria)
+            const improvedIntro = await generateNewIntroPromise;
             if (improvedIntro && improvedIntro !== introText) {
+                // Guardar la nueva versión para la próxima vez
                 introText = improvedIntro;
-                avatarSubtitlesManager.setSubtitles(introText);
-            } else {
-                avatarSubtitlesManager.setSubtitles(introText);
             }
+            
+            avatarSubtitlesManager.setSubtitles(introText);
             
             // Guardar presentación en memoria
             try {
