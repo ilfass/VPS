@@ -407,9 +407,9 @@ html {
 }
 
 .subtitles-wrapper {
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.85) !important; /* TEST: Más oscuro para verificar */
     backdrop-filter: blur(8px);
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    border: 3px solid rgba(255, 255, 255, 0.4) !important; /* TEST: Borde más grueso y visible */
     border-radius: 4px;
     padding: 16px 24px;
     max-width: 80%;
@@ -420,12 +420,12 @@ html {
 
 /* Estilo tipo película: fondo negro semitransparente con borde blanco */
 .subtitles-text {
-    font-family: 'Arial', 'Helvetica', sans-serif;
-    font-size: 1.4rem;
+    font-family: 'Arial', 'Helvetica', sans-serif !important;
+    font-size: 1.6rem !important; /* TEST: Más grande para verificar */
     line-height: 1.5;
-    color: #ffffff;
-    text-align: center;
-    font-weight: 500;
+    color: #ffff00 !important; /* TEST: Texto amarillo para verificar */
+    text-align: center !important;
+    font-weight: 700 !important; /* TEST: Más grueso */
     text-shadow: 
         2px 2px 4px rgba(0, 0, 0, 0.9),
         -1px -1px 2px rgba(0, 0, 0, 0.9),

@@ -47,6 +47,11 @@ export default class MapaMode {
                 <div class="broadcast-background"></div>
                 <div id="d3-map-container" class="broadcast-map-container"></div>
                 
+                <!-- INDICADOR DE VERSIÓN (TEMPORAL PARA VERIFICAR DEPLOY) -->
+                <div style="position: fixed; top: 10px; left: 10px; background: rgba(255, 0, 0, 0.9); color: white; padding: 10px 20px; border-radius: 5px; z-index: 9999; font-family: monospace; font-size: 14px; font-weight: bold;">
+                    ✅ DEPLOY v2026-01-08-03:25 - Cambios aplicados
+                </div>
+                
                 <!-- Capa 1: Overlay Global (Reloj UTC pequeño) -->
                 <div class="broadcast-overlay-top-right">
                     <div class="mini-clock-label">TIEMPO UNIVERSAL (UTC)</div>
