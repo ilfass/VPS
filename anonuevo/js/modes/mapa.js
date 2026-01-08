@@ -1202,11 +1202,8 @@ Genera una introducción en primera persona (como ilfass) que:
                 multimediaOrchestrator.showMediaOverlay(item, delay);
             });
             
-            // 5. Mostrar avatar y subtítulos
-            avatarSubtitlesManager.show();
-            
-            // 6. Narrar el relato con subtítulos
-            pacingEngine.startEvent(CONTENT_TYPES.VOICE);
+            // 5. Avatar y subtítulos ya están mostrados desde el inicio
+            // 6. La narración ya comenzó con el texto inicial, ahora continuamos con el texto completo si está listo
             
             // Cancelar cualquier timeout de zoom out que pueda estar pendiente
             if (this.travelTimeout) {
@@ -1217,7 +1214,7 @@ Genera una introducción en primera persona (como ilfass) que:
             // Marcar que estamos narrando para prevenir zoom out
             this.isNarrating = true;
             
-            // Preparar subtítulos por FRASES completas (no palabra por palabra)
+            // Preparar subtítulos por FRASES completas (no palabra por palabra) usando el texto final
             const cleanNarrative = continuousNarrative.narrative.replace(/[^\w\s.,;:!?áéíóúñüÁÉÍÓÚÑÜ]/g, '');
             
             // Dividir en frases (por puntos, comas, o pausas naturales)
