@@ -165,11 +165,19 @@ export class AudioManager {
             return;
         }
 
-        // IMPORTANTE: Resumir SpeechSynthesis antes de hablar (requerido por políticas del navegador)
+        // IMPORTANTE: Resumir y "calentar" SpeechSynthesis antes de hablar (requerido por políticas del navegador)
         try {
+            // Cancelar cualquier speech pendiente
+            this.synth.cancel();
+            // Resumir el servicio
             this.synth.resume();
+            // Hacer un "warm-up" con un utterance vacío para desbloquear
+            const warmUp = new SpeechSynthesisUtterance('');
+            warmUp.volume = 0;
+            this.synth.speak(warmUp);
+            this.synth.cancel(); // Cancelar inmediatamente el warm-up
         } catch (e) {
-            console.warn("[AudioManager] ⚠️ No se pudo resumir SpeechSynthesis:", e);
+            console.warn("[AudioManager] ⚠️ No se pudo preparar SpeechSynthesis:", e);
         }
 
         this.cancel();

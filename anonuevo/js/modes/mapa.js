@@ -45,10 +45,29 @@ export default class MapaMode {
         const enableAudioOnInteraction = () => {
             // Intentar iniciar audio después de interacción
             audioManager.tryStartAfterInteraction();
-            // Resumir SpeechSynthesis
+            
+            // Desbloquear SpeechSynthesis con un "warm-up" explícito
             if ('speechSynthesis' in window) {
-                window.speechSynthesis.resume();
+                try {
+                    // Cancelar cualquier speech pendiente
+                    window.speechSynthesis.cancel();
+                    // Resumir el servicio
+                    window.speechSynthesis.resume();
+                    // Hacer un "warm-up" con un utterance vacío para desbloquear
+                    const warmUp = new SpeechSynthesisUtterance('');
+                    warmUp.volume = 0;
+                    warmUp.text = '';
+                    window.speechSynthesis.speak(warmUp);
+                    // Cancelar inmediatamente el warm-up
+                    setTimeout(() => {
+                        window.speechSynthesis.cancel();
+                        console.log('[Mapa] ✅ SpeechSynthesis desbloqueado después de interacción');
+                    }, 10);
+                } catch (e) {
+                    console.warn('[Mapa] ⚠️ Error desbloqueando SpeechSynthesis:', e);
+                }
             }
+            
             // Remover listeners después de la primera interacción
             document.removeEventListener('click', enableAudioOnInteraction);
             document.removeEventListener('touchstart', enableAudioOnInteraction);
