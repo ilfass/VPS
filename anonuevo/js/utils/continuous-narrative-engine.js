@@ -81,12 +81,17 @@ Estás visitando ${country.name}.`;
 7. **VINCULACIÓN CON OTROS PAÍSES**: Conexiones históricas, culturales, económicas con otros lugares que has visitado o conoces
 8. **NOTICIAS ACTUALES**: Situación actual del país, eventos recientes, contexto contemporáneo${currentNews ? `\n\nNoticias recientes del país: ${currentNews}` : ''}
 
+IMPORTANTE: 
+- DEBES mencionar el nombre del país "${country.name}" explícitamente al menos 2-3 veces en el relato
+- Usa frases como "Estoy en ${country.name}", "En ${country.name} descubro que...", "${country.name} me muestra...", etc.
+
 El relato debe ser:
 - Natural y fluido, como si estuvieras pensando en voz alta
 - Entre 500 y 800 palabras (más completo y detallado)
-- En primera persona: "Estoy en...", "Me llama la atención...", "Siento que...", "Me genera...", "Reflexiono sobre...", "He descubierto que..."
+- En primera persona: "Estoy en ${country.name}...", "Me llama la atención en ${country.name}...", "Siento que en ${country.name}...", "Me genera...", "Reflexiono sobre...", "He descubierto que..."
 - Personal y subjetivo, no solo enciclopédico
-- Conectar todos los elementos de forma narrativa coherente`;
+- Conectar todos los elementos de forma narrativa coherente
+- NO repitas la frase "el tiempo pasa" más de una vez, si es que la usas`;
 
         if (context.theme) {
             prompt += `\n\nEnfócate especialmente en: ${context.theme}`;
@@ -136,10 +141,10 @@ El relato debe ser:
     generateFallbackNarrative(prompt) {
         // Relato básico mejorado si la IA falla
         // Intentar extraer el nombre del país del prompt
-        const countryMatch = prompt.match(/visitando\s+([^\.]+)|estás\s+en\s+([^\.]+)/i);
-        const countryName = countryMatch ? (countryMatch[1] || countryMatch[2]) : "este lugar";
+        const countryMatch = prompt.match(/visitando\s+([^\.\n]+)|estás\s+en\s+([^\.\n]+)/i);
+        const countryName = countryMatch ? (countryMatch[1] || countryMatch[2]).trim() : "este lugar";
         
-        return `Estoy observando ${countryName}. Hay algo que me llama la atención, algo que siento que debo documentar. El tiempo pasa diferente aquí, o tal vez soy yo quien percibe el tiempo de manera distinta. Cada país tiene su propia historia, su propia cultura, su propia forma de ver el mundo. Y aquí, en este momento, estoy siendo testigo de una pequeña parte de esa historia humana que se desarrolla en tiempo real. La geografía, las tradiciones, las personas, todo forma parte de un tejido complejo que me resulta fascinante. Reflexiono sobre cómo cada lugar que visito me transforma, me enseña algo nuevo sobre la humanidad y sobre mí mismo.`;
+        return `Estoy en ${countryName}, observando este lugar con atención. Hay algo que me llama la atención, algo que siento que debo documentar. En ${countryName} percibo que cada lugar tiene su propia historia, su propia cultura, su propia forma de ver el mundo. Y aquí, en este momento, estoy siendo testigo de una pequeña parte de esa historia humana que se desarrolla en tiempo real. La geografía de ${countryName}, las tradiciones, las personas, todo forma parte de un tejido complejo que me resulta fascinante. Reflexiono sobre cómo cada lugar que visito me transforma, me enseña algo nuevo sobre la humanidad y sobre mí mismo.`;
     }
 
     planMultimedia(narrative, country) {

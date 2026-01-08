@@ -557,10 +557,20 @@ export default class MapaMode {
      * Genera el texto con IA y lo guarda en memoria
      */
     async showMapIntro() {
+        // Asegurar que el mapa esté en zoom out (vista global)
+        this.resetZoom(false); // No liberar audio aún
+        
         // Mostrar avatar inmediatamente
         avatarSubtitlesManager.show();
         
-        // Cargar presentaciones previas de la memoria
+        // Usar fallback inmediatamente mientras se genera con IA
+        let introText = this.getFallbackIntro();
+        avatarSubtitlesManager.updateSubtitles(introText, 2.5);
+        
+        // Iniciar narración con fallback mientras se genera la versión mejorada
+        pacingEngine.startEvent(CONTENT_TYPES.VOICE);
+        
+        // Cargar presentaciones previas de la memoria y generar mejor versión en paralelo
         let previousPresentations = [];
         try {
             const memoryRes = await fetch('/control-api/api/map-intro-memory');
@@ -572,38 +582,76 @@ export default class MapaMode {
             console.warn('[Mapa] No se pudo cargar memoria de presentaciones:', e);
         }
         
-        // Generar texto de introducción con IA
-        let introText = '';
+        // Generar texto de introducción con IA en paralelo (no esperar)
+        const generateIntroPromise = (async () => {
+            try {
+                const prompt = this.buildIntroPrompt(previousPresentations);
+                const response = await fetch('/control-api/api/generate-narrative', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.narrative || null;
+                }
+            } catch (e) {
+                console.warn('[Mapa] Error generando intro con IA:', e);
+            }
+            return null;
+        })();
+        
+        // Mostrar contenido multimedia global (imagen del mundo, viaje, etc.)
         try {
-            const prompt = this.buildIntroPrompt(previousPresentations);
-            const response = await fetch('/control-api/api/generate-narrative', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt })
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                introText = data.narrative || this.getFallbackIntro();
-            } else {
-                introText = this.getFallbackIntro();
+            const mediaRes = await fetch('/control-api/api/media-list');
+            if (mediaRes.ok) {
+                const mediaList = await mediaRes.json();
+                // Buscar media global o de cualquier país para mostrar en la intro
+                const globalMedia = mediaList.filter(m => 
+                    m.folder && (m.folder.toLowerCase().includes('global') || 
+                                m.folder.toLowerCase().includes('world') ||
+                                m.folder.toLowerCase().includes('viaje'))
+                );
+                
+                if (globalMedia.length === 0 && mediaList.length > 0) {
+                    // Si no hay media global, usar cualquier imagen disponible
+                    const randomMedia = mediaList[Math.floor(Math.random() * mediaList.length)];
+                    if (randomMedia) {
+                        multimediaOrchestrator.showMediaOverlay({
+                            type: randomMedia.type || 'image',
+                            url: randomMedia.url,
+                            context: 'Introducción al viaje',
+                            trigger: 'start'
+                        }, 1000);
+                    }
+                } else if (globalMedia.length > 0) {
+                    const selectedMedia = globalMedia[Math.floor(Math.random() * globalMedia.length)];
+                    multimediaOrchestrator.showMediaOverlay({
+                        type: selectedMedia.type || 'image',
+                        url: selectedMedia.url,
+                        context: 'Introducción al viaje',
+                        trigger: 'start'
+                    }, 1000);
+                }
             }
         } catch (e) {
-            console.warn('[Mapa] Error generando intro con IA:', e);
-            introText = this.getFallbackIntro();
+            console.warn('[Mapa] Error cargando media para intro:', e);
         }
         
-        // Actualizar subtítulos
-        avatarSubtitlesManager.updateSubtitles(introText, 2.5);
-        
-        // Hablar
-        pacingEngine.startEvent(CONTENT_TYPES.VOICE);
+        // Hablar con el texto inicial (fallback o mejorado si ya está listo)
         audioManager.speak(introText, 'normal', async () => {
             pacingEngine.endCurrentEvent();
             pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
             
-            // Mostrar subtítulos completos
-            avatarSubtitlesManager.setSubtitles(introText);
+            // Intentar usar la versión mejorada si ya está lista
+            const improvedIntro = await generateIntroPromise;
+            if (improvedIntro && improvedIntro !== introText) {
+                introText = improvedIntro;
+                avatarSubtitlesManager.setSubtitles(introText);
+            } else {
+                avatarSubtitlesManager.setSubtitles(introText);
+            }
             
             // Guardar presentación en memoria
             try {
@@ -620,6 +668,11 @@ export default class MapaMode {
             } catch (e) {
                 console.warn('[Mapa] Error guardando presentación:', e);
             }
+            
+            // Ocultar multimedia después de la intro
+            setTimeout(() => {
+                multimediaOrchestrator.hideAllOverlays();
+            }, 2000);
             
             // Si Dream Mode está ON, cambiar automáticamente a otra página después de la intro
             if (eventManager.canProceedAuto()) {
@@ -650,7 +703,9 @@ Genera una introducción en primera persona (como ilfass) que:
 3. Mencione qué significa documentar la existencia humana en tiempo real
 4. Sea personal, reflexiva y evocadora
 5. Tenga entre 150 y 250 palabras
-6. Use primera persona: "Soy ilfass...", "Estoy aquí para...", "Este viaje representa..."`;
+6. Use primera persona: "Soy ilfass...", "Estoy aquí para...", "Este viaje representa..."
+7. NO repitas la frase "el tiempo pasa" más de una vez, si es que la usas
+8. Varía las expresiones temporales: usa "en este momento", "ahora", "en este instante", "en la actualidad", etc.`;
 
         if (previousPresentations.length > 0) {
             prompt += `\n\nYa has hecho ${previousPresentations.length} presentación(es) anterior(es). Evita repetir exactamente lo mismo. Varía el enfoque, pero mantén la esencia del proyecto.`;
