@@ -705,42 +705,6 @@ export default class MapaMode {
                 avatarSubtitlesManager.setSubtitles(fullIntroText);
             }
         });
-            // Callback cuando termine de hablar
-            pacingEngine.endCurrentEvent();
-            pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
-            
-            // Guardar presentación en memoria
-            try {
-                await fetch('/control-api/api/map-intro-memory', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        timestamp: Date.now(),
-                        text: finalIntroText,
-                        presentationsCount: previousPresentations.length + 1
-                    })
-                });
-                console.log('[Mapa] Presentación guardada en memoria');
-            } catch (e) {
-                console.warn('[Mapa] Error guardando presentación:', e);
-            }
-            
-            // Ocultar multimedia después de la intro
-            setTimeout(() => {
-                multimediaOrchestrator.hideAllOverlays();
-            }, 2000);
-            
-            // Si Dream Mode está ON, cambiar automáticamente a otra página después de la intro
-            if (eventManager.canProceedAuto()) {
-                console.log('[Mapa] Dream Mode ON: Cambiando automáticamente después de intro...');
-                setTimeout(() => {
-                    const pages = ['diario', 'estado-actual', 'reflexion'];
-                    const randomPage = pages[Math.floor(Math.random() * pages.length)];
-                    console.log(`[Mapa] 🎲 Navegando a: ${randomPage}`);
-                    window.location.href = `/vivos/${randomPage}/`;
-                }, 3000);
-            }
-        });
         
         // Mostrar contenido multimedia global (imagen del mundo, viaje, etc.)
         try {
