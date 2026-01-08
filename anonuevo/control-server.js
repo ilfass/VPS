@@ -259,12 +259,24 @@ async function dreamWithHF(prompt) {
 
 // Nivel 3: Gemini
 async function dreamWithGemini(prompt) {
-    if (!GoogleGenerativeAI || !process.env.GEMINI_API_KEY) return null;
+    if (!GoogleGenerativeAI || !process.env.GEMINI_API_KEY) {
+        console.warn("⚠️ Gemini no disponible (SDK o API key faltante)");
+        return null;
+    }
     try {
+        console.log("🧠 Dreaming with Gemini...");
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         const res = await genAI.getGenerativeModel({ model: "gemini-2.0-flash" }).generateContent(prompt);
-        return res.response.text().replace(/"/g, '').trim();
-    } catch (e) { return null; }
+        const content = res.response.text().replace(/"/g, '').trim();
+        if (content && content.length > 50) {
+            console.log(`✅ Gemini generó ${content.length} caracteres`);
+            return content;
+        }
+        console.warn("⚠️ Gemini no retornó contenido válido");
+    } catch (e) { 
+        console.error("❌ Gemini Dream failed:", e.message);
+    }
+    return null;
 }
 
 // Nivel 2: Grok (xAI)
@@ -289,11 +301,24 @@ async function dreamWithGrok(prompt) {
                 max_tokens: 800 // Relatos más largos
             })
         });
-        const data = await response.json();
-        if (data.choices && data.choices[0]) {
-            return data.choices[0].message.content.replace(/"/g, '').trim();
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error(`⚠️ Grok API error: ${response.status} - ${JSON.stringify(errorData)}`);
+            return null;
         }
-    } catch (e) { console.error("Grok Dream failed:", e.message); }
+        
+        const data = await response.json();
+        if (data.choices && data.choices[0] && data.choices[0].message) {
+            const content = data.choices[0].message.content.replace(/"/g, '').trim();
+            if (content && content.length > 50) {
+                console.log(`✅ Grok generó ${content.length} caracteres`);
+                return content;
+            }
+        }
+        console.warn("⚠️ Grok no retornó contenido válido");
+    } catch (e) { 
+        console.error("❌ Grok Dream failed:", e.message, e.stack);
+    }
     return null;
 }
 
