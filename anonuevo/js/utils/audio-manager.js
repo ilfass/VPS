@@ -165,6 +165,27 @@ export class AudioManager {
         utterance.volume = 1.0; // Asegurar volumen máximo
         utterance.wasCancelled = false;
 
+        // Configurar eventos antes de hablar
+        this.currentUtterance = utterance;
+        
+        // Notificar que el avatar está hablando
+        this.notifySpeaking(true);
+        
+        utterance.onstart = () => {
+            console.log("[AudioManager] ✅ Voz iniciada correctamente");
+        };
+        
+        utterance.onend = () => {
+            console.log("[AudioManager] ✅ Voz terminada");
+            this.notifySpeaking(false);
+            if (!utterance.wasCancelled && onEndCallback) onEndCallback();
+        };
+        
+        utterance.onerror = (e) => {
+            console.error("[AudioManager] ❌ Error en voz:", e);
+            this.notifySpeaking(false);
+        };
+        
         // Esperar a que las voces estén cargadas
         const getVoices = () => {
             const voices = this.synth.getVoices();
@@ -176,7 +197,7 @@ export class AudioManager {
                         this.selectVoice(utterance, voicesRetry, priority);
                         this.synth.speak(utterance);
                     } else {
-                        console.warn("[AudioManager] ⚠️ No se encontraron voces disponibles");
+                        console.warn("[AudioManager] ⚠️ No se encontraron voces disponibles, intentando sin voz específica");
                         this.synth.speak(utterance); // Intentar sin voz específica
                     }
                 }, 100);
