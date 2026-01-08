@@ -690,8 +690,19 @@ export default class MapaMode {
         })();
         
         // Empezar a hablar INMEDIATAMENTE con el texto inicial (no esperar)
-        // IMPORTANTE: Establecer subtítulos SOLO cuando realmente se empiece a hablar
         console.log('[Mapa] 🔊 Hablando texto inicial inmediatamente');
+        
+        // Mostrar subtítulos INMEDIATAMENTE antes de empezar a hablar
+        avatarSubtitlesManager.setSubtitles(immediateIntroText);
+        
+        // Marcar que estamos narrando para prevenir interrupciones
+        this.isNarrating = true;
+        
+        // Cancelar cualquier timeout que pueda interrumpir la narración
+        if (this.travelTimeout) {
+            clearTimeout(this.travelTimeout);
+            this.travelTimeout = null;
+        }
         
         // Usar speechSynthesis directamente para tener control de eventos y sincronizar subtítulos
         const utterance = new SpeechSynthesisUtterance(immediateIntroText);
@@ -699,10 +710,46 @@ export default class MapaMode {
         utterance.rate = 0.95;
         utterance.volume = 1.0;
         
-        // Sincronizar subtítulos con la voz usando onstart
+        // Dividir el texto en frases para actualizar subtítulos progresivamente
+        const cleanText = immediateIntroText.replace(/\.\s+/g, '.|').split('|').filter(f => f.trim().length > 0);
+        let currentPhraseIndex = 0;
+        
+        // Sincronizar subtítulos con la voz usando onstart y onboundary
         utterance.onstart = () => {
             console.log('[Mapa] ✅ Voz iniciada, mostrando subtítulos del texto inicial');
-            avatarSubtitlesManager.setSubtitles(immediateIntroText);
+            // Mostrar primera frase inmediatamente
+            if (cleanText.length > 0) {
+                avatarSubtitlesManager.setSubtitles(cleanText[0]);
+            }
+        };
+        
+        // Actualizar subtítulos frase por frase mientras se habla
+        utterance.onboundary = (event) => {
+            if (event.name === 'sentence' || event.name === 'word') {
+                // Calcular qué frase debería mostrarse basado en la posición
+                const charIndex = event.charIndex;
+                let totalChars = 0;
+                let targetPhraseIndex = 0;
+                
+                for (let i = 0; i < cleanText.length; i++) {
+                    totalChars += cleanText[i].length;
+                    if (charIndex < totalChars) {
+                        targetPhraseIndex = i;
+                        break;
+                    }
+                }
+                
+                // Si cambió la frase, actualizar subtítulos
+                if (targetPhraseIndex !== currentPhraseIndex && targetPhraseIndex < cleanText.length) {
+                    currentPhraseIndex = targetPhraseIndex;
+                    // Mostrar la frase actual y la siguiente (máximo 2 líneas)
+                    const phrasesToShow = cleanText.slice(
+                        Math.max(0, currentPhraseIndex),
+                        Math.min(cleanText.length, currentPhraseIndex + 2)
+                    ).join(' ');
+                    avatarSubtitlesManager.setSubtitles(phrasesToShow);
+                }
+            }
         };
         
         // Cuando termine el texto inicial, continuar con el completo si está listo
@@ -719,6 +766,10 @@ export default class MapaMode {
             if (fullIntroText && fullIntroText !== immediateIntroText && fullIntroText.length > immediateIntroText.length) {
                 console.log('[Mapa] 🔊 Continuando con texto completo generado');
                 
+                // Dividir el texto completo en frases
+                const fullCleanText = fullIntroText.replace(/\.\s+/g, '.|').split('|').filter(f => f.trim().length > 0);
+                let fullCurrentPhraseIndex = 0;
+                
                 // Crear nuevo utterance para el texto completo
                 const fullUtterance = new SpeechSynthesisUtterance(fullIntroText);
                 fullUtterance.lang = 'es-ES';
@@ -728,15 +779,46 @@ export default class MapaMode {
                 // Sincronizar subtítulos cuando empiece a hablar el texto completo
                 fullUtterance.onstart = () => {
                     console.log('[Mapa] ✅ Voz del texto completo iniciada, actualizando subtítulos');
-                    avatarSubtitlesManager.setSubtitles(fullIntroText);
+                    // Mostrar primera frase del texto completo
+                    if (fullCleanText.length > 0) {
+                        avatarSubtitlesManager.setSubtitles(fullCleanText[0]);
+                    }
+                };
+                
+                // Actualizar subtítulos frase por frase
+                fullUtterance.onboundary = (event) => {
+                    if (event.name === 'sentence' || event.name === 'word') {
+                        const charIndex = event.charIndex;
+                        let totalChars = 0;
+                        let targetPhraseIndex = 0;
+                        
+                        for (let i = 0; i < fullCleanText.length; i++) {
+                            totalChars += fullCleanText[i].length;
+                            if (charIndex < totalChars) {
+                                targetPhraseIndex = i;
+                                break;
+                            }
+                        }
+                        
+                        if (targetPhraseIndex !== fullCurrentPhraseIndex && targetPhraseIndex < fullCleanText.length) {
+                            fullCurrentPhraseIndex = targetPhraseIndex;
+                            const phrasesToShow = fullCleanText.slice(
+                                Math.max(0, fullCurrentPhraseIndex),
+                                Math.min(fullCleanText.length, fullCurrentPhraseIndex + 2)
+                            ).join(' ');
+                            avatarSubtitlesManager.setSubtitles(phrasesToShow);
+                        }
+                    }
                 };
                 
                 fullUtterance.onend = async () => {
+                    this.isNarrating = false;
                     await this.finishMapIntro(fullIntroText, previousPresentations);
                 };
                 
                 fullUtterance.onerror = (e) => {
                     console.error('[Mapa] ❌ Error en voz del texto completo:', e);
+                    this.isNarrating = false;
                     this.finishMapIntro(fullIntroText, previousPresentations);
                 };
                 
@@ -749,12 +831,14 @@ export default class MapaMode {
             } else {
                 // Si no hay texto completo, terminar con el inicial
                 console.log('[Mapa] ✅ Terminando con texto inicial (no se generó completo)');
+                this.isNarrating = false;
                 await this.finishMapIntro(immediateIntroText, previousPresentations);
             }
         };
         
         utterance.onerror = (e) => {
             console.error('[Mapa] ❌ Error en voz del texto inicial:', e);
+            this.isNarrating = false;
             this.finishMapIntro(immediateIntroText, previousPresentations);
         };
         
