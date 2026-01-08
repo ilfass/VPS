@@ -27,15 +27,24 @@ export class AudioManager {
     init() {
         // Crear elemento de audio invisible para el fondo
         this.musicLayer = new Audio();
-        this.musicLayer.loop = true;
+        this.musicLayer.loop = false; // NO loop para permitir rotación de tracks
         this.musicLayer.volume = 0.0; // Inicia en silencio y hace fade in
 
         // Cargar el primer track
         this.loadTrack(this.currentTrackIndex);
 
-        // Cuando termine un track (si no está en loop), cargar el siguiente
+        // Cuando termine un track, cargar el siguiente
         this.musicLayer.addEventListener('ended', () => {
+            console.log("[AudioManager] Track terminado, cambiando al siguiente...");
             this.nextTrack();
+            // Reproducir el siguiente track automáticamente
+            if (this.isMusicPlaying && this.musicLayer) {
+                this.musicLayer.play().then(() => {
+                    this.fadeAudio(this.musicLayer, 0.0, 0.3, 2000);
+                }).catch(e => {
+                    console.warn("[AudioManager] Error reproduciendo siguiente track:", e);
+                });
+            }
         });
 
         // Autoplay policy puede bloquear esto hasta interacción del usuario
@@ -51,7 +60,10 @@ export class AudioManager {
             if (this.musicLayer) {
                 const wasPlaying = !this.musicLayer.paused;
                 const currentVolume = this.musicLayer.volume;
+                console.log(`[AudioManager] 🎵 Cargando track ${index + 1}/${this.tracks.length}: ${this.tracks[index]}`);
                 this.musicLayer.src = this.tracks[index];
+                // Asegurar que no esté en loop para permitir rotación
+                this.musicLayer.loop = false;
                 if (wasPlaying) {
                     this.musicLayer.play().catch(e => {
                         console.warn("[AudioManager] Error playing track:", e);

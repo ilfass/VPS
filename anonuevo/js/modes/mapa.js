@@ -670,22 +670,41 @@ export default class MapaMode {
             return fullText;
         })();
         
-        // Esperar a que el texto completo esté listo (o usar el inicial si tarda mucho)
-        const fullIntroText = await Promise.race([
-            generateFullIntroPromise,
-            new Promise(resolve => setTimeout(() => resolve(immediateIntroText), 3000)) // Timeout de 3 segundos
-        ]);
+        // Empezar a hablar INMEDIATAMENTE con el texto inicial (no esperar)
+        avatarSubtitlesManager.setSubtitles(immediateIntroText);
+        console.log('[Mapa] 🔊 Hablando texto inicial inmediatamente');
+        audioManager.speak(immediateIntroText, 'normal', async () => {
+            console.log('[Mapa] ✅ Texto inicial terminado, esperando texto completo...');
+            
+            // Después de que termine el texto inicial, esperar a que el texto completo esté listo
+            const fullIntroText = await Promise.race([
+                generateFullIntroPromise,
+                new Promise(resolve => setTimeout(() => resolve(null), 5000)) // Timeout de 5 segundos
+            ]);
+            
+            // Si hay texto completo y es diferente, continuar hablando con él
+            if (fullIntroText && fullIntroText !== immediateIntroText && fullIntroText.length > immediateIntroText.length) {
+                console.log('[Mapa] 🔊 Continuando con texto completo generado');
+                avatarSubtitlesManager.setSubtitles(fullIntroText);
+                audioManager.speak(fullIntroText, 'normal', async () => {
+                    await this.finishMapIntro(fullIntroText, previousPresentations);
+                });
+            } else {
+                // Si no hay texto completo, terminar con el inicial
+                console.log('[Mapa] ✅ Terminando con texto inicial (no se generó completo)');
+                await this.finishMapIntro(immediateIntroText, previousPresentations);
+            }
+        });
         
-        // Usar el texto completo si está disponible, sino el inicial
-        const finalIntroText = (fullIntroText && fullIntroText !== immediateIntroText && fullIntroText.length > immediateIntroText.length) 
-            ? fullIntroText 
-            : immediateIntroText;
-        
-        introText = finalIntroText;
-        
-        // Empezar a hablar con el texto final (completo o inicial)
-        avatarSubtitlesManager.setSubtitles(finalIntroText);
-        audioManager.speak(finalIntroText, 'normal', async () => {
+        // En paralelo, esperar a que el texto completo esté listo para actualizar si aún está hablando el inicial
+        generateFullIntroPromise.then(fullIntroText => {
+            if (fullIntroText && fullIntroText !== immediateIntroText && fullIntroText.length > immediateIntroText.length) {
+                // Si el texto completo está listo y aún estamos hablando el inicial, actualizar subtítulos
+                // (pero no interrumpir el audio, solo actualizar subtítulos)
+                console.log('[Mapa] 📝 Texto completo listo, actualizando subtítulos');
+                avatarSubtitlesManager.setSubtitles(fullIntroText);
+            }
+        });
             // Callback cuando termine de hablar
             pacingEngine.endCurrentEvent();
             pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
