@@ -348,9 +348,15 @@ export default class MapaMode {
         // Mostrar avatar inmediatamente al cargar
         avatarSubtitlesManager.show();
 
-        // Iniciar música de fondo
+        // Iniciar música de fondo (asegurar que se inicie)
+        if (!audioManager.musicLayer) {
+            audioManager.init();
+        }
         if (!audioManager.isMusicPlaying) {
+            console.log('[Mapa] Iniciando música de fondo...');
             audioManager.startAmbience();
+        } else {
+            console.log('[Mapa] Música de fondo ya está reproduciéndose');
         }
         
         // Mostrar avatar y hablar sobre el proyecto AL CARGAR (siempre)
