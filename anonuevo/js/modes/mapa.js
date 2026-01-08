@@ -47,11 +47,6 @@ export default class MapaMode {
                 <div class="broadcast-background"></div>
                 <div id="d3-map-container" class="broadcast-map-container"></div>
                 
-                <!-- INDICADOR DE VERSIÓN (TEMPORAL PARA VERIFICAR DEPLOY) -->
-                <div style="position: fixed; top: 10px; left: 10px; background: rgba(255, 0, 0, 0.9); color: white; padding: 10px 20px; border-radius: 5px; z-index: 9999; font-family: monospace; font-size: 14px; font-weight: bold;">
-                    ✅ DEPLOY v2026-01-08-03:25 - Cambios aplicados
-                </div>
-                
                 <!-- Capa 1: Overlay Global (Reloj UTC pequeño) -->
                 <div class="broadcast-overlay-top-right">
                     <div class="mini-clock-label">TIEMPO UNIVERSAL (UTC)</div>
@@ -1134,35 +1129,56 @@ Genera una introducción en primera persona (como ilfass) que:
             // Marcar que estamos narrando para prevenir zoom out
             this.isNarrating = true;
             
-            // Preparar subtítulos sincronizados con la voz usando eventos boundary
+            // Preparar subtítulos por FRASES completas (no palabra por palabra)
             const cleanNarrative = continuousNarrative.narrative.replace(/[^\w\s.,;:!?áéíóúñüÁÉÍÓÚÑÜ]/g, '');
-            const words = cleanNarrative.split(/\s+/).filter(w => w.trim().length > 0);
-            let currentWordIndex = 0;
-            const maxWordsPerLine = 10;
-            const maxTotalWords = maxWordsPerLine * 2; // 2 líneas
-            let displayedWords = [];
             
-            // Función para actualizar subtítulos mostrando solo las últimas palabras
-            const updateSubtitlesSync = () => {
-                if (currentWordIndex < words.length) {
-                    displayedWords.push(words[currentWordIndex]);
-                    
-                    // Si excede el máximo, eliminar la primera palabra
-                    if (displayedWords.length > maxTotalWords) {
-                        displayedWords.shift();
+            // Dividir en frases (por puntos, comas, o pausas naturales)
+            const sentences = cleanNarrative
+                .split(/([.!?]+\s+|,\s+)/)
+                .filter(s => s.trim().length > 0)
+                .map(s => s.trim());
+            
+            // Agrupar frases en bloques de ~2 líneas (máximo 16-18 palabras por bloque)
+            const phraseBlocks = [];
+            let currentBlock = [];
+            let currentWordCount = 0;
+            const maxWordsPerBlock = 16; // Aproximadamente 2 líneas
+            
+            for (const sentence of sentences) {
+                const wordCount = sentence.split(/\s+/).filter(w => w.trim().length > 0).length;
+                
+                if (currentWordCount + wordCount <= maxWordsPerBlock && currentBlock.length > 0) {
+                    // Agregar a bloque actual
+                    currentBlock.push(sentence);
+                    currentWordCount += wordCount;
+                } else {
+                    // Guardar bloque anterior y empezar uno nuevo
+                    if (currentBlock.length > 0) {
+                        phraseBlocks.push({
+                            text: currentBlock.join(' '),
+                            wordCount: currentWordCount
+                        });
                     }
-                    
-                    // Mostrar solo las palabras actuales (no acumulativo)
-                    const wordsToShow = displayedWords.join(' ');
-                    avatarSubtitlesManager.setSubtitles(wordsToShow);
-                    currentWordIndex++;
+                    currentBlock = [sentence];
+                    currentWordCount = wordCount;
                 }
-            };
+            }
+            
+            // Agregar último bloque
+            if (currentBlock.length > 0) {
+                phraseBlocks.push({
+                    text: currentBlock.join(' '),
+                    wordCount: currentWordCount
+                });
+            }
+            
+            let currentPhraseIndex = 0;
+            let wordsSpoken = 0;
             
             // Limpiar subtítulos inicialmente
             avatarSubtitlesManager.clearSubtitles();
             
-            // Crear utterance para sincronización (usar cleanNarrative ya declarado arriba)
+            // Crear utterance para sincronización
             const utterance = new SpeechSynthesisUtterance(cleanNarrative);
             utterance.lang = 'es-ES';
             utterance.rate = 0.85;
@@ -1175,17 +1191,38 @@ Genera una introducción en primera persona (como ilfass) que:
                             voices.find(v => v.lang.startsWith('es'));
             if (bestVoice) utterance.voice = bestVoice;
             
-            // Sincronizar subtítulos con la voz usando eventos boundary
+            // Sincronizar subtítulos con la voz: mostrar frases completas
             utterance.onboundary = (event) => {
-                if (event.name === 'word' || event.name === 'sentence') {
-                    updateSubtitlesSync();
+                if (event.name === 'word') {
+                    wordsSpoken++;
+                    
+                    // Calcular qué frase debería mostrarse basado en palabras habladas
+                    let totalWords = 0;
+                    let targetPhraseIndex = 0;
+                    
+                    for (let i = 0; i < phraseBlocks.length; i++) {
+                        totalWords += phraseBlocks[i].wordCount;
+                        if (wordsSpoken <= totalWords) {
+                            targetPhraseIndex = i;
+                            break;
+                        }
+                    }
+                    
+                    // Si cambió la frase, actualizar subtítulos
+                    if (targetPhraseIndex !== currentPhraseIndex && targetPhraseIndex < phraseBlocks.length) {
+                        currentPhraseIndex = targetPhraseIndex;
+                        // Mostrar la frase completa
+                        avatarSubtitlesManager.setSubtitles(phraseBlocks[currentPhraseIndex].text);
+                    }
                 }
             };
             
             utterance.onstart = () => {
-                // Mostrar primera palabra inmediatamente
-                if (words.length > 0) {
-                    updateSubtitlesSync();
+                // Mostrar primera frase inmediatamente
+                if (phraseBlocks.length > 0) {
+                    avatarSubtitlesManager.setSubtitles(phraseBlocks[0].text);
+                    currentPhraseIndex = 0;
+                    wordsSpoken = 0;
                 }
             };
             
@@ -1200,10 +1237,16 @@ Genera una introducción en primera persona (como ilfass) que:
             // Esperar a que termine el speech
             const speechPromise = new Promise((resolve) => {
                 utterance.onend = () => {
-                    // Mostrar todas las palabras restantes al final
-                    while (currentWordIndex < words.length) {
-                        updateSubtitlesSync();
+                    // Mostrar última frase si no se mostró completa
+                    if (currentPhraseIndex < phraseBlocks.length - 1) {
+                        avatarSubtitlesManager.setSubtitles(phraseBlocks[phraseBlocks.length - 1].text);
                     }
+                    
+                    // Mantener última frase visible por 2 segundos, luego limpiar
+                    setTimeout(() => {
+                        avatarSubtitlesManager.clearSubtitles();
+                    }, 2000);
+                    
                     resolve();
                 };
                 

@@ -929,10 +929,29 @@ NO repitas literalmente la curiosidad. Habla sobre lo que ves en el contenido mu
                             voices.find(v => v.lang.startsWith('es'));
             if (bestVoice) utterance.voice = bestVoice;
 
-            // Sincronizar subtítulos con la voz usando eventos boundary
+            // Sincronizar subtítulos con la voz: mostrar frases completas
             utterance.onboundary = (event) => {
-                if (event.name === 'word' || event.name === 'sentence') {
-                    updateSubtitles();
+                if (event.name === 'word') {
+                    wordsSpoken++;
+                    
+                    // Calcular qué frase debería mostrarse basado en palabras habladas
+                    let totalWords = 0;
+                    let targetPhraseIndex = 0;
+                    
+                    for (let i = 0; i < phraseBlocks.length; i++) {
+                        totalWords += phraseBlocks[i].wordCount;
+                        if (wordsSpoken <= totalWords) {
+                            targetPhraseIndex = i;
+                            break;
+                        }
+                    }
+                    
+                    // Si cambió la frase, actualizar subtítulos
+                    if (targetPhraseIndex !== currentPhraseIndex && targetPhraseIndex < phraseBlocks.length) {
+                        currentPhraseIndex = targetPhraseIndex;
+                        // Mostrar la frase completa
+                        subtitlesText.textContent = phraseBlocks[currentPhraseIndex].text;
+                    }
                 }
             };
 
@@ -943,9 +962,11 @@ NO repitas literalmente la curiosidad. Habla sobre lo que ves en el contenido mu
                 utterance.onstart = () => {
                     avatarImage.classList.add('speaking');
                     console.log('[Curiosidades] Speech iniciado');
-                    // Mostrar primera palabra inmediatamente
-                    if (words.length > 0) {
-                        updateSubtitles();
+                    // Mostrar primera frase inmediatamente
+                    if (phraseBlocks.length > 0) {
+                        subtitlesText.textContent = phraseBlocks[0].text;
+                        currentPhraseIndex = 0;
+                        wordsSpoken = 0;
                     }
                 };
 
@@ -954,15 +975,15 @@ NO repitas literalmente la curiosidad. Habla sobre lo que ves en el contenido mu
                     resolved = true;
                     console.log('[Curiosidades] Speech terminado completamente');
                     
-                    // Mostrar todas las palabras restantes al final
-                    while (currentWordIndex < words.length) {
-                        updateSubtitles();
+                    // Mostrar última frase si no se mostró completa
+                    if (currentPhraseIndex < phraseBlocks.length - 1) {
+                        subtitlesText.textContent = phraseBlocks[phraseBlocks.length - 1].text;
                     }
                     
                     avatarImage.classList.remove('speaking');
                     isSpeaking = false;
                     
-                    // Mantener subtítulos visibles por 2 segundos antes de limpiar
+                    // Mantener última frase visible por 2 segundos antes de limpiar
                     setTimeout(() => {
                         subtitlesText.textContent = '';
                     }, 2000);
