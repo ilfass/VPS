@@ -16,10 +16,10 @@ export class AudioManager {
         this.isMusicPlaying = false;
 
         // Lista de tracks de música ambiente (rotación automática)
-        // Usar rutas relativas desde la raíz del proyecto
+        // Usar rutas absolutas desde la raíz del servidor
         this.tracks = [
-            'assets/audio/ambient_base.mp3',
-            'assets/audio/ambient_base.mp3', // Por ahora el mismo, pero se pueden agregar más
+            '/assets/audio/ambient_base.mp3',
+            '/assets/audio/ambient_base.mp3', // Por ahora el mismo, pero se pueden agregar más
         ];
         this.currentTrackIndex = 0;
     }
@@ -71,6 +71,7 @@ export class AudioManager {
 
     /**
      * Inicia la música de fondo con Fade In
+     * Requiere interacción del usuario para funcionar (política de autoplay)
      */
     startAmbience() {
         if (!this.musicLayer) this.init();
@@ -86,18 +87,28 @@ export class AudioManager {
                 console.log("[AudioManager] ✅ Música iniciada correctamente");
                 this.fadeAudio(this.musicLayer, 0.0, 0.3, 2000); // Subir a 30% volumen
             }).catch(e => {
-                console.warn("[AudioManager] ⚠️ Autoplay blocked or track missing:", e);
+                console.warn("[AudioManager] ⚠️ Autoplay blocked - requiere interacción del usuario:", e);
                 console.warn("[AudioManager] Ruta del audio:", this.musicLayer.src);
-                // Intentar de nuevo después de un momento (puede que necesite interacción del usuario)
-                setTimeout(() => {
-                    this.musicLayer.play().then(() => {
-                        this.isMusicPlaying = true;
-                        console.log("[AudioManager] ✅ Música iniciada en segundo intento");
-                        this.fadeAudio(this.musicLayer, 0.0, 0.3, 2000);
-                    }).catch(e2 => {
-                        console.error("[AudioManager] ❌ No se pudo reproducir música:", e2);
-                    });
-                }, 1000);
+                // El audio se iniciará automáticamente cuando el usuario interactúe con la página
+                // Por ahora, solo loguear el error sin intentar de nuevo
+            });
+        }
+    }
+    
+    /**
+     * Intenta iniciar el audio después de interacción del usuario
+     * Debe ser llamado después de un click o interacción
+     */
+    tryStartAfterInteraction() {
+        if (!this.musicLayer) this.init();
+        
+        if (!this.isMusicPlaying) {
+            this.musicLayer.play().then(() => {
+                this.isMusicPlaying = true;
+                console.log("[AudioManager] ✅ Música iniciada después de interacción");
+                this.fadeAudio(this.musicLayer, 0.0, 0.3, 2000);
+            }).catch(e => {
+                console.error("[AudioManager] ❌ Error iniciando música después de interacción:", e);
             });
         }
     }
@@ -140,6 +151,13 @@ export class AudioManager {
         if (!this.synth) {
             console.warn("[AudioManager] ⚠️ SpeechSynthesis no disponible");
             return;
+        }
+
+        // IMPORTANTE: Resumir SpeechSynthesis antes de hablar (requerido por políticas del navegador)
+        try {
+            this.synth.resume();
+        } catch (e) {
+            console.warn("[AudioManager] ⚠️ No se pudo resumir SpeechSynthesis:", e);
         }
 
         this.cancel();

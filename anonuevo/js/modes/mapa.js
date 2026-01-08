@@ -41,6 +41,25 @@ export default class MapaMode {
     }
 
     async mount() {
+        // 0. Agregar listener para interacción del usuario (requerido para audio/voz)
+        const enableAudioOnInteraction = () => {
+            // Intentar iniciar audio después de interacción
+            audioManager.tryStartAfterInteraction();
+            // Resumir SpeechSynthesis
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.resume();
+            }
+            // Remover listeners después de la primera interacción
+            document.removeEventListener('click', enableAudioOnInteraction);
+            document.removeEventListener('touchstart', enableAudioOnInteraction);
+            document.removeEventListener('keydown', enableAudioOnInteraction);
+        };
+        
+        // Escuchar cualquier interacción del usuario
+        document.addEventListener('click', enableAudioOnInteraction, { once: true });
+        document.addEventListener('touchstart', enableAudioOnInteraction, { once: true });
+        document.addEventListener('keydown', enableAudioOnInteraction, { once: true });
+        
         // 1. Estructura Base (Capas)
         this.container.innerHTML = `
             <div class="broadcast-scene fade-in">
