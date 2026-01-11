@@ -8,10 +8,10 @@ const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const https = require('https');
 
 // Configuración
 const OUTPUT_DIR = path.join(__dirname, '..', 'assets', 'audio', 'generated');
-const EDGE_TTS_CMD = 'edge-tts'; // Comando de edge-tts (npm install -g edge-tts)
 
 // Asegurar que el directorio de salida existe
 if (!fs.existsSync(OUTPUT_DIR)) {
@@ -33,6 +33,70 @@ const SPANISH_VOICES = [
 
 // Voz por defecto (masculina, española, natural)
 const DEFAULT_VOICE = 'es-ES-AlvaroNeural';
+
+/**
+ * Genera audio usando la API de Edge TTS directamente
+ * @param {string} text - Texto a convertir
+ * @param {string} voice - Voz a usar
+ * @param {string} outputPath - Ruta donde guardar el archivo
+ * @returns {Promise<void>}
+ */
+function generateEdgeTTSAudio(text, voice, outputPath) {
+    return new Promise((resolve, reject) => {
+        // URL de la API de Edge TTS
+        const apiUrl = `https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/voices/tts?version=3.0&isSV3=true`;
+        
+        // Primero obtener el token SSML
+        const ssml = `<speak version='1.0' xml:lang='es-ES'><voice xml:lang='es-ES' xml:gender='Male' name='${voice}'>${escapeXml(text)}</voice></speak>`;
+        
+        // URL para sintetizar
+        const synthesizeUrl = `https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&text=${encodeURIComponent(ssml)}&voice=${voice}`;
+        
+        const file = fs.createWriteStream(outputPath);
+        
+        https.get(synthesizeUrl, (response) => {
+            if (response.statusCode !== 200) {
+                file.close();
+                fs.unlinkSync(outputPath);
+                reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
+                return;
+            }
+            
+            response.pipe(file);
+            
+            file.on('finish', () => {
+                file.close();
+                resolve();
+            });
+            
+            file.on('error', (err) => {
+                file.close();
+                if (fs.existsSync(outputPath)) {
+                    fs.unlinkSync(outputPath);
+                }
+                reject(err);
+            });
+        }).on('error', (err) => {
+            file.close();
+            if (fs.existsSync(outputPath)) {
+                fs.unlinkSync(outputPath);
+            }
+            reject(err);
+        });
+    });
+}
+
+/**
+ * Escapa caracteres XML especiales
+ */
+function escapeXml(text) {
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+}
 
 /**
  * Genera audio usando Edge TTS
@@ -70,41 +134,32 @@ function generateSpeech(text, voice = DEFAULT_VOICE) {
 
         console.error(`[EdgeTTS] Generando audio: ${text.substring(0, 50)}...`);
 
-        // Escapar comillas simples en el texto para shell
-        const escapedText = text.replace(/'/g, "'\\''");
-        // Usar npx por si edge-tts no está en PATH global
-        const command = `npx -y edge-tts --voice "${voice}" --text "${escapedText}" --write "${outputPath}"`;
-
-        exec(command, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
-            if (error) {
+        // Usar la API de Edge TTS directamente (más confiable que CLI)
+        generateEdgeTTSAudio(text, voice, outputPath)
+            .then(() => {
+                if (fs.existsSync(outputPath)) {
+                    const fileSize = fs.statSync(outputPath).size;
+                    resolve({
+                        success: true,
+                        file_path: outputPath,
+                        url: `/assets/audio/generated/${outputFilename}`,
+                        file_size: fileSize,
+                        cached: false
+                    });
+                } else {
+                    resolve({
+                        error: 'Archivo no generado',
+                        message: 'El proceso completó pero no se encontró el archivo'
+                    });
+                }
+            })
+            .catch((error) => {
                 console.error(`[EdgeTTS] Error: ${error.message}`);
                 resolve({
                     error: 'Error generando audio',
-                    message: error.message,
-                    stderr: stderr
+                    message: error.message
                 });
-                return;
-            }
-
-            // Verificar que el archivo se creó
-            if (fs.existsSync(outputPath)) {
-                const fileSize = fs.statSync(outputPath).size;
-                resolve({
-                    success: true,
-                    file_path: outputPath,
-                    url: `/assets/audio/generated/${outputFilename}`,
-                    file_size: fileSize,
-                    cached: false
-                });
-            } else {
-                resolve({
-                    error: 'Archivo no generado',
-                    message: 'El proceso completó pero no se encontró el archivo',
-                    stdout: stdout,
-                    stderr: stderr
-                });
-            }
-        });
+            });
     });
 }
 
