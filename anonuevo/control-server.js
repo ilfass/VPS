@@ -561,7 +561,11 @@ const server = http.createServer(async (req, res) => {
     // Legacy / Other
     if (apiPath === '/poll') {
         res.writeHead(200, headers);
-        res.end(JSON.stringify({ autoMode: state.autoMode, events: state.eventQueue }));
+        res.end(JSON.stringify({ 
+            autoMode: state.autoMode, 
+            events: state.eventQueue,
+            music: state.music // Incluir estado de música
+        }));
         state.eventQueue = [];
         return;
     }
