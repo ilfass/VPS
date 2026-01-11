@@ -667,6 +667,72 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // Text-to-Speech: Generar audio con Edge TTS
+    if (req.method === 'POST' && apiPath === '/api/tts') {
+        let body = '';
+        req.on('data', c => body += c);
+        req.on('end', () => {
+            try {
+                const { text, voice } = JSON.parse(body || '{}');
+                
+                if (!text || text.trim().length === 0) {
+                    res.writeHead(400, headers);
+                    res.end(JSON.stringify({ error: 'Texto requerido' }));
+                    return;
+                }
+
+                // Usar el servicio de Edge TTS
+                const { exec } = require('child_process');
+                const ttsServicePath = path.join(__dirname, 'scripts', 'edge-tts-service.js');
+                const inputData = JSON.stringify({ text, voice: voice || 'es-ES-AlvaroNeural' });
+                
+                exec(`echo '${inputData.replace(/'/g, "'\\''")}' | node "${ttsServicePath}"`, 
+                    { maxBuffer: 1024 * 1024 * 10, cwd: __dirname },
+                    (error, stdout, stderr) => {
+                        if (error) {
+                            console.error('[TTS] Error:', error);
+                            res.writeHead(500, headers);
+                            res.end(JSON.stringify({ 
+                                error: 'Error generando audio',
+                                message: error.message,
+                                fallback: true // Indicar que debe usar fallback
+                            }));
+                            return;
+                        }
+
+                        try {
+                            const result = JSON.parse(stdout);
+                            if (result.success) {
+                                res.writeHead(200, headers);
+                                res.end(JSON.stringify(result));
+                            } else {
+                                res.writeHead(500, headers);
+                                res.end(JSON.stringify({ 
+                                    error: result.error || 'Error desconocido',
+                                    message: result.message,
+                                    fallback: true
+                                }));
+                            }
+                        } catch (parseError) {
+                            console.error('[TTS] Error parseando resultado:', parseError);
+                            res.writeHead(500, headers);
+                            res.end(JSON.stringify({ 
+                                error: 'Error procesando resultado',
+                                message: parseError.message,
+                                fallback: true
+                            }));
+                        }
+                    }
+                );
+            } catch (e) {
+                console.error('Error en /api/tts:', e);
+                res.writeHead(500, headers);
+                res.end(JSON.stringify({ error: 'Error procesando solicitud', message: e.message, fallback: true }));
+            }
+        });
+        return;
+    }
+
     // Scene Change
     if (apiPath.startsWith('/event/scene/')) {
         const targetScene = apiPath.split('/').pop();

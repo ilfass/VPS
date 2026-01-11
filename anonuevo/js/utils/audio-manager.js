@@ -8,8 +8,10 @@ export const AUDIO_STATES = {
 export class AudioManager {
     constructor() {
         this.currentState = AUDIO_STATES.IDLE;
-        this.synth = window.speechSynthesis;
+        this.synth = window.speechSynthesis; // Fallback
         this.currentUtterance = null;
+        this.currentAudio = null; // Para Edge TTS
+        this.useEdgeTTS = true; // Usar Edge TTS por defecto
 
         // Capas de Audio (Music Layers)
         this.musicLayer = null; // Elemento de Audio HTML5
@@ -202,34 +204,24 @@ export class AudioManager {
     }
 
     cancel() {
+        // Cancelar Edge TTS si está reproduciendo
+        if (this.currentAudio) {
+            this.currentAudio.pause();
+            this.currentAudio.currentTime = 0;
+            this.currentAudio = null;
+        }
+        
+        // Cancelar Web Speech API si está hablando
         if (this.synth) {
             if (this.currentUtterance) this.currentUtterance.wasCancelled = true;
             this.synth.cancel();
             this.currentUtterance = null;
         }
+        
+        this.notifySpeaking(false);
     }
 
-    speak(text, priority = 'normal', onEndCallback = null) {
-        if (!this.synth) {
-            console.warn("[AudioManager] ⚠️ SpeechSynthesis no disponible");
-            return;
-        }
-
-        // IMPORTANTE: Resumir y "calentar" SpeechSynthesis antes de hablar (requerido por políticas del navegador)
-        try {
-            // Cancelar cualquier speech pendiente
-            this.synth.cancel();
-            // Resumir el servicio
-            this.synth.resume();
-            // Hacer un "warm-up" con un utterance vacío para desbloquear
-            const warmUp = new SpeechSynthesisUtterance('');
-            warmUp.volume = 0;
-            this.synth.speak(warmUp);
-            this.synth.cancel(); // Cancelar inmediatamente el warm-up
-        } catch (e) {
-            console.warn("[AudioManager] ⚠️ No se pudo preparar SpeechSynthesis:", e);
-        }
-
+    async speak(text, priority = 'normal', onEndCallback = null) {
         this.cancel();
 
         // Limpiar texto: eliminar caracteres de escape, texto de debugging, etc.
@@ -247,24 +239,110 @@ export class AudioManager {
             this.fadeAudio(this.musicLayer, this.musicLayer.volume, 0.05, 500); // Bajar a 5% rápido
         }
 
+        // Intentar usar Edge TTS primero (mejor calidad)
+        if (this.useEdgeTTS) {
+            try {
+                const response = await fetch('/control-api/api/tts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        text: text,
+                        voice: priority === 'news' ? 'es-ES-ElviraNeural' : 'es-ES-AlvaroNeural'
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    if (result.success && result.url) {
+                        console.log("[AudioManager] ✅ Audio generado con Edge TTS:", result.url);
+                        
+                        // Crear elemento de audio para reproducir
+                        const audio = new Audio(result.url);
+                        audio.volume = 1.0;
+                        this.currentAudio = audio;
+                        
+                        // Notificar que el avatar está hablando
+                        this.notifySpeaking(true);
+                        
+                        audio.onplay = () => {
+                            console.log("[AudioManager] ✅ Voz iniciada (Edge TTS)");
+                        };
+                        
+                        audio.onended = () => {
+                            console.log("[AudioManager] ✅ Voz terminada (Edge TTS)");
+                            this.notifySpeaking(false);
+                            this.currentAudio = null;
+                            if (onEndCallback) onEndCallback();
+                        };
+                        
+                        audio.onerror = (e) => {
+                            console.error("[AudioManager] ❌ Error reproduciendo audio Edge TTS:", e);
+                            this.notifySpeaking(false);
+                            this.currentAudio = null;
+                            // Fallback a Web Speech API
+                            this.speakWithFallback(text, priority, onEndCallback);
+                        };
+                        
+                        // Reproducir audio
+                        audio.play().catch(e => {
+                            console.error("[AudioManager] ❌ Error iniciando audio:", e);
+                            // Fallback a Web Speech API
+                            this.speakWithFallback(text, priority, onEndCallback);
+                        });
+                        
+                        return; // Éxito con Edge TTS
+                    } else if (result.fallback) {
+                        console.warn("[AudioManager] ⚠️ Edge TTS falló, usando fallback");
+                        // Continuar con fallback
+                    }
+                } else {
+                    console.warn("[AudioManager] ⚠️ Error en respuesta de Edge TTS, usando fallback");
+                    // Continuar con fallback
+                }
+            } catch (e) {
+                console.warn("[AudioManager] ⚠️ Error llamando a Edge TTS:", e);
+                // Continuar con fallback
+            }
+        }
+
+        // Fallback a Web Speech API si Edge TTS no está disponible o falló
+        this.speakWithFallback(text, priority, onEndCallback);
+    }
+
+    speakWithFallback(text, priority = 'normal', onEndCallback = null) {
+        if (!this.synth) {
+            console.warn("[AudioManager] ⚠️ SpeechSynthesis no disponible");
+            return;
+        }
+
+        // IMPORTANTE: Resumir y "calentar" SpeechSynthesis antes de hablar
+        try {
+            this.synth.cancel();
+            this.synth.resume();
+            const warmUp = new SpeechSynthesisUtterance('');
+            warmUp.volume = 0;
+            this.synth.speak(warmUp);
+            this.synth.cancel();
+        } catch (e) {
+            console.warn("[AudioManager] ⚠️ No se pudo preparar SpeechSynthesis:", e);
+        }
+
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'es-ES';
         utterance.rate = 0.95;
-        utterance.volume = 1.0; // Asegurar volumen máximo
+        utterance.volume = 1.0;
         utterance.wasCancelled = false;
 
-        // Configurar eventos antes de hablar
         this.currentUtterance = utterance;
-        
-        // Notificar que el avatar está hablando
         this.notifySpeaking(true);
         
         utterance.onstart = () => {
-            console.log("[AudioManager] ✅ Voz iniciada correctamente");
+            console.log("[AudioManager] ✅ Voz iniciada (Fallback Web Speech)");
         };
         
         utterance.onend = () => {
-            console.log("[AudioManager] ✅ Voz terminada");
+            console.log("[AudioManager] ✅ Voz terminada (Fallback Web Speech)");
             this.notifySpeaking(false);
             if (!utterance.wasCancelled && onEndCallback) onEndCallback();
         };
@@ -272,49 +350,28 @@ export class AudioManager {
         utterance.onerror = (e) => {
             console.error("[AudioManager] ❌ Error en voz:", e.error, e);
             this.notifySpeaking(false);
-            
-            // Si el error es 'not-allowed', intentar desbloquear y reintentar
-            if (e.error === 'not-allowed') {
-                console.warn("[AudioManager] ⚠️ SpeechSynthesis bloqueado, intentando desbloquear...");
-                try {
-                    this.synth.cancel();
-                    this.synth.resume();
-                    // Esperar un momento y reintentar
-                    setTimeout(() => {
-                        console.log("[AudioManager] 🔄 Reintentando hablar después de desbloquear...");
-                        this.speak(text, priority, onEndCallback);
-                    }, 500);
-                } catch (retryError) {
-                    console.error("[AudioManager] ❌ No se pudo desbloquear SpeechSynthesis:", retryError);
-                }
-            }
         };
         
-        // Esperar a que las voces estén cargadas
+        // Seleccionar voz
         const getVoices = () => {
             const voices = this.synth.getVoices();
-            if (voices.length === 0) {
-                // Si no hay voces aún, esperar un momento
+            if (voices.length > 0) {
+                this.selectVoice(utterance, voices, priority);
+                this.synth.speak(utterance);
+            } else {
                 setTimeout(() => {
                     const voicesRetry = this.synth.getVoices();
                     if (voicesRetry.length > 0) {
                         this.selectVoice(utterance, voicesRetry, priority);
                         this.synth.speak(utterance);
                     } else {
-                        console.warn("[AudioManager] ⚠️ No se encontraron voces disponibles, intentando sin voz específica");
-                        this.synth.speak(utterance); // Intentar sin voz específica
+                        this.synth.speak(utterance);
                     }
                 }, 100);
-            } else {
-                this.selectVoice(utterance, voices, priority);
-                this.synth.speak(utterance);
             }
         };
 
-        // Intentar obtener voces inmediatamente
         getVoices();
-        
-        // También escuchar el evento de voces cargadas
         if (this.synth.onvoiceschanged !== null) {
             this.synth.onvoiceschanged = getVoices;
         }
