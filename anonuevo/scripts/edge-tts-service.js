@@ -8,7 +8,15 @@ const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const https = require('https');
+
+// Intentar cargar el paquete edge-tts
+let edgeTTS;
+try {
+    edgeTTS = require('@andresaya/edge-tts');
+} catch (e) {
+    console.error('[EdgeTTS] Paquete @andresaya/edge-tts no encontrado, usando API directa');
+    edgeTTS = null;
+}
 
 // Configuración
 const OUTPUT_DIR = path.join(__dirname, '..', 'assets', 'audio', 'generated');
@@ -35,67 +43,46 @@ const SPANISH_VOICES = [
 const DEFAULT_VOICE = 'es-ES-AlvaroNeural';
 
 /**
- * Genera audio usando la API de Edge TTS directamente
+ * Genera audio usando Edge TTS (paquete npm o API directa)
  * @param {string} text - Texto a convertir
  * @param {string} voice - Voz a usar
  * @param {string} outputPath - Ruta donde guardar el archivo
  * @returns {Promise<void>}
  */
-function generateEdgeTTSAudio(text, voice, outputPath) {
-    return new Promise((resolve, reject) => {
-        // URL de la API de Edge TTS
-        const apiUrl = `https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/voices/tts?version=3.0&isSV3=true`;
-        
-        // Primero obtener el token SSML
-        const ssml = `<speak version='1.0' xml:lang='es-ES'><voice xml:lang='es-ES' xml:gender='Male' name='${voice}'>${escapeXml(text)}</voice></speak>`;
-        
-        // URL para sintetizar
-        const synthesizeUrl = `https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&text=${encodeURIComponent(ssml)}&voice=${voice}`;
-        
-        const file = fs.createWriteStream(outputPath);
-        
-        https.get(synthesizeUrl, (response) => {
-            if (response.statusCode !== 200) {
-                file.close();
-                fs.unlinkSync(outputPath);
-                reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
-                return;
-            }
+async function generateEdgeTTSAudio(text, voice, outputPath) {
+    if (edgeTTS) {
+        // Usar paquete npm @andresaya/edge-tts
+        try {
+            const stream = await edgeTTS.synthesize(text, voice);
+            const writer = fs.createWriteStream(outputPath);
+            stream.pipe(writer);
             
-            response.pipe(file);
+            return new Promise((resolve, reject) => {
+                writer.on('finish', resolve);
+                writer.on('error', reject);
+            });
+        } catch (error) {
+            throw new Error(`Error con paquete edge-tts: ${error.message}`);
+        }
+    } else {
+        // Fallback: usar CLI edge-tts si está disponible
+        return new Promise((resolve, reject) => {
+            const escapedText = text.replace(/'/g, "'\\''");
+            const command = `edge-tts --voice "${voice}" --text "${escapedText}" --write "${outputPath}"`;
             
-            file.on('finish', () => {
-                file.close();
+            exec(command, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
+                if (error) {
+                    reject(new Error(`CLI error: ${error.message}`));
+                    return;
+                }
+                if (!fs.existsSync(outputPath)) {
+                    reject(new Error('Archivo no generado por CLI'));
+                    return;
+                }
                 resolve();
             });
-            
-            file.on('error', (err) => {
-                file.close();
-                if (fs.existsSync(outputPath)) {
-                    fs.unlinkSync(outputPath);
-                }
-                reject(err);
-            });
-        }).on('error', (err) => {
-            file.close();
-            if (fs.existsSync(outputPath)) {
-                fs.unlinkSync(outputPath);
-            }
-            reject(err);
         });
-    });
-}
-
-/**
- * Escapa caracteres XML especiales
- */
-function escapeXml(text) {
-    return text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&apos;');
+    }
 }
 
 /**
