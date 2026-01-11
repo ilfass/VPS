@@ -53,6 +53,12 @@ class EventManager {
                         });
                         this.processQueue();
                     }
+
+                    // Verificar comandos de música
+                    if (data.music && data.music.command) {
+                        console.log(`🎵 Music Command Received: ${data.music.command}`);
+                        this.emit('music_command', data.music);
+                    }
                 }
             } catch (e) { }
         }, 1000);

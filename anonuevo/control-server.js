@@ -26,7 +26,8 @@ if (!fs.existsSync(COUNTRY_MEMORIES_DIR)) {
 let state = {
     autoMode: false, currentScene: 'intro', eventQueue: [], travelQueue: [],
     clientTelemetry: { scene: 'UNKNOWN', country: 'UNKNOWN', day: 0, lastUpdate: 0 },
-    editorial: { status: 'IDLE', dayId: null, isTest: false, startTime: null, visits: [], currentVisit: null }
+    editorial: { status: 'IDLE', dayId: null, isTest: false, startTime: null, visits: [], currentVisit: null },
+    music: { isPlaying: false, currentTrack: 0, command: null } // Comando de música pendiente
 };
 
 const headers = {
@@ -387,7 +388,8 @@ const server = http.createServer(async (req, res) => {
             currentScene: state.currentScene, 
             editorial: state.editorial, 
             queue: state.travelQueue,
-            clientTelemetry: state.clientTelemetry // Incluir telemetría para determinar hoja del libro
+            clientTelemetry: state.clientTelemetry, // Incluir telemetría para determinar hoja del libro
+            music: state.music // Incluir estado de música
         }));
         return;
     }
@@ -627,6 +629,37 @@ const server = http.createServer(async (req, res) => {
         state.eventQueue.push({ type: 'skip_current' });
         res.writeHead(200, headers);
         res.end('{"success":true}');
+        return;
+    }
+
+    // Music Control: Pausar/Reanudar música
+    if (req.method === 'POST' && apiPath === '/event/music/toggle') {
+        state.music.command = 'toggle';
+        state.music.isPlaying = !state.music.isPlaying;
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({ success: true, isPlaying: state.music.isPlaying }));
+        return;
+    }
+
+    // Music Control: Siguiente track
+    if (req.method === 'POST' && apiPath === '/event/music/next') {
+        state.music.command = 'next';
+        state.music.currentTrack = (state.music.currentTrack + 1) % 2; // Por ahora 2 tracks
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({ success: true, currentTrack: state.music.currentTrack }));
+        return;
+    }
+
+    // Music Control: Obtener estado de música
+    if (req.method === 'GET' && apiPath === '/api/music-status') {
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({
+            isPlaying: state.music.isPlaying,
+            currentTrack: state.music.currentTrack,
+            command: state.music.command
+        }));
+        // Limpiar comando después de enviarlo
+        state.music.command = null;
         return;
     }
 

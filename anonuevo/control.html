@@ -746,6 +746,24 @@
             </div>
 
             <div class="panel">
+                <h2>🎵 Music Control</h2>
+                <div style="margin-bottom: 12px;">
+                    <div class="stat-row">
+                        <span class="stat-label">Track:</span>
+                        <span id="music-track-info" class="stat-val" style="font-size: 0.75rem;">--</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Status:</span>
+                        <span id="music-status" class="stat-val" style="font-size: 0.75rem; color: var(--text-dim);">--</span>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                    <button onclick="toggleMusic()" id="btn-music-toggle">⏸️ PAUSE</button>
+                    <button onclick="nextMusicTrack()">⏭️ NEXT</button>
+                </div>
+            </div>
+
+            <div class="panel">
                 <h2>🎛️ Advanced Controls</h2>
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
                     <button onclick="pauseNarration()">⏸️ PAUSE</button>
@@ -1137,6 +1155,22 @@
             await api('/api/dream', 'POST');
         }
 
+        async function toggleMusic() {
+            log("Toggling music...", 'info');
+            const result = await api('/event/music/toggle', 'POST');
+            if (result) {
+                log(`Music ${result.isPlaying ? 'resumed' : 'paused'}`, result.isPlaying ? 'success' : 'warning');
+            }
+        }
+
+        async function nextMusicTrack() {
+            log("Changing to next track...", 'info');
+            const result = await api('/event/music/next', 'POST');
+            if (result) {
+                log(`Changed to track ${result.currentTrack + 1}`, 'success');
+            }
+        }
+
         function getBookPageFromScene(scene, telemetry) {
             const sceneMap = {
                 'intro': '📖 Portada del Viaje',
@@ -1257,6 +1291,26 @@
 
             // 9. Actualizar total de hojas del libro
             updateBookPagesCount();
+
+            // 10. Actualizar estado de música
+            if (data.music) {
+                const musicStatusEl = document.getElementById('music-status');
+                const musicTrackEl = document.getElementById('music-track-info');
+                const musicToggleBtn = document.getElementById('btn-music-toggle');
+                
+                if (musicStatusEl) {
+                    musicStatusEl.textContent = data.music.isPlaying ? '▶ Playing' : '⏸ Paused';
+                    musicStatusEl.style.color = data.music.isPlaying ? 'var(--success)' : 'var(--text-dim)';
+                }
+                
+                if (musicTrackEl) {
+                    musicTrackEl.textContent = `${data.music.currentTrack + 1}/${2}`;
+                }
+                
+                if (musicToggleBtn) {
+                    musicToggleBtn.textContent = data.music.isPlaying ? '⏸️ PAUSE' : '▶️ PLAY';
+                }
+            }
         }
 
         // Memory Management

@@ -80,6 +80,56 @@ export class AudioManager {
         const nextIndex = (this.currentTrackIndex + 1) % this.tracks.length;
         this.loadTrack(nextIndex);
     }
+    
+    /**
+     * Pausa la música de fondo
+     */
+    pauseMusic() {
+        if (this.musicLayer && !this.musicLayer.paused) {
+            this.musicLayer.pause();
+            this.isMusicPlaying = false;
+            console.log("[AudioManager] ⏸️ Música pausada");
+        }
+    }
+    
+    /**
+     * Reanuda la música de fondo
+     */
+    resumeMusic() {
+        if (this.musicLayer && this.musicLayer.paused) {
+            this.musicLayer.play().then(() => {
+                this.isMusicPlaying = true;
+                console.log("[AudioManager] ▶️ Música reanudada");
+            }).catch(e => {
+                console.warn("[AudioManager] ⚠️ Error reanudando música:", e);
+            });
+        }
+    }
+    
+    /**
+     * Alterna entre pausar y reanudar
+     */
+    toggleMusic() {
+        if (this.musicLayer) {
+            if (this.musicLayer.paused) {
+                this.resumeMusic();
+            } else {
+                this.pauseMusic();
+            }
+        }
+    }
+    
+    /**
+     * Obtiene información del track actual
+     */
+    getCurrentTrackInfo() {
+        return {
+            index: this.currentTrackIndex,
+            total: this.tracks.length,
+            current: this.tracks[this.currentTrackIndex],
+            isPlaying: this.isMusicPlaying && this.musicLayer && !this.musicLayer.paused
+        };
+    }
 
     /**
      * Inicia la música de fondo con Fade In
