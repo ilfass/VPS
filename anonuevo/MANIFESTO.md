@@ -549,7 +549,7 @@ Todo se guarda en tiempo real para generar la memoria post-stream:
 
 #### 34.3 Conversión a Libro
 Al cerrar el día, el sistema genera automáticamente una **Página Web del Libro**:
-*   Título: "Día [X] – [Título Editorial]".
+*   Título: "[ID Editorial] – [Título Editorial]".
 *   Intro.
 *   Recorrido cronológico del vivo.
 *   Bloques multimedia embebidos.
