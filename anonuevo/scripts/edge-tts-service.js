@@ -10,12 +10,15 @@ const path = require('path');
 const crypto = require('crypto');
 
 // Intentar cargar el paquete edge-tts
-let edgeTTS;
+let EdgeTTS, Constants;
 try {
-    edgeTTS = require('@andresaya/edge-tts');
+    const edgeTTSModule = require('@andresaya/edge-tts');
+    EdgeTTS = edgeTTSModule.EdgeTTS;
+    Constants = edgeTTSModule.Constants;
 } catch (e) {
-    console.error('[EdgeTTS] Paquete @andresaya/edge-tts no encontrado, usando API directa');
-    edgeTTS = null;
+    console.error('[EdgeTTS] Paquete @andresaya/edge-tts no encontrado, usando CLI fallback');
+    EdgeTTS = null;
+    Constants = null;
 }
 
 // Configuración
@@ -50,17 +53,14 @@ const DEFAULT_VOICE = 'es-ES-AlvaroNeural';
  * @returns {Promise<void>}
  */
 async function generateEdgeTTSAudio(text, voice, outputPath) {
-    if (edgeTTS) {
+    if (EdgeTTS) {
         // Usar paquete npm @andresaya/edge-tts
         try {
-            const stream = await edgeTTS.synthesize(text, voice);
-            const writer = fs.createWriteStream(outputPath);
-            stream.pipe(writer);
-            
-            return new Promise((resolve, reject) => {
-                writer.on('finish', resolve);
-                writer.on('error', reject);
+            const tts = new EdgeTTS();
+            await tts.synthesize(text, voice, {
+                outputFormat: Constants ? Constants.OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3 : 'audio-24khz-96kbitrate-mono-mp3'
             });
+            await tts.saveToFile(outputPath);
         } catch (error) {
             throw new Error(`Error con paquete edge-tts: ${error.message}`);
         }
