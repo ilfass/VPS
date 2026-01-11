@@ -64,7 +64,6 @@ El proyecto tiene una **base técnica sólida** y **arquitectura bien diseñada*
 **Problemas Detectados:**
 - ⚠️ Voz usa Web Speech API (robótica) - **CRÍTICO según manifiesto**
 - ⚠️ Subtítulos se actualizan palabra por palabra (funciona pero podría mejorarse)
-- ⚠️ No hay sistema que fuerce estructura de 3 días por país
 
 **Puntuación:** 8.5/10 (sería 9.5/10 con voz no robótica)
 
@@ -365,10 +364,9 @@ El proyecto tiene una **base técnica sólida** y **arquitectura bien diseñada*
 
 ### ❌ INCUMPLIMIENTOS CRÍTICOS
 1. ❌ **VOZ NO ROBÓTICA** - **BLOQUEANTE**
-2. ❌ Estructura de 3 días por país (no está forzada)
-3. ❌ Introducción fundacional completa (falta contenido)
-4. ❌ Módulo de Contenido Dirigido (MCD) - No implementado
-5. ❌ Distribución de contenido (30-40% voz, 40-50% visual, 10-20% silencio) - No implementada
+2. ❌ Introducción fundacional completa (falta contenido)
+3. ❌ Módulo de Contenido Dirigido (MCD) - No implementado
+4. ❌ Distribución de contenido (30-40% voz, 40-50% visual, 10-20% silencio) - No implementada
 
 ---
 
@@ -392,17 +390,12 @@ El proyecto tiene una **base técnica sólida** y **arquitectura bien diseñada*
 
 ### PRIORIDAD ALTA
 
-3. **🟡 ESTRUCTURA DE 3 DÍAS POR PAÍS**
-   - **Impacto:** ALTO - Es parte fundamental del manifiesto
-   - **Solución:** Implementar sistema que fuerce completar 3 días antes de cambiar
-   - **Tiempo estimado:** 1 día
-
-4. **🟡 INTRODUCCIÓN FUNDACIONAL COMPLETA**
+3. **🟡 INTRODUCCIÓN FUNDACIONAL COMPLETA**
    - **Impacto:** MEDIO - Mejora la experiencia inicial
    - **Solución:** Expandir intro para cubrir todos los puntos del manifiesto
    - **Tiempo estimado:** 1 día
 
-5. **🟡 GENERACIÓN AUTOMÁTICA DEL LIBRO**
+4. **🟡 GENERACIÓN AUTOMÁTICA DEL LIBRO**
    - **Impacto:** MEDIO - Cumple con promesa del manifiesto
    - **Solución:** Implementar generador de páginas HTML post-stream
    - **Tiempo estimado:** 2-3 días
@@ -460,7 +453,6 @@ El proyecto tiene una **base técnica sólida** y **arquitectura bien diseñada*
 **Debilidades Críticas:**
 - ❌ **Voz robótica** - BLOQUEANTE para streaming de calidad
 - ❌ **Páginas estáticas** - Diario, Estado Actual, País no son dinámicas
-- ❌ **Falta estructura de 3 días** - No está forzada
 - ❌ **Libro no se genera automáticamente**
 
 ### Recomendación Final
@@ -470,7 +462,6 @@ El proyecto tiene una **base técnica sólida** y **arquitectura bien diseñada*
 1. **URGENTE (1-2 semanas):**
    - Implementar voz no robótica
    - Hacer dinámicas las páginas estáticas
-   - Implementar estructura de 3 días
 
 2. **IMPORTANTE (2-4 semanas):**
    - Completar introducción fundacional
