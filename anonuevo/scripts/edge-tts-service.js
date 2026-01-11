@@ -60,7 +60,9 @@ async function generateEdgeTTSAudio(text, voice, outputPath) {
             await tts.synthesize(text, voice, {
                 outputFormat: Constants ? Constants.OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3 : 'audio-24khz-96kbitrate-mono-mp3'
             });
-            await tts.toFile(outputPath);
+            // Usar toBuffer y escribir manualmente
+            const buffer = await tts.toBuffer();
+            fs.writeFileSync(outputPath, buffer);
         } catch (error) {
             throw new Error(`Error con paquete edge-tts: ${error.message}`);
         }
