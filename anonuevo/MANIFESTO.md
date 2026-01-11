@@ -507,7 +507,7 @@ Esto transforma el proyecto:
 Técnicamente, el sistema se rige por esta nueva entidad fundamental. Un Día Editorial contiene TODO lo que ocurrió en esa sesión de stream.
 
 **Estructura de Datos:**
-*   **ID:** Identificador editorial (ej: "Día 1", "Especial Año Nuevo"). Asignado por humano.
+*   **ID:** Identificador editorial (ej: "Sesión 1", "Especial Año Nuevo"). Asignado por humano.
 *   **Estado:** `PREPARACIÓN` -> `EN_VIVO` -> `CERRADO/ARCHIVADO`.
 *   **Duración:** Tiempo efectivo de emisión.
 *   **Contenidos:** Array de Visitas (Ver 33.3).
@@ -544,7 +544,7 @@ La IA y el Director colaboran para llenar la entidad VISITA.
 #### 34.2 Registro Automático (La Escribanía Digital)
 Todo se guarda en tiempo real para generar la memoria post-stream:
 *   **Resumen Estructurado:** Países, Orden, Temas.
-*   **Narrativa:** Crónica final generada ("En el Día 1 recorrimos...").
+*   **Narrativa:** Crónica final generada ("En esta sesión recorrimos...").
 *   **Galería Multimedia:** Qué se mostró visualmente.
 
 #### 34.3 Conversión a Libro
