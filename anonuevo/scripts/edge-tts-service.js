@@ -76,7 +76,11 @@ function generateSpeech(text, voice = DEFAULT_VOICE) {
 
         console.error(`[EdgeTTS] Generando audio: ${text.substring(0, 50)}...`);
 
-        exec(command, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
+                // Escapar comillas simples en el texto para shell
+                const escapedText = cleanText.replace(/'/g, "'\\''");
+                const command = `edge-tts --voice "${voice}" --text "${escapedText}" --write "${outputPath}"`;
+
+                exec(command, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
             if (error) {
                 console.error(`[EdgeTTS] Error: ${error.message}`);
                 resolve({
