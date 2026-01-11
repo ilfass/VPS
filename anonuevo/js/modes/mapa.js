@@ -218,6 +218,25 @@ export default class MapaMode {
                     // Actualizar UI o resetear ciclo si es necesario
                     console.log("Modo cambiado a:", mode);
                     // Forzar actualización inmediata del estado visual
+                }
+            });
+            eventManager.on('music_command', (musicState) => {
+                console.log("[Mapa] 🎵 Comando de música recibido:", musicState.command);
+                if (musicState.command === 'toggle') {
+                    audioManager.toggleMusic();
+                } else if (musicState.command === 'next') {
+                    audioManager.nextTrack();
+                    // Si la música está pausada, reanudarla con el nuevo track
+                    if (!audioManager.isMusicPlaying && audioManager.musicLayer) {
+                        audioManager.musicLayer.play().then(() => {
+                            audioManager.isMusicPlaying = true;
+                            audioManager.fadeAudio(audioManager.musicLayer, 0.0, 0.3, 2000);
+                        }).catch(e => {
+                            console.warn("[Mapa] Error reanudando música:", e);
+                        });
+                    }
+                }
+            });
                     const infoEl = document.getElementById('broadcast-info');
                     if (infoEl) infoEl.textContent = `MODO: ${mode}`;
                 }
