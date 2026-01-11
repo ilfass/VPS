@@ -72,7 +72,8 @@ function generateSpeech(text, voice = DEFAULT_VOICE) {
 
         // Escapar comillas simples en el texto para shell
         const escapedText = text.replace(/'/g, "'\\''");
-        const command = `edge-tts --voice "${voice}" --text "${escapedText}" --write "${outputPath}"`;
+        // Usar npx por si edge-tts no está en PATH global
+        const command = `npx -y edge-tts --voice "${voice}" --text "${escapedText}" --write "${outputPath}"`;
 
         exec(command, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
             if (error) {
