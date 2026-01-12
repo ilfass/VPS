@@ -100,6 +100,20 @@ class EventManager {
                 case 'scene_change':
                     if (this.handlers['scene_change']) this.handlers['scene_change'](event.payload);
                     break;
+                case 'navigate':
+                    // Evento de navegación desde panel de control (botones de Hojas Dinámicas)
+                    // NO navegar si estamos en la página principal (index.html)
+                    if (event.payload) {
+                        const currentPath = window.location.pathname;
+                        // Si estamos en la raíz o en index.html, no cambiar
+                        if (currentPath === '/' || currentPath === '/index.html' || currentPath.endsWith('/index.html')) {
+                            console.log(`[EventManager] Ignorando navegación desde página principal: ${event.payload}`);
+                            return;
+                        }
+                        console.log(`[EventManager] Navegando a: ${event.payload}`);
+                        window.location.href = event.payload;
+                    }
+                    break;
                 case 'fact':
                     if (this.handlers['fact']) this.handlers['fact']();
                     break;

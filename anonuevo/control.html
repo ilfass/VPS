@@ -1492,12 +1492,22 @@
         }
 
         // Navegar a una página del libro
-        // Canal de comunicación con la página del streaming
+        // Canal de comunicación con la página del streaming (para páginas que usan main.js)
         const streamChannel = new BroadcastChannel('stream-navigation');
         
         function navigateToPage(path) {
-            // Enviar mensaje a la página del streaming para que cambie de URL
+            // Método 1: Enviar mensaje via BroadcastChannel (para páginas que usan main.js)
             streamChannel.postMessage({ type: 'navigate', path: path });
+            
+            // Método 2: También enviar evento al servidor (para páginas que usan eventManager)
+            // Extraer el nombre de la página del path (ej: /vivos/mapa/ -> mapa)
+            const pathMatch = path.match(/\/vivos\/([^\/]+)/);
+            if (pathMatch) {
+                const pageName = pathMatch[1];
+                // Enviar evento de navegación al servidor
+                api(`/event/navigate/${pageName}`, 'POST', { path: path }).catch(() => {});
+            }
+            
             log(`Navegando a: ${path}`, 'info');
         }
 

@@ -133,6 +133,12 @@ const streamNavigationChannel = new BroadcastChannel('stream-navigation');
 streamNavigationChannel.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'navigate') {
         const path = event.data.path;
+        const currentPath = window.location.pathname;
+        // NO navegar si estamos en la página principal (index.html)
+        if (currentPath === '/' || currentPath === '/index.html' || currentPath.endsWith('/index.html')) {
+            console.log(`[App] Ignorando navegación desde página principal: ${path}`);
+            return;
+        }
         console.log(`[App] Navegando a: ${path} (comando desde panel de control)`);
         window.location.href = path;
     }

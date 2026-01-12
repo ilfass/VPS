@@ -774,6 +774,27 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // Navigate to Page (para botones de Hojas Dinámicas)
+    if (req.method === 'POST' && apiPath.startsWith('/event/navigate/')) {
+        const targetPage = apiPath.split('/').pop();
+        let body = '';
+        req.on('data', c => body += c);
+        req.on('end', () => {
+            try {
+                const data = JSON.parse(body || '{}');
+                const path = data.path || `/vivos/${targetPage}/`;
+                // Enviar evento de navegación
+                state.eventQueue.push({ type: 'navigate', payload: path });
+                res.writeHead(200, headers);
+                res.end('{"success":true}');
+            } catch (e) {
+                res.writeHead(400, headers);
+                res.end('{"error":"Invalid request"}');
+            }
+        });
+        return;
+    }
+
     // Day controls
     if (req.method === 'POST' && (apiPath === '/event/day/start' || apiPath === '/event/day/end')) {
         let body = ''; req.on('data', c => body += c); req.on('end', () => {
