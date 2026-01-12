@@ -126,6 +126,18 @@ class App {
     }
 }
 
+// Canal de comunicación con el panel de control
+const streamNavigationChannel = new BroadcastChannel('stream-navigation');
+
+// Escuchar mensajes del panel de control para cambiar de página
+streamNavigationChannel.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'navigate') {
+        const path = event.data.path;
+        console.log(`[App] Navegando a: ${path} (comando desde panel de control)`);
+        window.location.href = path;
+    }
+});
+
 // Lógica de Inicio con Interacción de Usuario (Autoplay Policy)
 document.addEventListener('DOMContentLoaded', () => {
     const startOverlay = document.getElementById('start-overlay');

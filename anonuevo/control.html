@@ -1492,9 +1492,13 @@
         }
 
         // Navegar a una página del libro
+        // Canal de comunicación con la página del streaming
+        const streamChannel = new BroadcastChannel('stream-navigation');
+        
         function navigateToPage(path) {
-            // Para streaming: cambiar URL en la misma pestaña
-            window.location.href = path;
+            // Enviar mensaje a la página del streaming para que cambie de URL
+            streamChannel.postMessage({ type: 'navigate', path: path });
+            log(`Navegando a: ${path}`, 'info');
         }
 
         // START POLLING
