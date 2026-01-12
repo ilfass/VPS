@@ -638,7 +638,10 @@ const server = http.createServer(async (req, res) => {
 
     // Music Control: Pausar/Reanudar música
     if (req.method === 'POST' && apiPath === '/event/music/toggle') {
-        state.music.command = 'toggle';
+        // Solo establecer comando si no hay uno pendiente para evitar duplicados
+        if (!state.music.command) {
+            state.music.command = 'toggle';
+        }
         state.music.isPlaying = !state.music.isPlaying;
         res.writeHead(200, headers);
         res.end(JSON.stringify({ success: true, isPlaying: state.music.isPlaying }));
@@ -647,7 +650,10 @@ const server = http.createServer(async (req, res) => {
 
     // Music Control: Siguiente track
     if (req.method === 'POST' && apiPath === '/event/music/next') {
-        state.music.command = 'next';
+        // Solo establecer comando si no hay uno pendiente para evitar duplicados
+        if (!state.music.command) {
+            state.music.command = 'next';
+        }
         state.music.currentTrack = (state.music.currentTrack + 1) % 2; // Por ahora 2 tracks
         res.writeHead(200, headers);
         res.end(JSON.stringify({ success: true, currentTrack: state.music.currentTrack }));
