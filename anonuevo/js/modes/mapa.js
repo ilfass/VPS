@@ -237,10 +237,6 @@ export default class MapaMode {
                     }
                 }
             });
-                    const infoEl = document.getElementById('broadcast-info');
-                    if (infoEl) infoEl.textContent = `MODO: ${mode}`;
-                }
-            });
             eventManager.on('country', (code) => {
                 // Buscar país por ID (code)
                 // Nota: COUNTRY_INFO usa claves string "032", etc.

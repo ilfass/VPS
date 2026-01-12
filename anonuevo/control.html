@@ -1385,6 +1385,29 @@
             }
         }
 
+        // Actualizar total de hojas del libro
+        async function updateBookPagesCount() {
+            try {
+                const res = await fetch('/control-api/api/memories');
+                if (!res.ok) return;
+                
+                const data = await res.json();
+                const memories = data.memories || [];
+                
+                // Calcular total de visitas
+                const totalVisits = memories.reduce((sum, m) => sum + (m.totalVisits || 0), 0);
+                
+                // Actualizar total de hojas del libro
+                const fixedPages = 4; // Portada, Intro, Mapa, Índice
+                const dynamicPages = 4; // Diario, Estado Actual, Reflexión, País
+                const totalPages = fixedPages + dynamicPages + totalVisits;
+                const totalPagesEl = document.getElementById('book-total-pages');
+                if (totalPagesEl) totalPagesEl.textContent = totalPages;
+            } catch (e) {
+                console.error('Error updating book pages count:', e);
+            }
+        }
+
         // Actualizar lista de memorias en la sección de Hojas del Libro
         function updateBookMemoriesList(memories) {
             const memoriesListEl = document.getElementById('book-memories-list');
