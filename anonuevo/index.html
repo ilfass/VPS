@@ -244,6 +244,22 @@
         eventManager.init();
         eventManager.reportTelemetry('INTRO', 'GLOBAL', 0);
 
+        // Registrar handler para comandos de música
+        eventManager.on('music_command', (musicState) => {
+            console.log('[Index] 🎵 Comando de música recibido:', musicState.command);
+            // El audioManager se inicializa más adelante en el código
+            // Si está disponible, usarlo; si no, el comando se procesará cuando se cargue
+            if (window.audioManager) {
+                if (musicState.command === 'toggle') {
+                    window.audioManager.toggleMusic();
+                } else if (musicState.command === 'next') {
+                    window.audioManager.nextTrack();
+                }
+            } else {
+                console.log('[Index] ⚠️ audioManager aún no está disponible, comando será procesado cuando se cargue');
+            }
+        });
+
         eventManager.on('scene_change', (scene) => {
             console.log("🎬 Switch to:", scene);
             if (scene === 'mapa') window.location.href = '/vivos/mapa/';
