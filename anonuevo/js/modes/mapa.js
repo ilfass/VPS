@@ -1433,14 +1433,21 @@ Genera una introducción en primera persona (como ilfass) que:
             console.log(`[Mapa] ✅ Visita guardada en memoria para ${target.name}`);
             
             // 8. Esperar un momento antes de ocultar y hacer zoom out
-            setTimeout(() => {
-                multimediaOrchestrator.hideAllOverlays();
-                avatarSubtitlesManager.hide();
-                // Solo hacer zoom out si no hay otra narración iniciándose
-                if (!this.isNarrating) {
-                    this.cycleZoomOut();
-                }
-            }, 3000); // 3 segundos para que se vea el subtítulo completo
+            // En Dream Mode, no hacer zoom out, cambiar de página directamente
+            if (eventManager.canProceedAuto()) {
+                // Dream Mode: No hacer zoom out, cambiar de página después de la narración
+                // El cambio se programa en el callback de audioManager.speak
+            } else {
+                // Modo manual: hacer zoom out normal
+                setTimeout(() => {
+                    multimediaOrchestrator.hideAllOverlays();
+                    avatarSubtitlesManager.hide();
+                    // Solo hacer zoom out si no hay otra narración iniciándose
+                    if (!this.isNarrating) {
+                        this.cycleZoomOut();
+                    }
+                }, 3000); // 3 segundos para que se vea el subtítulo completo
+            }
             
             // 8. Actualizar diario con el relato
             this.updateDiary({
