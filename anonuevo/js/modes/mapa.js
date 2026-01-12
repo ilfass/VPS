@@ -220,7 +220,22 @@ export default class MapaMode {
                     // Forzar actualización inmediata del estado visual
                 }
             });
+            // Variable para evitar procesar el mismo comando múltiples veces
+            let lastMusicCommand = null;
+            let lastMusicCommandTime = 0;
+            
             eventManager.on('music_command', (musicState) => {
+                const now = Date.now();
+                
+                // Evitar procesar el mismo comando múltiples veces en menos de 500ms
+                if (lastMusicCommand === musicState.command && (now - lastMusicCommandTime) < 500) {
+                    console.log("[Mapa] ⚠️ Comando de música duplicado ignorado:", musicState.command);
+                    return;
+                }
+                
+                lastMusicCommand = musicState.command;
+                lastMusicCommandTime = now;
+                
                 console.log("[Mapa] 🎵 Comando de música recibido:", musicState.command);
                 if (musicState.command === 'toggle') {
                     audioManager.toggleMusic();
@@ -416,19 +431,25 @@ export default class MapaMode {
         // Esperar un momento para que todo esté inicializado
         setTimeout(async () => {
             // Esperar a que termine completamente la intro ANTES de hacer zoom
+            // showMapIntro() retorna una promesa que se resuelve cuando termina TODO el relato
             await this.showMapIntro();
             
-            // Después de que termine la intro, esperar un momento adicional antes de iniciar el ciclo de zoom
+            // Después de que termine completamente la intro (incluyendo texto completo si se generó),
+            // esperar un momento adicional antes de iniciar el ciclo de zoom
             // Esto asegura que el mapa permanezca en zoom out durante toda la intro general
+            console.log('[Mapa] ✅ Intro completamente terminada, esperando antes de iniciar zoom...');
             setTimeout(() => {
                 // Solo iniciar ciclo de zoom si no hay noticias activas Y estamos en modo AUTO
                 if (audioManager.currentState !== AUDIO_STATES.GLOBAL_NEWS && eventManager.canProceedAuto()) {
                     // Iniciar ciclo por defecto en VISUAL (esperando primera decisión)
                     pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
-                    // Esperar un poco más antes de hacer zoom in para asegurar que la intro terminó
-                    setTimeout(() => this.cycleZoomIn(), 3000);
+                    // Esperar más tiempo antes de hacer zoom in para asegurar que todo terminó
+                    setTimeout(() => {
+                        console.log('[Mapa] 🚀 Iniciando ciclo de zoom después de intro completa');
+                        this.cycleZoomIn();
+                    }, 5000); // Esperar 5 segundos adicionales después de que termine la intro
                 }
-            }, 2000); // Esperar 2 segundos adicionales después de que termine la intro
+            }, 3000); // Esperar 3 segundos adicionales después de que termine la intro
         }, 1000);
     }
 
@@ -725,8 +746,10 @@ export default class MapaMode {
             avatarSubtitlesManager.setSubtitles(text);
         };
         
-        // Cuando termine el texto inicial, continuar con el completo si está listo
-        audioManager.speak(immediateIntroText, 'normal', async () => {
+        // Crear una promesa que se resuelve cuando termine completamente toda la narración
+        return new Promise((resolve) => {
+            // Cuando termine el texto inicial, continuar con el completo si está listo
+            audioManager.speak(immediateIntroText, 'normal', async () => {
             console.log('[Mapa] ✅ Texto inicial terminado, esperando texto completo...');
             
             // Esperar a que el texto completo esté listo (con timeout más largo)
@@ -760,17 +783,34 @@ export default class MapaMode {
                 console.log('[Mapa] 🔊 Continuando con texto completo generado');
                 
                 // Continuar hablando con el texto completo usando Edge TTS
+                // IMPORTANTE: Esperar a que termine completamente antes de llamar finishMapIntro
                 audioManager.speak(fullIntroText, 'normal', async () => {
+                    console.log('[Mapa] ✅ Texto completo terminado completamente');
                     this.isNarrating = false;
                     await this.finishMapIntro(fullIntroText, previousPresentations);
+                    resolve(); // Resolver la promesa cuando termine completamente
                 }, updateSubtitles);
             } else {
                 // Si no hay texto completo, terminar con el inicial
                 console.log('[Mapa] ✅ Terminando con texto inicial (no se generó completo)');
                 this.isNarrating = false;
                 await this.finishMapIntro(immediateIntroText, previousPresentations);
+                resolve(); // Resolver la promesa cuando termine completamente
             }
         }, updateSubtitles);
+        });
+        
+        // Retornar una promesa que se resuelve cuando termine completamente la intro
+        // Esto permite que startAutoTravel() espere correctamente
+        return new Promise((resolve) => {
+            // La promesa se resuelve cuando finishMapIntro() se completa
+            // finishMapIntro() se llama desde los callbacks de audioManager.speak()
+            const originalFinishMapIntro = this.finishMapIntro.bind(this);
+            this.finishMapIntro = async (...args) => {
+                await originalFinishMapIntro(...args);
+                resolve(); // Resolver la promesa cuando termine completamente
+            };
+        });
         
         // Mostrar contenido multimedia global (imagen del mundo, viaje, etc.)
         try {

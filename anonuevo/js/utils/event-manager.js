@@ -54,10 +54,12 @@ class EventManager {
                         this.processQueue();
                     }
 
-                    // Verificar comandos de música
+                    // Verificar comandos de música (solo procesar si hay comando y no se procesó recientemente)
                     if (data.music && data.music.command) {
                         console.log(`🎵 Music Command Received: ${data.music.command}`);
-                        this.emit('music_command', data.music);
+                        this.emit('music_command', { command: data.music.command });
+                        // Limpiar el comando después de procesarlo para evitar duplicados
+                        // El servidor lo limpiará en el próximo poll
                     }
                 }
             } catch (e) { }
