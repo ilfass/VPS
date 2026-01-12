@@ -115,7 +115,17 @@ export default class RutaMode {
         
         // Cargar datos del mundo
         d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world => {
-            const countries = topojson.feature(world, world.objects.countries);
+            // Verificar que topojson esté disponible (se carga globalmente desde HTML)
+            if (typeof window.topojson === 'undefined' && typeof topojson === 'undefined') {
+                console.error('[Ruta] topojson no está disponible, usando fallback simple');
+                this.renderStats();
+                // Renderizar países visitados sin mapa completo
+                this.renderSimpleRoute();
+                return;
+            }
+            
+            const topojsonLib = window.topojson || topojson;
+            const countries = topojsonLib.feature(world, world.objects.countries);
             
             // Dibujar países
             this.svg.selectAll('.country')
