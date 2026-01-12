@@ -19,6 +19,11 @@ export default class EstadisticasMode {
     async mount() {
         console.log('[Estadísticas] Montando página de estadísticas...');
         
+        // Inicializar eventManager si no está inicializado
+        if (!eventManager.pollInterval) {
+            eventManager.init();
+        }
+        
         // Limpiar contenedor primero
         this.container.innerHTML = '';
         
@@ -51,7 +56,7 @@ export default class EstadisticasMode {
         document.addEventListener('touchstart', enableAudio, { once: true });
         document.addEventListener('keydown', enableAudio, { once: true });
         
-        // Registrar handler para comandos de música
+        // Registrar handler para comandos de música (ANTES de cargar datos)
         eventManager.on('music_command', (musicState) => {
             console.log('[Estadísticas] 🎵 Comando de música recibido:', musicState.command);
             if (musicState.command === 'toggle') {

@@ -15,6 +15,11 @@ export default class GaleriaMode {
     async mount() {
         console.log('[Galería] Montando página de galería...');
         
+        // Inicializar eventManager si no está inicializado
+        if (!eventManager.pollInterval) {
+            eventManager.init();
+        }
+        
         // Limpiar contenedor primero
         this.container.innerHTML = '';
         
@@ -47,7 +52,7 @@ export default class GaleriaMode {
         document.addEventListener('touchstart', enableAudio, { once: true });
         document.addEventListener('keydown', enableAudio, { once: true });
         
-        // Registrar handler para comandos de música
+        // Registrar handler para comandos de música (ANTES de cargar datos)
         eventManager.on('music_command', (musicState) => {
             console.log('[Galería] 🎵 Comando de música recibido:', musicState.command);
             if (musicState.command === 'toggle') {
