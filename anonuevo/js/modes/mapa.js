@@ -882,7 +882,7 @@ export default class MapaMode {
         if (eventManager.canProceedAuto()) {
             console.log('[Mapa] Dream Mode ON: Cambiando automáticamente después de intro...');
             setTimeout(() => {
-                const pages = ['diario', 'estado-actual', 'reflexion'];
+                const pages = ['diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas', 'galeria'];
                 const randomPage = pages[Math.floor(Math.random() * pages.length)];
                 console.log(`[Mapa] 🎲 Navegando a: ${randomPage}`);
                 window.location.href = `/vivos/${randomPage}/`;
