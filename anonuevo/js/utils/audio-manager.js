@@ -260,87 +260,81 @@ export class AudioManager {
                     if (result.success && result.url) {
                         console.log("[AudioManager] ✅ Audio generado con Edge TTS:", result.url);
                         
-                        // Verificar que el archivo existe antes de intentar reproducirlo
-                        // Usar fetch para verificar que el archivo es accesible
-                        const checkAudio = async () => {
-                            try {
-                                const headResponse = await fetch(result.url, { method: 'HEAD' });
-                                if (!headResponse.ok) {
-                                    throw new Error(`Audio file not accessible: ${headResponse.status}`);
-                                }
+                        // Crear elemento de audio para reproducir directamente
+                        // No verificar con HEAD ya que puede fallar por CORS o timing
+                        try {
+                            const audio = new Audio(result.url);
+                            audio.volume = 1.0;
+                            audio.preload = 'auto';
+                            this.currentAudio = audio;
+                            
+                            // Notificar que el avatar está hablando
+                            this.notifySpeaking(true);
+                            
+                            // Sincronizar subtítulos con Edge TTS
+                            // Dividir texto en palabras para actualización progresiva
+                            const words = text.split(' ').filter(w => w.trim().length > 0);
+                            let wordsShown = 0;
+                            const maxWordsPerSubtitle = 16;
+                            const msPerWord = 630; // Tiempo estimado por palabra
+                            let subtitleInterval = null;
+                            
+                            audio.onplay = () => {
+                                console.log("[AudioManager] ✅ Voz iniciada (Edge TTS)");
+                                wordsShown = 0;
                                 
-                                // Crear elemento de audio para reproducir
-                                const audio = new Audio(result.url);
-                                audio.volume = 1.0;
-                                audio.preload = 'auto';
-                                this.currentAudio = audio;
+                                // Mostrar primeras palabras inmediatamente
+                                const initialWords = words.slice(0, maxWordsPerSubtitle).join(' ');
+                                this.updateSubtitlesCallback?.(initialWords);
+                                wordsShown = maxWordsPerSubtitle;
                                 
-                                // Notificar que el avatar está hablando
-                                this.notifySpeaking(true);
-                                
-                                // Sincronizar subtítulos con Edge TTS
-                                // Dividir texto en palabras para actualización progresiva
-                                const words = text.split(' ').filter(w => w.trim().length > 0);
-                                let wordsShown = 0;
-                                const maxWordsPerSubtitle = 16;
-                                const msPerWord = 630; // Tiempo estimado por palabra
-                                let subtitleInterval = null;
-                                
-                                audio.onplay = () => {
-                                    console.log("[AudioManager] ✅ Voz iniciada (Edge TTS)");
-                                    wordsShown = 0;
-                                    
-                                    // Mostrar primeras palabras inmediatamente
-                                    const initialWords = words.slice(0, maxWordsPerSubtitle).join(' ');
-                                    this.updateSubtitlesCallback?.(initialWords);
-                                    wordsShown = maxWordsPerSubtitle;
-                                    
-                                    // Actualizar subtítulos palabra por palabra
-                                    subtitleInterval = setInterval(() => {
-                                        if (wordsShown < words.length && !audio.paused) {
-                                            const startIndex = Math.max(0, wordsShown - maxWordsPerSubtitle);
-                                            const endIndex = Math.min(words.length, wordsShown + 1);
-                                            const wordsToShow = words.slice(startIndex, endIndex).join(' ');
-                                            
-                                            if (wordsToShow.trim().length > 0) {
-                                                this.updateSubtitlesCallback?.(wordsToShow);
-                                            }
-                                            wordsShown++;
-                                        } else if (wordsShown >= words.length) {
-                                            if (subtitleInterval) {
-                                                clearInterval(subtitleInterval);
-                                                subtitleInterval = null;
-                                            }
+                                // Actualizar subtítulos palabra por palabra
+                                subtitleInterval = setInterval(() => {
+                                    if (wordsShown < words.length && !audio.paused) {
+                                        const startIndex = Math.max(0, wordsShown - maxWordsPerSubtitle);
+                                        const endIndex = Math.min(words.length, wordsShown + 1);
+                                        const wordsToShow = words.slice(startIndex, endIndex).join(' ');
+                                        
+                                        if (wordsToShow.trim().length > 0) {
+                                            this.updateSubtitlesCallback?.(wordsToShow);
                                         }
-                                    }, msPerWord);
-                                };
-                                
-                                audio.onended = () => {
-                                    console.log("[AudioManager] ✅ Voz terminada (Edge TTS)");
-                                    if (subtitleInterval) {
-                                        clearInterval(subtitleInterval);
-                                        subtitleInterval = null;
+                                        wordsShown++;
+                                    } else if (wordsShown >= words.length) {
+                                        if (subtitleInterval) {
+                                            clearInterval(subtitleInterval);
+                                            subtitleInterval = null;
+                                        }
                                     }
-                                    this.notifySpeaking(false);
-                                    this.currentAudio = null;
-                                    this.updateSubtitlesCallback = null; // Limpiar callback
-                                    if (onEndCallback) onEndCallback();
-                                };
-                                
-                                audio.onerror = (e) => {
-                                    console.error("[AudioManager] ❌ Error reproduciendo audio Edge TTS:", e, result.url);
-                                    if (subtitleInterval) {
-                                        clearInterval(subtitleInterval);
-                                        subtitleInterval = null;
-                                    }
-                                    this.notifySpeaking(false);
-                                    this.currentAudio = null;
-                                    this.updateSubtitlesCallback = null;
-                                    // Fallback a Web Speech API
-                                    this.speakWithFallback(text, priority, onEndCallback);
-                                };
-                                
-                                // Reproducir audio
+                                }, msPerWord);
+                            };
+                            
+                            audio.onended = () => {
+                                console.log("[AudioManager] ✅ Voz terminada (Edge TTS)");
+                                if (subtitleInterval) {
+                                    clearInterval(subtitleInterval);
+                                    subtitleInterval = null;
+                                }
+                                this.notifySpeaking(false);
+                                this.currentAudio = null;
+                                this.updateSubtitlesCallback = null; // Limpiar callback
+                                if (onEndCallback) onEndCallback();
+                            };
+                            
+                            audio.onerror = (e) => {
+                                console.error("[AudioManager] ❌ Error reproduciendo audio Edge TTS:", e, result.url);
+                                if (subtitleInterval) {
+                                    clearInterval(subtitleInterval);
+                                    subtitleInterval = null;
+                                }
+                                this.notifySpeaking(false);
+                                this.currentAudio = null;
+                                this.updateSubtitlesCallback = null;
+                                // Fallback a Web Speech API
+                                this.speakWithFallback(text, priority, onEndCallback);
+                            };
+                            
+                            // Reproducir audio con pequeño delay para asegurar que el archivo esté listo
+                            setTimeout(() => {
                                 audio.play().catch(e => {
                                     console.error("[AudioManager] ❌ Error iniciando audio:", e, result.url);
                                     if (subtitleInterval) {
@@ -350,14 +344,12 @@ export class AudioManager {
                                     // Fallback a Web Speech API
                                     this.speakWithFallback(text, priority, onEndCallback);
                                 });
-                            } catch (checkError) {
-                                console.error("[AudioManager] ❌ Error verificando audio:", checkError, result.url);
-                                // Fallback a Web Speech API
-                                this.speakWithFallback(text, priority, onEndCallback);
-                            }
-                        };
-                        
-                        checkAudio();
+                            }, 100);
+                        } catch (audioError) {
+                            console.error("[AudioManager] ❌ Error creando audio:", audioError, result.url);
+                            // Fallback a Web Speech API
+                            this.speakWithFallback(text, priority, onEndCallback);
+                        }
                         
                         return; // Éxito con Edge TTS
                     } else if (result.fallback) {

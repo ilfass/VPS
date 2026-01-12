@@ -218,6 +218,69 @@ export default class RutaMode {
         return nameMap[feature.properties.NAME] || null;
     }
 
+    renderSimpleRoute() {
+        // Renderizar lista simple de países si no se puede cargar el mapa
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = `
+            width: 100%;
+            height: 100%;
+            padding: 2rem;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a24 100%);
+            color: #e8e8f0;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        `;
+        
+        const title = document.createElement('h1');
+        title.textContent = 'Ruta del Viaje';
+        title.style.cssText = `
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 2rem;
+            background: linear-gradient(135deg, #4a9eff 0%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        `;
+        wrapper.appendChild(title);
+        
+        if (this.visitedCountries.length > 0) {
+            const list = document.createElement('div');
+            list.style.cssText = `
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 1rem;
+                max-width: 1200px;
+                width: 100%;
+            `;
+            
+            this.visitedCountries.forEach((country, index) => {
+                const card = document.createElement('div');
+                card.style.cssText = `
+                    background: rgba(26, 26, 36, 0.8);
+                    border: 1px solid rgba(74, 158, 255, 0.3);
+                    border-radius: 8px;
+                    padding: 1rem;
+                    text-align: center;
+                `;
+                card.innerHTML = `
+                    <div style="font-size: 1.5rem; font-weight: 600; color: #4a9eff; margin-bottom: 0.5rem;">${index + 1}</div>
+                    <div style="font-weight: 600; margin-bottom: 0.25rem;">${country.info?.name || country.id}</div>
+                    <div style="font-size: 0.85rem; color: #a0a0b0;">${country.visits} visita${country.visits !== 1 ? 's' : ''}</div>
+                `;
+                list.appendChild(card);
+            });
+            
+            wrapper.appendChild(list);
+        }
+        
+        this.renderStats();
+        this.container.appendChild(wrapper);
+    }
+
     renderStats() {
         const stats = document.createElement('div');
         stats.style.cssText = `
@@ -231,6 +294,7 @@ export default class RutaMode {
             color: #e8e8f0;
             font-family: 'Inter', sans-serif;
             min-width: 250px;
+            z-index: 1000;
         `;
         
         stats.innerHTML = `
