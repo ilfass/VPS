@@ -1588,6 +1588,22 @@ Genera una introducción en primera persona (como ilfass) que:
         // audioManager.playSound('ui_open');
     }
 
+    scheduleNextPageAfterNarration() {
+        // Si Dream Mode está ON, cambiar automáticamente a otra página después de la narración del país
+        if (eventManager.canProceedAuto()) {
+            console.log('[Mapa] Dream Mode ON: Programando cambio de página después de narración del país...');
+            // Esperar 2-3 segundos después de la narración para transición suave
+            setTimeout(() => {
+                if (eventManager.canProceedAuto() && !this.isNarrating) {
+                    const pages = ['diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas', 'galeria'];
+                    const randomPage = pages[Math.floor(Math.random() * pages.length)];
+                    console.log(`[Mapa] 🎲 Navegando a: ${randomPage} (después de narración de país)`);
+                    window.location.href = `/vivos/${randomPage}/`;
+                }
+            }, 2000 + Math.random() * 1000); // 2-3 segundos aleatorios
+        }
+    }
+
     unmount() {
         pacingEngine.endCurrentEvent(); // Cerrar tracking actual
         audioManager.cancel();
