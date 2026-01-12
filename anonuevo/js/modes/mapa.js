@@ -1406,6 +1406,9 @@ Genera una introducción en primera persona (como ilfass) que:
                 
                 pacingEngine.endCurrentEvent();
                 pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+                
+                // Dream Mode: Cambiar automáticamente después de la narración del país
+                this.scheduleNextPageAfterNarration();
             }, updateSubtitles);
             
             // 7. Guardar visita en memoria

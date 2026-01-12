@@ -81,17 +81,6 @@ export default class ContinenteMode {
         // Cargar datos y empezar narración
         await this.loadContinentData();
         await this.startNarration();
-        
-        // Si Dream Mode está ON, cambiar automáticamente después de un tiempo
-        if (eventManager.canProceedAuto()) {
-            setTimeout(() => {
-                if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion'];
-                    const randomPage = pages[Math.floor(Math.random() * pages.length)];
-                    window.location.href = `/vivos/${randomPage}/`;
-                }
-            }, 30000); // 30 segundos
-        }
     }
 
     async loadContinentData() {
@@ -189,11 +178,15 @@ export default class ContinenteMode {
                     this.isNarrating = false;
                     pacingEngine.endCurrentEvent();
                     pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+                    // Dream Mode: Cambiar automáticamente después de la narración
+                    this.scheduleNextPage();
                 }, updateSubtitles);
             } else {
                 this.isNarrating = false;
                 pacingEngine.endCurrentEvent();
                 pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+                // Dream Mode: Cambiar automáticamente después de la narración
+                this.scheduleNextPage();
             }
         }, updateSubtitles);
         
@@ -396,6 +389,25 @@ export default class ContinenteMode {
         }
         
         this.container.appendChild(wrapper);
+    }
+
+    scheduleNextPage() {
+        // Si Dream Mode está ON, cambiar automáticamente a otra página
+        if (eventManager.canProceedAuto()) {
+            console.log('[Continente] Dream Mode ON: Programando cambio de página...');
+            // Esperar 2-3 segundos después de la narración para transición suave
+            setTimeout(() => {
+                if (eventManager.canProceedAuto() && !this.isNarrating) {
+                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'ruta', 'estadisticas', 'galeria'];
+                    // Excluir la página actual para evitar repetir
+                    const currentPage = 'continente';
+                    const availablePages = pages.filter(p => p !== currentPage);
+                    const randomPage = availablePages[Math.floor(Math.random() * availablePages.length)];
+                    console.log(`[Continente] 🎲 Navegando a: ${randomPage}`);
+                    window.location.href = `/vivos/${randomPage}/`;
+                }
+            }, 2000 + Math.random() * 1000); // 2-3 segundos aleatorios
+        }
     }
 
     unmount() {

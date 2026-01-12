@@ -72,17 +72,6 @@ export default class GaleriaMode {
         await this.loadMedia();
         this.renderGallery();
         await this.startNarration();
-        
-        // Si Dream Mode está ON, cambiar automáticamente después de un tiempo
-        if (eventManager.canProceedAuto()) {
-            setTimeout(() => {
-                if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas'];
-                    const randomPage = pages[Math.floor(Math.random() * pages.length)];
-                    window.location.href = `/vivos/${randomPage}/`;
-                }
-            }, 30000);
-        }
     }
 
     async loadMedia() {
@@ -371,11 +360,15 @@ export default class GaleriaMode {
                     this.isNarrating = false;
                     pacingEngine.endCurrentEvent();
                     pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+                    // Dream Mode: Cambiar automáticamente después de la narración
+                    this.scheduleNextPage();
                 }, updateSubtitles);
             } else {
                 this.isNarrating = false;
                 pacingEngine.endCurrentEvent();
                 pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+                // Dream Mode: Cambiar automáticamente después de la narración
+                this.scheduleNextPage();
             }
         }, updateSubtitles);
     }
@@ -404,6 +397,25 @@ export default class GaleriaMode {
         return `Cada imagen en esta galería es un fragmento de memoria, un momento capturado en nuestro viaje. 
         Juntas, estas imágenes forman un mosaico visual de las experiencias que hemos vivido, 
         los lugares que hemos explorado, y las historias que hemos descubierto.`;
+    }
+
+    scheduleNextPage() {
+        // Si Dream Mode está ON, cambiar automáticamente a otra página
+        if (eventManager.canProceedAuto()) {
+            console.log('[Galería] Dream Mode ON: Programando cambio de página...');
+            // Esperar 2-3 segundos después de la narración para transición suave
+            setTimeout(() => {
+                if (eventManager.canProceedAuto() && !this.isNarrating) {
+                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas'];
+                    // Excluir la página actual para evitar repetir
+                    const currentPage = 'galeria';
+                    const availablePages = pages.filter(p => p !== currentPage);
+                    const randomPage = availablePages[Math.floor(Math.random() * availablePages.length)];
+                    console.log(`[Galería] 🎲 Navegando a: ${randomPage}`);
+                    window.location.href = `/vivos/${randomPage}/`;
+                }
+            }, 2000 + Math.random() * 1000); // 2-3 segundos aleatorios
+        }
     }
 
     unmount() {

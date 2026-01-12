@@ -76,17 +76,6 @@ export default class EstadisticasMode {
         await this.loadStats();
         this.renderDashboard();
         await this.startNarration();
-        
-        // Si Dream Mode está ON, cambiar automáticamente después de un tiempo
-        if (eventManager.canProceedAuto()) {
-            setTimeout(() => {
-                if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'continente', 'ruta'];
-                    const randomPage = pages[Math.floor(Math.random() * pages.length)];
-                    window.location.href = `/vivos/${randomPage}/`;
-                }
-            }, 30000);
-        }
     }
 
     async loadStats() {
@@ -292,11 +281,15 @@ export default class EstadisticasMode {
                     this.isNarrating = false;
                     pacingEngine.endCurrentEvent();
                     pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+                    // Dream Mode: Cambiar automáticamente después de la narración
+                    this.scheduleNextPage();
                 }, updateSubtitles);
             } else {
                 this.isNarrating = false;
                 pacingEngine.endCurrentEvent();
                 pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+                // Dream Mode: Cambiar automáticamente después de la narración
+                this.scheduleNextPage();
             }
         }, updateSubtitles);
     }
@@ -327,6 +320,25 @@ export default class EstadisticasMode {
         return `Cada número representa un paso en este viaje. 
         Cada país visitado, cada continente explorado, nos acerca más a comprender la inmensidad y diversidad de nuestro planeta. 
         Estos números no son solo estadísticas, son historias, son experiencias, son momentos que han transformado nuestra perspectiva del mundo.`;
+    }
+
+    scheduleNextPage() {
+        // Si Dream Mode está ON, cambiar automáticamente a otra página
+        if (eventManager.canProceedAuto()) {
+            console.log('[Estadísticas] Dream Mode ON: Programando cambio de página...');
+            // Esperar 2-3 segundos después de la narración para transición suave
+            setTimeout(() => {
+                if (eventManager.canProceedAuto() && !this.isNarrating) {
+                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'galeria'];
+                    // Excluir la página actual para evitar repetir
+                    const currentPage = 'estadisticas';
+                    const availablePages = pages.filter(p => p !== currentPage);
+                    const randomPage = availablePages[Math.floor(Math.random() * availablePages.length)];
+                    console.log(`[Estadísticas] 🎲 Navegando a: ${randomPage}`);
+                    window.location.href = `/vivos/${randomPage}/`;
+                }
+            }, 2000 + Math.random() * 1000); // 2-3 segundos aleatorios
+        }
     }
 
     unmount() {

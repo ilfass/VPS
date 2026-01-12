@@ -76,17 +76,6 @@ export default class RutaMode {
         await this.loadRouteData();
         this.renderMap();
         await this.startNarration();
-        
-        // Si Dream Mode está ON, cambiar automáticamente después de un tiempo
-        if (eventManager.canProceedAuto()) {
-            setTimeout(() => {
-                if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'continente'];
-                    const randomPage = pages[Math.floor(Math.random() * pages.length)];
-                    window.location.href = `/vivos/${randomPage}/`;
-                }
-            }, 30000);
-        }
     }
 
     async loadRouteData() {
@@ -378,11 +367,15 @@ export default class RutaMode {
                     this.isNarrating = false;
                     pacingEngine.endCurrentEvent();
                     pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+                    // Dream Mode: Cambiar automáticamente después de la narración
+                    this.scheduleNextPage();
                 }, updateSubtitles);
             } else {
                 this.isNarrating = false;
                 pacingEngine.endCurrentEvent();
                 pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+                // Dream Mode: Cambiar automáticamente después de la narración
+                this.scheduleNextPage();
             }
         }, updateSubtitles);
     }
@@ -412,6 +405,25 @@ export default class RutaMode {
         return `Cada línea en el mapa representa un paso en este viaje. 
         Cada país visitado nos ha enseñado algo único sobre la humanidad y nuestro planeta. 
         El camino continúa, y con cada nuevo lugar descubrimos más sobre este mundo que exploramos.`;
+    }
+
+    scheduleNextPage() {
+        // Si Dream Mode está ON, cambiar automáticamente a otra página
+        if (eventManager.canProceedAuto()) {
+            console.log('[Ruta] Dream Mode ON: Programando cambio de página...');
+            // Esperar 2-3 segundos después de la narración para transición suave
+            setTimeout(() => {
+                if (eventManager.canProceedAuto() && !this.isNarrating) {
+                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'continente', 'estadisticas', 'galeria'];
+                    // Excluir la página actual para evitar repetir
+                    const currentPage = 'ruta';
+                    const availablePages = pages.filter(p => p !== currentPage);
+                    const randomPage = availablePages[Math.floor(Math.random() * availablePages.length)];
+                    console.log(`[Ruta] 🎲 Navegando a: ${randomPage}`);
+                    window.location.href = `/vivos/${randomPage}/`;
+                }
+            }, 2000 + Math.random() * 1000); // 2-3 segundos aleatorios
+        }
     }
 
     unmount() {
