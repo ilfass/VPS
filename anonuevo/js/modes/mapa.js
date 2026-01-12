@@ -723,78 +723,14 @@ export default class MapaMode {
             this.travelTimeout = null;
         }
         
-        // Usar speechSynthesis directamente para tener control de eventos y sincronizar subtítulos
-        const utterance = new SpeechSynthesisUtterance(immediateIntroText);
-        utterance.lang = 'es-ES';
-        utterance.rate = 0.95;
-        utterance.volume = 1.0;
-        
-        // Dividir el texto en palabras para actualizar subtítulos progresivamente
-        const words = immediateIntroText.split(' ').filter(w => w.trim().length > 0);
-        let wordsShown = 0;
-        const maxWordsPerSubtitle = 16; // Aproximadamente 2 líneas
-        
-        // Calcular tiempo estimado por palabra (basado en rate 0.95)
-        // Rate 0.95 significa ~95 palabras por minuto = ~1.58 palabras por segundo = ~630ms por palabra
-        const msPerWord = 630;
-        let subtitleInterval = null;
-        
-        // Sincronizar subtítulos con la voz usando onstart y intervalo de tiempo
-        utterance.onstart = () => {
-            console.log('[Mapa] ✅ Voz iniciada, mostrando subtítulos del texto inicial');
-            wordsShown = 0;
-            
-            // Mostrar primeras palabras inmediatamente
-            const initialWords = words.slice(0, maxWordsPerSubtitle).join(' ');
-            avatarSubtitlesManager.setSubtitles(initialWords);
-            wordsShown = maxWordsPerSubtitle;
-            
-            // Actualizar subtítulos palabra por palabra usando intervalo de tiempo
-            subtitleInterval = setInterval(() => {
-                if (wordsShown < words.length) {
-                    // Calcular qué palabras mostrar (últimas maxWordsPerSubtitle palabras)
-                    const startIndex = Math.max(0, wordsShown - maxWordsPerSubtitle);
-                    const endIndex = Math.min(words.length, wordsShown + 1);
-                    const wordsToShow = words.slice(startIndex, endIndex).join(' ');
-                    
-                    // Actualizar subtítulos con las palabras actuales
-                    if (wordsToShow.trim().length > 0) {
-                        avatarSubtitlesManager.setSubtitles(wordsToShow);
-                    }
-                    wordsShown++;
-                } else {
-                    // Si ya mostramos todas las palabras, limpiar intervalo
-                    if (subtitleInterval) {
-                        clearInterval(subtitleInterval);
-                        subtitleInterval = null;
-                    }
-                }
-            }, msPerWord);
-        };
-        
-        // Limpiar intervalo cuando termine o haya error
-        utterance.onend = () => {
-            if (subtitleInterval) {
-                clearInterval(subtitleInterval);
-                subtitleInterval = null;
-            }
-        };
-        
-        utterance.onerror = () => {
-            if (subtitleInterval) {
-                clearInterval(subtitleInterval);
-                subtitleInterval = null;
-            }
+        // Usar audioManager.speak() que usa Edge TTS con fallback a Web Speech API
+        // Callback para actualizar subtítulos sincronizadamente
+        const updateSubtitles = (text) => {
+            avatarSubtitlesManager.setSubtitles(text);
         };
         
         // Cuando termine el texto inicial, continuar con el completo si está listo
-        utterance.onend = async () => {
-            // Limpiar intervalo de subtítulos si aún está activo
-            if (subtitleInterval) {
-                clearInterval(subtitleInterval);
-                subtitleInterval = null;
-            }
-            
+        audioManager.speak(immediateIntroText, 'normal', async () => {
             console.log('[Mapa] ✅ Texto inicial terminado, esperando texto completo...');
             
             // Esperar a que el texto completo esté listo (con timeout más largo)
@@ -827,115 +763,18 @@ export default class MapaMode {
             if (fullIntroText && fullIntroText !== immediateIntroText && fullIntroText.length > immediateIntroText.length) {
                 console.log('[Mapa] 🔊 Continuando con texto completo generado');
                 
-                // Dividir el texto completo en palabras para actualizar subtítulos progresivamente
-                const fullWords = fullIntroText.split(' ').filter(w => w.trim().length > 0);
-                let fullWordsShown = 0;
-                const maxWordsPerSubtitle = 16; // Aproximadamente 2 líneas
-                
-                // Calcular tiempo estimado por palabra (basado en rate 0.95)
-                const msPerWord = 630;
-                let fullSubtitleInterval = null;
-                
-                // Crear nuevo utterance para el texto completo
-                const fullUtterance = new SpeechSynthesisUtterance(fullIntroText);
-                fullUtterance.lang = 'es-ES';
-                fullUtterance.rate = 0.95;
-                fullUtterance.volume = 1.0;
-                
-                // Sincronizar subtítulos cuando empiece a hablar el texto completo
-                fullUtterance.onstart = () => {
-                    console.log('[Mapa] ✅ Voz del texto completo iniciada, actualizando subtítulos');
-                    fullWordsShown = 0;
-                    
-                    // Mostrar primeras palabras del texto completo
-                    const initialWords = fullWords.slice(0, maxWordsPerSubtitle).join(' ');
-                    avatarSubtitlesManager.setSubtitles(initialWords);
-                    fullWordsShown = maxWordsPerSubtitle;
-                    
-                    // Actualizar subtítulos palabra por palabra usando intervalo de tiempo
-                    fullSubtitleInterval = setInterval(() => {
-                        if (fullWordsShown < fullWords.length) {
-                            // Calcular qué palabras mostrar (últimas maxWordsPerSubtitle palabras)
-                            const startIndex = Math.max(0, fullWordsShown - maxWordsPerSubtitle);
-                            const endIndex = Math.min(fullWords.length, fullWordsShown + 1);
-                            const wordsToShow = fullWords.slice(startIndex, endIndex).join(' ');
-                            
-                            // Actualizar subtítulos con las palabras actuales
-                            if (wordsToShow.trim().length > 0) {
-                                avatarSubtitlesManager.setSubtitles(wordsToShow);
-                            }
-                            fullWordsShown++;
-                        } else {
-                            // Si ya mostramos todas las palabras, limpiar intervalo
-                            if (fullSubtitleInterval) {
-                                clearInterval(fullSubtitleInterval);
-                                fullSubtitleInterval = null;
-                            }
-                        }
-                    }, msPerWord);
-                };
-                
-                // Limpiar intervalo cuando termine o haya error
-                fullUtterance.onend = () => {
-                    if (fullSubtitleInterval) {
-                        clearInterval(fullSubtitleInterval);
-                        fullSubtitleInterval = null;
-                    }
-                };
-                
-                fullUtterance.onerror = () => {
-                    if (fullSubtitleInterval) {
-                        clearInterval(fullSubtitleInterval);
-                        fullSubtitleInterval = null;
-                    }
-                };
-                
-                fullUtterance.onend = async () => {
+                // Continuar hablando con el texto completo usando Edge TTS
+                audioManager.speak(fullIntroText, 'normal', async () => {
                     this.isNarrating = false;
                     await this.finishMapIntro(fullIntroText, previousPresentations);
-                };
-                
-                fullUtterance.onerror = (e) => {
-                    console.error('[Mapa] ❌ Error en voz del texto completo:', e);
-                    this.isNarrating = false;
-                    this.finishMapIntro(fullIntroText, previousPresentations);
-                };
-                
-                // Seleccionar voz y hablar
-                const voices = window.speechSynthesis.getVoices();
-                const spanishVoice = voices.find(v => v.lang.includes('es')) || voices[0];
-                if (spanishVoice) fullUtterance.voice = spanishVoice;
-                
-                window.speechSynthesis.speak(fullUtterance);
+                }, updateSubtitles);
             } else {
                 // Si no hay texto completo, terminar con el inicial
                 console.log('[Mapa] ✅ Terminando con texto inicial (no se generó completo)');
                 this.isNarrating = false;
                 await this.finishMapIntro(immediateIntroText, previousPresentations);
             }
-        };
-        
-        utterance.onerror = (e) => {
-            console.error('[Mapa] ❌ Error en voz del texto inicial:', e);
-            this.isNarrating = false;
-            this.finishMapIntro(immediateIntroText, previousPresentations);
-        };
-        
-        // Seleccionar voz y hablar
-        const voices = window.speechSynthesis.getVoices();
-        if (voices.length === 0) {
-            // Esperar a que las voces estén cargadas
-            window.speechSynthesis.onvoiceschanged = () => {
-                const voicesRetry = window.speechSynthesis.getVoices();
-                const spanishVoice = voicesRetry.find(v => v.lang.includes('es')) || voicesRetry[0];
-                if (spanishVoice) utterance.voice = spanishVoice;
-                window.speechSynthesis.speak(utterance);
-            };
-        } else {
-            const spanishVoice = voices.find(v => v.lang.includes('es')) || voices[0];
-            if (spanishVoice) utterance.voice = spanishVoice;
-            window.speechSynthesis.speak(utterance);
-        }
+        }, updateSubtitles);
         
         // Mostrar contenido multimedia global (imagen del mundo, viaje, etc.)
         try {
@@ -1493,71 +1332,30 @@ Genera una introducción en primera persona (como ilfass) que:
             // Limpiar subtítulos inicialmente
             avatarSubtitlesManager.clearSubtitles();
             
-            // Crear utterance para sincronización
-            const utterance = new SpeechSynthesisUtterance(cleanNarrative);
-            utterance.lang = 'es-ES';
-            utterance.rate = 0.85;
-            utterance.pitch = 0.95;
-            utterance.volume = 1.0;
-            
-            // Seleccionar mejor voz
-            const voices = window.speechSynthesis.getVoices();
-            const bestVoice = voices.find(v => v.lang.startsWith('es') && (v.name.includes('Google') || v.name.includes('Microsoft'))) || 
-                            voices.find(v => v.lang.startsWith('es'));
-            if (bestVoice) utterance.voice = bestVoice;
-            
-            // Sincronizar subtítulos con la voz: mostrar frases completas
-            utterance.onboundary = (event) => {
-                if (event.name === 'word') {
-                    wordsSpoken++;
-                    
-                    // Calcular qué frase debería mostrarse basado en palabras habladas
-                    let totalWords = 0;
-                    let targetPhraseIndex = 0;
-                    
-                    for (let i = 0; i < phraseBlocks.length; i++) {
-                        totalWords += phraseBlocks[i].wordCount;
-                        if (wordsSpoken <= totalWords) {
-                            targetPhraseIndex = i;
-                            break;
-                        }
-                    }
-                    
-                    // Si cambió la frase, actualizar subtítulos
-                    if (targetPhraseIndex !== currentPhraseIndex && targetPhraseIndex < phraseBlocks.length) {
-                        currentPhraseIndex = targetPhraseIndex;
-                        // Mostrar la frase completa
-                        avatarSubtitlesManager.setSubtitles(phraseBlocks[currentPhraseIndex].text);
-                    }
-                }
+            // Usar audioManager.speak() con Edge TTS
+            // Callback para actualizar subtítulos (audioManager ya maneja sincronización palabra por palabra)
+            const updateSubtitles = (text) => {
+                avatarSubtitlesManager.setSubtitles(text);
             };
             
-            utterance.onstart = () => {
-                // Mostrar primera frase inmediatamente
-                if (phraseBlocks.length > 0) {
-                    avatarSubtitlesManager.setSubtitles(phraseBlocks[0].text);
-                    currentPhraseIndex = 0;
-                    wordsSpoken = 0;
-                }
-            };
+            // Mostrar primera frase inmediatamente
+            if (phraseBlocks.length > 0) {
+                avatarSubtitlesManager.setSubtitles(phraseBlocks[0].text);
+            }
             
-            // Bajar música antes de hablar (ducking)
+            // Bajar música antes de hablar (ducking) - audioManager ya lo hace, pero por si acaso
             if (audioManager.isMusicPlaying) {
                 audioManager.fadeAudio(audioManager.musicLayer, audioManager.musicLayer.volume, 0.05, 500);
             }
             
-            // Hablar directamente con speechSynthesis para tener control completo de los eventos
-            window.speechSynthesis.speak(utterance);
-            
-            // Esperar a que termine el speech
-            const speechPromise = new Promise((resolve) => {
-                utterance.onend = () => {
-                    // Mostrar última frase si no se mostró completa
-                    if (currentPhraseIndex < phraseBlocks.length - 1) {
-                        avatarSubtitlesManager.setSubtitles(phraseBlocks[phraseBlocks.length - 1].text);
-                    }
-                    
-                    // Mantener última frase visible por 2 segundos, luego limpiar
+            // Hablar usando Edge TTS a través de audioManager
+            audioManager.speak(cleanNarrative, 'normal', () => {
+                // Mostrar última frase si no se mostró completa
+                if (phraseBlocks.length > 0) {
+                    avatarSubtitlesManager.setSubtitles(phraseBlocks[phraseBlocks.length - 1].text);
+                }
+                
+                // Mantener última frase visible por 2 segundos, luego limpiar
                     setTimeout(() => {
                         avatarSubtitlesManager.clearSubtitles();
                     }, 2000);

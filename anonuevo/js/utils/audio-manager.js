@@ -221,7 +221,7 @@ export class AudioManager {
         this.notifySpeaking(false);
     }
 
-    async speak(text, priority = 'normal', onEndCallback = null) {
+    async speak(text, priority = 'normal', onEndCallback = null, updateSubtitlesCallback = null) {
         this.cancel();
 
         // Limpiar texto: eliminar caracteres de escape, texto de debugging, etc.
@@ -233,6 +233,9 @@ export class AudioManager {
         }
 
         console.log("[AudioManager] 🔊 Hablando:", text.substring(0, 50) + "...");
+        
+        // Guardar callback para actualizar subtítulos
+        this.updateSubtitlesCallback = updateSubtitlesCallback;
 
         // ** DUCKING **: Bajar música antes de hablar
         if (this.isMusicPlaying) {
@@ -265,21 +268,64 @@ export class AudioManager {
                         // Notificar que el avatar está hablando
                         this.notifySpeaking(true);
                         
+                        // Sincronizar subtítulos con Edge TTS
+                        // Dividir texto en palabras para actualización progresiva
+                        const words = text.split(' ').filter(w => w.trim().length > 0);
+                        let wordsShown = 0;
+                        const maxWordsPerSubtitle = 16;
+                        const msPerWord = 630; // Tiempo estimado por palabra
+                        let subtitleInterval = null;
+                        
                         audio.onplay = () => {
                             console.log("[AudioManager] ✅ Voz iniciada (Edge TTS)");
+                            wordsShown = 0;
+                            
+                            // Mostrar primeras palabras inmediatamente
+                            const initialWords = words.slice(0, maxWordsPerSubtitle).join(' ');
+                            this.updateSubtitlesCallback?.(initialWords);
+                            wordsShown = maxWordsPerSubtitle;
+                            
+                            // Actualizar subtítulos palabra por palabra
+                            subtitleInterval = setInterval(() => {
+                                if (wordsShown < words.length && !audio.paused) {
+                                    const startIndex = Math.max(0, wordsShown - maxWordsPerSubtitle);
+                                    const endIndex = Math.min(words.length, wordsShown + 1);
+                                    const wordsToShow = words.slice(startIndex, endIndex).join(' ');
+                                    
+                                    if (wordsToShow.trim().length > 0) {
+                                        this.updateSubtitlesCallback?.(wordsToShow);
+                                    }
+                                    wordsShown++;
+                                } else if (wordsShown >= words.length) {
+                                    if (subtitleInterval) {
+                                        clearInterval(subtitleInterval);
+                                        subtitleInterval = null;
+                                    }
+                                }
+                            }, msPerWord);
                         };
                         
                         audio.onended = () => {
                             console.log("[AudioManager] ✅ Voz terminada (Edge TTS)");
+                            if (subtitleInterval) {
+                                clearInterval(subtitleInterval);
+                                subtitleInterval = null;
+                            }
                             this.notifySpeaking(false);
                             this.currentAudio = null;
+                            this.updateSubtitlesCallback = null; // Limpiar callback
                             if (onEndCallback) onEndCallback();
                         };
                         
                         audio.onerror = (e) => {
                             console.error("[AudioManager] ❌ Error reproduciendo audio Edge TTS:", e);
+                            if (subtitleInterval) {
+                                clearInterval(subtitleInterval);
+                                subtitleInterval = null;
+                            }
                             this.notifySpeaking(false);
                             this.currentAudio = null;
+                            this.updateSubtitlesCallback = null;
                             // Fallback a Web Speech API
                             this.speakWithFallback(text, priority, onEndCallback);
                         };
@@ -287,6 +333,10 @@ export class AudioManager {
                         // Reproducir audio
                         audio.play().catch(e => {
                             console.error("[AudioManager] ❌ Error iniciando audio:", e);
+                            if (subtitleInterval) {
+                                clearInterval(subtitleInterval);
+                                subtitleInterval = null;
+                            }
                             // Fallback a Web Speech API
                             this.speakWithFallback(text, priority, onEndCallback);
                         });
