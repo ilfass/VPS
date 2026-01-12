@@ -5,7 +5,11 @@ import { scheduler } from './utils/scheduler.js';
 const MODES = {
     'reloj': './modes/reloj.js',
     'curiosidades': './modes/curiosidades.js',
-    'mapa': './modes/mapa.js'
+    'mapa': './modes/mapa.js',
+    'continente': './modes/continente.js',
+    'ruta': './modes/ruta.js',
+    'estadisticas': './modes/estadisticas.js',
+    'galeria': './modes/galeria.js'
 };
 
 const DEFAULT_MODE = 'reloj';
