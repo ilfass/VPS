@@ -38,9 +38,13 @@ class App {
         // Si no hay query param, intentar extraer del path (ej: /vivos/mapa)
         if (!modeName) {
             const pathSegments = window.location.pathname.split('/').filter(Boolean);
-            const lastSegment = pathSegments[pathSegments.length - 1];
-            if (MODES[lastSegment]) {
-                modeName = lastSegment;
+            // Buscar el modo en los segmentos del path
+            for (let i = pathSegments.length - 1; i >= 0; i--) {
+                const segment = pathSegments[i];
+                if (MODES[segment]) {
+                    modeName = segment;
+                    break;
+                }
             }
         }
 
