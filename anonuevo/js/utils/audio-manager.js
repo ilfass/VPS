@@ -424,13 +424,13 @@ export class AudioManager {
         const getVoices = () => {
             const voices = this.synth.getVoices();
             if (voices.length > 0) {
-                this.selectVoice(utterance, voices, priority);
+                this.selectVoice(utterance, voices, priority, onEndCallback);
                 this.synth.speak(utterance);
             } else {
                 setTimeout(() => {
                     const voicesRetry = this.synth.getVoices();
                     if (voicesRetry.length > 0) {
-                        this.selectVoice(utterance, voicesRetry, priority);
+                        this.selectVoice(utterance, voicesRetry, priority, onEndCallback);
                         this.synth.speak(utterance);
                     } else {
                         this.synth.speak(utterance);
@@ -445,7 +445,7 @@ export class AudioManager {
         }
     }
     
-    selectVoice(utterance, voices, priority) {
+    selectVoice(utterance, voices, priority, onEndCallback = null) {
         const spanishVoices = voices.filter(v => v.lang.includes('es'));
         if (spanishVoices.length > 0) {
             if (priority === 'news') {

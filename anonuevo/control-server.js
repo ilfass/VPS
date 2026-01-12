@@ -636,6 +636,30 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // Event: News
+    if (apiPath === '/event/news') {
+        state.eventQueue.push({ type: 'news' });
+        res.writeHead(200, headers);
+        res.end('{"success":true}');
+        return;
+    }
+
+    // Event: Fact
+    if (apiPath === '/event/fact') {
+        state.eventQueue.push({ type: 'fact' });
+        res.writeHead(200, headers);
+        res.end('{"success":true}');
+        return;
+    }
+
+    // Event: Glitch
+    if (apiPath === '/event/glitch') {
+        state.eventQueue.push({ type: 'glitch' });
+        res.writeHead(200, headers);
+        res.end('{"success":true}');
+        return;
+    }
+
     // Music Control: Pausar/Reanudar música
     if (req.method === 'POST' && apiPath === '/event/music/toggle') {
         // Solo establecer comando si no hay uno pendiente para evitar duplicados
