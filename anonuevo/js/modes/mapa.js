@@ -1356,35 +1356,21 @@ Genera una introducción en primera persona (como ilfass) que:
                 }
                 
                 // Mantener última frase visible por 2 segundos, luego limpiar
-                    setTimeout(() => {
-                        avatarSubtitlesManager.clearSubtitles();
-                    }, 2000);
-                    
-                    resolve();
-                };
+                setTimeout(() => {
+                    avatarSubtitlesManager.clearSubtitles();
+                }, 2000);
                 
-                utterance.onerror = () => {
-                    resolve();
-                };
-            });
-            
-            await speechPromise;
-            
-            // Restaurar música después de hablar
-            if (audioManager.isMusicPlaying) {
-                audioManager.fadeAudio(audioManager.musicLayer, audioManager.musicLayer.volume, 0.3, 1000);
-            }
-            
-            // Marcar que terminó la narración
-            this.isNarrating = false;
-            
-            pacingEngine.endCurrentEvent();
-            pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
-            
-            // Mantener subtítulos visibles por 2 segundos antes de limpiar
-            setTimeout(() => {
-                avatarSubtitlesManager.clearSubtitles();
-            }, 2000);
+                // Restaurar música después de hablar
+                if (audioManager.isMusicPlaying) {
+                    audioManager.fadeAudio(audioManager.musicLayer, audioManager.musicLayer.volume, 0.3, 1000);
+                }
+                
+                // Marcar que terminó la narración
+                this.isNarrating = false;
+                
+                pacingEngine.endCurrentEvent();
+                pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+            }, updateSubtitles);
             
             // 7. Guardar visita en memoria
             const visitData = {
