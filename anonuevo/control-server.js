@@ -977,10 +977,24 @@ const server = http.createServer(async (req, res) => {
         req.on('data', c => body += c);
         req.on('end', async () => {
             try {
-                const { prompt } = JSON.parse(body || '{}');
+                const data = JSON.parse(body || '{}');
+                let prompt = data.prompt;
+                
+                // Si se envía countryCode en lugar de prompt, generar el prompt
+                if (!prompt && data.countryCode) {
+                    const countryInfo = COUNTRY_INFO[data.countryCode];
+                    if (countryInfo) {
+                        prompt = `Genera un relato narrativo sobre ${countryInfo.name}, enfocándote en aspectos culturales, geográficos y humanos. El relato debe ser natural, fluido y adecuado para streaming.`;
+                    } else {
+                        res.writeHead(400, headers);
+                        res.end('{"error":"Invalid country code"}');
+                        return;
+                    }
+                }
+                
                 if (!prompt) {
                     res.writeHead(400, headers);
-                    res.end('{"error":"No prompt provided"}');
+                    res.end('{"error":"No prompt or countryCode provided"}');
                     return;
                 }
                 
