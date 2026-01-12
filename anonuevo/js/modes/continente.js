@@ -315,6 +315,14 @@ export default class ContinenteMode {
                 <div style="font-size: 2.5rem; font-weight: 800; color: #4a9eff; margin-bottom: 0.5rem;">${item.value}</div>
                 <div style="font-size: 0.9rem; color: #a0a0b0; text-transform: uppercase;">${item.label}</div>
             `;
+            stat.onmouseenter = () => {
+                stat.style.transform = 'scale(1.05) translateY(-5px)';
+                stat.style.boxShadow = '0 10px 30px rgba(74, 158, 255, 0.3)';
+            };
+            stat.onmouseleave = () => {
+                stat.style.transform = 'scale(1) translateY(0)';
+                stat.style.boxShadow = 'none';
+            };
             stats.appendChild(stat);
         });
         
