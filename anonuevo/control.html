@@ -1388,7 +1388,7 @@
         // Actualizar total de hojas del libro
         async function updateBookPagesCount() {
             try {
-                const res = await fetch('/control-api/api/memories');
+                const res = await fetch('/control-api/api/country-memory');
                 if (!res.ok) return;
                 
                 const data = await res.json();
