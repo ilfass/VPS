@@ -19,9 +19,14 @@ export default class RutaMode {
     async mount() {
         console.log('[Ruta] Montando página de ruta del viaje...');
         
-        // Inicializar avatar
+        // Limpiar contenedor primero
+        this.container.innerHTML = '';
+        
+        // Inicializar avatar INMEDIATAMENTE
         avatarSubtitlesManager.init(this.container);
-        avatarSubtitlesManager.show();
+        setTimeout(() => {
+            avatarSubtitlesManager.show();
+        }, 100);
         
         // Iniciar música de fondo
         if (!audioManager.musicLayer) {

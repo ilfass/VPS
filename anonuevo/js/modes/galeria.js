@@ -15,9 +15,14 @@ export default class GaleriaMode {
     async mount() {
         console.log('[Galería] Montando página de galería...');
         
-        // Inicializar avatar
+        // Limpiar contenedor primero
+        this.container.innerHTML = '';
+        
+        // Inicializar avatar INMEDIATAMENTE
         avatarSubtitlesManager.init(this.container);
-        avatarSubtitlesManager.show();
+        setTimeout(() => {
+            avatarSubtitlesManager.show();
+        }, 100);
         
         // Iniciar música de fondo
         if (!audioManager.musicLayer) {

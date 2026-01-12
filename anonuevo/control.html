@@ -1493,8 +1493,8 @@
 
         // Navegar a una página del libro
         function navigateToPage(path) {
-            // Abrir en nueva pestaña
-            window.open(path, '_blank');
+            // Para streaming: cambiar URL en la misma pestaña
+            window.location.href = path;
         }
 
         // START POLLING

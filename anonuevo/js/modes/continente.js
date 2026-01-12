@@ -24,9 +24,15 @@ export default class ContinenteMode {
     async mount() {
         console.log('[Continente] Montando página de continente...');
         
-        // Inicializar avatar
+        // Limpiar contenedor primero
+        this.container.innerHTML = '';
+        
+        // Inicializar avatar INMEDIATAMENTE para que sea visible
         avatarSubtitlesManager.init(this.container);
-        avatarSubtitlesManager.show();
+        // Forzar visibilidad del avatar
+        setTimeout(() => {
+            avatarSubtitlesManager.show();
+        }, 100);
         
         // Iniciar música de fondo
         if (!audioManager.musicLayer) {
@@ -202,10 +208,7 @@ export default class ContinenteMode {
     }
 
     renderVisualization() {
-        // Limpiar contenedor
-        this.container.innerHTML = '';
-        
-        // Crear estructura visual
+        // Crear estructura visual con animaciones dinámicas
         const wrapper = document.createElement('div');
         wrapper.style.cssText = `
             width: 100%;
@@ -218,9 +221,48 @@ export default class ContinenteMode {
             background: linear-gradient(135deg, #0a0a0f 0%, #1a1a24 100%);
             color: #e8e8f0;
             font-family: 'Inter', sans-serif;
+            position: relative;
+            overflow: hidden;
         `;
         
-        // Título del continente
+        // Agregar efectos de fondo animados
+        const animatedBg = document.createElement('div');
+        animatedBg.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 30% 50%, rgba(74, 158, 255, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 50%, rgba(168, 85, 247, 0.1) 0%, transparent 50%);
+            animation: backgroundPulse 8s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        `;
+        wrapper.appendChild(animatedBg);
+        
+        // Agregar estilo de animación
+        if (!document.getElementById('continente-animations')) {
+            const style = document.createElement('style');
+            style.id = 'continente-animations';
+            style.textContent = `
+                @keyframes backgroundPulse {
+                    0%, 100% { opacity: 0.5; transform: scale(1); }
+                    50% { opacity: 0.8; transform: scale(1.1); }
+                }
+                @keyframes fadeInUp {
+                    from { opacity: 0; transform: translateY(30px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes scaleIn {
+                    from { opacity: 0; transform: scale(0.9); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // Título del continente con animación
         const title = document.createElement('h1');
         title.textContent = this.currentContinent.name;
         title.style.cssText = `
@@ -232,10 +274,13 @@ export default class ContinenteMode {
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            animation: fadeInUp 0.8s ease-out;
+            position: relative;
+            z-index: 1;
         `;
         wrapper.appendChild(title);
         
-        // Estadísticas
+        // Estadísticas con animación
         const stats = document.createElement('div');
         stats.style.cssText = `
             display: grid;
@@ -244,6 +289,9 @@ export default class ContinenteMode {
             margin: 2rem 0;
             width: 100%;
             max-width: 1200px;
+            position: relative;
+            z-index: 1;
+            animation: fadeInUp 1s ease-out 0.2s both;
         `;
         
         const statItems = [
@@ -252,7 +300,7 @@ export default class ContinenteMode {
             { label: 'Continente', value: this.currentContinent.name }
         ];
         
-        statItems.forEach(item => {
+        statItems.forEach((item, index) => {
             const stat = document.createElement('div');
             stat.style.cssText = `
                 background: rgba(74, 158, 255, 0.1);
@@ -260,6 +308,8 @@ export default class ContinenteMode {
                 border-radius: 12px;
                 padding: 1.5rem;
                 text-align: center;
+                animation: scaleIn 0.6s ease-out ${0.4 + index * 0.1}s both;
+                transition: transform 0.3s, box-shadow 0.3s;
             `;
             stat.innerHTML = `
                 <div style="font-size: 2.5rem; font-weight: 800; color: #4a9eff; margin-bottom: 0.5rem;">${item.value}</div>
@@ -270,7 +320,7 @@ export default class ContinenteMode {
         
         wrapper.appendChild(stats);
         
-        // Lista de países
+        // Lista de países con animación
         if (this.countriesData.length > 0) {
             const countriesList = document.createElement('div');
             countriesList.style.cssText = `
@@ -280,9 +330,12 @@ export default class ContinenteMode {
                 display: grid;
                 grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
                 gap: 1rem;
+                position: relative;
+                z-index: 1;
+                animation: fadeInUp 1s ease-out 0.4s both;
             `;
             
-            this.countriesData.forEach(country => {
+            this.countriesData.forEach((country, index) => {
                 const countryCard = document.createElement('div');
                 countryCard.style.cssText = `
                     background: rgba(26, 26, 36, 0.8);
@@ -290,19 +343,22 @@ export default class ContinenteMode {
                     border-radius: 8px;
                     padding: 1rem;
                     text-align: center;
-                    transition: transform 0.2s, border-color 0.2s;
+                    transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+                    animation: scaleIn 0.5s ease-out ${0.6 + index * 0.05}s both;
                 `;
                 countryCard.innerHTML = `
                     <div style="font-weight: 600; margin-bottom: 0.5rem;">${country.name}</div>
                     <div style="font-size: 0.85rem; color: #a0a0b0;">${country.visits} visita${country.visits !== 1 ? 's' : ''}</div>
                 `;
                 countryCard.onmouseenter = () => {
-                    countryCard.style.transform = 'scale(1.05)';
-                    countryCard.style.borderColor = 'rgba(74, 158, 255, 0.5)';
+                    countryCard.style.transform = 'scale(1.08) translateY(-3px)';
+                    countryCard.style.borderColor = 'rgba(74, 158, 255, 0.6)';
+                    countryCard.style.boxShadow = '0 8px 20px rgba(74, 158, 255, 0.3)';
                 };
                 countryCard.onmouseleave = () => {
-                    countryCard.style.transform = 'scale(1)';
+                    countryCard.style.transform = 'scale(1) translateY(0)';
                     countryCard.style.borderColor = 'rgba(74, 158, 255, 0.2)';
+                    countryCard.style.boxShadow = 'none';
                 };
                 countriesList.appendChild(countryCard);
             });
