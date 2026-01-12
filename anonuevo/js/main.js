@@ -144,25 +144,49 @@ streamNavigationChannel.addEventListener('message', (event) => {
     }
 });
 
-// Lógica de Inicio con Interacción de Usuario (Autoplay Policy)
+// Lógica de Inicio automático (sin overlay para streaming)
 document.addEventListener('DOMContentLoaded', () => {
     const startOverlay = document.getElementById('start-overlay');
     const startBtn = document.getElementById('start-btn');
 
-    startBtn.addEventListener('click', async () => {
-        // 1. Desbloquear Audio Context
+    // Si hay overlay y botón, esperar interacción del usuario (para páginas que lo requieren)
+    if (startOverlay && startBtn) {
+        startBtn.addEventListener('click', async () => {
+            // 1. Desbloquear Audio Context
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // Reset
+                // Intentar hablar algo vacío para "calentar" el motor
+                const u = new SpeechSynthesisUtterance('');
+                window.speechSynthesis.speak(u);
+            }
+
+            // 2. Ocultar Overlay
+            startOverlay.classList.add('hidden');
+
+            // 3. Iniciar App
+            console.log('🚀 Iniciando aplicación tras interacción de usuario...');
+            window.app = new App();
+        });
+    } else {
+        // Si no hay overlay, iniciar automáticamente (para streaming)
+        console.log('🚀 Iniciando aplicación automáticamente (sin overlay)...');
+        
+        // Intentar desbloquear audio automáticamente
         if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel(); // Reset
-            // Intentar hablar algo vacío para "calentar" el motor
-            const u = new SpeechSynthesisUtterance('');
-            window.speechSynthesis.speak(u);
+            try {
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.resume();
+                // Warm-up silencioso
+                const u = new SpeechSynthesisUtterance('');
+                u.volume = 0;
+                window.speechSynthesis.speak(u);
+                setTimeout(() => window.speechSynthesis.cancel(), 10);
+            } catch (e) {
+                console.warn('No se pudo desbloquear audio automáticamente:', e);
+            }
         }
-
-        // 2. Ocultar Overlay
-        startOverlay.classList.add('hidden');
-
-        // 3. Iniciar App
-        console.log('🚀 Iniciando aplicación tras interacción de usuario...');
+        
+        // Iniciar App inmediatamente
         window.app = new App();
-    });
+    }
 });
