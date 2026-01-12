@@ -57,6 +57,22 @@ export default class ContinenteMode {
         document.addEventListener('touchstart', enableAudio, { once: true });
         document.addEventListener('keydown', enableAudio, { once: true });
         
+        // Registrar handler para comandos de música
+        eventManager.on('music_command', (musicState) => {
+            console.log('[Continente] 🎵 Comando de música recibido:', musicState.command);
+            if (musicState.command === 'toggle') {
+                audioManager.toggleMusic();
+            } else if (musicState.command === 'next') {
+                audioManager.nextTrack();
+                if (!audioManager.isMusicPlaying && audioManager.musicLayer) {
+                    audioManager.musicLayer.play().then(() => {
+                        audioManager.isMusicPlaying = true;
+                        audioManager.fadeAudio(audioManager.musicLayer, 0.0, 0.3, 2000);
+                    }).catch(e => console.warn('[Continente] Error iniciando música:', e));
+                }
+            }
+        });
+        
         // Cargar datos y empezar narración
         await this.loadContinentData();
         await this.startNarration();
