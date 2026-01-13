@@ -913,6 +913,53 @@ const server = http.createServer(async (req, res) => {
     }
 
     // Country Memory: Cargar memoria de un país específico
+    // API: Obtener entradas del diario
+    if (req.method === 'GET' && apiPath === '/api/diary-entries') {
+        try {
+            const entries = [];
+            if (fs.existsSync(COUNTRY_MEMORIES_DIR)) {
+                const files = fs.readdirSync(COUNTRY_MEMORIES_DIR);
+                for (const file of files) {
+                    if (file.endsWith('.json')) {
+                        try {
+                            const filePath = path.join(COUNTRY_MEMORIES_DIR, file);
+                            const memory = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+                            if (memory.visits && memory.visits.length > 0) {
+                                for (const visit of memory.visits) {
+                                    if (visit.narrative) {
+                                        entries.push({
+                                            country: memory.countryName || `País ${memory.countryId}`,
+                                            time: new Date(visit.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+                                            topic: visit.isFirstVisit ? 'Primera Visita' : 'Visita Subsecuente',
+                                            content: visit.narrative.substring(0, 200) + (visit.narrative.length > 200 ? '...' : ''),
+                                            timestamp: visit.timestamp
+                                        });
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            console.warn(`[DiaryEntries] Error procesando ${file}:`, e.message);
+                        }
+                    }
+                }
+            }
+            
+            // Ordenar por timestamp (más recientes primero)
+            entries.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            
+            // Limitar a 20 entradas más recientes
+            const recentEntries = entries.slice(0, 20);
+            
+            res.writeHead(200, headers);
+            res.end(JSON.stringify({ entries: recentEntries }));
+        } catch (e) {
+            console.error('[DiaryEntries] Error:', e);
+            res.writeHead(500, headers);
+            res.end(JSON.stringify({ error: 'Failed to load diary entries', message: e.message }));
+        }
+        return;
+    }
+
     if (req.method === 'GET' && apiPath.startsWith('/api/country-memory/') && !apiPath.endsWith('/visit')) {
         const countryId = apiPath.split('/').pop();
         const memoryFile = path.join(COUNTRY_MEMORIES_DIR, `${countryId}.json`);

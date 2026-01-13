@@ -9,7 +9,8 @@ const MODES = {
     'continente': './modes/continente.js',
     'ruta': './modes/ruta.js',
     'estadisticas': './modes/estadisticas.js',
-    'galeria': './modes/galeria.js'
+    'galeria': './modes/galeria.js',
+    'diario': './modes/diario.js'
 };
 
 const DEFAULT_MODE = 'reloj';
