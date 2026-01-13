@@ -5,9 +5,7 @@ import { pacingEngine, CONTENT_TYPES } from '../utils/pacing-engine.js';
 import { COUNTRY_INFO } from '../data/country-info.js';
 
 // Configurar el token de acceso de Cesium (necesario para tiles)
-// Token público de ejemplo - en producción deberías usar tu propio token
-// Obtener uno gratis en: https://cesium.com/ion/
-Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJlYWE1OWUxMy1iZGFkLTQ3YzQtODI4OS0xYjUxYjU1YjU1YjUiLCJpZCI6MjU5LCJpYXQiOjE0OTQyODI0NDN9.7j0qJ0XqJ0XqJ0XqJ0XqJ0XqJ0XqJ0XqJ0XqJ0XqJ0X';
+Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJjMDBlYWE0MC04MjgwLTQ4ZjMtYjgyZi1iODg4MmJhNjYxODYiLCJpZCI6Mzc3ODk0LCJpYXQiOjE3NjgyNzg5NTZ9.cUUAuf8216MEHnjz2CTXhkWSRT0XCrq3lvC1n4o0eF8';
 
 export default class GloboMode {
     constructor(container) {
