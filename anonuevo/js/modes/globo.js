@@ -421,6 +421,7 @@ export default class GloboMode {
         }
         
         this.currentLocationIndex = 0;
+        this.isExploringCity = false;
         
         // Función para viajar a la siguiente ubicación
         const travelToNextLocation = () => {
@@ -459,21 +460,140 @@ export default class GloboMode {
                     // Mostrar información de la ubicación
                     const locationName = isCity ? `${location.name}, ${location.country}` : location.name;
                     console.log(`[Globo] Visitando: ${locationName} (${isCity ? 'Ciudad' : 'País'})`);
+                    
+                    // Si es una ciudad, explorarla en detalle
+                    if (isCity) {
+                        this.exploreCity(location, () => {
+                            // Cuando termine la exploración, avanzar al siguiente
+                            this.currentLocationIndex++;
+                            // Esperar un poco antes de ir a la siguiente ubicación
+                            setTimeout(() => {
+                                travelToNextLocation();
+                            }, 2000);
+                        });
+                    } else {
+                        // Para países, solo esperar un poco y continuar
+                        this.currentLocationIndex++;
+                        setTimeout(() => {
+                            travelToNextLocation();
+                        }, 4000);
+                    }
                 }
             });
-            
-            this.currentLocationIndex++;
         };
         
         // Viajar a la primera ubicación después de 2 segundos
         setTimeout(() => {
             travelToNextLocation();
-            
-            // Continuar viajando cada 6 segundos (más rápido para más ubicaciones)
-            this.travelInterval = setInterval(() => {
-                travelToNextLocation();
-            }, 6000);
         }, 2000);
+    }
+
+    async exploreCity(city, onComplete) {
+        if (!this.viewer || !this.viewer.camera || this.isExploringCity) {
+            if (onComplete) onComplete();
+            return;
+        }
+        
+        this.isExploringCity = true;
+        const [longitude, latitude] = city.coordinates;
+        const cityName = `${city.name}, ${city.country}`;
+        
+        console.log(`[Globo] Explorando ciudad: ${cityName}`);
+        
+        // Generar narración específica de la ciudad
+        const cityNarrative = await this.generateCityNarrative(city);
+        
+        // Mostrar subtítulos y narrar
+        avatarSubtitlesManager.setSubtitles(cityNarrative);
+        pacingEngine.startEvent(CONTENT_TYPES.VOICE);
+        
+        // Narrar la ciudad
+        audioManager.speak(cityNarrative, 'normal', () => {
+            pacingEngine.endCurrentEvent();
+            pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
+        });
+        
+        // Crear puntos de vista para recorrer la ciudad (panorámica circular)
+        const viewpoints = [
+            { heading: 0, altitude: 5000 },      // Norte
+            { heading: 90, altitude: 4000 },   // Este (más cerca)
+            { heading: 180, altitude: 5000 },   // Sur
+            { heading: 270, altitude: 4000 },   // Oeste (más cerca)
+            { heading: 45, altitude: 6000 },    // Noreste (más lejos)
+            { heading: 0, altitude: 5000 }      // Volver al centro
+        ];
+        
+        let viewpointIndex = 0;
+        
+        const moveToNextViewpoint = () => {
+            if (viewpointIndex >= viewpoints.length) {
+                // Terminar exploración
+                this.isExploringCity = false;
+                if (onComplete) onComplete();
+                return;
+            }
+            
+            const viewpoint = viewpoints[viewpointIndex];
+            
+            this.viewer.camera.flyTo({
+                destination: Cesium.Cartesian3.fromDegrees(
+                    longitude + (Math.random() - 0.5) * 0.1, // Pequeña variación aleatoria
+                    latitude + (Math.random() - 0.5) * 0.1,
+                    viewpoint.altitude
+                ),
+                orientation: {
+                    heading: Cesium.Math.toRadians(viewpoint.heading),
+                    pitch: Cesium.Math.toRadians(-75),
+                    roll: 0.0
+                },
+                duration: 3.0, // Movimiento suave
+                complete: () => {
+                    viewpointIndex++;
+                    // Esperar un poco antes del siguiente punto de vista
+                    setTimeout(() => {
+                        moveToNextViewpoint();
+                    }, 1500);
+                }
+            });
+        };
+        
+        // Iniciar recorrido después de un breve delay
+        setTimeout(() => {
+            moveToNextViewpoint();
+        }, 2000);
+    }
+
+    async generateCityNarrative(city) {
+        try {
+            const prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana. Estás haciendo zoom profundo y explorando la ciudad de ${city.name}, ${city.country}. 
+
+Genera una narrativa en primera persona sobre esta ciudad. Incluye:
+- Dónde está ubicada geográficamente
+- Qué es conocida esta ciudad
+- Su importancia cultural, histórica o económica
+- Qué observas desde esta perspectiva aérea
+- La sensación que te genera estar aquí
+
+El texto debe ser natural, reflexivo y entre 80 y 120 palabras. Menciona explícitamente el nombre de la ciudad "${city.name}" y el país "${city.country}".`;
+            
+            const res = await fetch('/control-api/api/generate-narrative', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt })
+            });
+            
+            if (res.ok) {
+                const data = await res.json();
+                if (data.narrative && data.narrative.length > 50) {
+                    return data.narrative;
+                }
+            }
+        } catch (e) {
+            console.warn('[Globo] Error generando narrativa de ciudad:', e);
+        }
+        
+        // Fallback narrativa
+        return `Estoy explorando ${city.name}, una ciudad importante de ${city.country}. Desde esta perspectiva aérea puedo observar su estructura urbana, sus calles, sus edificios. Cada ciudad tiene su propia personalidad, su propia historia. ${city.name} es parte de la red global de lugares donde la humanidad se expresa, crea y vive.`;
     }
 
     scheduleNextPage() {
