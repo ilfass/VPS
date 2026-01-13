@@ -1311,6 +1311,10 @@ El texto debe ser natural, reflexivo y entre 80 y 120 palabras. Menciona explíc
         if (this.travelInterval) {
             clearInterval(this.travelInterval);
         }
+        if (this.cityInfoInterval) {
+            clearInterval(this.cityInfoInterval);
+        }
+        this.hideCityInfo();
         if (this.viewer) {
             this.viewer.destroy();
         }
