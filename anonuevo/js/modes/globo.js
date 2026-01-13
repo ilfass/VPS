@@ -92,8 +92,8 @@ export default class GloboMode {
 
     async initCesium() {
         try {
+            // Crear viewer sin terrain provider primero (se agregará después si está disponible)
             this.viewer = new Cesium.Viewer('cesiumContainer', {
-                terrainProvider: Cesium.createWorldTerrain(),
                 baseLayerPicker: false,
                 vrButton: false,
                 geocoder: false,
@@ -107,6 +107,21 @@ export default class GloboMode {
                 fullscreenButton: false,
                 shouldAnimate: true
             });
+            
+            // Intentar agregar terrain provider si está disponible
+            try {
+                if (Cesium.createWorldTerrain) {
+                    this.viewer.terrainProvider = Cesium.createWorldTerrain();
+                } else if (Cesium.createWorldTerrainAsync) {
+                    this.viewer.terrainProvider = await Cesium.createWorldTerrainAsync();
+                } else {
+                    // Usar terrain provider básico
+                    this.viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+                }
+            } catch (terrainError) {
+                console.warn('[Globo] No se pudo cargar terrain provider, usando básico:', terrainError);
+                this.viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+            }
             
             // Configurar escena
             this.viewer.scene.globe.enableLighting = true;
@@ -131,13 +146,15 @@ export default class GloboMode {
             console.error('[Globo] Error inicializando Cesium:', e);
             // Fallback: mostrar mensaje de error
             this.container.innerHTML = `
-                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #fff; font-family: 'Inter', sans-serif;">
-                    <div style="text-align: center;">
-                        <h1>Error cargando globo 3D</h1>
-                        <p>${e.message}</p>
+                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #fff; font-family: 'Inter', sans-serif; background: #0a0a0f;">
+                    <div style="text-align: center; padding: 2rem;">
+                        <h1 style="color: #4a9eff; margin-bottom: 1rem;">Error cargando globo 3D</h1>
+                        <p style="color: #a0a0b0;">${e.message}</p>
+                        <p style="color: #a0a0b0; margin-top: 1rem; font-size: 0.9rem;">Verifica que Cesium.js esté cargado correctamente.</p>
                     </div>
                 </div>
             `;
+            this.viewer = null;
         }
     }
 
@@ -307,17 +324,35 @@ export default class GloboMode {
     }
 
     startAutoTravel() {
-        if (this.visitedCountries.length === 0) return;
+        if (this.visitedCountries.length === 0) {
+            console.log('[Globo] No hay países visitados para recorrer');
+            return;
+        }
+        
+        if (!this.viewer || !this.viewer.camera) {
+            console.warn('[Globo] Viewer no inicializado, no se puede iniciar recorrido automático');
+            return;
+        }
         
         this.currentCountryIndex = 0;
         
         // Función para viajar al siguiente país
         const travelToNextCountry = () => {
+            if (!this.viewer || !this.viewer.camera) {
+                console.warn('[Globo] Viewer no disponible para viajar');
+                return;
+            }
+            
             if (this.currentCountryIndex >= this.visitedCountries.length) {
                 this.currentCountryIndex = 0; // Reiniciar
             }
             
             const country = this.visitedCountries[this.currentCountryIndex];
+            if (!country || !country.coordinates) {
+                this.currentCountryIndex++;
+                return;
+            }
+            
             const [longitude, latitude] = country.coordinates;
             
             // Animar cámara hacia el país
