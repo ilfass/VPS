@@ -191,9 +191,6 @@ export default class GloboMode {
                     });
                 
                 console.log(`[Globo] Cargados ${this.visitedCountries.length} países visitados`);
-                
-                // Agregar marcadores en el globo
-                this.addCountryMarkers();
             }
         } catch (e) {
             console.error('[Globo] Error cargando países:', e);
