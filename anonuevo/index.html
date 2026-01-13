@@ -465,7 +465,7 @@
                         // Esperar 2 segundos antes de cambiar
                         setTimeout(() => {
                             // Elegir página aleatoria (mapa, diario, estado-actual)
-                            const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas', 'galeria'];
+                            const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo', 'clima', 'aereo', 'maritimo', 'satelites', 'terremotos', 'cielo'];
                             const randomPage = pages[Math.floor(Math.random() * pages.length)];
                             console.log(`🎲 Navegando a: ${randomPage}`);
                             window.location.href = `/vivos/${randomPage}/`;
