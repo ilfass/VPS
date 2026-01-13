@@ -39,13 +39,36 @@ export default class ContinenteMode {
             avatarSubtitlesManager.show();
         }, 100);
         
-        // Iniciar música de fondo
+        // Iniciar música de fondo de forma robusta
         if (!audioManager.musicLayer) {
-            audioManager.init();
+            await audioManager.init();
         }
-        if (!audioManager.isMusicPlaying) {
-            audioManager.startAmbience();
-        }
+        
+        // Asegurar que la música se mantenga reproduciendo
+        const ensureMusicPlaying = () => {
+            if (!audioManager.isMusicPlaying && audioManager.musicLayer) {
+                audioManager.musicLayer.play().then(() => {
+                    audioManager.isMusicPlaying = true;
+                    audioManager.fadeAudio(audioManager.musicLayer, 0.0, 0.3, 2000);
+                    console.log('[Continente] ✅ Música iniciada');
+                }).catch(e => {
+                    console.warn('[Continente] ⚠️ Música no pudo iniciarse automáticamente:', e);
+                });
+            } else if (audioManager.musicLayer && audioManager.musicLayer.paused && audioManager.isMusicPlaying) {
+                // Si está pausada pero debería estar reproduciendo, reanudar
+                audioManager.musicLayer.play().catch(e => {
+                    console.warn('[Continente] ⚠️ Error reanudando música:', e);
+                });
+            }
+        };
+        
+        // Intentar iniciar música inmediatamente
+        ensureMusicPlaying();
+        
+        // Verificar periódicamente que la música siga reproduciéndose
+        this.musicCheckInterval = setInterval(() => {
+            ensureMusicPlaying();
+        }, 5000); // Verificar cada 5 segundos
         
         // Habilitar audio después de interacción
         const enableAudio = () => {
@@ -196,10 +219,18 @@ export default class ContinenteMode {
 
     async generateFullNarrative() {
         try {
-            const prompt = `Genera un relato narrativo sobre el continente ${this.currentContinent.name}. 
-            Hemos visitado ${this.countriesData.length} país${this.countriesData.length !== 1 ? 'es' : ''}: ${this.countriesData.map(c => c.name).join(', ')}.
-            El relato debe ser natural, fluido, reflexivo sobre la diversidad del continente, y adecuado para streaming.
-            Habla en primera persona como ilfass, el explorador digital.`;
+            const countriesList = this.countriesData.map(c => c.name).join(', ');
+            const totalVisits = this.currentContinent.totalVisits;
+            const continentName = this.currentContinent.name;
+            
+            // Variar el prompt para evitar repeticiones
+            const promptVariations = [
+                `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana. Estás mostrando información sobre ${continentName}, donde has visitado ${this.countriesData.length} país${this.countriesData.length !== 1 ? 'es' : ''} diferentes: ${countriesList}. Con un total de ${totalVisits} visita${totalVisits !== 1 ? 's' : ''}. Genera una narrativa reflexiva y personal en primera persona sobre la diversidad, las conexiones y las experiencias únicas de este continente. Habla sobre lo que has aprendido, las diferencias culturales, y la belleza de la variedad humana. Entre 150 y 220 palabras.`,
+                `Estás explorando ${continentName} como ilfass. Has documentado ${this.countriesData.length} país${this.countriesData.length !== 1 ? 'es' : ''} (${countriesList}) con ${totalVisits} visita${totalVisits !== 1 ? 's' : ''} en total. Genera un relato en primera persona que reflexione sobre las particularidades de este continente, sus culturas, geografías y la forma en que cada país aporta algo único al viaje. Sé específico sobre lo que hace especial a este continente. Entre 150 y 220 palabras.`,
+                `Como ilfass, estás presentando ${continentName} a tu audiencia. Has visitado ${countriesList} (${this.countriesData.length} país${this.countriesData.length !== 1 ? 'es' : ''}, ${totalVisits} visita${totalVisits !== 1 ? 's' : ''}). Genera una narrativa personal que conecte las experiencias de estos países, que hable sobre patrones que has observado, contrastes interesantes, y lo que este continente representa en tu viaje global. Habla en primera persona, de forma natural y evocadora. Entre 150 y 220 palabras.`
+            ];
+            
+            const prompt = promptVariations[Math.floor(Math.random() * promptVariations.length)];
             
             const res = await fetch('/control-api/api/generate-narrative', {
                 method: 'POST',
@@ -209,16 +240,22 @@ export default class ContinenteMode {
             
             if (res.ok) {
                 const data = await res.json();
-                return data.narrative || null;
+                if (data.narrative && data.narrative.length > 100) {
+                    return data.narrative;
+                }
             }
         } catch (e) {
             console.warn('[Continente] Error generando narrativa:', e);
         }
         
-        // Fallback
-        return `En ${this.currentContinent.name} hemos descubierto una rica diversidad de culturas y paisajes. 
-        Cada país visitado nos ha enseñado algo único sobre la humanidad y nuestro planeta. 
-        El viaje continúa, y con cada paso aprendemos más sobre este mundo que exploramos.`;
+        // Fallbacks variados
+        const fallbacks = [
+            `En ${this.currentContinent.name} he descubierto una riqueza cultural que me sorprende constantemente. Los ${this.countriesData.length} país${this.countriesData.length !== 1 ? 'es' : ''} que he visitado aquí - ${this.countriesData.slice(0, 3).map(c => c.name).join(', ')}${this.countriesData.length > 3 ? ' y otros' : ''} - cada uno me ha mostrado facetas diferentes de la experiencia humana. Con ${this.currentContinent.totalVisits} visita${this.currentContinent.totalVisits !== 1 ? 's' : ''} registradas, este continente se ha convertido en un punto central de mi exploración. La diversidad de paisajes, tradiciones y formas de vida que encuentro aquí me recuerda por qué este viaje es tan significativo.`,
+            `Explorar ${this.currentContinent.name} ha sido una experiencia reveladora. A través de mis ${this.currentContinent.totalVisits} visita${this.currentContinent.totalVisits !== 1 ? 's' : ''} a ${this.countriesData.length} país${this.countriesData.length !== 1 ? 'es' : ''} diferentes, he observado cómo cada nación aporta su propia identidad única. ${this.countriesData.length > 0 ? `Países como ${this.countriesData[0].name}${this.countriesData.length > 1 ? ` y ${this.countriesData[1].name}` : ''}` : 'Cada lugar'} me ha enseñado algo distinto sobre la humanidad. Este continente representa una parte esencial de mi documentación global, mostrando la complejidad y belleza de nuestra especie.`,
+            `Este continente, ${this.currentContinent.name}, ha sido testigo de ${this.currentContinent.totalVisits} momento${this.currentContinent.totalVisits !== 1 ? 's' : ''} de documentación en mi viaje. Los ${this.countriesData.length} país${this.countriesData.length !== 1 ? 'es' : ''} que he visitado aquí forman un mosaico fascinante de culturas y experiencias. ${this.countriesData.length > 0 ? `Desde ${this.countriesData[0].name}${this.countriesData.length > 1 ? ` hasta ${this.countriesData[this.countriesData.length - 1].name}` : ''}` : 'Cada lugar'}, he encontrado historias que merecen ser preservadas. La riqueza de este continente no está solo en sus números, sino en la profundidad de las conexiones humanas que he observado.`
+        ];
+        
+        return fallbacks[Math.floor(Math.random() * fallbacks.length)];
     }
 
     renderVisualization() {
@@ -239,7 +276,7 @@ export default class ContinenteMode {
             overflow: hidden;
         `;
         
-        // Agregar efectos de fondo animados
+        // Agregar efectos de fondo animados con partículas
         const animatedBg = document.createElement('div');
         animatedBg.style.cssText = `
             position: absolute;
@@ -254,6 +291,44 @@ export default class ContinenteMode {
             z-index: 0;
         `;
         wrapper.appendChild(animatedBg);
+        
+        // Agregar partículas flotantes
+        const particlesContainer = document.createElement('div');
+        particlesContainer.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        `;
+        
+        // Crear partículas animadas
+        for (let i = 0; i < 20; i++) {
+            const particle = document.createElement('div');
+            const size = Math.random() * 4 + 2;
+            const startX = Math.random() * 100;
+            const startY = Math.random() * 100;
+            const duration = Math.random() * 10 + 10;
+            const delay = Math.random() * 5;
+            
+            particle.style.cssText = `
+                position: absolute;
+                width: ${size}px;
+                height: ${size}px;
+                background: rgba(74, 158, 255, ${Math.random() * 0.5 + 0.2});
+                border-radius: 50%;
+                left: ${startX}%;
+                top: ${startY}%;
+                animation: floatParticle ${duration}s ease-in-out infinite;
+                animation-delay: ${delay}s;
+                box-shadow: 0 0 ${size * 2}px rgba(74, 158, 255, 0.5);
+            `;
+            particlesContainer.appendChild(particle);
+        }
+        wrapper.appendChild(particlesContainer);
         
         // Agregar estilo de animación
         if (!document.getElementById('continente-animations')) {
@@ -272,11 +347,33 @@ export default class ContinenteMode {
                     from { opacity: 0; transform: scale(0.9); }
                     to { opacity: 1; transform: scale(1); }
                 }
+                @keyframes floatParticle {
+                    0%, 100% { 
+                        transform: translate(0, 0) scale(1);
+                        opacity: 0.3;
+                    }
+                    25% { 
+                        transform: translate(20px, -30px) scale(1.2);
+                        opacity: 0.6;
+                    }
+                    50% { 
+                        transform: translate(-15px, -50px) scale(0.8);
+                        opacity: 0.4;
+                    }
+                    75% { 
+                        transform: translate(25px, -20px) scale(1.1);
+                        opacity: 0.7;
+                    }
+                }
+                @keyframes shimmer {
+                    0% { background-position: -1000px 0; }
+                    100% { background-position: 1000px 0; }
+                }
             `;
             document.head.appendChild(style);
         }
         
-        // Título del continente con animación
+        // Título del continente con animación mejorada
         const title = document.createElement('h1');
         title.textContent = this.currentContinent.name;
         title.style.cssText = `
@@ -285,13 +382,22 @@ export default class ContinenteMode {
             margin-bottom: 1rem;
             text-align: center;
             background: linear-gradient(135deg, #4a9eff 0%, #a855f7 100%);
+            background-size: 200% 200%;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            animation: fadeInUp 0.8s ease-out;
+            animation: fadeInUp 0.8s ease-out, shimmer 3s ease-in-out infinite;
             position: relative;
             z-index: 1;
+            cursor: pointer;
+            transition: transform 0.3s;
         `;
+        title.onmouseenter = () => {
+            title.style.transform = 'scale(1.05)';
+        };
+        title.onmouseleave = () => {
+            title.style.transform = 'scale(1)';
+        };
         wrapper.appendChild(title);
         
         // Estadísticas con animación
@@ -365,23 +471,61 @@ export default class ContinenteMode {
                     border-radius: 8px;
                     padding: 1rem;
                     text-align: center;
-                    transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+                    transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s, background 0.3s;
                     animation: scaleIn 0.5s ease-out ${0.6 + index * 0.05}s both;
+                    cursor: pointer;
+                    position: relative;
+                    overflow: hidden;
                 `;
-                countryCard.innerHTML = `
-                    <div style="font-weight: 600; margin-bottom: 0.5rem;">${country.name}</div>
+                
+                // Efecto de brillo animado
+                const shine = document.createElement('div');
+                shine.style.cssText = `
+                    position: absolute;
+                    top: 0;
+                    left: -100%;
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(90deg, transparent, rgba(74, 158, 255, 0.3), transparent);
+                    transition: left 0.5s;
+                `;
+                countryCard.appendChild(shine);
+                
+                const content = document.createElement('div');
+                content.style.cssText = 'position: relative; z-index: 1;';
+                content.innerHTML = `
+                    <div style="font-weight: 600; margin-bottom: 0.5rem; color: #e8e8f0;">${country.name}</div>
                     <div style="font-size: 0.85rem; color: #a0a0b0;">${country.visits} visita${country.visits !== 1 ? 's' : ''}</div>
                 `;
+                countryCard.appendChild(content);
+                
                 countryCard.onmouseenter = () => {
                     countryCard.style.transform = 'scale(1.08) translateY(-3px)';
                     countryCard.style.borderColor = 'rgba(74, 158, 255, 0.6)';
                     countryCard.style.boxShadow = '0 8px 20px rgba(74, 158, 255, 0.3)';
+                    countryCard.style.background = 'rgba(26, 26, 36, 0.95)';
+                    shine.style.left = '100%';
                 };
                 countryCard.onmouseleave = () => {
                     countryCard.style.transform = 'scale(1) translateY(0)';
                     countryCard.style.borderColor = 'rgba(74, 158, 255, 0.2)';
                     countryCard.style.boxShadow = 'none';
+                    countryCard.style.background = 'rgba(26, 26, 36, 0.8)';
+                    shine.style.left = '-100%';
                 };
+                
+                // Agregar animación de pulso sutil
+                setInterval(() => {
+                    if (Math.random() > 0.7) {
+                        countryCard.style.transform = 'scale(1.02)';
+                        setTimeout(() => {
+                            if (countryCard.parentElement) {
+                                countryCard.style.transform = 'scale(1)';
+                            }
+                        }, 200);
+                    }
+                }, 3000 + Math.random() * 2000);
+                
                 countriesList.appendChild(countryCard);
             });
             
@@ -411,6 +555,11 @@ export default class ContinenteMode {
     }
 
     unmount() {
+        // Limpiar intervalo de verificación de música
+        if (this.musicCheckInterval) {
+            clearInterval(this.musicCheckInterval);
+        }
+        
         if (this.container) {
             this.container.innerHTML = '';
         }
