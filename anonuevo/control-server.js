@@ -560,11 +560,27 @@ const server = http.createServer(async (req, res) => {
 
     // Legacy / Other
     if (apiPath === '/poll') {
+        // Preparar respuesta con estado de música
+        const musicState = {
+            isPlaying: state.music.isPlaying,
+            currentTrack: state.music.currentTrack,
+            command: state.music.command // Incluir comando si existe
+        };
+        
+        // Limpiar comando después de enviarlo (para evitar que se procese múltiples veces)
+        const commandToSend = state.music.command;
+        if (state.music.command) {
+            state.music.command = null;
+        }
+        
         res.writeHead(200, headers);
         res.end(JSON.stringify({ 
             autoMode: state.autoMode, 
             events: state.eventQueue,
-            music: state.music // Incluir estado de música
+            music: {
+                ...musicState,
+                command: commandToSend // Enviar el comando que acabamos de limpiar
+            }
         }));
         state.eventQueue = [];
         return;
