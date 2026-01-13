@@ -10,7 +10,8 @@ const MODES = {
     'ruta': './modes/ruta.js',
     'estadisticas': './modes/estadisticas.js',
     'galeria': './modes/galeria.js',
-    'diario': './modes/diario.js'
+    'diario': './modes/diario.js',
+    'globo': './modes/globo.js'
 };
 
 const DEFAULT_MODE = 'reloj';
