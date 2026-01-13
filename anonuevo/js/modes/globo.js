@@ -600,6 +600,46 @@ export default class GloboMode {
                     { name: 'Hermitage', coordinates: [30.3144, 59.9396] },
                     { name: 'Catedral de San Isaac', coordinates: [30.3064, 59.9342] }
                 ]
+            },
+            { 
+                name: 'Havana', 
+                country: 'Cuba', 
+                coordinates: [-82.3666, 23.1136],
+                timezone: 'America/Havana',
+                landmarks: [
+                    { name: 'Malecón', coordinates: [-82.3666, 23.1136] },
+                    { name: 'Capitolio', coordinates: [-82.3592, 23.1358] }
+                ]
+            },
+            { 
+                name: 'Jerusalén', 
+                country: 'Israel', 
+                coordinates: [35.2137, 31.7683],
+                timezone: 'Asia/Jerusalem',
+                landmarks: [
+                    { name: 'Muro de los Lamentos', coordinates: [35.2347, 31.7767] },
+                    { name: 'Domo de la Roca', coordinates: [35.2354, 31.7781] }
+                ]
+            },
+            { 
+                name: 'Riyadh', 
+                country: 'Arabia Saudita', 
+                coordinates: [46.6753, 24.7136],
+                timezone: 'Asia/Riyadh',
+                landmarks: [
+                    { name: 'Kingdom Centre', coordinates: [46.6744, 24.7111] },
+                    { name: 'Al Masmak', coordinates: [46.7106, 24.6339] }
+                ]
+            },
+            { 
+                name: 'Nueva Delhi', 
+                country: 'India', 
+                coordinates: [77.2090, 28.6139],
+                timezone: 'Asia/Kolkata',
+                landmarks: [
+                    { name: 'India Gate', coordinates: [77.2295, 28.6129] },
+                    { name: 'Rashtrapati Bhavan', coordinates: [77.2000, 28.6144] }
+                ]
             }
         ];
         
@@ -674,6 +714,225 @@ export default class GloboMode {
                     { type: 'city', name: 'Bogotá', country: 'Colombia' },
                     { type: 'city', name: 'São Paulo', country: 'Brasil' },
                     { type: 'city', name: 'Río de Janeiro', country: 'Brasil' }
+                ]
+            },
+            {
+                id: 'segunda_guerra_mundial',
+                title: 'Segunda Guerra Mundial',
+                description: 'El conflicto global que involucró a más de 50 países',
+                narrative: 'La Segunda Guerra Mundial fue el conflicto más devastador de la historia humana, involucrando a más de 50 países y resultando en decenas de millones de muertes. Desde Europa hasta el Pacífico, desde África hasta Asia, este conflicto cambió el mundo para siempre. Vamos a visitar las ciudades clave de este período histórico.',
+                locations: [
+                    { type: 'city', name: 'Berlín', country: 'Alemania' },
+                    { type: 'city', name: 'Londres', country: 'Reino Unido' },
+                    { type: 'city', name: 'Moscú', country: 'Rusia' },
+                    { type: 'city', name: 'París', country: 'Francia' },
+                    { type: 'city', name: 'Tokio', country: 'Japón' },
+                    { type: 'city', name: 'El Cairo', country: 'Egipto' },
+                    { type: 'city', name: 'Varsovia', country: 'Polonia' }
+                ]
+            },
+            {
+                id: 'ruta_seda',
+                title: 'La Ruta de la Seda',
+                description: 'La antigua red comercial que conectó Asia, Europa y África',
+                narrative: 'La Ruta de la Seda fue una red de rutas comerciales que durante siglos conectó el Lejano Oriente con Europa, pasando por Asia Central, el Medio Oriente y el norte de África. Esta ruta no solo transportaba seda, sino también ideas, culturas, religiones y tecnologías. Vamos a recorrer las ciudades que fueron parte de esta legendaria ruta.',
+                locations: [
+                    { type: 'city', name: 'Pekín', country: 'China' },
+                    { type: 'city', name: 'Delhi', country: 'India' },
+                    { type: 'city', name: 'Estambul', country: 'Turquía' },
+                    { type: 'city', name: 'El Cairo', country: 'Egipto' },
+                    { type: 'city', name: 'Moscú', country: 'Rusia' },
+                    { type: 'city', name: 'Dubái', country: 'Emiratos Árabes' },
+                    { type: 'city', name: 'Bangkok', country: 'Tailandia' }
+                ]
+            },
+            {
+                id: 'imperio_britanico',
+                title: 'El Imperio Británico',
+                description: 'El imperio más extenso de la historia',
+                narrative: 'En su apogeo, el Imperio Británico abarcaba una cuarta parte de la superficie terrestre y gobernaba sobre cientos de millones de personas en todos los continentes. Desde las Américas hasta Asia, desde África hasta Oceanía, la influencia británica dejó una huella permanente. Vamos a visitar las ciudades que fueron parte de este vasto imperio.',
+                locations: [
+                    { type: 'city', name: 'Londres', country: 'Reino Unido' },
+                    { type: 'city', name: 'Nueva York', country: 'Estados Unidos' },
+                    { type: 'city', name: 'Toronto', country: 'Canadá' },
+                    { type: 'city', name: 'Sídney', country: 'Australia' },
+                    { type: 'city', name: 'Mumbai', country: 'India' },
+                    { type: 'city', name: 'El Cairo', country: 'Egipto' },
+                    { type: 'city', name: 'Ciudad del Cabo', country: 'Sudáfrica' },
+                    { type: 'city', name: 'Singapur', country: 'Singapur' }
+                ]
+            },
+            {
+                id: 'guerra_fria',
+                title: 'La Guerra Fría',
+                description: 'El conflicto ideológico que dividió el mundo',
+                narrative: 'La Guerra Fría fue un período de tensión política y militar entre los bloques capitalista y comunista, liderados por Estados Unidos y la Unión Soviética. Este conflicto se extendió por todo el mundo, desde Europa hasta Asia, desde América hasta África. Vamos a visitar las ciudades que fueron protagonistas de esta época.',
+                locations: [
+                    { type: 'city', name: 'Moscú', country: 'Rusia' },
+                    { type: 'city', name: 'Berlín', country: 'Alemania' },
+                    { type: 'city', name: 'Nueva York', country: 'Estados Unidos' },
+                    { type: 'city', name: 'Pekín', country: 'China' },
+                    { type: 'city', name: 'Varsovia', country: 'Polonia' },
+                    { type: 'city', name: 'Seúl', country: 'Corea del Sur' },
+                    { type: 'city', name: 'Havana', country: 'Cuba' }
+                ]
+            },
+            {
+                id: 'era_descubrimientos',
+                title: 'La Era de los Descubrimientos',
+                description: 'La expansión europea que conectó todos los continentes',
+                narrative: 'Entre los siglos XV y XVII, los exploradores europeos navegaron por los océanos del mundo, descubriendo nuevas tierras y estableciendo rutas comerciales que conectaron Europa con América, África y Asia. Esta era cambió para siempre la geografía humana. Vamos a recorrer las ciudades que fueron puertos clave de esta expansión.',
+                locations: [
+                    { type: 'city', name: 'Madrid', country: 'España' },
+                    { type: 'city', name: 'Londres', country: 'Reino Unido' },
+                    { type: 'city', name: 'Ámsterdam', country: 'Países Bajos' },
+                    { type: 'city', name: 'Río de Janeiro', country: 'Brasil' },
+                    { type: 'city', name: 'Ciudad de México', country: 'México' },
+                    { type: 'city', name: 'El Cairo', country: 'Egipto' },
+                    { type: 'city', name: 'Mumbai', country: 'India' },
+                    { type: 'city', name: 'Singapur', country: 'Singapur' }
+                ]
+            },
+            {
+                id: 'union_europea',
+                title: 'La Unión Europea',
+                description: 'La unión política y económica de 27 países europeos',
+                narrative: 'La Unión Europea es una de las organizaciones supranacionales más grandes del mundo, uniendo a 27 países europeos en una comunidad política y económica. Desde sus orígenes después de la Segunda Guerra Mundial hasta hoy, la UE ha promovido la paz, la democracia y la prosperidad. Vamos a visitar las capitales de algunos de sus países miembros.',
+                locations: [
+                    { type: 'city', name: 'Berlín', country: 'Alemania' },
+                    { type: 'city', name: 'París', country: 'Francia' },
+                    { type: 'city', name: 'Madrid', country: 'España' },
+                    { type: 'city', name: 'Roma', country: 'Italia' },
+                    { type: 'city', name: 'Ámsterdam', country: 'Países Bajos' },
+                    { type: 'city', name: 'Varsovia', country: 'Polonia' },
+                    { type: 'city', name: 'Barcelona', country: 'España' }
+                ]
+            },
+            {
+                id: 'mundo_arabe',
+                title: 'El Mundo Árabe',
+                description: 'Los 22 países de la Liga Árabe',
+                narrative: 'El mundo árabe abarca 22 países desde el Océano Atlántico hasta el Golfo Pérsico, unidos por la lengua árabe, la cultura islámica y una rica historia compartida. Desde el Magreb hasta el Mashreq, estas naciones han sido cuna de civilizaciones, imperios y avances científicos. Vamos a explorar las ciudades más importantes de esta región.',
+                locations: [
+                    { type: 'city', name: 'El Cairo', country: 'Egipto' },
+                    { type: 'city', name: 'Dubái', country: 'Emiratos Árabes' },
+                    { type: 'city', name: 'Estambul', country: 'Turquía' },
+                    { type: 'city', name: 'Riyadh', country: 'Arabia Saudita' }
+                ]
+            },
+            {
+                id: 'commonwealth',
+                title: 'La Commonwealth',
+                description: 'La asociación de 54 países que fueron parte del Imperio Británico',
+                narrative: 'La Commonwealth es una asociación voluntaria de 54 países independientes, la mayoría de los cuales fueron territorios del Imperio Británico. Esta organización promueve la cooperación internacional, el desarrollo y los valores democráticos. Vamos a visitar las ciudades de algunos de sus países miembros más importantes.',
+                locations: [
+                    { type: 'city', name: 'Londres', country: 'Reino Unido' },
+                    { type: 'city', name: 'Delhi', country: 'India' },
+                    { type: 'city', name: 'Toronto', country: 'Canadá' },
+                    { type: 'city', name: 'Sídney', country: 'Australia' },
+                    { type: 'city', name: 'Melbourne', country: 'Australia' },
+                    { type: 'city', name: 'Mumbai', country: 'India' },
+                    { type: 'city', name: 'Ciudad del Cabo', country: 'Sudáfrica' },
+                    { type: 'city', name: 'Singapur', country: 'Singapur' }
+                ]
+            },
+            {
+                id: 'renacimiento',
+                title: 'El Renacimiento',
+                description: 'El renacimiento cultural que transformó Europa',
+                narrative: 'El Renacimiento fue un período de renacimiento cultural, artístico y científico que comenzó en Italia en el siglo XIV y se extendió por toda Europa. Este movimiento transformó el arte, la literatura, la filosofía y la ciencia, sentando las bases del mundo moderno. Vamos a visitar las ciudades que fueron cuna de este renacimiento.',
+                locations: [
+                    { type: 'city', name: 'Roma', country: 'Italia' },
+                    { type: 'city', name: 'Milán', country: 'Italia' },
+                    { type: 'city', name: 'París', country: 'Francia' },
+                    { type: 'city', name: 'Madrid', country: 'España' },
+                    { type: 'city', name: 'Londres', country: 'Reino Unido' },
+                    { type: 'city', name: 'Ámsterdam', country: 'Países Bajos' }
+                ]
+            },
+            {
+                id: 'revolucion_industrial',
+                title: 'La Revolución Industrial',
+                description: 'La transformación económica que cambió el mundo',
+                narrative: 'La Revolución Industrial comenzó en Gran Bretaña en el siglo XVIII y se extendió por Europa y América, transformando las sociedades agrarias en industriales. Este proceso cambió para siempre la forma en que vivimos, trabajamos y nos relacionamos. Vamos a visitar las ciudades que fueron centros de esta revolución.',
+                locations: [
+                    { type: 'city', name: 'Londres', country: 'Reino Unido' },
+                    { type: 'city', name: 'Berlín', country: 'Alemania' },
+                    { type: 'city', name: 'París', country: 'Francia' },
+                    { type: 'city', name: 'Nueva York', country: 'Estados Unidos' },
+                    { type: 'city', name: 'Chicago', country: 'Estados Unidos' },
+                    { type: 'city', name: 'Milán', country: 'Italia' },
+                    { type: 'city', name: 'Tokio', country: 'Japón' }
+                ]
+            },
+            {
+                id: 'colonizacion_america',
+                title: 'La Colonización de América',
+                description: 'El encuentro entre dos mundos',
+                narrative: 'La colonización de América por parte de las potencias europeas transformó tanto el Nuevo Mundo como el Viejo. Este encuentro entre culturas, aunque a menudo violento, dio lugar a nuevas sociedades, idiomas y tradiciones. Vamos a explorar las ciudades que surgieron de este proceso histórico.',
+                locations: [
+                    { type: 'city', name: 'Ciudad de México', country: 'México' },
+                    { type: 'city', name: 'Lima', country: 'Perú' },
+                    { type: 'city', name: 'Bogotá', country: 'Colombia' },
+                    { type: 'city', name: 'Buenos Aires', country: 'Argentina' },
+                    { type: 'city', name: 'Río de Janeiro', country: 'Brasil' },
+                    { type: 'city', name: 'Nueva York', country: 'Estados Unidos' },
+                    { type: 'city', name: 'Toronto', country: 'Canadá' },
+                    { type: 'city', name: 'Santiago', country: 'Chile' }
+                ]
+            },
+            {
+                id: 'imperio_mongol',
+                title: 'El Imperio Mongol',
+                description: 'El imperio terrestre contiguo más grande de la historia',
+                narrative: 'El Imperio Mongol, fundado por Genghis Khan, fue el imperio terrestre contiguo más grande de la historia, extendiéndose desde el este de Europa hasta el mar de Japón, desde Siberia hasta el sudeste asiático. Este imperio conectó Oriente y Occidente como nunca antes. Vamos a visitar las regiones que fueron parte de este vasto dominio.',
+                locations: [
+                    { type: 'city', name: 'Pekín', country: 'China' },
+                    { type: 'city', name: 'Moscú', country: 'Rusia' },
+                    { type: 'city', name: 'Delhi', country: 'India' },
+                    { type: 'city', name: 'Estambul', country: 'Turquía' },
+                    { type: 'city', name: 'Bangkok', country: 'Tailandia' }
+                ]
+            },
+            {
+                id: 'cruzadas',
+                title: 'Las Cruzadas',
+                description: 'Las expediciones militares que conectaron Europa y Medio Oriente',
+                narrative: 'Las Cruzadas fueron una serie de expediciones militares organizadas por los cristianos europeos para recuperar Tierra Santa del control musulmán. Aunque militarmente tuvieron resultados mixtos, estas campañas conectaron profundamente Europa con el Medio Oriente, facilitando el intercambio cultural y comercial. Vamos a visitar las ciudades clave de este período.',
+                locations: [
+                    { type: 'city', name: 'Roma', country: 'Italia' },
+                    { type: 'city', name: 'París', country: 'Francia' },
+                    { type: 'city', name: 'Londres', country: 'Reino Unido' },
+                    { type: 'city', name: 'Estambul', country: 'Turquía' },
+                    { type: 'city', name: 'El Cairo', country: 'Egipto' },
+                    { type: 'city', name: 'Jerusalén', country: 'Israel' }
+                ]
+            },
+            {
+                id: 'revolucion_francesa',
+                title: 'La Revolución Francesa y sus Efectos',
+                description: 'El movimiento que inspiró revoluciones en todo el mundo',
+                narrative: 'La Revolución Francesa de 1789 no solo transformó Francia, sino que inspiró movimientos revolucionarios y de independencia en toda Europa y América. Sus ideales de libertad, igualdad y fraternidad resonaron en todo el mundo. Vamos a visitar las ciudades donde estos ideales encontraron eco.',
+                locations: [
+                    { type: 'city', name: 'París', country: 'Francia' },
+                    { type: 'city', name: 'Londres', country: 'Reino Unido' },
+                    { type: 'city', name: 'Berlín', country: 'Alemania' },
+                    { type: 'city', name: 'Nueva York', country: 'Estados Unidos' },
+                    { type: 'city', name: 'Buenos Aires', country: 'Argentina' },
+                    { type: 'city', name: 'Bogotá', country: 'Colombia' }
+                ]
+            },
+            {
+                id: 'revolucion_rusa',
+                title: 'La Revolución Rusa y la Guerra Civil',
+                description: 'El evento que cambió el curso del siglo XX',
+                narrative: 'La Revolución Rusa de 1917 derrocó al zarismo y estableció el primer estado comunista del mundo, influyendo profundamente en la política global del siglo XX. Este evento inspiró movimientos revolucionarios en muchos países y cambió el equilibrio de poder mundial. Vamos a visitar las ciudades clave de este período histórico.',
+                locations: [
+                    { type: 'city', name: 'Moscú', country: 'Rusia' },
+                    { type: 'city', name: 'San Petersburgo', country: 'Rusia' },
+                    { type: 'city', name: 'Pekín', country: 'China' },
+                    { type: 'city', name: 'Berlín', country: 'Alemania' },
+                    { type: 'city', name: 'Varsovia', country: 'Polonia' }
                 ]
             }
         ];
