@@ -329,7 +329,7 @@ export default class EstadisticasMode {
             // Esperar 2-3 segundos después de la narración para transición suave
             setTimeout(() => {
                 if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'galeria'];
+                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'galeria', 'globo'];
                     // Excluir la página actual para evitar repetir
                     const currentPage = 'estadisticas';
                     const availablePages = pages.filter(p => p !== currentPage);

@@ -347,7 +347,7 @@ NO repitas literalmente las entradas del diario. Habla sobre el diario como conc
             // Esperar 2-3 segundos después de la narración para transición suave
             setTimeout(() => {
                 if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas', 'galeria'];
+                    const pages = ['mapa', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo'];
                     // Excluir la página actual para evitar repetir
                     const currentPage = 'diario';
                     const availablePages = pages.filter(p => p !== currentPage);

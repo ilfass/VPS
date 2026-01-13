@@ -882,7 +882,7 @@ export default class MapaMode {
         if (eventManager.canProceedAuto()) {
             console.log('[Mapa] Dream Mode ON: Cambiando automáticamente después de intro...');
             setTimeout(() => {
-                const pages = ['diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas', 'galeria'];
+                const pages = ['diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo'];
                 const randomPage = pages[Math.floor(Math.random() * pages.length)];
                 console.log(`[Mapa] 🎲 Navegando a: ${randomPage}`);
                 window.location.href = `/vivos/${randomPage}/`;
@@ -1595,7 +1595,7 @@ Genera una introducción en primera persona (como ilfass) que:
             // Esperar 2-3 segundos después de la narración para transición suave
             setTimeout(() => {
                 if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas', 'galeria'];
+                    const pages = ['diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo'];
                     const randomPage = pages[Math.floor(Math.random() * pages.length)];
                     console.log(`[Mapa] 🎲 Navegando a: ${randomPage} (después de narración de país)`);
                     window.location.href = `/vivos/${randomPage}/`;
