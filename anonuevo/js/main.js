@@ -11,7 +11,13 @@ const MODES = {
     'estadisticas': './modes/estadisticas.js',
     'galeria': './modes/galeria.js',
     'diario': './modes/diario.js',
-    'globo': './modes/globo.js'
+    'globo': './modes/globo.js',
+    'clima': './modes/clima.js',
+    'aereo': './modes/aereo.js',
+    'maritimo': './modes/maritimo.js',
+    'satelites': './modes/satelites.js',
+    'terremotos': './modes/terremotos.js',
+    'cielo': './modes/cielo.js'
 };
 
 const DEFAULT_MODE = 'reloj';
