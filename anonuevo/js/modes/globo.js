@@ -13,7 +13,9 @@ export default class GloboMode {
         this.viewer = null;
         this.isNarrating = false;
         this.visitedCountries = [];
-        this.currentCountryIndex = 0;
+        this.worldCities = [];
+        this.allLocations = []; // Combinación de países y ciudades
+        this.currentLocationIndex = 0;
         this.travelInterval = null;
     }
 
@@ -82,8 +84,10 @@ export default class GloboMode {
         // Inicializar Cesium
         await this.initCesium();
         
-        // Cargar países visitados
+        // Cargar países visitados y ciudades del mundo
         await this.loadVisitedCountries();
+        this.loadWorldCities();
+        this.combineLocations();
         
         // Iniciar narración y recorrido
         await this.startNarration();
@@ -222,29 +226,111 @@ export default class GloboMode {
         return coordinates[countryId] || null;
     }
 
+    loadWorldCities() {
+        // Lista de ciudades importantes del mundo con coordenadas
+        this.worldCities = [
+            { name: 'Buenos Aires', country: 'Argentina', coordinates: [-58.3816, -34.6037] },
+            { name: 'Río de Janeiro', country: 'Brasil', coordinates: [-43.1729, -22.9068] },
+            { name: 'São Paulo', country: 'Brasil', coordinates: [-46.6333, -23.5505] },
+            { name: 'Santiago', country: 'Chile', coordinates: [-70.6483, -33.4489] },
+            { name: 'Bogotá', country: 'Colombia', coordinates: [-74.0721, 4.7110] },
+            { name: 'Ciudad de México', country: 'México', coordinates: [-99.1332, 19.4326] },
+            { name: 'Lima', country: 'Perú', coordinates: [-77.0428, -12.0464] },
+            { name: 'Nueva York', country: 'Estados Unidos', coordinates: [-74.0060, 40.7128] },
+            { name: 'Los Ángeles', country: 'Estados Unidos', coordinates: [-118.2437, 34.0522] },
+            { name: 'Chicago', country: 'Estados Unidos', coordinates: [-87.6298, 41.8781] },
+            { name: 'Toronto', country: 'Canadá', coordinates: [-79.3832, 43.6532] },
+            { name: 'Madrid', country: 'España', coordinates: [-3.7038, 40.4168] },
+            { name: 'Barcelona', country: 'España', coordinates: [2.1734, 41.3851] },
+            { name: 'París', country: 'Francia', coordinates: [2.3522, 48.8566] },
+            { name: 'Roma', country: 'Italia', coordinates: [12.4964, 41.9028] },
+            { name: 'Milán', country: 'Italia', coordinates: [9.1859, 45.4642] },
+            { name: 'Londres', country: 'Reino Unido', coordinates: [-0.1278, 51.5074] },
+            { name: 'Berlín', country: 'Alemania', coordinates: [13.4050, 52.5200] },
+            { name: 'Ámsterdam', country: 'Países Bajos', coordinates: [4.9041, 52.3676] },
+            { name: 'Varsovia', country: 'Polonia', coordinates: [21.0122, 52.2297] },
+            { name: 'Tokio', country: 'Japón', coordinates: [139.6503, 35.6762] },
+            { name: 'Seúl', country: 'Corea del Sur', coordinates: [126.9780, 37.5665] },
+            { name: 'Pekín', country: 'China', coordinates: [116.4074, 39.9042] },
+            { name: 'Shanghái', country: 'China', coordinates: [121.4737, 31.2304] },
+            { name: 'Mumbai', country: 'India', coordinates: [72.8777, 19.0760] },
+            { name: 'Delhi', country: 'India', coordinates: [77.2090, 28.6139] },
+            { name: 'El Cairo', country: 'Egipto', coordinates: [31.2357, 30.0444] },
+            { name: 'Ciudad del Cabo', country: 'Sudáfrica', coordinates: [18.4241, -33.9249] },
+            { name: 'Sídney', country: 'Australia', coordinates: [151.2093, -33.8688] },
+            { name: 'Melbourne', country: 'Australia', coordinates: [144.9631, -37.8136] },
+            { name: 'Dubái', country: 'Emiratos Árabes', coordinates: [55.2708, 25.2048] },
+            { name: 'Singapur', country: 'Singapur', coordinates: [103.8198, 1.3521] },
+            { name: 'Bangkok', country: 'Tailandia', coordinates: [100.5018, 13.7563] },
+            { name: 'Estambul', country: 'Turquía', coordinates: [28.9784, 41.0082] },
+            { name: 'Moscú', country: 'Rusia', coordinates: [37.6173, 55.7558] },
+            { name: 'San Petersburgo', country: 'Rusia', coordinates: [30.3159, 59.9343] }
+        ];
+        
+        console.log(`[Globo] Cargadas ${this.worldCities.length} ciudades del mundo`);
+    }
+
+    combineLocations() {
+        // Combinar países visitados y ciudades del mundo
+        this.allLocations = [];
+        
+        // Agregar países visitados
+        this.visitedCountries.forEach(country => {
+            this.allLocations.push({
+                type: 'country',
+                name: country.name,
+                coordinates: country.coordinates,
+                altitude: 500000 // Altura para países
+            });
+        });
+        
+        // Agregar ciudades (mezcladas aleatoriamente)
+        const shuffledCities = [...this.worldCities].sort(() => Math.random() - 0.5);
+        shuffledCities.forEach(city => {
+            this.allLocations.push({
+                type: 'city',
+                name: city.name,
+                country: city.country,
+                coordinates: city.coordinates,
+                altitude: 5000 // Altura mucho más baja para ciudades (zoom profundo)
+            });
+        });
+        
+        // Mezclar todo aleatoriamente
+        this.allLocations = this.allLocations.sort(() => Math.random() - 0.5);
+        
+        console.log(`[Globo] Total de ubicaciones: ${this.allLocations.length} (${this.visitedCountries.length} países + ${this.worldCities.length} ciudades)`);
+    }
+
     addCountryMarkers() {
         if (!this.viewer) return;
         
         // Limpiar marcadores anteriores
         this.viewer.entities.removeAll();
         
-        this.visitedCountries.forEach((country, index) => {
-            const [longitude, latitude] = country.coordinates;
+        // Agregar marcadores para todas las ubicaciones
+        this.allLocations.forEach((location, index) => {
+            const [longitude, latitude] = location.coordinates;
+            const isCity = location.type === 'city';
+            
+            // Colores diferentes para países y ciudades
+            const pointColor = isCity ? Cesium.Color.YELLOW : Cesium.Color.CYAN;
+            const labelText = isCity ? `${location.name}, ${location.country}` : location.name;
             
             // Agregar punto en el globo
             this.viewer.entities.add({
                 position: Cesium.Cartesian3.fromDegrees(longitude, latitude),
                 point: {
-                    pixelSize: 15,
-                    color: Cesium.Color.CYAN,
+                    pixelSize: isCity ? 12 : 15,
+                    color: pointColor,
                     outlineColor: Cesium.Color.WHITE,
                     outlineWidth: 2,
                     heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
                     scaleByDistance: new Cesium.NearFarScalar(1.5e2, 1.0, 8.0e6, 0.0)
                 },
                 label: {
-                    text: country.name,
-                    font: '14pt Inter',
+                    text: labelText,
+                    font: isCity ? '12pt Inter' : '14pt Inter',
                     fillColor: Cesium.Color.WHITE,
                     outlineColor: Cesium.Color.BLACK,
                     outlineWidth: 2,
@@ -262,7 +348,9 @@ export default class GloboMode {
         pacingEngine.startEvent(CONTENT_TYPES.VOICE);
         
         const countriesCount = this.visitedCountries.length;
-        const immediateText = `Estoy mostrando un globo 3D de nuestro planeta. Hemos visitado ${countriesCount} país${countriesCount !== 1 ? 'es' : ''} diferentes en este viaje.`;
+        const citiesCount = this.worldCities.length;
+        const totalLocations = this.allLocations.length;
+        const immediateText = `Estoy mostrando un globo 3D de nuestro planeta. Voy a recorrer ${totalLocations} ubicaciones diferentes, incluyendo ${countriesCount} país${countriesCount !== 1 ? 'es' : ''} visitados y ${citiesCount} ciudades importantes de todo el mundo.`;
         
         avatarSubtitlesManager.setSubtitles(immediateText);
         
@@ -301,8 +389,9 @@ export default class GloboMode {
 
     async generateFullNarrative() {
         try {
-            const countriesList = this.visitedCountries.slice(0, 5).map(c => c.name).join(', ');
-            const prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana. Estás mostrando un globo 3D interactivo donde se visualizan los ${this.visitedCountries.length} países que has visitado: ${countriesList}${this.visitedCountries.length > 5 ? ' y otros' : ''}. Genera una narrativa reflexiva en primera persona sobre el viaje, la conexión entre los lugares visitados, y la belleza de nuestro planeta visto desde esta perspectiva. Entre 150 y 220 palabras.`;
+            const countriesList = this.visitedCountries.slice(0, 3).map(c => c.name).join(', ');
+            const citiesSample = this.worldCities.slice(0, 3).map(c => c.name).join(', ');
+            const prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana. Estás mostrando un globo 3D interactivo donde recorrerás ${this.allLocations.length} ubicaciones: ${this.visitedCountries.length} países visitados como ${countriesList}, y ${this.worldCities.length} ciudades importantes del mundo como ${citiesSample}. Harás zoom profundo en cada ciudad para explorar los detalles urbanos. Genera una narrativa reflexiva en primera persona sobre este viaje global, la diversidad de culturas urbanas, y la belleza de nuestro planeta visto desde esta perspectiva única. Entre 150 y 220 palabras.`;
             
             const res = await fetch('/control-api/api/generate-narrative', {
                 method: 'POST',
@@ -320,12 +409,12 @@ export default class GloboMode {
             console.warn('[Globo] Error generando narrativa:', e);
         }
         
-        return `Desde esta perspectiva única, puedo ver cómo nuestro planeta se conecta. Los ${this.visitedCountries.length} países que he visitado forman una red de experiencias y descubrimientos. Cada punto en este globo representa un momento de documentación, una historia humana preservada. La Tierra, vista así, es un recordatorio de la inmensidad de nuestro viaje y la interconexión de todas las culturas.`;
+        return `Desde esta perspectiva única, voy a recorrer ${this.allLocations.length} ubicaciones alrededor del mundo. No solo países, sino también ciudades vibrantes donde la humanidad se expresa en toda su diversidad. Cada zoom profundo me permite explorar los detalles urbanos, las calles, los edificios, la vida que pulsa en cada rincón del planeta. Este viaje me muestra cómo nuestro mundo está interconectado, cómo cada ciudad tiene su propia identidad pero todas forman parte de la misma historia humana.`;
     }
 
     startAutoTravel() {
-        if (this.visitedCountries.length === 0) {
-            console.log('[Globo] No hay países visitados para recorrer');
+        if (this.allLocations.length === 0) {
+            console.log('[Globo] No hay ubicaciones para recorrer');
             return;
         }
         
@@ -334,53 +423,59 @@ export default class GloboMode {
             return;
         }
         
-        this.currentCountryIndex = 0;
+        this.currentLocationIndex = 0;
         
-        // Función para viajar al siguiente país
-        const travelToNextCountry = () => {
+        // Función para viajar a la siguiente ubicación
+        const travelToNextLocation = () => {
             if (!this.viewer || !this.viewer.camera) {
                 console.warn('[Globo] Viewer no disponible para viajar');
                 return;
             }
             
-            if (this.currentCountryIndex >= this.visitedCountries.length) {
-                this.currentCountryIndex = 0; // Reiniciar
+            if (this.currentLocationIndex >= this.allLocations.length) {
+                this.currentLocationIndex = 0; // Reiniciar
             }
             
-            const country = this.visitedCountries[this.currentCountryIndex];
-            if (!country || !country.coordinates) {
-                this.currentCountryIndex++;
+            const location = this.allLocations[this.currentLocationIndex];
+            if (!location || !location.coordinates) {
+                this.currentLocationIndex++;
                 return;
             }
             
-            const [longitude, latitude] = country.coordinates;
+            const [longitude, latitude] = location.coordinates;
+            const isCity = location.type === 'city';
+            const altitude = location.altitude || (isCity ? 5000 : 500000);
             
-            // Animar cámara hacia el país
+            // Ángulo de cámara diferente para ciudades (más vertical) y países (más inclinado)
+            const pitch = isCity ? Cesium.Math.toRadians(-75) : Cesium.Math.toRadians(-45);
+            
+            // Animar cámara hacia la ubicación con zoom profundo
             this.viewer.camera.flyTo({
-                destination: Cesium.Cartesian3.fromDegrees(longitude, latitude, 500000),
+                destination: Cesium.Cartesian3.fromDegrees(longitude, latitude, altitude),
                 orientation: {
                     heading: Cesium.Math.toRadians(0),
-                    pitch: Cesium.Math.toRadians(-45),
+                    pitch: pitch,
                     roll: 0.0
                 },
-                duration: 3.0,
+                duration: isCity ? 4.0 : 3.0, // Más tiempo para ciudades (zoom más profundo)
                 complete: () => {
-                    // Mostrar información del país brevemente
-                    console.log(`[Globo] Visitando: ${country.name}`);
+                    // Mostrar información de la ubicación
+                    const locationName = isCity ? `${location.name}, ${location.country}` : location.name;
+                    console.log(`[Globo] Visitando: ${locationName} (${isCity ? 'Ciudad' : 'País'})`);
                 }
             });
             
-            this.currentCountryIndex++;
+            this.currentLocationIndex++;
         };
         
-        // Viajar al primer país después de 2 segundos
+        // Viajar a la primera ubicación después de 2 segundos
         setTimeout(() => {
-            travelToNextCountry();
+            travelToNextLocation();
             
-            // Continuar viajando cada 8 segundos
+            // Continuar viajando cada 6 segundos (más rápido para más ubicaciones)
             this.travelInterval = setInterval(() => {
-                travelToNextCountry();
-            }, 8000);
+                travelToNextLocation();
+            }, 6000);
         }, 2000);
     }
 
