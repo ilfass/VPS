@@ -44,31 +44,41 @@ export default class ContinenteMode {
             await audioManager.init();
         }
         
-        // Asegurar que la música se mantenga reproduciendo
+        // Asegurar que la música se mantenga reproduciendo (solo si no hay comando manual pendiente)
         const ensureMusicPlaying = () => {
-            if (!audioManager.isMusicPlaying && audioManager.musicLayer) {
+            // NO hacer nada si hay un comando de música pendiente (para evitar conflictos)
+            if (lastMusicCommand && (Date.now() - lastMusicCommandTime) < 2000) {
+                return;
+            }
+            
+            if (!audioManager.isMusicPlaying && audioManager.musicLayer && !audioManager.musicLayer.paused) {
+                // Solo iniciar si realmente está detenida y no hay comando manual
                 audioManager.musicLayer.play().then(() => {
                     audioManager.isMusicPlaying = true;
                     audioManager.fadeAudio(audioManager.musicLayer, 0.0, 0.3, 2000);
-                    console.log('[Continente] ✅ Música iniciada');
+                    console.log('[Continente] ✅ Música recuperada automáticamente');
                 }).catch(e => {
-                    console.warn('[Continente] ⚠️ Música no pudo iniciarse automáticamente:', e);
+                    // Silenciar errores de autoplay
                 });
             } else if (audioManager.musicLayer && audioManager.musicLayer.paused && audioManager.isMusicPlaying) {
-                // Si está pausada pero debería estar reproduciendo, reanudar
-                audioManager.musicLayer.play().catch(e => {
-                    console.warn('[Continente] ⚠️ Error reanudando música:', e);
-                });
+                // Solo reanudar si realmente debería estar reproduciendo y no hay comando manual
+                if (!lastMusicCommand || (Date.now() - lastMusicCommandTime) > 2000) {
+                    audioManager.musicLayer.play().catch(e => {
+                        // Silenciar errores
+                    });
+                }
             }
         };
         
-        // Intentar iniciar música inmediatamente
-        ensureMusicPlaying();
+        // Intentar iniciar música inmediatamente (solo una vez)
+        if (!audioManager.isMusicPlaying) {
+            audioManager.startAmbience();
+        }
         
-        // Verificar periódicamente que la música siga reproduciéndose
+        // Verificar periódicamente que la música siga reproduciéndose (con intervalo más largo)
         this.musicCheckInterval = setInterval(() => {
             ensureMusicPlaying();
-        }, 5000); // Verificar cada 5 segundos
+        }, 10000); // Verificar cada 10 segundos (menos agresivo)
         
         // Habilitar audio después de interacción
         const enableAudio = () => {
@@ -85,8 +95,22 @@ export default class ContinenteMode {
         document.addEventListener('touchstart', enableAudio, { once: true });
         document.addEventListener('keydown', enableAudio, { once: true });
         
-        // Registrar handler para comandos de música (ANTES de cargar datos)
+        // Registrar handler para comandos de música con protección contra duplicados
+        let lastMusicCommand = null;
+        let lastMusicCommandTime = 0;
+        
         eventManager.on('music_command', (musicState) => {
+            const now = Date.now();
+            
+            // Evitar procesar el mismo comando múltiples veces en menos de 1000ms
+            if (lastMusicCommand === musicState.command && (now - lastMusicCommandTime) < 1000) {
+                console.log('[Continente] ⚠️ Comando de música duplicado ignorado:', musicState.command);
+                return;
+            }
+            
+            lastMusicCommand = musicState.command;
+            lastMusicCommandTime = now;
+            
             console.log('[Continente] 🎵 Comando de música recibido:', musicState.command);
             if (musicState.command === 'toggle') {
                 audioManager.toggleMusic();
