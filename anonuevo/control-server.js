@@ -536,6 +536,81 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // =========================
+    // CITY LIVE (PROXY ENDPOINTS)
+    // =========================
+    // TfL (London) - Line status (requires free keys)
+    if (req.method === 'GET' && apiPath === '/api/city/tfl/status') {
+        const appId = process.env.TFL_APP_ID;
+        const appKey = process.env.TFL_APP_KEY;
+        if (!appId || !appKey) {
+            res.writeHead(501, headers);
+            res.end(JSON.stringify({ error: 'TFL_APP_ID/TFL_APP_KEY no configurados' }));
+            return;
+        }
+        try {
+            const upstream = `https://api.tfl.gov.uk/Line/Mode/tube,dlr,overground,elizabeth-line/Status?app_id=${encodeURIComponent(appId)}&app_key=${encodeURIComponent(appKey)}`;
+            const r = await fetch(upstream, { method: 'GET' });
+            const text = await r.text();
+            if (!r.ok) {
+                res.writeHead(r.status, headers);
+                res.end(JSON.stringify({ error: 'TfL upstream error', status: r.status, body: text.slice(0, 800) }));
+                return;
+            }
+            // devolvemos el JSON original de TfL (array)
+            res.writeHead(200, headers);
+            res.end(text);
+            return;
+        } catch (e) {
+            res.writeHead(500, headers);
+            res.end(JSON.stringify({ error: 'TfL fetch failed', message: e.message }));
+            return;
+        }
+    }
+
+    // TomTom Traffic Flow tiles (requires free key)
+    // GET /api/city/tomtom/traffic/{z}/{x}/{y}.png?style=relative
+    if (req.method === 'GET' && apiPath.startsWith('/api/city/tomtom/traffic/')) {
+        const key = process.env.TOMTOM_API_KEY;
+        if (!key) {
+            res.writeHead(501, headers);
+            res.end(JSON.stringify({ error: 'TOMTOM_API_KEY no configurado' }));
+            return;
+        }
+        try {
+            const parts = apiPath.split('/').filter(Boolean);
+            // parts: ['api','city','tomtom','traffic', z, x, y.png]
+            const z = parts[4];
+            const x = parts[5];
+            const yPng = parts[6] || '';
+            const y = yPng.replace(/\.png$/i, '');
+            const style = (parsedUrl.query.style || 'relative').toString();
+
+            const upstream = `https://api.tomtom.com/traffic/map/4/tile/flow/${encodeURIComponent(style)}/${encodeURIComponent(z)}/${encodeURIComponent(x)}/${encodeURIComponent(y)}.png?key=${encodeURIComponent(key)}`;
+            const r = await fetch(upstream, { method: 'GET' });
+            if (!r.ok) {
+                const body = await r.text().catch(() => '');
+                res.writeHead(r.status, headers);
+                res.end(JSON.stringify({ error: 'TomTom upstream error', status: r.status, body: body.slice(0, 800) }));
+                return;
+            }
+            const buf = Buffer.from(await (await r.blob()).arrayBuffer());
+            res.writeHead(200, {
+                'Content-Type': 'image/png',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0',
+                'Access-Control-Allow-Origin': '*'
+            });
+            res.end(buf);
+            return;
+        } catch (e) {
+            res.writeHead(500, headers);
+            res.end(JSON.stringify({ error: 'TomTom tile fetch failed', message: e.message }));
+            return;
+        }
+    }
+
     if (req.method === 'GET' && apiPath === '/api/media-list') {
         const getFiles = (dir, base = '') => {
             let res = [];

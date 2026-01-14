@@ -18,7 +18,8 @@ const MODES = {
     'terremotos': './modes/terremotos.js',
     'aire': './modes/aire.js',
     'incendios': './modes/incendios.js',
-    'sol': './modes/sol.js'
+    'sol': './modes/sol.js',
+    'ciudad': './modes/ciudad.js'
 };
 
 const DEFAULT_MODE = 'reloj';
