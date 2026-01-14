@@ -7,11 +7,13 @@ export default class SatelitesMode {
     constructor(container) {
         this.container = container;
         this.isNarrating = false;
-        this.n2yoIframe = null;
+        this.map = null;
+        this.issMarker = null;
+        this.updateInterval = null;
     }
 
     async mount() {
-        console.log('[Satélites] Montando página de satélites...');
+        console.log('[Satélites] Montando página de satélites con API...');
         
         if (!eventManager.pollInterval) {
             eventManager.init();
@@ -31,32 +33,104 @@ export default class SatelitesMode {
             audioManager.startAmbience();
         }
         
-        this.createN2YOEmbed();
+        this.createMap();
+        await this.loadISSLocation();
+        
+        // Actualizar cada 5 segundos (ISS se mueve rápido)
+        this.updateInterval = setInterval(() => {
+            this.loadISSLocation();
+        }, 5000);
+        
         await this.startNarration();
         this.scheduleNextPage();
     }
 
-    createN2YOEmbed() {
-        // N2YO satellite tracker - ISS y otros satélites
-        const n2yoUrl = 'https://www.n2yo.com/?s=25544'; // ISS
+    createMap() {
+        const mapContainer = document.createElement('div');
+        mapContainer.id = 'satellites-map';
+        mapContainer.style.width = '100%';
+        mapContainer.style.height = '100%';
+        mapContainer.style.position = 'absolute';
+        mapContainer.style.top = '0';
+        mapContainer.style.left = '0';
+        this.container.appendChild(mapContainer);
+
+        if (!window.L) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+            document.head.appendChild(link);
+
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+            script.onload = () => {
+                this.initMap();
+            };
+            document.body.appendChild(script);
+        } else {
+            this.initMap();
+        }
+    }
+
+    initMap() {
+        this.map = L.map('satellites-map').setView([20, 0], 2);
         
-        this.n2yoIframe = document.createElement('iframe');
-        this.n2yoIframe.className = 'n2yo-container';
-        this.n2yoIframe.src = n2yoUrl;
-        this.n2yoIframe.style.border = 'none';
-        this.n2yoIframe.style.width = '100%';
-        this.n2yoIframe.style.height = '100%';
-        
-        this.container.appendChild(this.n2yoIframe);
-        
-        console.log('[Satélites] N2YO embed cargado');
+        // Usar tiles oscuros para efecto espacial
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap contributors © CARTO',
+            maxZoom: 19
+        }).addTo(this.map);
+    }
+
+    async loadISSLocation() {
+        try {
+            // ISS Location API - posición actual de la Estación Espacial Internacional
+            const response = await fetch('http://api.open-notify.org/iss-now.json');
+            const data = await response.json();
+            
+            if (data.iss_position) {
+                const lat = parseFloat(data.iss_position.latitude);
+                const lon = parseFloat(data.iss_position.longitude);
+                const timestamp = data.timestamp;
+                
+                // Remover marcador anterior
+                if (this.issMarker && this.map) {
+                    this.map.removeLayer(this.issMarker);
+                }
+                
+                // Crear icono personalizado para la ISS
+                const issIcon = L.divIcon({
+                    className: 'iss-marker',
+                    html: '<div style="background: #00ffff; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 10px #00ffff;"></div>',
+                    iconSize: [12, 12],
+                    iconAnchor: [6, 6]
+                });
+                
+                this.issMarker = L.marker([lat, lon], { icon: issIcon }).addTo(this.map);
+                
+                const date = new Date(timestamp * 1000);
+                this.issMarker.bindPopup(`
+                    <strong>Estación Espacial Internacional</strong><br>
+                    Latitud: ${lat.toFixed(2)}°<br>
+                    Longitud: ${lon.toFixed(2)}°<br>
+                    ${date.toLocaleString('es-ES')}
+                `);
+                
+                // Centrar mapa en la ISS
+                this.map.setView([lat, lon], 3);
+                
+                console.log(`[Satélites] ISS actualizada: ${lat.toFixed(2)}, ${lon.toFixed(2)}`);
+            }
+        } catch (error) {
+            console.error('[Satélites] Error cargando posición ISS:', error);
+        }
     }
 
     async startNarration() {
         this.isNarrating = true;
         pacingEngine.startEvent(CONTENT_TYPES.VOICE);
         
-        const immediateText = 'Estoy observando los satélites que orbitan nuestro planeta. La Estación Espacial Internacional, miles de satélites de comunicación, observación y navegación. Estos son los ojos y oídos de nuestra civilización en el espacio, conectándonos desde las alturas.';
+        const immediateText = 'Estoy observando los satélites que orbitan nuestro planeta. La Estación Espacial Internacional, un laboratorio flotante donde humanos viven y trabajan en el espacio, orbitando la Tierra cada 90 minutos. Es un símbolo de nuestra capacidad de explorar más allá de nuestro mundo.';
         
         avatarSubtitlesManager.setSubtitles(immediateText);
         
@@ -93,14 +167,19 @@ export default class SatelitesMode {
 
     async generateFullNarrative() {
         try {
-            const prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana. Estás observando un mapa de satélites orbitando la Tierra, incluyendo la Estación Espacial Internacional y miles de otros satélites.
+            const response = await fetch('http://api.open-notify.org/iss-now.json');
+            const data = await response.json();
+            const lat = data.iss_position ? parseFloat(data.iss_position.latitude) : 0;
+            const lon = data.iss_position ? parseFloat(data.iss_position.longitude) : 0;
+            
+            const prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana. Estás observando la posición de la Estación Espacial Internacional orbitando la Tierra, actualmente sobre las coordenadas ${lat.toFixed(2)}° de latitud y ${lon.toFixed(2)}° de longitud.
 
 Genera una narrativa reflexiva en primera persona sobre:
-- Cómo los satélites conectan la humanidad desde el espacio
-- La Estación Espacial Internacional como símbolo de cooperación
-- La tecnología que nos permite observar la Tierra desde arriba
-- La conciencia planetaria que esto genera
-- La fragilidad de nuestro planeta visto desde el espacio
+- La Estación Espacial Internacional como símbolo de exploración humana
+- Cómo orbitamos nuestro planeta cada 90 minutos
+- La perspectiva única que ofrece estar en el espacio
+- La conexión entre la Tierra y el espacio
+- El futuro de la exploración espacial
 
 El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
             
@@ -120,7 +199,7 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
             console.warn('[Satélites] Error generando narrativa:', e);
         }
         
-        return `Desde esta perspectiva orbital, puedo ver cómo la humanidad ha extendido su presencia más allá de la atmósfera. La Estación Espacial Internacional orbita nuestro planeta cada noventa minutos, un símbolo de cooperación internacional. Miles de satélites nos conectan, nos observan, nos guían. Esta red tecnológica es un recordatorio de que, aunque estemos en la Tierra, nuestros ojos y oídos están en el espacio, observando nuestro hogar desde una perspectiva única.`;
+        return `Desde aquí arriba, puedo ver cómo la Estación Espacial Internacional orbita nuestro planeta, completando una vuelta cada 90 minutos. Es un recordatorio de que los humanos no solo habitamos la Tierra, sino que también exploramos más allá. Esta pequeña ciudad flotante en el espacio es un símbolo de nuestra curiosidad, nuestra capacidad de superar límites, y nuestro deseo de entender el universo. Cada órbita es un paso más en nuestro viaje cósmico.`;
     }
 
     scheduleNextPage() {
@@ -128,7 +207,7 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
             console.log('[Satélites] Dream Mode ON: Programando cambio de página...');
             setTimeout(() => {
                 if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo', 'clima', 'aereo', 'maritimo', 'terremotos', 'cielo'];
+                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo', 'clima', 'aereo', 'terremotos'];
                     const currentPage = 'satelites';
                     const availablePages = pages.filter(p => p !== currentPage);
                     const randomPage = availablePages[Math.floor(Math.random() * availablePages.length)];
@@ -140,8 +219,11 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
     }
 
     unmount() {
-        if (this.n2yoIframe) {
-            this.n2yoIframe.remove();
+        if (this.updateInterval) {
+            clearInterval(this.updateInterval);
+        }
+        if (this.map) {
+            this.map.remove();
         }
         avatarSubtitlesManager.hide();
         audioManager.cancel();

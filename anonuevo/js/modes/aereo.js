@@ -7,11 +7,13 @@ export default class AereoMode {
     constructor(container) {
         this.container = container;
         this.isNarrating = false;
-        this.flightradarIframe = null;
+        this.map = null;
+        this.markers = [];
+        this.updateInterval = null;
     }
 
     async mount() {
-        console.log('[Aéreo] Montando página de tráfico aéreo...');
+        console.log('[Aéreo] Montando página de tráfico aéreo con API...');
         
         if (!eventManager.pollInterval) {
             eventManager.init();
@@ -31,25 +33,122 @@ export default class AereoMode {
             audioManager.startAmbience();
         }
         
-        this.createFlightradarEmbed();
+        this.createMap();
+        await this.loadFlights();
+        
+        // Actualizar cada 30 segundos (límite de OpenSky: 10 req/min sin auth)
+        this.updateInterval = setInterval(() => {
+            this.loadFlights();
+        }, 30000);
+        
         await this.startNarration();
         this.scheduleNextPage();
     }
 
-    createFlightradarEmbed() {
-        // Flightradar24 embed - vista básica pública
-        const flightradarUrl = 'https://www.flightradar24.com/simple_index=0';
+    createMap() {
+        const mapContainer = document.createElement('div');
+        mapContainer.id = 'flights-map';
+        mapContainer.style.width = '100%';
+        mapContainer.style.height = '100%';
+        mapContainer.style.position = 'absolute';
+        mapContainer.style.top = '0';
+        mapContainer.style.left = '0';
+        this.container.appendChild(mapContainer);
+
+        if (!window.L) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+            document.head.appendChild(link);
+
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+            script.onload = () => {
+                this.initMap();
+            };
+            document.body.appendChild(script);
+        } else {
+            this.initMap();
+        }
+    }
+
+    initMap() {
+        this.map = L.map('flights-map').setView([20, 0], 2);
         
-        this.flightradarIframe = document.createElement('iframe');
-        this.flightradarIframe.className = 'flightradar-container';
-        this.flightradarIframe.src = flightradarUrl;
-        this.flightradarIframe.style.border = 'none';
-        this.flightradarIframe.style.width = '100%';
-        this.flightradarIframe.style.height = '100%';
-        
-        this.container.appendChild(this.flightradarIframe);
-        
-        console.log('[Aéreo] Flightradar24 embed cargado');
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(this.map);
+    }
+
+    async loadFlights() {
+        try {
+            // OpenSky Network API - estados de vuelos en tiempo real
+            const response = await fetch('https://opensky-network.org/api/states/all');
+            const data = await response.json();
+            
+            if (!data.states || data.states.length === 0) {
+                console.warn('[Aéreo] No hay datos de vuelos disponibles');
+                return;
+            }
+            
+            // Limpiar marcadores anteriores
+            this.markers.forEach(marker => {
+                if (this.map) {
+                    this.map.removeLayer(marker);
+                }
+            });
+            this.markers = [];
+            
+            // Limitar a 500 vuelos para rendimiento
+            const flights = data.states.slice(0, 500);
+            
+            flights.forEach(state => {
+                // Formato: [icao24, callsign, origin_country, time_position, last_contact, longitude, latitude, baro_altitude, ...]
+                const [icao24, callsign, originCountry, , , lon, lat, altitude, velocity, heading] = state;
+                
+                if (!lat || !lon || isNaN(lat) || isNaN(lon)) return;
+                
+                // Color según velocidad
+                let color = '#00ff00'; // Verde para vuelos lentos
+                if (velocity > 800) color = '#ff0000'; // Rojo para vuelos rápidos
+                else if (velocity > 600) color = '#ff8800'; // Naranja
+                else if (velocity > 400) color = '#ffff00'; // Amarillo
+                
+                const marker = L.circleMarker([lat, lon], {
+                    radius: 4,
+                    fillColor: color,
+                    color: '#fff',
+                    weight: 1,
+                    opacity: 0.8,
+                    fillOpacity: 0.7
+                }).addTo(this.map);
+                
+                const callsignText = callsign ? callsign.trim() : 'N/A';
+                const altitudeText = altitude ? `${Math.round(altitude)}m` : 'N/A';
+                const velocityText = velocity ? `${Math.round(velocity * 3.6)} km/h` : 'N/A';
+                
+                marker.bindPopup(`
+                    <strong>${callsignText}</strong><br>
+                    País: ${originCountry || 'N/A'}<br>
+                    Altitud: ${altitudeText}<br>
+                    Velocidad: ${velocityText}
+                `);
+                
+                this.markers.push(marker);
+            });
+            
+            console.log(`[Aéreo] Cargados ${flights.length} vuelos`);
+        } catch (error) {
+            console.error('[Aéreo] Error cargando vuelos:', error);
+            // Fallback: mostrar mensaje
+            if (this.map) {
+                L.popup()
+                    .setLatLng([20, 0])
+                    .setContent('Error cargando datos de vuelos. Intentando de nuevo...')
+                    .openOn(this.map);
+            }
+        }
     }
 
     async startNarration() {
@@ -93,7 +192,11 @@ export default class AereoMode {
 
     async generateFullNarrative() {
         try {
-            const prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana. Estás observando un mapa de tráfico aéreo en tiempo real que muestra miles de aviones volando simultáneamente alrededor del mundo.
+            const response = await fetch('https://opensky-network.org/api/states/all');
+            const data = await response.json();
+            const flightCount = data.states ? data.states.length : 0;
+            
+            const prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana. Estás observando un mapa de tráfico aéreo en tiempo real que muestra ${flightCount} aviones volando simultáneamente alrededor del mundo.
 
 Genera una narrativa reflexiva en primera persona sobre:
 - Cómo la aviación conecta la humanidad
@@ -128,7 +231,7 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
             console.log('[Aéreo] Dream Mode ON: Programando cambio de página...');
             setTimeout(() => {
                 if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo', 'clima', 'maritimo', 'satelites', 'terremotos', 'cielo'];
+                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo', 'clima', 'terremotos', 'satelites'];
                     const currentPage = 'aereo';
                     const availablePages = pages.filter(p => p !== currentPage);
                     const randomPage = availablePages[Math.floor(Math.random() * availablePages.length)];
@@ -140,8 +243,11 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
     }
 
     unmount() {
-        if (this.flightradarIframe) {
-            this.flightradarIframe.remove();
+        if (this.updateInterval) {
+            clearInterval(this.updateInterval);
+        }
+        if (this.map) {
+            this.map.remove();
         }
         avatarSubtitlesManager.hide();
         audioManager.cancel();

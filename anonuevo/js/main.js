@@ -14,10 +14,8 @@ const MODES = {
     'globo': './modes/globo.js',
     'clima': './modes/clima.js',
     'aereo': './modes/aereo.js',
-    'maritimo': './modes/maritimo.js',
     'satelites': './modes/satelites.js',
-    'terremotos': './modes/terremotos.js',
-    'cielo': './modes/cielo.js'
+    'terremotos': './modes/terremotos.js'
 };
 
 const DEFAULT_MODE = 'reloj';

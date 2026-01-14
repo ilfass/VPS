@@ -8,6 +8,7 @@ class EventManager {
         this.handlers = {};
         this.pollInterval = null;
         this.controlUrl = '/control-api';
+        this.lastMusicCommand = null; // Para prevenir comandos duplicados
     }
 
     init() {
@@ -54,12 +55,23 @@ class EventManager {
                         this.processQueue();
                     }
 
-                    // Verificar comandos de música (solo procesar si hay comando y no se procesó recientemente)
+                    // Verificar comandos de música con protección contra duplicados
                     if (data.music && data.music.command) {
-                        console.log(`🎵 Music Command Received: ${data.music.command}`);
-                        this.emit('music_command', { command: data.music.command });
-                        // Limpiar el comando después de procesarlo para evitar duplicados
-                        // El servidor lo limpiará en el próximo poll
+                        // Solo emitir si no es el mismo comando que el anterior
+                        if (!this.lastMusicCommand || this.lastMusicCommand !== data.music.command) {
+                            console.log(`🎵 Music Command Received: ${data.music.command}`);
+                            this.lastMusicCommand = data.music.command;
+                            this.emit('music_command', { command: data.music.command });
+                            // Limpiar después de un tiempo para permitir el mismo comando más tarde
+                            setTimeout(() => {
+                                this.lastMusicCommand = null;
+                            }, 2000);
+                        } else {
+                            console.log(`🎵 Music Command Duplicate Ignored: ${data.music.command}`);
+                        }
+                    } else {
+                        // Si no hay comando, limpiar el último comando
+                        this.lastMusicCommand = null;
                     }
                 }
             } catch (e) { }
