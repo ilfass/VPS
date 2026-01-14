@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Viaje de ilfass - Incendios Forestales</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script type="module" src="/js/main.js"></script>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        html, body, #stage {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        #stage {
+            position: relative;
+            background: #0a0a0f;
+        }
+    </style>
+</head>
+<body>
+    <div id="stage" style="width: 100vw; height: 100vh; position: relative; background: #0a0a0f;"></div>
+    <div id="debug-layer" style="display: none; position: fixed; top: 10px; left: 10px; z-index: 10000; background: rgba(0,0,0,0.8); color: #fff; padding: 10px; font-family: monospace; font-size: 12px;">
+        <div id="mode-indicator">Modo: --</div>
+        <div id="fps-counter">FPS: --</div>
+    </div>
+</body>
+</html>

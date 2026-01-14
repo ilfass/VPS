@@ -15,7 +15,10 @@ const MODES = {
     'clima': './modes/clima.js',
     'aereo': './modes/aereo.js',
     'satelites': './modes/satelites.js',
-    'terremotos': './modes/terremotos.js'
+    'terremotos': './modes/terremotos.js',
+    'aire': './modes/aire.js',
+    'incendios': './modes/incendios.js',
+    'sol': './modes/sol.js'
 };
 
 const DEFAULT_MODE = 'reloj';
