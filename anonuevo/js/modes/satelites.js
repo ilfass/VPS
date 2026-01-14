@@ -9,11 +9,14 @@ export default class SatelitesMode {
         this.isNarrating = false;
         this.map = null;
         this.issMarker = null;
+        this.orbitTrail = []; // Trayectoria de la órbita
         this.updateInterval = null;
+        this.animationFrame = null;
+        this.lastPosition = null;
     }
 
     async mount() {
-        console.log('[Satélites] Montando página de satélites con API...');
+        console.log('[Satélites] Montando página de satélites con API y animaciones...');
         
         if (!eventManager.pollInterval) {
             eventManager.init();
@@ -40,6 +43,9 @@ export default class SatelitesMode {
         this.updateInterval = setInterval(() => {
             this.loadISSLocation();
         }, 5000);
+        
+        // Iniciar animaciones
+        this.startAnimations();
         
         await this.startNarration();
         this.scheduleNextPage();
@@ -73,7 +79,10 @@ export default class SatelitesMode {
     }
 
     initMap() {
-        this.map = L.map('satellites-map').setView([20, 0], 2);
+        this.map = L.map('satellites-map', {
+            zoomControl: false,
+            attributionControl: false
+        }).setView([20, 0], 2);
         
         // Usar tiles oscuros para efecto espacial
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -84,7 +93,6 @@ export default class SatelitesMode {
 
     async loadISSLocation() {
         try {
-            // ISS Location API - posición actual de la Estación Espacial Internacional
             const response = await fetch('http://api.open-notify.org/iss-now.json');
             const data = await response.json();
             
@@ -98,26 +106,63 @@ export default class SatelitesMode {
                     this.map.removeLayer(this.issMarker);
                 }
                 
-                // Crear icono personalizado para la ISS
+                // Agregar punto a la trayectoria
+                if (this.lastPosition) {
+                    const distance = this.calculateDistance(this.lastPosition.lat, this.lastPosition.lon, lat, lon);
+                    // Solo agregar si se movió significativamente (evitar puntos duplicados)
+                    if (distance > 0.5) {
+                        this.orbitTrail.push([lat, lon]);
+                        
+                        // Limitar trayectoria a 100 puntos
+                        if (this.orbitTrail.length > 100) {
+                            this.orbitTrail.shift();
+                        }
+                        
+                        // Actualizar línea de trayectoria
+                        if (this.orbitTrail.length > 1) {
+                            // Remover línea anterior si existe
+                            if (this.orbitLine && this.map) {
+                                this.map.removeLayer(this.orbitLine);
+                            }
+                            
+                            // Crear nueva línea con todos los puntos
+                            this.orbitLine = L.polyline(this.orbitTrail, {
+                                color: '#00ffff',
+                                weight: 2,
+                                opacity: 0.6,
+                                dashArray: '5, 5'
+                            }).addTo(this.map);
+                        }
+                    }
+                }
+                
+                // Crear icono personalizado para la ISS con efecto de brillo
                 const issIcon = L.divIcon({
                     className: 'iss-marker',
-                    html: '<div style="background: #00ffff; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 10px #00ffff;"></div>',
-                    iconSize: [12, 12],
-                    iconAnchor: [6, 6]
+                    html: '<div style="background: #00ffff; width: 14px; height: 14px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 15px #00ffff, 0 0 30px #00ffff;"></div>',
+                    iconSize: [14, 14],
+                    iconAnchor: [7, 7]
                 });
                 
                 this.issMarker = L.marker([lat, lon], { icon: issIcon }).addTo(this.map);
                 
                 const date = new Date(timestamp * 1000);
+                const speed = this.calculateSpeed(lat, lon);
+                
                 this.issMarker.bindPopup(`
-                    <strong>Estación Espacial Internacional</strong><br>
-                    Latitud: ${lat.toFixed(2)}°<br>
-                    Longitud: ${lon.toFixed(2)}°<br>
-                    ${date.toLocaleString('es-ES')}
+                    <div style="font-family: 'Inter', sans-serif; min-width: 200px;">
+                        <strong style="color: #00ffff; font-size: 1.2em;">🛰️ Estación Espacial Internacional</strong><br>
+                        Latitud: ${lat.toFixed(2)}°<br>
+                        Longitud: ${lon.toFixed(2)}°<br>
+                        Velocidad: ~${speed.toFixed(0)} km/h<br>
+                        ${date.toLocaleString('es-ES')}
+                    </div>
                 `);
                 
-                // Centrar mapa en la ISS
-                this.map.setView([lat, lon], 3);
+                // Centrar mapa en la ISS suavemente
+                this.map.setView([lat, lon], 3, { animate: true, duration: 1 });
+                
+                this.lastPosition = { lat, lon, timestamp };
                 
                 console.log(`[Satélites] ISS actualizada: ${lat.toFixed(2)}, ${lon.toFixed(2)}`);
             }
@@ -126,11 +171,58 @@ export default class SatelitesMode {
         }
     }
 
+    calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+
+    calculateSpeed(lat, lon) {
+        if (!this.lastPosition || !this.lastPosition.timestamp) {
+            return 27600; // Velocidad promedio de la ISS
+        }
+        
+        const distance = this.calculateDistance(this.lastPosition.lat, this.lastPosition.lon, lat, lon);
+        const timeDiff = (Date.now() - this.lastPosition.timestamp) / 1000; // segundos
+        const speed = timeDiff > 0 ? (distance / timeDiff) * 3600 : 27600; // km/h
+        
+        return speed;
+    }
+
+    startAnimations() {
+        const animate = () => {
+            // Animar pulso en el marcador de la ISS
+            if (this.issMarker) {
+                const time = Date.now();
+                const pulse = 0.9 + 0.1 * Math.sin(time / 500);
+                const icon = this.issMarker.options.icon;
+                if (icon && icon.options) {
+                    const size = 14 * pulse;
+                    const shadow = 15 * pulse;
+                    const html = `<div style="background: #00ffff; width: ${size}px; height: ${size}px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 ${shadow}px #00ffff, 0 0 ${shadow * 2}px #00ffff;"></div>`;
+                    icon.options.html = html;
+                    icon.options.iconSize = [size, size];
+                    icon.options.iconAnchor = [size/2, size/2];
+                    this.issMarker.setIcon(icon);
+                }
+            }
+            
+            this.animationFrame = requestAnimationFrame(animate);
+        };
+        
+        animate();
+    }
+
     async startNarration() {
         this.isNarrating = true;
         pacingEngine.startEvent(CONTENT_TYPES.VOICE);
         
-        const immediateText = 'Estoy observando los satélites que orbitan nuestro planeta. La Estación Espacial Internacional, un laboratorio flotante donde humanos viven y trabajan en el espacio, orbitando la Tierra cada 90 minutos. Es un símbolo de nuestra capacidad de explorar más allá de nuestro mundo.';
+        const immediateText = 'Estoy observando los satélites que orbitan nuestro planeta. La Estación Espacial Internacional, un laboratorio flotante donde humanos viven y trabajan en el espacio, orbitando la Tierra cada 90 minutos a más de 27,000 kilómetros por hora. La línea muestra su trayectoria orbital. Es un símbolo de nuestra capacidad de explorar más allá de nuestro mundo.';
         
         avatarSubtitlesManager.setSubtitles(immediateText);
         
@@ -172,7 +264,7 @@ export default class SatelitesMode {
             const lat = data.iss_position ? parseFloat(data.iss_position.latitude) : 0;
             const lon = data.iss_position ? parseFloat(data.iss_position.longitude) : 0;
             
-            const prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana. Estás observando la posición de la Estación Espacial Internacional orbitando la Tierra, actualmente sobre las coordenadas ${lat.toFixed(2)}° de latitud y ${lon.toFixed(2)}° de longitud.
+            const prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana. Estás observando la posición de la Estación Espacial Internacional orbitando la Tierra, actualmente sobre las coordenadas ${lat.toFixed(2)}° de latitud y ${lon.toFixed(2)}° de longitud. La línea azul muestra su trayectoria orbital, completando una vuelta alrededor del planeta cada 90 minutos a más de 27,000 kilómetros por hora.
 
 Genera una narrativa reflexiva en primera persona sobre:
 - La Estación Espacial Internacional como símbolo de exploración humana
@@ -180,6 +272,7 @@ Genera una narrativa reflexiva en primera persona sobre:
 - La perspectiva única que ofrece estar en el espacio
 - La conexión entre la Tierra y el espacio
 - El futuro de la exploración espacial
+- Cómo la trayectoria orbital muestra nuestro movimiento constante
 
 El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
             
@@ -199,7 +292,7 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
             console.warn('[Satélites] Error generando narrativa:', e);
         }
         
-        return `Desde aquí arriba, puedo ver cómo la Estación Espacial Internacional orbita nuestro planeta, completando una vuelta cada 90 minutos. Es un recordatorio de que los humanos no solo habitamos la Tierra, sino que también exploramos más allá. Esta pequeña ciudad flotante en el espacio es un símbolo de nuestra curiosidad, nuestra capacidad de superar límites, y nuestro deseo de entender el universo. Cada órbita es un paso más en nuestro viaje cósmico.`;
+        return `Desde aquí arriba, puedo ver cómo la Estación Espacial Internacional orbita nuestro planeta, completando una vuelta cada 90 minutos. La trayectoria que se dibuja muestra su camino constante alrededor de la Tierra, moviéndose a más de 27,000 kilómetros por hora. Es un recordatorio de que los humanos no solo habitamos la Tierra, sino que también exploramos más allá. Esta pequeña ciudad flotante en el espacio es un símbolo de nuestra curiosidad, nuestra capacidad de superar límites, y nuestro deseo de entender el universo. Cada órbita es un paso más en nuestro viaje cósmico.`;
     }
 
     scheduleNextPage() {
@@ -219,6 +312,9 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
     }
 
     unmount() {
+        if (this.animationFrame) {
+            cancelAnimationFrame(this.animationFrame);
+        }
         if (this.updateInterval) {
             clearInterval(this.updateInterval);
         }

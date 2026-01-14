@@ -9,11 +9,13 @@ export default class TerremotosMode {
         this.isNarrating = false;
         this.map = null;
         this.markers = [];
+        this.waves = []; // Ondas expansivas animadas
         this.updateInterval = null;
+        this.animationFrame = null;
     }
 
     async mount() {
-        console.log('[Terremotos] Montando página de terremotos con API...');
+        console.log('[Terremotos] Montando página de terremotos con API y animaciones...');
         
         if (!eventManager.pollInterval) {
             eventManager.init();
@@ -33,10 +35,7 @@ export default class TerremotosMode {
             audioManager.startAmbience();
         }
         
-        // Crear mapa con Leaflet
         this.createMap();
-        
-        // Cargar datos iniciales
         await this.loadEarthquakes();
         
         // Actualizar cada 60 segundos
@@ -44,12 +43,14 @@ export default class TerremotosMode {
             this.loadEarthquakes();
         }, 60000);
         
+        // Iniciar animación de ondas
+        this.startWaveAnimation();
+        
         await this.startNarration();
         this.scheduleNextPage();
     }
 
     createMap() {
-        // Crear contenedor del mapa
         const mapContainer = document.createElement('div');
         mapContainer.id = 'earthquake-map';
         mapContainer.style.width = '100%';
@@ -59,7 +60,6 @@ export default class TerremotosMode {
         mapContainer.style.left = '0';
         this.container.appendChild(mapContainer);
 
-        // Cargar Leaflet dinámicamente
         if (!window.L) {
             const link = document.createElement('link');
             link.rel = 'stylesheet';
@@ -78,31 +78,48 @@ export default class TerremotosMode {
     }
 
     initMap() {
-        this.map = L.map('earthquake-map').setView([20, 0], 2);
+        this.map = L.map('earthquake-map', {
+            zoomControl: false,
+            attributionControl: false
+        }).setView([20, 0], 2);
         
-        // Agregar capa de tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
+        // Tiles oscuros para mejor contraste
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap contributors © CARTO',
             maxZoom: 19
         }).addTo(this.map);
     }
 
     async loadEarthquakes() {
         try {
-            // USGS API - terremotos de las últimas 24 horas, magnitud 2.5+
             const response = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson');
             const data = await response.json();
             
-            // Limpiar marcadores anteriores
-            this.markers.forEach(marker => this.map.removeLayer(marker));
+            // Limpiar marcadores y ondas anteriores
+            this.markers.forEach(marker => {
+                if (this.map) {
+                    this.map.removeLayer(marker);
+                }
+            });
+            this.waves.forEach(wave => {
+                if (this.map) {
+                    this.map.removeLayer(wave);
+                }
+            });
             this.markers = [];
+            this.waves = [];
             
-            // Agregar marcadores para cada terremoto
-            data.features.forEach(feature => {
+            // Ordenar por magnitud (más grandes primero) y limitar a 50 más recientes
+            const sortedFeatures = data.features
+                .sort((a, b) => b.properties.mag - a.properties.mag)
+                .slice(0, 50);
+            
+            sortedFeatures.forEach((feature, index) => {
                 const [longitude, latitude] = feature.geometry.coordinates;
                 const magnitude = feature.properties.mag;
                 const place = feature.properties.place;
                 const time = new Date(feature.properties.time);
+                const depth = feature.geometry.coordinates[2];
                 
                 // Color según magnitud
                 let color = '#00ff00'; // Verde para pequeños
@@ -111,38 +128,111 @@ export default class TerremotosMode {
                 else if (magnitude >= 3) color = '#ffff00'; // Amarillo
                 
                 // Tamaño del círculo según magnitud
-                const radius = Math.max(5, magnitude * 3);
+                const radius = Math.max(6, Math.min(20, magnitude * 4));
                 
+                // Marcador principal con pulso
                 const circle = L.circleMarker([latitude, longitude], {
                     radius: radius,
                     fillColor: color,
                     color: '#fff',
-                    weight: 2,
+                    weight: 3,
                     opacity: 1,
-                    fillOpacity: 0.7
+                    fillOpacity: 0.9
                 }).addTo(this.map);
                 
-                // Tooltip con información
+                // Información detallada en el popup
+                const timeAgo = this.getTimeAgo(time);
                 circle.bindPopup(`
-                    <strong>Magnitud: ${magnitude.toFixed(1)}</strong><br>
-                    ${place}<br>
-                    ${time.toLocaleString('es-ES')}
+                    <div style="font-family: 'Inter', sans-serif; min-width: 200px;">
+                        <strong style="font-size: 1.2em; color: ${color};">Magnitud ${magnitude.toFixed(1)}</strong><br>
+                        <strong>${place}</strong><br>
+                        <small>Profundidad: ${depth.toFixed(1)} km</small><br>
+                        <small>${timeAgo}</small><br>
+                        <small>${time.toLocaleString('es-ES')}</small>
+                    </div>
                 `);
                 
                 this.markers.push(circle);
+                
+                // Crear onda expansiva animada según magnitud
+                // Más ondas para terremotos más grandes
+                const waveCount = magnitude >= 5 ? 3 : magnitude >= 4 ? 2 : 1;
+                const maxRadius = magnitude * 200; // Radio máximo según magnitud
+                
+                for (let i = 0; i < waveCount; i++) {
+                    const wave = L.circle([latitude, longitude], {
+                        radius: 0,
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: 0.1,
+                        weight: 2,
+                        opacity: 0.6
+                    }).addTo(this.map);
+                    
+                    this.waves.push({
+                        circle: wave,
+                        center: [latitude, longitude],
+                        maxRadius: maxRadius,
+                        currentRadius: 0,
+                        speed: 50 + (magnitude * 10), // Velocidad según magnitud
+                        delay: i * 2000, // Delay entre ondas
+                        startTime: Date.now() + (i * 2000),
+                        color: color,
+                        magnitude: magnitude
+                    });
+                }
             });
             
-            console.log(`[Terremotos] Cargados ${data.features.length} terremotos`);
+            console.log(`[Terremotos] Cargados ${sortedFeatures.length} terremotos con animaciones`);
         } catch (error) {
             console.error('[Terremotos] Error cargando datos:', error);
         }
+    }
+
+    getTimeAgo(date) {
+        const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+        if (seconds < 60) return `Hace ${seconds} segundos`;
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `Hace ${minutes} minutos`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `Hace ${hours} horas`;
+        const days = Math.floor(hours / 24);
+        return `Hace ${days} días`;
+    }
+
+    startWaveAnimation() {
+        const animate = () => {
+            this.waves.forEach((wave, index) => {
+                if (Date.now() < wave.startTime) return;
+                
+                const elapsed = Date.now() - wave.startTime;
+                const progress = (elapsed / (wave.maxRadius / wave.speed * 1000)) % 1;
+                const currentRadius = progress * wave.maxRadius;
+                
+                if (currentRadius < wave.maxRadius) {
+                    wave.circle.setRadius(currentRadius);
+                    
+                    // Fade out effect
+                    const opacity = Math.max(0, 0.6 * (1 - progress));
+                    const fillOpacity = Math.max(0, 0.1 * (1 - progress));
+                    wave.circle.setStyle({
+                        opacity: opacity,
+                        fillOpacity: fillOpacity
+                    });
+                }
+            });
+            
+            this.animationFrame = requestAnimationFrame(animate);
+        };
+        
+        animate();
     }
 
     async startNarration() {
         this.isNarrating = true;
         pacingEngine.startEvent(CONTENT_TYPES.VOICE);
         
-        const immediateText = 'Estoy observando la actividad sísmica de nuestro planeta en tiempo real. Cada punto que aparece es un terremoto, un recordatorio de las fuerzas titánicas que moldean nuestro mundo. La Tierra está viva, respirando, moviéndose constantemente bajo nuestros pies.';
+        const immediateText = 'Estoy observando la actividad sísmica de nuestro planeta en tiempo real. Cada punto que aparece es un terremoto, un recordatorio de las fuerzas titánicas que moldean nuestro mundo. Las ondas expansivas muestran la energía liberada. La Tierra está viva, respirando, moviéndose constantemente bajo nuestros pies.';
         
         avatarSubtitlesManager.setSubtitles(immediateText);
         
@@ -179,13 +269,16 @@ export default class TerremotosMode {
 
     async generateFullNarrative() {
         try {
-            // Obtener estadísticas de los terremotos cargados
             const response = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson');
             const data = await response.json();
             const count = data.features.length;
             const maxMagnitude = Math.max(...data.features.map(f => f.properties.mag));
+            const recentCount = data.features.filter(f => {
+                const time = new Date(f.properties.time);
+                return Date.now() - time.getTime() < 3600000; // Última hora
+            }).length;
             
-            const prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana. Estás observando un mapa de terremotos en tiempo real que muestra ${count} terremotos en las últimas 24 horas, con el más grande de magnitud ${maxMagnitude.toFixed(1)}.
+            const prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana. Estás observando un mapa de terremotos en tiempo real que muestra ${count} terremotos en las últimas 24 horas, con el más grande de magnitud ${maxMagnitude.toFixed(1)}. ${recentCount} terremotos han ocurrido en la última hora. Las ondas expansivas animadas muestran la energía liberada por cada evento sísmico.
 
 Genera una narrativa reflexiva en primera persona sobre:
 - Cómo la Tierra está constantemente en movimiento
@@ -193,6 +286,7 @@ Genera una narrativa reflexiva en primera persona sobre:
 - La fragilidad de la humanidad frente a estas fuerzas
 - La belleza y el poder de la naturaleza
 - La conciencia de vivir en un planeta geológicamente activo
+- Cómo las ondas sísmicas viajan por el planeta
 
 El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
             
@@ -212,7 +306,7 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
             console.warn('[Terremotos] Error generando narrativa:', e);
         }
         
-        return `Cada punto que aparece aquí es un recordatorio de que vivimos en un planeta vivo, en constante movimiento. Las placas tectónicas se desplazan, chocan, se separan, creando montañas y océanos. Estos terremotos son la respiración profunda de la Tierra, fuerzas titánicas que moldean nuestro mundo. Nos recuerdan nuestra fragilidad, pero también la increíble resiliencia de la vida que se adapta y persiste frente a estas fuerzas colosales.`;
+        return `Cada punto que aparece aquí es un recordatorio de que vivimos en un planeta vivo, en constante movimiento. Las placas tectónicas se desplazan, chocan, se separan, creando montañas y océanos. Las ondas expansivas que veo animarse muestran cómo la energía se propaga desde cada terremoto, viajando por el planeta. Estos terremotos son la respiración profunda de la Tierra, fuerzas titánicas que moldean nuestro mundo. Nos recuerdan nuestra fragilidad, pero también la increíble resiliencia de la vida que se adapta y persiste frente a estas fuerzas colosales.`;
     }
 
     scheduleNextPage() {
@@ -220,7 +314,7 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
             console.log('[Terremotos] Dream Mode ON: Programando cambio de página...');
             setTimeout(() => {
                 if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo', 'clima'];
+                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo', 'clima', 'aereo', 'satelites'];
                     const currentPage = 'terremotos';
                     const availablePages = pages.filter(p => p !== currentPage);
                     const randomPage = availablePages[Math.floor(Math.random() * availablePages.length)];
@@ -232,6 +326,9 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
     }
 
     unmount() {
+        if (this.animationFrame) {
+            cancelAnimationFrame(this.animationFrame);
+        }
         if (this.updateInterval) {
             clearInterval(this.updateInterval);
         }
