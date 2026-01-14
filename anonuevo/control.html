@@ -1517,11 +1517,17 @@
         const streamChannel = new BroadcastChannel('stream-navigation');
         
         function navigateToPage(path) {
+            log(`Navegando a: ${path}`, 'info');
+            
             // Método 1: Enviar mensaje via BroadcastChannel (para páginas que usan main.js)
-            streamChannel.postMessage({ type: 'navigate', path: path });
+            // Esto solo funciona si la página de streaming está abierta
+            try {
+                streamChannel.postMessage({ type: 'navigate', path: path });
+            } catch (e) {
+                console.warn('Error enviando mensaje BroadcastChannel:', e);
+            }
             
             // Método 2: También enviar evento al servidor (para páginas que usan eventManager)
-            // Extraer el nombre de la página del path (ej: /vivos/mapa/ -> mapa)
             const pathMatch = path.match(/\/vivos\/([^\/]+)/);
             if (pathMatch) {
                 const pageName = pathMatch[1];
@@ -1529,7 +1535,9 @@
                 api(`/event/navigate/${pageName}`, 'POST', { path: path }).catch(() => {});
             }
             
-            log(`Navegando a: ${path}`, 'info');
+            // Método 3: Abrir directamente en nueva pestaña si el usuario hace clic con Ctrl/Cmd
+            // O mostrar las URLs para referencia
+            console.log(`URL completa: ${window.location.origin}${path}`);
         }
 
         // START POLLING
