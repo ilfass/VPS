@@ -611,6 +611,39 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
+    // TomTom Health check (quick diagnostic)
+    // GET /api/city/tomtom/health
+    if (req.method === 'GET' && apiPath === '/api/city/tomtom/health') {
+        const key = process.env.TOMTOM_API_KEY;
+        if (!key) {
+            res.writeHead(200, headers);
+            res.end(JSON.stringify({ ok: false, reason: 'missing_key' }));
+            return;
+        }
+        try {
+            const upstream = `https://api.tomtom.com/traffic/map/4/tile/flow/relative/0/0/0.png?key=${encodeURIComponent(key)}`;
+            const r = await fetch(upstream, { method: 'GET' });
+            if (r.ok) {
+                res.writeHead(200, headers);
+                res.end(JSON.stringify({ ok: true }));
+                return;
+            }
+            const body = await r.text().catch(() => '');
+            res.writeHead(200, headers);
+            res.end(JSON.stringify({
+                ok: false,
+                reason: 'upstream_error',
+                status: r.status,
+                body: body.slice(0, 300)
+            }));
+            return;
+        } catch (e) {
+            res.writeHead(200, headers);
+            res.end(JSON.stringify({ ok: false, reason: 'fetch_failed', message: e.message }));
+            return;
+        }
+    }
+
     if (req.method === 'GET' && apiPath === '/api/media-list') {
         const getFiles = (dir, base = '') => {
             let res = [];

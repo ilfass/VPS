@@ -245,6 +245,9 @@ export default class CiudadMode {
 
         const cards = [];
 
+        const traffic = await this.fetchTomTomHealth();
+        cards.push(this.renderTrafficCard(traffic));
+
         // Transporte (TfL) – solo si city.transportProvider=tfl
         if (this.city.transportProvider === 'tfl') {
             const tfl = await this.fetchTfLStatus();
@@ -257,6 +260,48 @@ export default class CiudadMode {
         cards.push(this.renderLiveCard());
 
         this.statusEl.innerHTML = cards.join('');
+    }
+
+    async fetchTomTomHealth() {
+        try {
+            const res = await fetch('/control-api/api/city/tomtom/health');
+            if (!res.ok) return { ok: false, reason: 'http', status: res.status };
+            return await res.json();
+        } catch (e) {
+            return { ok: false, reason: 'fetch_failed', message: e?.message || 'Error' };
+        }
+    }
+
+    renderTrafficCard(health) {
+        // health: { ok:true } | { ok:false, reason, status, body }
+        let title = '🚗 Tráfico (TomTom)';
+        let detail = 'Overlay de flujo de tráfico sobre el mapa.';
+        let hint = 'Si no ves colores, revisa la key/plan.';
+        let color = '#00ffff';
+
+        if (!health || health.ok !== true) {
+            color = '#ffcc00';
+            if (health?.reason === 'missing_key') {
+                detail = 'Falta TOMTOM_API_KEY en el servidor.';
+                hint = 'Crea una key en TomTom y actívala.';
+            } else if (health?.reason === 'upstream_error') {
+                detail = `TomTom responde ${health.status}.`;
+                hint = (health.status === 403)
+                    ? 'Tu key no tiene permiso para Traffic Flow Tiles. En TomTom Portal crea/edita la key y habilita el producto “Traffic”/“Traffic Flow Tiles”.'
+                    : 'Revisa el plan/productos asociados a la key en el portal de TomTom.';
+            } else {
+                detail = 'No se pudo validar TomTom.';
+                hint = 'Revisa conectividad y variables de entorno.';
+            }
+        }
+
+        return `
+            <div style="padding:10px; border:1px solid rgba(255,255,255,.08); border-radius:12px; background: rgba(255,255,255,.04);">
+                <div style="font-weight:800; color:${color};">${title}</div>
+                <div style="margin-top:6px; color: rgba(255,255,255,.75); font-size:12px;">${this.escapeHtml(detail)}</div>
+                <div style="margin-top:8px; color: rgba(255,255,255,.65); font-size:11px;">${this.escapeHtml(hint)}</div>
+            </div>
+        `;
     }
 
     async fetchTfLStatus() {
@@ -318,7 +363,7 @@ export default class CiudadMode {
                     <div style="font-size:12px; color: rgba(255,255,255,.7);">${now.toLocaleTimeString('es-ES')}</div>
                 </div>
                 <div style="margin-top:6px; color: rgba(255,255,255,.75); font-size:12px;">
-                    El overlay de tráfico se refresca con tiles. Si ves el mapa sin colores, falta la key de TomTom.
+                    El overlay de tráfico se refresca con tiles (flujo/congestión). Si no ves colores, revisa el panel de “Tráfico (TomTom)”.
                 </div>
                 <div style="margin-top:8px; color: rgba(255,255,255,.6); font-size:11px;">
                     Variables: <code>TOMTOM_API_KEY</code>, <code>TFL_APP_ID</code>, <code>TFL_APP_KEY</code>
