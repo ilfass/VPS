@@ -610,25 +610,67 @@ export default class SatelitesMode {
 
     async ensureSatelliteJs() {
         if (window.satellite && typeof window.satellite.twoline2satrec === 'function') return true;
-        if (document.getElementById('satellitejs-lib')) {
-            // esperar a que cargue
-            const start = Date.now();
-            while (Date.now() - start < 6000) {
-                if (window.satellite && typeof window.satellite.twoline2satrec === 'function') return true;
-                await new Promise(r => setTimeout(r, 80));
+        // Reusar promise global si ya está cargando
+        if (window.__satelliteJsLoadingPromise) {
+            return await window.__satelliteJsLoadingPromise;
+        }
+
+        window.__satelliteJsLoadingPromise = new Promise((resolve) => {
+            const timeout = setTimeout(() => {
+                resolve(false);
+            }, 20000);
+
+            const done = (ok) => {
+                clearTimeout(timeout);
+                // limpiar para permitir reintento en futuras cargas si falló
+                window.__satelliteJsLoadingPromise = null;
+                resolve(ok);
+            };
+
+            const existing = document.getElementById('satellitejs-lib');
+            if (existing) {
+                // Si ya está insertado, esperar a que aparezca el global
+                const start = Date.now();
+                const tick = () => {
+                    if (window.satellite && typeof window.satellite.twoline2satrec === 'function') return done(true);
+                    if (Date.now() - start > 19000) return done(false);
+                    setTimeout(tick, 120);
+                };
+                tick();
+                return;
             }
-            return false;
-        }
-        const script = document.createElement('script');
-        script.id = 'satellitejs-lib';
-        script.src = 'https://unpkg.com/satellite.js@5.0.1/dist/satellite.min.js';
-        document.body.appendChild(script);
-        const start = Date.now();
-        while (Date.now() - start < 6000) {
-            if (window.satellite && typeof window.satellite.twoline2satrec === 'function') return true;
-            await new Promise(r => setTimeout(r, 80));
-        }
-        return false;
+
+            const tryUrls = [
+                'https://unpkg.com/satellite.js@5.0.1/dist/satellite.min.js',
+                'https://cdn.jsdelivr.net/npm/satellite.js@5.0.1/dist/satellite.min.js'
+            ];
+
+            const script = document.createElement('script');
+            script.id = 'satellitejs-lib';
+            script.async = true;
+            script.defer = true;
+
+            let idx = 0;
+            const loadNext = () => {
+                if (idx >= tryUrls.length) return done(false);
+                script.src = tryUrls[idx++];
+                // forzar recarga si el browser cachea un error raro
+                try { document.body.appendChild(script); } catch (e) { }
+            };
+
+            script.onload = () => {
+                const ok = !!(window.satellite && typeof window.satellite.twoline2satrec === 'function');
+                done(ok);
+            };
+            script.onerror = () => {
+                // intentar siguiente CDN
+                loadNext();
+            };
+
+            loadNext();
+        });
+
+        return await window.__satelliteJsLoadingPromise;
     }
 
     async initExtraSatellites() {
