@@ -51,6 +51,30 @@ export default class AereoMode {
         this.scheduleNextPage();
     }
 
+    // Targets sugeridos para el director de cámara global (Leaflet)
+    getCinematicTargets() {
+        // Intentar usar algunos vuelos para “tomas” más dinámicas
+        const targets = [];
+        try {
+            if (this.flightData && this.flightData.size) {
+                let i = 0;
+                for (const v of this.flightData.values()) {
+                    if (v && Number.isFinite(v.lat) && Number.isFinite(v.lon)) {
+                        targets.push({ lat: v.lat, lon: v.lon, closeZoom: 5, sweepZoom: 4, driftDeg: 2.8 });
+                        i++;
+                        if (i >= 6) break;
+                    }
+                }
+            }
+        } catch (e) { }
+        // Fallback: centro del mapa
+        try {
+            const c = this.map?.getCenter?.();
+            if (c) targets.push({ lat: c.lat, lon: c.lng, wideZoom: 2, medZoom: 3, driftDeg: 4.0 });
+        } catch (e) { }
+        return targets;
+    }
+
     createMap() {
         const mapContainer = document.createElement('div');
         mapContainer.id = 'flights-map';

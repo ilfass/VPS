@@ -26,6 +26,9 @@ export default class SatelitesMode {
         this.extraSatellites = new Map(); // noradId -> { name, satrec, marker }
         this.extraSatellitesInterval = null;
         this.maxExtraSatellites = 40; // límite por performance (se puede subir)
+
+        // Cinematic camera: evitar pelear con el director global
+        this.lastRecenterAt = 0;
     }
 
     async mount() {
@@ -335,8 +338,21 @@ export default class SatelitesMode {
                     </div>
                 `);
                 
-                // Centrar mapa en la ISS suavemente
-                this.map.setView([lat, lon], 3, { animate: true, duration: 1 });
+                // IMPORTANTE: no recentrar en cada tick (para permitir tomas “cinemáticas”).
+                // Recentrar solo de vez en cuando o si la ISS se va del encuadre.
+                const now = Date.now();
+                const shouldRecenterByTime = (now - (this.lastRecenterAt || 0)) > 30000;
+                let shouldRecenterByBounds = false;
+                try {
+                    const bounds = this.map.getBounds();
+                    if (bounds && typeof bounds.contains === 'function') {
+                        shouldRecenterByBounds = !bounds.contains([lat, lon]);
+                    }
+                } catch (e) { }
+                if (shouldRecenterByTime || shouldRecenterByBounds) {
+                    this.lastRecenterAt = now;
+                    this.map.flyTo([lat, lon], 3, { animate: true, duration: 2.2 });
+                }
                 
                 this.lastPosition = { lat, lon, timestamp };
                 
@@ -353,6 +369,25 @@ export default class SatelitesMode {
                 `;
             }
         }
+    }
+
+    // Targets sugeridos para el director de cámara global (Leaflet)
+    getCinematicTargets() {
+        const t = [];
+        if (this.lastPosition) {
+            t.push({ lat: this.lastPosition.lat, lon: this.lastPosition.lon, closeZoom: 4, sweepZoom: 3, driftDeg: 1.2 });
+        }
+        // Punto subsolar como toma alternativa
+        try {
+            const ll = this.sunMarker?.getLatLng?.();
+            if (ll) t.push({ lat: ll.lat, lon: ll.lng, medZoom: 2, sweepZoom: 3, driftDeg: 2.2 });
+        } catch (e) { }
+        // Algunas “auroras” (si existe layer, usar centro actual del mapa como fallback)
+        try {
+            const c = this.map?.getCenter?.();
+            if (c) t.push({ lat: c.lat, lon: c.lng, wideZoom: 2, medZoom: 3, driftDeg: 3.0 });
+        } catch (e) { }
+        return t;
     }
 
     async loadSpaceWeather() {

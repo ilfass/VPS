@@ -50,6 +50,24 @@ export default class TerremotosMode {
         this.scheduleNextPage();
     }
 
+    // Targets sugeridos para el director de cámara global (Leaflet)
+    getCinematicTargets() {
+        const targets = [];
+        try {
+            // markers son L.marker; tomar algunos
+            const sample = (this.markers || []).slice(0, 8);
+            sample.forEach(m => {
+                const ll = m?.getLatLng?.();
+                if (ll) targets.push({ lat: ll.lat, lon: ll.lng, closeZoom: 4, sweepZoom: 3, driftDeg: 4.5 });
+            });
+        } catch (e) { }
+        try {
+            const c = this.map?.getCenter?.();
+            if (c) targets.push({ lat: c.lat, lon: c.lng, wideZoom: 2, medZoom: 3, driftDeg: 4.0 });
+        } catch (e) { }
+        return targets;
+    }
+
     createMap() {
         const mapContainer = document.createElement('div');
         mapContainer.id = 'earthquake-map';

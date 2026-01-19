@@ -51,6 +51,23 @@ export default class ClimaMode {
         this.scheduleNextPage();
     }
 
+    // Targets sugeridos para el director de cámara global (Leaflet)
+    getCinematicTargets() {
+        const targets = [];
+        try {
+            const sample = (this.markers || []).slice(0, 10);
+            sample.forEach(m => {
+                const ll = m?.getLatLng?.();
+                if (ll) targets.push({ lat: ll.lat, lon: ll.lng, closeZoom: 5, sweepZoom: 4, driftDeg: 3.5 });
+            });
+        } catch (e) { }
+        try {
+            const c = this.map?.getCenter?.();
+            if (c) targets.push({ lat: c.lat, lon: c.lng, wideZoom: 2, medZoom: 3, driftDeg: 4.0 });
+        } catch (e) { }
+        return targets;
+    }
+
     createMap() {
         const mapContainer = document.createElement('div');
         mapContainer.id = 'weather-map';

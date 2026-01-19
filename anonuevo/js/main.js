@@ -2,6 +2,7 @@ import { timeEngine } from './utils/time.js';
 import { scheduler } from './utils/scheduler.js';
 import { audioManager } from './utils/audio-manager.js';
 import { eventManager } from './utils/event-manager.js?v=2';
+import { cinematicDirector } from './utils/cinematic-director.js';
 
 // Mapa de modos disponibles y sus rutas de importación
 const MODES = {
@@ -67,6 +68,7 @@ class App {
         this.debugLayer = document.getElementById('debug-layer');
         this.modeIndicator = document.getElementById('mode-indicator');
         this.fpsCounter = document.getElementById('fps-counter');
+        this.cinematicDirector = cinematicDirector;
 
         this.init();
     }
@@ -130,6 +132,8 @@ class App {
         if (this.currentModeInstance && typeof this.currentModeInstance.unmount === 'function') {
             this.currentModeInstance.unmount();
         }
+        // Detener cámara “cinemática” del modo anterior
+        this.cinematicDirector?.detach?.();
 
         // Limpiar tareas programadas del modo anterior
         scheduler.clearTasks();
@@ -146,10 +150,15 @@ class App {
             this.currentModeInstance = new ModeClass(this.stage);
             this.currentModeInstance.mount();
 
+            // Activar “tomas” automáticas si el modo expone Leaflet map o Cesium viewer.
+            // El director hace polling hasta que el mapa/cámara exista.
+            this.cinematicDirector?.attach?.(this.currentModeInstance);
+
             console.log(`✅ Modo ${modeName} montado exitosamente.`);
         } catch (error) {
             console.error(`❌ Error cargando el modo ${modeName}:`, error);
             this.stage.innerHTML = `<div class="center-content"><h1>Error cargando modo</h1><p>${error.message}</p></div>`;
+            this.cinematicDirector?.detach?.();
         }
     }
 

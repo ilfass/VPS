@@ -77,6 +77,19 @@ export default class CiudadMode {
         this.scheduleNextPage();
     }
 
+    // Targets sugeridos para el director de cámara global (Leaflet)
+    getCinematicTargets() {
+        // Tomar la ciudad como “escena”: centro + ligeros sweeps
+        const t = [];
+        try {
+            const c = this.city?.center;
+            if (Array.isArray(c) && c.length === 2) {
+                t.push({ lat: c[0], lon: c[1], wideZoom: Math.max(9, (this.city.zoom || 11) - 2), medZoom: this.city.zoom || 11, closeZoom: (this.city.zoom || 11) + 1, driftDeg: 0.18 });
+            }
+        } catch (e) { }
+        return t;
+    }
+
     createLayout() {
         const wrapper = document.createElement('div');
         wrapper.style.position = 'absolute';
