@@ -13,6 +13,9 @@ export default class SatelitesMode {
         this.updateInterval = null;
         this.animationFrame = null;
         this.lastPosition = null;
+        this.terminatorLayer = null;
+        this.sunMarker = null;
+        this.footprintCircle = null;
     }
 
     async mount() {
@@ -124,6 +127,33 @@ export default class SatelitesMode {
             attribution: '© OpenStreetMap contributors © CARTO',
             maxZoom: 19
         }).addTo(this.map);
+
+        // Capa día/noche (terminador) para darle contexto “espacial”
+        this.ensureTerminatorLayer();
+    }
+
+    ensureTerminatorLayer() {
+        if (!this.map) return;
+        // Si el plugin ya está cargado, agregar/actualizar
+        if (window.L && window.L.terminator) {
+            if (!this.terminatorLayer) {
+                this.terminatorLayer = L.terminator({ opacity: 0.35, fillColor: '#000', color: 'rgba(0,0,0,0)' });
+                this.terminatorLayer.addTo(this.map);
+            } else {
+                try { this.terminatorLayer.setTime(new Date()); } catch (e) { }
+            }
+            return;
+        }
+        // Cargar plugin por CDN (HTTPS) una sola vez
+        if (document.getElementById('leaflet-terminator-js')) return;
+        const script = document.createElement('script');
+        script.id = 'leaflet-terminator-js';
+        script.src = 'https://unpkg.com/leaflet-terminator@1.0.0/L.Terminator.js';
+        script.onload = () => {
+            // Reintentar cuando cargue
+            this.ensureTerminatorLayer();
+        };
+        document.body.appendChild(script);
     }
 
     async loadISSLocation() {
@@ -142,6 +172,10 @@ export default class SatelitesMode {
                 const timestamp = data.timestamp || Math.floor(Date.now() / 1000);
                 const velocity = typeof data.velocity === 'number' ? data.velocity : null;
                 const altitude = typeof data.altitude === 'number' ? data.altitude : null;
+                const visibility = typeof data.visibility === 'string' ? data.visibility : null;
+                const footprint = typeof data.footprint === 'number' ? data.footprint : null;
+                const solarLat = typeof data.solar_lat === 'number' ? data.solar_lat : null;
+                const solarLon = typeof data.solar_lon === 'number' ? data.solar_lon : null;
                 
                 // Remover marcador anterior
                 if (this.issMarker && this.map) {
@@ -192,15 +226,51 @@ export default class SatelitesMode {
                 // wheretheiss entrega velocidad (km/h). Fallback a estimación si no está.
                 const speed = velocity ?? this.calculateSpeed(lat, lon);
 
+                // Actualizar terminador día/noche
+                if (this.terminatorLayer && typeof this.terminatorLayer.setTime === 'function') {
+                    try { this.terminatorLayer.setTime(new Date(timestamp * 1000)); } catch (e) { }
+                } else {
+                    this.ensureTerminatorLayer();
+                }
+
+                // Punto subsolar (posición del Sol sobre la Tierra)
+                if (solarLat !== null && solarLon !== null) {
+                    if (this.sunMarker && this.map) this.map.removeLayer(this.sunMarker);
+                    const sunIcon = L.divIcon({
+                        className: 'sun-marker',
+                        html: '<div style="background: radial-gradient(circle, rgba(255,215,0,1) 0%, rgba(255,215,0,0.25) 55%, rgba(255,215,0,0) 70%); width: 18px; height: 18px; border-radius: 50%; box-shadow: 0 0 18px rgba(255,215,0,0.75);"></div>',
+                        iconSize: [18, 18],
+                        iconAnchor: [9, 9]
+                    });
+                    this.sunMarker = L.marker([solarLat, solarLon], { icon: sunIcon }).addTo(this.map);
+                    this.sunMarker.bindPopup(`<div style="font-family: 'Inter', sans-serif;"><b>☀️ Punto subsolar</b><br>Lat: ${solarLat.toFixed(2)}°<br>Lon: ${solarLon.toFixed(2)}°</div>`);
+                }
+
+                // “Footprint” aproximado de cobertura (radio en km)
+                if (footprint !== null) {
+                    if (this.footprintCircle && this.map) this.map.removeLayer(this.footprintCircle);
+                    // Leaflet usa metros en radius
+                    this.footprintCircle = L.circle([lat, lon], {
+                        radius: footprint * 1000,
+                        color: 'rgba(0,255,255,0.35)',
+                        weight: 1,
+                        fillColor: 'rgba(0,255,255,0.08)',
+                        fillOpacity: 0.25
+                    }).addTo(this.map);
+                }
+
                 // Actualizar overlay informativo
                 if (this.infoOverlay) {
                     const speedText = speed ? `${speed.toFixed(0)} km/h` : '—';
                     const altText = (altitude !== null) ? `${altitude.toFixed(0)} km` : '—';
+                    const footprintText = (footprint !== null) ? `${footprint.toFixed(0)} km` : '—';
+                    const visText = visibility ? visibility : '—';
                     this.infoOverlay.innerHTML = `
                         <div style="font-weight:800; color:#00ffff;">🛰️ ISS en vivo</div>
                         <div style="margin-top:6px; color: rgba(255,255,255,.85);">
                             Lat: <b>${lat.toFixed(2)}°</b> &nbsp; Lon: <b>${lon.toFixed(2)}°</b><br>
                             Velocidad: <b>${speedText}</b> &nbsp; Altitud: <b>${altText}</b><br>
+                            Visibilidad: <b>${this.escapeHtml(visText)}</b> &nbsp; Cobertura: <b>${footprintText}</b><br>
                             <span style="color: rgba(255,255,255,.65);">${date.toLocaleString('es-ES')}</span>
                         </div>
                     `;
@@ -212,6 +282,8 @@ export default class SatelitesMode {
                         Latitud: ${lat.toFixed(2)}°<br>
                         Longitud: ${lon.toFixed(2)}°<br>
                         Velocidad: ~${speed.toFixed(0)} km/h<br>
+                        Visibilidad: ${visibility || '—'}<br>
+                        Cobertura: ${footprint ? footprint.toFixed(0) + ' km' : '—'}<br>
                         ${date.toLocaleString('es-ES')}
                     </div>
                 `);
@@ -234,6 +306,17 @@ export default class SatelitesMode {
                 `;
             }
         }
+    }
+
+    escapeHtml(s) {
+        if (s === null || s === undefined) return '';
+        return String(s).replace(/[&<>"']/g, (c) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[c]));
     }
 
     calculateDistance(lat1, lon1, lat2, lon2) {
