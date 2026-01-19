@@ -16,6 +16,10 @@ export default class SatelitesMode {
         this.terminatorLayer = null;
         this.sunMarker = null;
         this.footprintCircle = null;
+        this.auroraLayer = null;
+        this.spaceWeatherOverlay = null;
+        this.kpData = null;
+        this.spaceWeatherInterval = null;
     }
 
     async mount() {
@@ -42,11 +46,17 @@ export default class SatelitesMode {
         this.createMap();
         await this.waitForMapReady();
         await this.loadISSLocation();
+        await this.loadSpaceWeather();
         
         // Actualizar cada 5 segundos (ISS se mueve rápido)
         this.updateInterval = setInterval(() => {
             this.loadISSLocation();
         }, 5000);
+
+        // Clima espacial: menos frecuente
+        this.spaceWeatherInterval = setInterval(() => {
+            this.loadSpaceWeather();
+        }, 120000); // 2 min
         
         // Iniciar animaciones
         this.startAnimations();
@@ -88,6 +98,30 @@ export default class SatelitesMode {
                           <div style="margin-top:6px; color: rgba(255,255,255,.75);">Cargando datos...</div>`;
         this.container.appendChild(info);
         this.infoOverlay = info;
+
+        // Overlay adicional: clima espacial (Kp + auroras)
+        const sw = document.createElement('div');
+        sw.id = 'space-weather-overlay';
+        sw.style.cssText = `
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            z-index: 5000;
+            background: rgba(0,0,0,0.55);
+            border: 1px solid rgba(255,255,255,0.10);
+            border-radius: 12px;
+            padding: 10px 12px;
+            color: #fff;
+            font-family: Inter, system-ui, sans-serif;
+            font-size: 12px;
+            line-height: 1.35;
+            min-width: 260px;
+            backdrop-filter: blur(6px);
+        `;
+        sw.innerHTML = `<div style="font-weight:800; color:#a78bfa;">🌌 Clima espacial</div>
+                        <div style="margin-top:6px; color: rgba(255,255,255,.75);">Cargando Kp y auroras...</div>`;
+        this.container.appendChild(sw);
+        this.spaceWeatherOverlay = sw;
 
         if (!window.L) {
             const link = document.createElement('link');
@@ -308,6 +342,248 @@ export default class SatelitesMode {
         }
     }
 
+    async loadSpaceWeather() {
+        // NOAA SWPC (HTTPS): Kp + OVATION aurora
+        // - Kp: https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json
+        // - Aurora: https://services.swpc.noaa.gov/json/ovation_aurora_latest.json  (coordinates: [lon, lat, value])
+        try {
+            const [kpRes, aurRes] = await Promise.allSettled([
+                fetch('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json', { cache: 'no-store' }),
+                fetch('https://services.swpc.noaa.gov/json/ovation_aurora_latest.json', { cache: 'no-store' })
+            ]);
+
+            let kp = null;
+            let kpTime = null;
+            let kpSeries = [];
+            if (kpRes.status === 'fulfilled' && kpRes.value.ok) {
+                const rows = await kpRes.value.json();
+                // rows: [ [headers...], [time, Kp, ...], ... ]
+                const dataRows = Array.isArray(rows) ? rows.slice(1) : [];
+                kpSeries = dataRows
+                    .map(r => ({ t: r?.[0], v: parseFloat(r?.[1]) }))
+                    .filter(p => Number.isFinite(p.v));
+                if (kpSeries.length) {
+                    const last = kpSeries[kpSeries.length - 1];
+                    kp = last.v;
+                    kpTime = last.t;
+                }
+            }
+
+            let aurora = null;
+            if (aurRes.status === 'fulfilled' && aurRes.value.ok) {
+                aurora = await aurRes.value.json();
+            }
+
+            this.kpData = { kp, kpTime, series: kpSeries };
+            this.updateSpaceWeatherOverlay({ kp, kpTime, series: kpSeries, aurora });
+            this.updateAuroraLayer(aurora);
+        } catch (e) {
+            console.warn('[Satélites] Error cargando clima espacial:', e);
+            if (this.spaceWeatherOverlay) {
+                this.spaceWeatherOverlay.innerHTML = `
+                    <div style="font-weight:800; color:#a78bfa;">🌌 Clima espacial</div>
+                    <div style="margin-top:6px; color: rgba(255,255,255,.75);">Sin datos por el momento.</div>
+                `;
+            }
+        }
+    }
+
+    updateSpaceWeatherOverlay({ kp, kpTime, series, aurora }) {
+        if (!this.spaceWeatherOverlay) return;
+
+        const kpLabel = (kp === null) ? '—' : kp.toFixed(2);
+        const { levelText, color } = this.describeKp(kp);
+
+        // Calcular “actividad auroral” simple: max value en coords
+        let auroraMax = null;
+        let auroraTime = null;
+        if (aurora && typeof aurora === 'object') {
+            auroraTime = aurora['Observation Time'] || aurora['Forecast Time'] || null;
+            const coords = Array.isArray(aurora.coordinates) ? aurora.coordinates : [];
+            let m = 0;
+            for (let i = 0; i < coords.length; i += 40) { // muestreo rápido para no iterar 65k siempre
+                const v = coords[i]?.[2];
+                if (typeof v === 'number' && v > m) m = v;
+            }
+            auroraMax = m || 0;
+        }
+
+        const kpTimeText = kpTime ? this.escapeHtml(kpTime.replace('.000', '')) : '—';
+        const auroraMaxText = (auroraMax === null) ? '—' : String(Math.round(auroraMax));
+        const auroraHint = (auroraMax !== null && auroraMax >= 20)
+            ? 'Auroras activas en regiones polares.'
+            : 'Auroras débiles o moderadas.';
+
+        this.spaceWeatherOverlay.innerHTML = `
+            <div style="font-weight:800; color:#a78bfa;">🌌 Clima espacial</div>
+            <div style="margin-top:6px; color: rgba(255,255,255,.85);">
+                Kp: <b style="color:${color};">${kpLabel}</b> <span style="color: rgba(255,255,255,.65);">(${this.escapeHtml(levelText)})</span><br>
+                <span style="color: rgba(255,255,255,.65);">Último:</span> ${kpTimeText}
+            </div>
+            <div style="margin-top:8px; display:flex; align-items:center; gap:10px;">
+                <canvas id="kp-sparkline" width="120" height="28" style="border-radius:6px; background: rgba(255,255,255,.06);"></canvas>
+                <div style="flex:1; color: rgba(255,255,255,.8); font-size:11px;">
+                    Aurora max: <b style="color:#7dd3fc;">${auroraMaxText}</b><br>
+                    <span style="color: rgba(255,255,255,.65);">${this.escapeHtml(auroraHint)}</span>
+                </div>
+            </div>
+        `;
+
+        // Dibujar sparkline (últimos 12 puntos)
+        try {
+            const canvas = this.spaceWeatherOverlay.querySelector('#kp-sparkline');
+            if (canvas) this.drawKpSparkline(canvas, series?.slice(-12) || []);
+        } catch (e) { }
+    }
+
+    describeKp(kp) {
+        if (!Number.isFinite(kp)) return { levelText: 'sin datos', color: '#9ca3af' };
+        // Umbrales estándar aproximados
+        if (kp < 3) return { levelText: 'calmo', color: '#34d399' };
+        if (kp < 5) return { levelText: 'inestable', color: '#fbbf24' };
+        if (kp < 6) return { levelText: 'tormenta menor', color: '#fb923c' };
+        if (kp < 7) return { levelText: 'tormenta moderada', color: '#f87171' };
+        if (kp < 8) return { levelText: 'tormenta fuerte', color: '#ef4444' };
+        if (kp < 9) return { levelText: 'tormenta severa', color: '#c084fc' };
+        return { levelText: 'extrema', color: '#a78bfa' };
+    }
+
+    drawKpSparkline(canvas, points) {
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const vals = points.map(p => p.v).filter(v => Number.isFinite(v));
+        if (vals.length < 2) return;
+        const min = 0;
+        const max = 9;
+
+        const w = canvas.width;
+        const h = canvas.height;
+        const pad = 3;
+
+        const xFor = (i) => pad + (i * (w - pad * 2)) / (vals.length - 1);
+        const yFor = (v) => pad + (1 - (v - min) / (max - min)) * (h - pad * 2);
+
+        // línea
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(167,139,250,0.9)';
+        ctx.beginPath();
+        vals.forEach((v, i) => {
+            const x = xFor(i);
+            const y = yFor(v);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        // puntos
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        vals.forEach((v, i) => {
+            const x = xFor(i);
+            const y = yFor(v);
+            ctx.beginPath();
+            ctx.arc(x, y, 1.8, 0, Math.PI * 2);
+            ctx.fill();
+        });
+    }
+
+    updateAuroraLayer(aurora) {
+        if (!this.map || !window.L) return;
+        if (!aurora || typeof aurora !== 'object') return;
+        const coords = Array.isArray(aurora.coordinates) ? aurora.coordinates : [];
+        if (!coords.length) return;
+
+        // Crear layer si no existe
+        if (!this.auroraLayer) {
+            this.auroraLayer = this.createAuroraLayer();
+            this.auroraLayer.addTo(this.map);
+        }
+
+        // Preparar puntos [lon, lat, value]
+        const threshold = 15; // filtrar ruido
+        let pts = coords.filter(p => Array.isArray(p) && typeof p[0] === 'number' && typeof p[1] === 'number' && typeof p[2] === 'number' && p[2] >= threshold);
+        // Limitar cantidad
+        const maxPts = 8000;
+        if (pts.length > maxPts) {
+            const step = Math.ceil(pts.length / maxPts);
+            pts = pts.filter((_, i) => i % step === 0);
+        }
+        this.auroraLayer.setData(pts);
+    }
+
+    createAuroraLayer() {
+        // Layer canvas simple (sin dependencias extra)
+        const layer = L.layerGroup();
+
+        const CanvasLayer = L.Layer.extend({
+            initialize: () => {
+                this._canvas = document.createElement('canvas');
+                this._ctx = this._canvas.getContext('2d');
+                this._data = [];
+            },
+            onAdd: (map) => {
+                this._map = map;
+                const pane = map.getPanes().overlayPane;
+                this._canvas.style.position = 'absolute';
+                this._canvas.style.pointerEvents = 'none';
+                this._canvas.style.zIndex = '300';
+                pane.appendChild(this._canvas);
+                map.on('move zoom resize', this._reset, this);
+                this._reset();
+            },
+            onRemove: (map) => {
+                map.off('move zoom resize', this._reset, this);
+                if (this._canvas && this._canvas.parentNode) this._canvas.parentNode.removeChild(this._canvas);
+            },
+            setData: (data) => {
+                this._data = data || [];
+                this._draw();
+            },
+            _reset: () => {
+                const size = this._map.getSize();
+                this._canvas.width = size.x;
+                this._canvas.height = size.y;
+                const pos = this._map._getMapPanePos();
+                this._canvas.style.transform = `translate(${-pos.x}px, ${-pos.y}px)`;
+                this._draw();
+            },
+            _colorFor: (v) => {
+                // v ~ 0..100 : gradiente verde->cian->violeta
+                const t = Math.max(0, Math.min(1, (v - 10) / 60));
+                const r = Math.round(20 + 140 * t);
+                const g = Math.round(220 - 80 * t);
+                const b = Math.round(120 + 135 * t);
+                const a = Math.max(0.08, Math.min(0.55, v / 120));
+                return `rgba(${r},${g},${b},${a})`;
+            },
+            _draw: () => {
+                const ctx = this._ctx;
+                if (!ctx || !this._map) return;
+                ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+                if (!this._data || !this._data.length) return;
+
+                const zoom = this._map.getZoom();
+                const radius = zoom >= 4 ? 4 : (zoom >= 3 ? 3 : 2);
+
+                for (let i = 0; i < this._data.length; i++) {
+                    const [lon, lat, v] = this._data[i];
+                    const p = this._map.latLngToContainerPoint([lat, lon]);
+                    ctx.fillStyle = this._colorFor(v);
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        });
+
+        const canvasLayer = new CanvasLayer();
+        // “bridge” para llamar setData desde fuera
+        layer.setData = (data) => canvasLayer.setData(data);
+        layer.addLayer(canvasLayer);
+        return layer;
+    }
+
     escapeHtml(s) {
         if (s === null || s === undefined) return '';
         return String(s).replace(/[&<>"']/g, (c) => ({
@@ -472,6 +748,9 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
         }
         if (this.updateInterval) {
             clearInterval(this.updateInterval);
+        }
+        if (this.spaceWeatherInterval) {
+            clearInterval(this.spaceWeatherInterval);
         }
         if (this.map) {
             this.map.remove();
