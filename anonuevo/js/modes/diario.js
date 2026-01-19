@@ -1,68 +1,256 @@
 import { audioManager } from '../utils/audio-manager.js';
 import { avatarSubtitlesManager } from '../utils/avatar-subtitles.js';
-import { eventManager } from '../utils/event-manager.js';
+import { eventManager } from '../utils/event-manager.js?v=2';
 import { pacingEngine, CONTENT_TYPES } from '../utils/pacing-engine.js';
 
 export default class DiarioMode {
     constructor(container) {
         this.container = container;
         this.isNarrating = false;
+        this.entries = [];
+        this.lastUpdatedAt = null;
+        this.refreshTimer = null;
+        this.focusTimer = null;
+        this.focusIndex = 0;
     }
 
     async mount() {
         console.log('[Diario] Montando página de diario...');
-        
-        // Inicializar avatar y subtítulos
+
+        // Asegurar polling global (música / navegación / automode)
+        if (!eventManager.pollInterval) eventManager.init();
+
+        // Audio ambiente (controlado globalmente por preferencia persistente)
+        if (!audioManager.musicLayer) audioManager.init();
+        if (!audioManager.isMusicPlaying) audioManager.startAmbience();
+
+        // UI (sin borrar el overlay de avatar después)
+        this.container.innerHTML = '';
+        this.buildUI();
+
+        // Avatar y subtítulos por encima del contenido
         avatarSubtitlesManager.init(this.container);
         avatarSubtitlesManager.show();
-        
-        // Inicializar audio
-        await audioManager.init();
-        audioManager.startMusic();
-        
-        // Desbloquear audio con interacción
-        const enableAudio = () => {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.resume();
-            }
-            audioManager.tryStartAfterInteraction();
-        };
-        document.addEventListener('click', enableAudio, { once: true });
-        document.addEventListener('touchstart', enableAudio, { once: true });
-        document.addEventListener('keydown', enableAudio, { once: true });
-        
-        // Registrar handler para comandos de música
-        eventManager.on('music_command', (musicState) => {
-            console.log('[Diario] 🎵 Comando de música recibido:', musicState.command);
-            if (musicState.command === 'toggle') {
-                audioManager.toggleMusic();
-            } else if (musicState.command === 'next') {
-                audioManager.nextTrack();
-                if (!audioManager.isMusicPlaying && audioManager.musicLayer) {
-                    audioManager.musicLayer.play().then(() => {
-                        audioManager.isMusicPlaying = true;
-                        audioManager.fadeAudio(audioManager.musicLayer, 0.0, 0.3, 2000);
-                    }).catch(e => console.warn('[Diario] Error iniciando música:', e));
+
+        // Cargar datos, render y arrancar loop “LIVE”
+        await this.refreshEntries({ isInitial: true });
+        this.startLiveLoop();
+
+        // Narración (después de tener contenido visible)
+        await this.startNarration();
+    }
+
+    buildUI() {
+        const root = document.createElement('div');
+        root.id = 'diary-root';
+        root.style.cssText = `
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background: radial-gradient(1200px 600px at 20% 10%, rgba(74, 158, 255, 0.20), rgba(0,0,0,0)) ,
+                        radial-gradient(900px 500px at 80% 20%, rgba(167, 139, 250, 0.16), rgba(0,0,0,0)) ,
+                        linear-gradient(135deg, #07070c 0%, #111124 100%);
+            color: #e8e8f0;
+            font-family: Inter, system-ui, sans-serif;
+            overflow: hidden;
+        `;
+
+        // Header LIVE
+        const header = document.createElement('div');
+        header.style.cssText = `
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            right: 14px;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            background: rgba(0,0,0,0.50);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 14px;
+            backdrop-filter: blur(8px);
+        `;
+        header.innerHTML = `
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="display:inline-flex; align-items:center; gap:8px; font-weight:800;">
+                        <span style="width:10px; height:10px; border-radius:999px; background:#ef4444; box-shadow:0 0 16px rgba(239,68,68,0.8);"></span>
+                        DIARIO • LIVE
+                    </span>
+                    <span style="color: rgba(255,255,255,0.55); font-size:12px;">Bitácora en tiempo real</span>
+                </div>
+            </div>
+            <div id="diary-meta" style="display:flex; align-items:center; gap:12px; font-size:12px; color: rgba(255,255,255,0.75);">
+                <span id="diary-count">Entradas: —</span>
+                <span style="opacity:.35;">|</span>
+                <span id="diary-updated">Actualizado: —</span>
+            </div>
+        `;
+
+        // Layout: feed + side
+        const layout = document.createElement('div');
+        layout.style.cssText = `
+            position: absolute;
+            inset: 72px 14px 52px 14px;
+            display: grid;
+            grid-template-columns: 1.3fr 0.7fr;
+            gap: 14px;
+            z-index: 10;
+        `;
+
+        const feed = document.createElement('div');
+        feed.id = 'diary-feed';
+        feed.style.cssText = `
+            overflow: hidden;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.10);
+            background: rgba(0,0,0,0.30);
+            backdrop-filter: blur(8px);
+            position: relative;
+        `;
+
+        const feedScroll = document.createElement('div');
+        feedScroll.id = 'diary-feed-scroll';
+        feedScroll.style.cssText = `
+            height: 100%;
+            overflow: auto;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            scroll-behavior: smooth;
+        `;
+        feed.appendChild(feedScroll);
+
+        const side = document.createElement('div');
+        side.id = 'diary-side';
+        side.style.cssText = `
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.10);
+            background: rgba(0,0,0,0.30);
+            backdrop-filter: blur(8px);
+            padding: 14px;
+            overflow: hidden;
+            position: relative;
+        `;
+        side.innerHTML = `
+            <div style="font-weight:800; margin-bottom:10px; color:#4a9eff;">En foco</div>
+            <div id="diary-focus" style="color: rgba(255,255,255,0.80); font-size:13px; line-height:1.45;">
+                Cargando…
+            </div>
+            <div style="margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.10);">
+                <div style="font-weight:800; margin-bottom:10px; color:#a78bfa;">Señal</div>
+                <div style="display:flex; flex-direction:column; gap:10px; font-size:12px; color: rgba(255,255,255,0.75);">
+                    <div>Auto-refresh: <b style="color:#fff;">30s</b></div>
+                    <div>Auto-focus: <b style="color:#fff;">7s</b></div>
+                    <div style="opacity:.7;">Tip: activá Dream Mode para rotar páginas.</div>
+                </div>
+            </div>
+        `;
+
+        layout.appendChild(feed);
+        layout.appendChild(side);
+
+        // Ticker inferior (para streaming)
+        const ticker = document.createElement('div');
+        ticker.id = 'diary-ticker';
+        ticker.style.cssText = `
+            position: absolute;
+            left: 14px;
+            right: 14px;
+            bottom: 14px;
+            height: 34px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(0,0,0,0.45);
+            backdrop-filter: blur(8px);
+            overflow: hidden;
+            z-index: 20;
+            display:flex;
+            align-items:center;
+        `;
+        ticker.innerHTML = `
+            <div style="padding:0 12px; font-weight:800; color: rgba(255,255,255,0.85);">📔</div>
+            <div style="flex:1; overflow:hidden;">
+                <div id="diary-ticker-track" style="white-space:nowrap; will-change: transform; color: rgba(255,255,255,0.75); font-size:12px;">
+                    Cargando bitácora…
+                </div>
+            </div>
+        `;
+
+        // CSS extra
+        if (!document.getElementById('diary-live-css')) {
+            const style = document.createElement('style');
+            style.id = 'diary-live-css';
+            style.textContent = `
+                .diary-card {
+                    border: 1px solid rgba(74,158,255,0.18);
+                    border-left: 4px solid rgba(74,158,255,0.85);
+                    border-radius: 14px;
+                    padding: 14px 14px;
+                    background: rgba(15,15,25,0.72);
+                    transition: transform 260ms ease, border-color 260ms ease, box-shadow 260ms ease;
                 }
-            }
-        });
-        
-        // Cargar datos y empezar narración
+                .diary-card.is-focus {
+                    border-color: rgba(74,158,255,0.55);
+                    box-shadow: 0 16px 40px rgba(74,158,255,0.16);
+                    transform: translateX(8px);
+                }
+                .diary-card .meta {
+                    display:flex;
+                    align-items:center;
+                    justify-content:space-between;
+                    gap: 10px;
+                    font-size: 12px;
+                    color: rgba(255,255,255,0.65);
+                    margin-bottom: 8px;
+                }
+                .diary-card .topic {
+                    color: rgba(74,158,255,0.95);
+                    font-weight: 700;
+                }
+                .diary-card .content {
+                    color: rgba(255,255,255,0.88);
+                    font-size: 14px;
+                    line-height: 1.6;
+                }
+                @keyframes tickerMove {
+                    from { transform: translateX(0); }
+                    to { transform: translateX(-50%); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        root.appendChild(header);
+        root.appendChild(layout);
+        root.appendChild(ticker);
+        this.container.appendChild(root);
+    }
+
+    async refreshEntries({ isInitial = false } = {}) {
         await this.loadDiaryEntries();
         this.renderDiary();
-        await this.startNarration();
+        if (isInitial) {
+            // Reset foco al inicio
+            this.focusIndex = 0;
+            this.applyFocus();
+        }
     }
 
     async loadDiaryEntries() {
         try {
             // Obtener entradas del diario desde el servidor
-            const res = await fetch('/control-api/api/diary-entries');
+            const res = await fetch('/control-api/api/diary-entries', { cache: 'no-store' });
             if (res.ok) {
                 const data = await res.json();
                 this.entries = data.entries || [];
             } else {
                 // Fallback: generar desde memorias
-                const memoryRes = await fetch('/control-api/api/country-memory');
+                const memoryRes = await fetch('/control-api/api/country-memory', { cache: 'no-store' });
                 if (memoryRes.ok) {
                     const memoryData = await memoryRes.json();
                     const memories = memoryData.memories || [];
@@ -70,7 +258,7 @@ export default class DiarioMode {
                     
                     for (const memory of memories.slice(0, 10)) {
                         try {
-                            const countryMemory = await fetch(`/control-api/api/country-memory/${memory.countryId}`).then(r => r.json());
+                            const countryMemory = await fetch(`/control-api/api/country-memory/${memory.countryId}`, { cache: 'no-store' }).then(r => r.json());
                             if (countryMemory.visits && countryMemory.visits.length > 0) {
                                 const latestVisit = countryMemory.visits[countryMemory.visits.length - 1];
                                 if (latestVisit.narrative) {
@@ -95,8 +283,10 @@ export default class DiarioMode {
             // Ordenar por timestamp (más recientes primero)
             this.entries.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
             
-            // Limitar a 10 entradas más recientes
-            this.entries = this.entries.slice(0, 10);
+            // Limitar a 14 entradas más recientes (más “pantalla”)
+            this.entries = this.entries.slice(0, 14);
+
+            this.lastUpdatedAt = Date.now();
             
             console.log(`[Diario] Cargadas ${this.entries.length} entradas del diario`);
         } catch (e) {
@@ -107,142 +297,72 @@ export default class DiarioMode {
 
     renderDiary() {
         if (!this.container) return;
-        
-        this.container.innerHTML = '';
-        
-        const wrapper = document.createElement('div');
-        wrapper.style.cssText = `
-            width: 100%;
-            height: 100%;
-            padding: 3rem;
-            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a24 100%);
-            color: #e8e8f0;
-            font-family: 'Inter', sans-serif;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        `;
-        
-        const title = document.createElement('h1');
-        title.textContent = 'Diario de Viaje';
-        title.style.cssText = `
-            font-size: 3rem;
-            font-weight: 800;
-            margin-bottom: 2rem;
-            color: #4a9eff;
-            text-align: center;
-            border-bottom: 2px solid rgba(74, 158, 255, 0.3);
-            padding-bottom: 1rem;
-            width: 100%;
-            max-width: 900px;
-        `;
-        wrapper.appendChild(title);
-        
-        const feed = document.createElement('div');
-        feed.id = 'diary-feed';
-        feed.style.cssText = `
-            width: 100%;
-            max-width: 900px;
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        `;
-        
-        if (this.entries.length === 0) {
-            const empty = document.createElement('div');
-            empty.style.cssText = `
-                text-align: center;
-                padding: 4rem;
-                color: rgba(255, 255, 255, 0.5);
-            `;
-            empty.innerHTML = `
-                <div style="font-size: 4rem; margin-bottom: 1rem;">📔</div>
-                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">El diario está vacío</div>
-                <div style="font-size: 1rem;">Las entradas aparecerán automáticamente durante el viaje</div>
-            `;
-            feed.appendChild(empty);
-        } else {
-            this.entries.forEach((entry, index) => {
-                const entryDiv = document.createElement('div');
-                entryDiv.className = 'diary-entry';
-                entryDiv.style.cssText = `
-                    background: rgba(26, 26, 36, 0.8);
-                    border: 1px solid rgba(74, 158, 255, 0.2);
-                    border-left: 4px solid #4a9eff;
-                    border-radius: 12px;
-                    padding: 2rem;
-                    transition: all 0.3s ease;
-                    animation: fadeInUp 0.5s ease ${index * 0.1}s both;
+        const feed = document.getElementById('diary-feed-scroll');
+        const metaCount = document.getElementById('diary-count');
+        const metaUpdated = document.getElementById('diary-updated');
+        const focus = document.getElementById('diary-focus');
+        const ticker = document.getElementById('diary-ticker-track');
+
+        if (metaCount) metaCount.innerHTML = `Entradas: <b style="color:#fff;">${this.entries.length}</b>`;
+        if (metaUpdated) metaUpdated.innerHTML = `Actualizado: <b style="color:#fff;">${new Date(this.lastUpdatedAt || Date.now()).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</b>`;
+
+        if (feed) {
+            feed.innerHTML = '';
+            if (this.entries.length === 0) {
+                const empty = document.createElement('div');
+                empty.style.cssText = `
+                    height: 100%;
+                    min-height: 240px;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    flex-direction:column;
+                    gap: 10px;
+                    color: rgba(255,255,255,0.70);
+                    padding: 24px;
+                    text-align:center;
                 `;
-                
-                entryDiv.onmouseenter = () => {
-                    entryDiv.style.transform = 'translateX(10px)';
-                    entryDiv.style.borderColor = 'rgba(74, 158, 255, 0.5)';
-                    entryDiv.style.boxShadow = '0 10px 30px rgba(74, 158, 255, 0.2)';
-                };
-                entryDiv.onmouseleave = () => {
-                    entryDiv.style.transform = 'translateX(0)';
-                    entryDiv.style.borderColor = 'rgba(74, 158, 255, 0.2)';
-                    entryDiv.style.boxShadow = 'none';
-                };
-                
-                const meta = document.createElement('div');
-                meta.style.cssText = `
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 1rem;
-                    font-size: 0.875rem;
-                    color: #94a3b8;
+                empty.innerHTML = `
+                    <div style="font-size:42px;">📔</div>
+                    <div style="font-weight:800; font-size:18px;">Esperando entradas…</div>
+                    <div style="font-size:13px; opacity:.8; max-width:520px;">
+                        Cuando el viaje genere memorias/narrativas, este feed se completa solo.
+                    </div>
                 `;
-                
-                const countryTime = document.createElement('span');
-                countryTime.textContent = `${entry.country} • ${entry.time}`;
-                meta.appendChild(countryTime);
-                
-                const topic = document.createElement('span');
-                topic.textContent = `#${entry.topic}`;
-                topic.style.cssText = `
-                    color: #4a9eff;
-                    font-weight: 600;
-                `;
-                meta.appendChild(topic);
-                
-                const content = document.createElement('div');
-                content.textContent = entry.content;
-                content.style.cssText = `
-                    font-size: 1.1rem;
-                    line-height: 1.8;
-                    color: #e8e8f0;
-                `;
-                
-                entryDiv.appendChild(meta);
-                entryDiv.appendChild(content);
-                feed.appendChild(entryDiv);
-            });
-        }
-        
-        wrapper.appendChild(feed);
-        this.container.appendChild(wrapper);
-        
-        // Agregar animación CSS
-        if (!document.getElementById('diary-animations')) {
-            const style = document.createElement('style');
-            style.id = 'diary-animations';
-            style.textContent = `
-                @keyframes fadeInUp {
-                    from {
-                        opacity: 0;
-                        transform: translateY(20px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
+                feed.appendChild(empty);
+                if (focus) focus.textContent = 'Aún no hay entradas. Apenas aparezca una, la pondremos en foco automáticamente.';
+            } else {
+                this.entries.forEach((entry, idx) => {
+                    const card = document.createElement('div');
+                    card.className = `diary-card${idx === this.focusIndex ? ' is-focus' : ''}`;
+                    card.dataset.idx = String(idx);
+                    card.innerHTML = `
+                        <div class="meta">
+                            <div><b style="color:#fff;">${this.escapeHtml(entry.country || '—')}</b> <span style="opacity:.7;">• ${this.escapeHtml(entry.time || '')}</span></div>
+                            <div class="topic">#${this.escapeHtml(entry.topic || 'entrada')}</div>
+                        </div>
+                        <div class="content">${this.escapeHtml(entry.content || '')}</div>
+                    `;
+                    feed.appendChild(card);
+                });
+
+                const e = this.entries[this.focusIndex] || this.entries[0];
+                if (focus && e) {
+                    focus.innerHTML = `
+                        <div style="font-weight:800; color:#fff; margin-bottom:6px;">${this.escapeHtml(e.country || '—')} • ${this.escapeHtml(e.time || '')}</div>
+                        <div style="opacity:.9;">${this.escapeHtml(e.content || '').slice(0, 220)}${(e.content && e.content.length > 220) ? '…' : ''}</div>
+                    `;
                 }
-            `;
-            document.head.appendChild(style);
+            }
+        }
+
+        // Ticker: duplicar texto para animación infinita
+        if (ticker) {
+            const parts = (this.entries || []).slice(0, 8).map(e => `${e.country}: ${String(e.content || '').slice(0, 70)}${(e.content && e.content.length > 70) ? '…' : ''}`);
+            const base = parts.length ? parts.join('   •   ') : 'Esperando entradas del diario…';
+            const track = `${base}   •   ${base}`;
+            ticker.textContent = track;
+            ticker.style.animation = 'tickerMove 34s linear infinite';
         }
     }
 
@@ -299,6 +419,54 @@ export default class DiarioMode {
                 this.scheduleNextPage();
             }
         }, updateSubtitles);
+    }
+
+    startLiveLoop() {
+        // Auto-refresh de datos
+        this.refreshTimer = setInterval(() => {
+            this.refreshEntries().catch(() => { });
+        }, 30000);
+
+        // Auto-focus + auto-scroll (stream-friendly)
+        this.focusTimer = setInterval(() => {
+            if (!this.entries || this.entries.length === 0) return;
+            this.focusIndex = (this.focusIndex + 1) % this.entries.length;
+            this.applyFocus();
+        }, 7000);
+    }
+
+    applyFocus() {
+        const feed = document.getElementById('diary-feed-scroll');
+        if (!feed) return;
+        const cards = Array.from(feed.querySelectorAll('.diary-card'));
+        cards.forEach((c) => c.classList.remove('is-focus'));
+        const current = cards[this.focusIndex];
+        if (current) {
+            current.classList.add('is-focus');
+            try {
+                current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } catch (e) { }
+        }
+        // Re-render parcial del panel “En foco”
+        const focus = document.getElementById('diary-focus');
+        const e = this.entries[this.focusIndex];
+        if (focus && e) {
+            focus.innerHTML = `
+                <div style="font-weight:800; color:#fff; margin-bottom:6px;">${this.escapeHtml(e.country || '—')} • ${this.escapeHtml(e.time || '')}</div>
+                <div style="opacity:.9;">${this.escapeHtml(e.content || '').slice(0, 220)}${(e.content && e.content.length > 220) ? '…' : ''}</div>
+            `;
+        }
+    }
+
+    escapeHtml(s) {
+        if (s === null || s === undefined) return '';
+        return String(s).replace(/[&<>"']/g, (c) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[c]));
     }
 
     async generateFullNarrative() {
@@ -360,6 +528,8 @@ NO repitas literalmente las entradas del diario. Habla sobre el diario como conc
     }
 
     unmount() {
+        if (this.refreshTimer) clearInterval(this.refreshTimer);
+        if (this.focusTimer) clearInterval(this.focusTimer);
         if (this.container) {
             this.container.innerHTML = '';
         }
