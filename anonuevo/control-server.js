@@ -37,6 +37,13 @@ const headers = {
     'Content-Type': 'application/json'
 };
 
+// =========================
+// SPACE (PROXY ENDPOINTS)
+// =========================
+// Cache simple en memoria para TLE (evitar golpear CelesTrak en cada cliente)
+const tleCache = new Map(); // group -> { ts, text }
+const TLE_CACHE_TTL_MS = 10 * 60 * 1000; // 10 min
+
 // --- DATA UTILS ---
 function loadLivingScript() { try { return fs.existsSync(DATA_FILE) ? JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')) : null; } catch (e) { return null; } }
 function saveLivingScript(data) { fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 4)); }
@@ -454,6 +461,80 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, headers);
         res.end(JSON.stringify({ intro: introText || "Sistemas listos. Iniciando viaje." }));
         return;
+    }
+
+    // -------------------------
+    // Space: TLE proxy (CelesTrak)
+    // GET /api/space/tle?group=visual
+    // -------------------------
+    if (req.method === 'GET' && apiPath === '/api/space/tle') {
+        try {
+            const rawGroup = (parsedUrl.query.group || 'visual').toString();
+            const group = rawGroup.trim();
+
+            // Hardening: evitar proxy abierto
+            const okFormat = /^[a-z0-9_-]{1,40}$/i.test(group);
+            const allowed = new Set([
+                'visual',
+                'stations',
+                'active',
+                'starlink',
+                'iridium-NEXT',
+                'weather',
+                'geo',
+                'amateur',
+                'gps-ops',
+                'galileo',
+                'glonass',
+                'beidou'
+            ]);
+            if (!okFormat || !allowed.has(group)) {
+                res.writeHead(400, headers);
+                res.end(JSON.stringify({ error: 'invalid_group', allowed: Array.from(allowed) }));
+                return;
+            }
+
+            const cached = tleCache.get(group);
+            if (cached && (Date.now() - cached.ts) < TLE_CACHE_TTL_MS && cached.text && cached.text.length > 100) {
+                res.writeHead(200, {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Content-Type': 'text/plain; charset=utf-8',
+                    'Cache-Control': 'no-cache'
+                });
+                res.end(cached.text);
+                return;
+            }
+
+            const upstream = `https://celestrak.org/NORAD/elements/gp.php?GROUP=${encodeURIComponent(group)}&FORMAT=tle`;
+            const r = await fetch(upstream, { method: 'GET' });
+            const text = await r.text();
+            if (!r.ok || !text || text.length < 100) {
+                res.writeHead(502, headers);
+                res.end(JSON.stringify({
+                    error: 'celestrak_upstream_error',
+                    status: r.status,
+                    body: (text || '').slice(0, 800)
+                }));
+                return;
+            }
+
+            tleCache.set(group, { ts: Date.now(), text });
+            res.writeHead(200, {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Content-Type': 'text/plain; charset=utf-8',
+                'Cache-Control': 'no-cache'
+            });
+            res.end(text);
+            return;
+        } catch (e) {
+            res.writeHead(500, headers);
+            res.end(JSON.stringify({ error: 'tle_proxy_failed', message: e.message }));
+            return;
+        }
     }
 
     // API: Memoria de presentaciones del mapa

@@ -774,20 +774,23 @@ export default class SatelitesMode {
     }
 
     async fetchTleFromCelestrak(group) {
-        // CelesTrak GP endpoint
-        const urls = [
-            `https://celestrak.org/NORAD/elements/gp.php?GROUP=${encodeURIComponent(group)}&FORMAT=tle`,
-            `https://www.celestrak.org/NORAD/elements/gp.php?GROUP=${encodeURIComponent(group)}&FORMAT=tle`
-        ];
-        for (const url of urls) {
-            try {
-                const r = await fetch(url, { cache: 'no-store' });
-                if (!r.ok) continue;
-                const t = await r.text();
-                if (t && t.length > 100) return t;
-            } catch (e) { }
+        // IMPORTANTE:
+        // - CelesTrak bloquea CORS desde el navegador (habilispro.com), por eso proxyamos vía control-server.
+        // - Evitar https://www.celestrak.org (certificado inválido en algunos navegadores).
+        const url = `/control-api/api/space/tle?group=${encodeURIComponent(group)}`;
+        try {
+            const r = await fetch(url, { cache: 'no-store' });
+            if (!r.ok) {
+                const body = await r.text().catch(() => '');
+                console.warn('[Satélites] Proxy TLE error:', r.status, body.slice(0, 200));
+                return null;
+            }
+            const t = await r.text();
+            if (t && t.length > 100) return t;
+        } catch (e) {
+            console.warn('[Satélites] Proxy TLE fetch failed:', e?.message || e);
         }
-        console.warn('[Satélites] No se pudo cargar TLE desde CelesTrak');
+        console.warn('[Satélites] No se pudo cargar TLE (proxy)');
         return null;
     }
 
