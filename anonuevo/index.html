@@ -239,10 +239,24 @@
 
     <script type="module">
         import { eventManager } from './js/utils/event-manager.js?v=2';
+        import { audioManager } from './js/utils/audio-manager.js?v=2';
 
         // --- CORE MODULE ---
         eventManager.init();
         eventManager.reportTelemetry('INTRO', 'GLOBAL', 0);
+        window.audioManager = audioManager;
+
+        // Sincronizar preferencia de música con el estado del servidor (si el panel la pausó)
+        try {
+            fetch('/control-api/api/music-status')
+                .then(r => r.ok ? r.json() : null)
+                .then(data => {
+                    if (!data || typeof data.isPlaying !== 'boolean') return;
+                    audioManager.setMusicEnabled?.(data.isPlaying);
+                    if (!data.isPlaying) audioManager.pauseMusic();
+                })
+                .catch(() => { });
+        } catch (e) { }
 
         // Registrar handler para comandos de música
         eventManager.on('music_command', (musicState) => {
@@ -479,15 +493,9 @@
 
         // INIT GLOBAL
         window.initExperience = async function () {
-            // 1. Audio Ambiente
-            const ambient = new Audio('assets/audio/ambient_base.mp3');
-            ambient.loop = true;
-            ambient.volume = 0;
-            // Intentar reproducir (requiere interaccion previa a veces, pero aqui es init explicito)
-            ambient.play().catch(e => console.log("Audio play prevented", e));
-            // Fade in
-            let vol = 0;
-            const iv = setInterval(() => { vol += 0.05; ambient.volume = Math.min(vol, 0.3); if (vol >= 0.3) clearInterval(iv); }, 200);
+            // 1. Audio Ambiente (unificado con audioManager para que el botón PAUSE funcione también aquí)
+            if (!audioManager.musicLayer) audioManager.init();
+            audioManager.startAmbience();
 
             // 2. Generar Guion Base
             script = generateDynamicScript(); // Carga identidad base
