@@ -26,6 +26,7 @@ export default class SatelitesMode {
         this.extraSatellites = new Map(); // noradId -> { name, satrec, marker }
         this.extraSatellitesInterval = null;
         this.maxExtraSatellites = 40; // límite por performance (se puede subir)
+        this.labelsEnabled = (localStorage.getItem('sat_labels_enabled') === '1');
 
         // Cinematic camera: evitar pelear con el director global
         this.lastRecenterAt = 0;
@@ -478,7 +479,19 @@ export default class SatelitesMode {
                 </div>
             </div>
             <div style="margin-top:8px; color: rgba(255,255,255,.75); font-size:11px;">
-                🛰️ Satélites extra: <b>${extraCount}</b> (grupo: visual)
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                    <div>🛰️ Satélites extra: <b>${extraCount}</b> (grupo: visual)</div>
+                    <button id="toggle-sat-labels" style="
+                        cursor:pointer;
+                        border: 1px solid rgba(255,255,255,0.18);
+                        background: rgba(255,255,255,0.08);
+                        color: rgba(255,255,255,0.92);
+                        padding: 6px 8px;
+                        border-radius: 10px;
+                        font-size: 11px;
+                        line-height: 1;
+                    ">Etiquetas: ${this.labelsEnabled ? 'ON' : 'OFF'}</button>
+                </div>
             </div>
         `;
 
@@ -487,6 +500,56 @@ export default class SatelitesMode {
             const canvas = this.spaceWeatherOverlay.querySelector('#kp-sparkline');
             if (canvas) this.drawKpSparkline(canvas, series?.slice(-12) || []);
         } catch (e) { }
+
+        // Hook del toggle (re-rendera este overlay cada vez; por eso se reengancha aquí)
+        try {
+            const btn = this.spaceWeatherOverlay.querySelector('#toggle-sat-labels');
+            if (btn) {
+                btn.onclick = () => {
+                    this.setLabelsEnabled(!this.labelsEnabled);
+                };
+            }
+        } catch (e) { }
+    }
+
+    setLabelsEnabled(enabled) {
+        this.labelsEnabled = !!enabled;
+        try {
+            localStorage.setItem('sat_labels_enabled', this.labelsEnabled ? '1' : '0');
+        } catch (e) { }
+        this.applySatelliteLabels();
+        // refrescar overlay para que cambie el texto del botón
+        if (this.kpData) {
+            this.updateSpaceWeatherOverlay({
+                kp: this.kpData.kp,
+                kpTime: this.kpData.kpTime,
+                series: this.kpData.series,
+                aurora: this.lastAurora
+            });
+        }
+    }
+
+    applySatelliteLabels() {
+        if (!this.extraSatellites || this.extraSatellites.size === 0) return;
+        for (const s of this.extraSatellites.values()) {
+            const marker = s.marker;
+            if (!marker) continue;
+            // Leaflet no permite alternar permanent fácilmente en el mismo tooltip,
+            // así que lo re-creamos cuando cambia el modo.
+            try {
+                marker.unbindTooltip();
+            } catch (e) { }
+            const label = `${s.name || 'SAT'} • ${s.noradId || ''}`.trim();
+            try {
+                marker.bindTooltip(label, {
+                    permanent: this.labelsEnabled,
+                    direction: 'top',
+                    offset: [0, -6],
+                    opacity: 0.9,
+                    className: 'sat-label-tooltip'
+                });
+            } catch (e) { }
+        }
     }
 
     describeKp(kp) {
@@ -734,7 +797,7 @@ export default class SatelitesMode {
 
             const icon = L.divIcon({
                 className: 'extra-sat-marker',
-                html: `<div style="font-size:16px; filter: drop-shadow(0 0 8px rgba(255,255,255,0.25));">🛰️</div>`,
+                html: `<div title="${this.escapeHtml(name)}" style="font-size:16px; filter: drop-shadow(0 0 8px rgba(255,255,255,0.25));">🛰️</div>`,
                 iconSize: [16, 16],
                 iconAnchor: [8, 8]
             });
@@ -757,8 +820,11 @@ export default class SatelitesMode {
                 </div>
             `);
 
-            this.extraSatellites.set(noradId, { name, satrec, marker });
+            this.extraSatellites.set(noradId, { name, noradId, satrec, marker });
         });
+
+        // Aplicar etiquetas según preferencia (hover o permanente)
+        this.applySatelliteLabels();
 
         // Actualizar panel para reflejar cantidad de satélites extra inmediatamente
         if (this.kpData) {
