@@ -16,6 +16,8 @@ const PORT = 3005;
 const DATA_FILE = path.join(__dirname, 'data', 'living-script.json');
 const STATE_FILE = path.join(__dirname, 'data', 'server-state.json');
 const COUNTRY_MEMORIES_DIR = path.join(__dirname, 'data', 'country-memories');
+const STORY_BIBLE_FILE = path.join(__dirname, 'data', 'story-bible.json');
+const STORY_STATE_FILE = path.join(__dirname, 'data', 'story-state.json');
 
 // Asegurar que el directorio de memorias existe
 if (!fs.existsSync(COUNTRY_MEMORIES_DIR)) {
@@ -77,6 +79,89 @@ function loadState() {
 
 // Cargar estado al inicio
 loadState();
+const storyBible = loadStoryBible();
+let storyState = loadStoryState();
+
+// =========================
+// STORY / GUIÓN (continuidad)
+// =========================
+function loadStoryBible() {
+    try {
+        if (fs.existsSync(STORY_BIBLE_FILE)) {
+            return JSON.parse(fs.readFileSync(STORY_BIBLE_FILE, 'utf8'));
+        }
+    } catch (e) {
+        console.warn('[Story] story-bible.json inválido:', e.message);
+    }
+    return null;
+}
+
+function loadStoryState() {
+    try {
+        if (fs.existsSync(STORY_STATE_FILE)) {
+            return JSON.parse(fs.readFileSync(STORY_STATE_FILE, 'utf8'));
+        }
+    } catch (e) {
+        console.warn('[Story] story-state.json inválido:', e.message);
+    }
+    return {
+        activeArcId: 'observacion',
+        lastN: [] // { ts, scene, country, dayId, promptHint, narrativeHint }
+    };
+}
+
+function saveStoryState() {
+    try {
+        fs.writeFileSync(STORY_STATE_FILE, JSON.stringify(storyState, null, 2));
+    } catch (e) {
+        console.warn('[Story] save failed:', e.message);
+    }
+}
+
+function buildNarrativePromptWithStory(rawPrompt) {
+    const bible = storyBible || {};
+    const st = storyState || {};
+    const telemetry = state?.clientTelemetry || {};
+    const dayId = state?.editorial?.dayId || null;
+
+    const scene = telemetry.scene || 'UNKNOWN';
+    const country = telemetry.country || 'GLOBAL';
+
+    const avoid = (bible.style?.avoidPhrases || []).slice(0, 10);
+    const arc = (bible.arcs || []).find(a => a.id === st.activeArcId) || (bible.arcs || [])[0] || null;
+
+    const recent = Array.isArray(st.lastN) ? st.lastN.slice(-5) : [];
+    const recentHints = recent
+        .map((x, i) => `${i + 1}) ${x.scene || '—'} / ${x.country || '—'}: ${String(x.narrativeHint || '').slice(0, 140)}`)
+        .join('\n');
+
+    const arcText = arc ? `Arco activo: ${arc.title}\nBeats sugeridos:\n- ${arc.beats.join('\n- ')}` : '';
+
+    const systemConstraints = `
+[BIBLIA NARRATIVA — OBLIGATORIO]
+- Eres ilfass. Voz humana, reflexiva, observacional. Siempre primera persona.
+- No adelantes futuro. No inventes rutas ni decisiones editoriales.
+- Evita repetición: NO reutilices frases exactas recientes.
+- Mantén coherencia con "VIVOS (presente)" y "MEMORIA (pasado)".
+- Si falta información, habla desde la observación (no afirmes hechos duros).
+- Longitud orientativa: ${bible.style?.lengthHint || '120-200 palabras'}.
+- Evitar muletillas/frases: ${avoid.length ? avoid.map(s => `"${s}"`).join(', ') : '(ninguna)'}.
+
+Contexto operativo:
+- Día editorial: ${dayId || '—'}
+- Escena actual (telemetría): ${scene}
+- País actual (telemetría): ${country}
+
+${arcText ? arcText + '\n' : ''}
+Recientes (no repetir literalmente):
+${recentHints || '(sin historial)'}
+
+[PROMPT DE ESCENA]
+${rawPrompt}
+`.trim();
+
+    return systemConstraints;
+}
 
 // Función auxiliar para extraer curiosidades de narrativas
 function extractCuriositiesFromNarrative(narrative, countryId, timestamp) {
@@ -1270,6 +1355,10 @@ const server = http.createServer(async (req, res) => {
                     res.end('{"error":"No prompt or countryCode provided"}');
                     return;
                 }
+
+                // Inyectar biblia/guion + continuidad (centralizado, aplica a todos los modos)
+                const rawPrompt = prompt;
+                prompt = buildNarrativePromptWithStory(prompt);
                 
                 console.log(`[GenerateNarrative] Iniciando generación con prompt de ${prompt.length} caracteres...`);
                 
@@ -1329,6 +1418,25 @@ const server = http.createServer(async (req, res) => {
                 }
                 
                 console.log(`[GenerateNarrative] Relato generado: ${narrative.length} caracteres`);
+
+                // Persistir “hilo” (resumen corto para evitar repetición y para auditoría)
+                try {
+                    const telemetry = state?.clientTelemetry || {};
+                    const hint = String(narrative || '').replace(/\s+/g, ' ').trim().slice(0, 260);
+                    const promptHint = String(rawPrompt || '').replace(/\s+/g, ' ').trim().slice(0, 160);
+                    if (!storyState.lastN) storyState.lastN = [];
+                    storyState.lastN.push({
+                        ts: Date.now(),
+                        scene: telemetry.scene || 'UNKNOWN',
+                        country: telemetry.country || 'GLOBAL',
+                        dayId: state?.editorial?.dayId || null,
+                        promptHint,
+                        narrativeHint: hint
+                    });
+                    // Mantener buffer acotado
+                    if (storyState.lastN.length > 40) storyState.lastN = storyState.lastN.slice(-40);
+                    saveStoryState();
+                } catch (e) { }
                 
                 res.writeHead(200, headers);
                 res.end(JSON.stringify({ narrative }));
@@ -1338,6 +1446,54 @@ const server = http.createServer(async (req, res) => {
                 res.end(JSON.stringify({ error: "Failed to generate narrative", message: e.message }));
             }
         });
+        return;
+    }
+
+    // Story: ver estado actual (para auditoría y dirección)
+    if (req.method === 'GET' && apiPath === '/api/story/state') {
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({
+            ok: true,
+            activeArcId: storyState?.activeArcId || null,
+            lastN: (storyState?.lastN || []).slice(-10),
+            telemetry: state?.clientTelemetry || null,
+            dayId: state?.editorial?.dayId || null
+        }));
+        return;
+    }
+
+    // Story: cambiar arco activo (control editorial)
+    if (req.method === 'POST' && apiPath === '/api/story/arc') {
+        let body = '';
+        req.on('data', c => body += c);
+        req.on('end', () => {
+            try {
+                const data = JSON.parse(body || '{}');
+                const arcId = (data.arcId || '').toString().trim();
+                const arcs = (storyBible?.arcs || []).map(a => a.id);
+                if (!arcId || !arcs.includes(arcId)) {
+                    res.writeHead(400, headers);
+                    res.end(JSON.stringify({ error: 'invalid_arc', arcs }));
+                    return;
+                }
+                storyState.activeArcId = arcId;
+                saveStoryState();
+                res.writeHead(200, headers);
+                res.end(JSON.stringify({ ok: true, activeArcId: arcId }));
+            } catch (e) {
+                res.writeHead(400, headers);
+                res.end(JSON.stringify({ error: 'bad_json' }));
+            }
+        });
+        return;
+    }
+
+    // Story: reset del historial (útil si cambia el tono)
+    if (req.method === 'POST' && apiPath === '/api/story/reset') {
+        storyState.lastN = [];
+        saveStoryState();
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({ ok: true }));
         return;
     }
 
