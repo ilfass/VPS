@@ -405,6 +405,7 @@ export default class SatelitesMode {
 
         const kpLabel = (kp === null) ? '—' : kp.toFixed(2);
         const { levelText, color } = this.describeKp(kp);
+        const extraCount = this.extraSatellites ? this.extraSatellites.size : 0;
 
         // Calcular “actividad auroral” simple: max value en coords
         let auroraMax = null;
@@ -438,6 +439,9 @@ export default class SatelitesMode {
                     Aurora max: <b style="color:#7dd3fc;">${auroraMaxText}</b><br>
                     <span style="color: rgba(255,255,255,.65);">${this.escapeHtml(auroraHint)}</span>
                 </div>
+            </div>
+            <div style="margin-top:8px; color: rgba(255,255,255,.75); font-size:11px;">
+                🛰️ Satélites extra: <b>${extraCount}</b> (grupo: visual)
             </div>
         `;
 
@@ -810,21 +814,8 @@ export default class SatelitesMode {
     }
 
     updateExtraSatellitesOverlay() {
-        if (!this.spaceWeatherOverlay) return;
-        // Insertar línea “satélites extra” sin romper el HTML existente
-        const count = this.extraSatellites ? this.extraSatellites.size : 0;
-        // Solo si ya está renderizado el panel con contenido
-        const header = this.spaceWeatherOverlay.querySelector('div');
-        if (!header) return;
-        // Añadir/actualizar badge simple
-        let badge = this.spaceWeatherOverlay.querySelector('#extra-sats-badge');
-        if (!badge) {
-            badge = document.createElement('div');
-            badge.id = 'extra-sats-badge';
-            badge.style.cssText = 'margin-top:6px; color: rgba(255,255,255,.75); font-size:11px;';
-            this.spaceWeatherOverlay.appendChild(badge);
-        }
-        badge.innerHTML = `🛰️ Satélites extra: <b>${count}</b> (grupo: visual)`;
+        // obsoleto: ahora se muestra dentro del HTML del panel en updateSpaceWeatherOverlay()
+        return;
     }
 
     escapeHtml(s) {
