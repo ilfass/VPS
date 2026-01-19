@@ -37,6 +37,7 @@ export default class SatelitesMode {
         }
         
         this.createMap();
+        await this.waitForMapReady();
         await this.loadISSLocation();
         
         // Actualizar cada 5 segundos (ISS se mueve rápido)
@@ -61,6 +62,30 @@ export default class SatelitesMode {
         mapContainer.style.left = '0';
         this.container.appendChild(mapContainer);
 
+        // Overlay de información (para que el relato “hable de lo que se ve”)
+        const info = document.createElement('div');
+        info.id = 'iss-info-overlay';
+        info.style.cssText = `
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            z-index: 5000;
+            background: rgba(0,0,0,0.55);
+            border: 1px solid rgba(255,255,255,0.10);
+            border-radius: 12px;
+            padding: 10px 12px;
+            color: #fff;
+            font-family: Inter, system-ui, sans-serif;
+            font-size: 12px;
+            line-height: 1.35;
+            min-width: 240px;
+            backdrop-filter: blur(6px);
+        `;
+        info.innerHTML = `<div style="font-weight:800; color:#00ffff;">🛰️ ISS en vivo</div>
+                          <div style="margin-top:6px; color: rgba(255,255,255,.75);">Cargando datos...</div>`;
+        this.container.appendChild(info);
+        this.infoOverlay = info;
+
         if (!window.L) {
             const link = document.createElement('link');
             link.rel = 'stylesheet';
@@ -78,6 +103,16 @@ export default class SatelitesMode {
         }
     }
 
+    async waitForMapReady(timeoutMs = 6000) {
+        const start = Date.now();
+        while (Date.now() - start < timeoutMs) {
+            if (window.L && this.map) return true;
+            await new Promise(r => setTimeout(r, 60));
+        }
+        console.warn('[Satélites] Mapa no listo a tiempo');
+        return false;
+    }
+
     initMap() {
         this.map = L.map('satellites-map', {
             zoomControl: false,
@@ -93,13 +128,20 @@ export default class SatelitesMode {
 
     async loadISSLocation() {
         try {
-            const response = await fetch('http://api.open-notify.org/iss-now.json');
+            // IMPORTANTE: usar API HTTPS para evitar Mixed Content en habilispro.com (https)
+            // Fuente: https://wheretheiss.at/ (CORS + HTTPS)
+            const response = await fetch('https://api.wheretheiss.at/v1/satellites/25544', { cache: 'no-store' });
             const data = await response.json();
-            
-            if (data.iss_position) {
-                const lat = parseFloat(data.iss_position.latitude);
-                const lon = parseFloat(data.iss_position.longitude);
-                const timestamp = data.timestamp;
+
+            // Si Leaflet no está listo aún, reintentar luego
+            if (!window.L || !this.map) return;
+
+            if (typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+                const lat = data.latitude;
+                const lon = data.longitude;
+                const timestamp = data.timestamp || Math.floor(Date.now() / 1000);
+                const velocity = typeof data.velocity === 'number' ? data.velocity : null;
+                const altitude = typeof data.altitude === 'number' ? data.altitude : null;
                 
                 // Remover marcador anterior
                 if (this.issMarker && this.map) {
@@ -147,7 +189,22 @@ export default class SatelitesMode {
                 this.issMarker = L.marker([lat, lon], { icon: issIcon }).addTo(this.map);
                 
                 const date = new Date(timestamp * 1000);
-                const speed = this.calculateSpeed(lat, lon);
+                // wheretheiss entrega velocidad (km/h). Fallback a estimación si no está.
+                const speed = velocity ?? this.calculateSpeed(lat, lon);
+
+                // Actualizar overlay informativo
+                if (this.infoOverlay) {
+                    const speedText = speed ? `${speed.toFixed(0)} km/h` : '—';
+                    const altText = (altitude !== null) ? `${altitude.toFixed(0)} km` : '—';
+                    this.infoOverlay.innerHTML = `
+                        <div style="font-weight:800; color:#00ffff;">🛰️ ISS en vivo</div>
+                        <div style="margin-top:6px; color: rgba(255,255,255,.85);">
+                            Lat: <b>${lat.toFixed(2)}°</b> &nbsp; Lon: <b>${lon.toFixed(2)}°</b><br>
+                            Velocidad: <b>${speedText}</b> &nbsp; Altitud: <b>${altText}</b><br>
+                            <span style="color: rgba(255,255,255,.65);">${date.toLocaleString('es-ES')}</span>
+                        </div>
+                    `;
+                }
                 
                 this.issMarker.bindPopup(`
                     <div style="font-family: 'Inter', sans-serif; min-width: 200px;">
@@ -168,6 +225,14 @@ export default class SatelitesMode {
             }
         } catch (error) {
             console.error('[Satélites] Error cargando posición ISS:', error);
+            if (this.infoOverlay) {
+                this.infoOverlay.innerHTML = `
+                    <div style="font-weight:800; color:#ffcc00;">🛰️ ISS en vivo</div>
+                    <div style="margin-top:6px; color: rgba(255,255,255,.75);">
+                        Sin datos en este momento (error de red o API).
+                    </div>
+                `;
+            }
         }
     }
 
@@ -259,10 +324,17 @@ export default class SatelitesMode {
 
     async generateFullNarrative() {
         try {
-            const response = await fetch('http://api.open-notify.org/iss-now.json');
-            const data = await response.json();
-            const lat = data.iss_position ? parseFloat(data.iss_position.latitude) : 0;
-            const lon = data.iss_position ? parseFloat(data.iss_position.longitude) : 0;
+            // Usar la última posición si ya fue cargada; si no, pedir a API HTTPS
+            let lat = this.lastPosition?.lat ?? 0;
+            let lon = this.lastPosition?.lon ?? 0;
+            if (!this.lastPosition) {
+                const response = await fetch('https://api.wheretheiss.at/v1/satellites/25544', { cache: 'no-store' });
+                const data = await response.json();
+                if (typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+                    lat = data.latitude;
+                    lon = data.longitude;
+                }
+            }
             
             const prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana. Estás observando la posición de la Estación Espacial Internacional orbitando la Tierra, actualmente sobre las coordenadas ${lat.toFixed(2)}° de latitud y ${lon.toFixed(2)}° de longitud. La línea azul muestra su trayectoria orbital, completando una vuelta alrededor del planeta cada 90 minutos a más de 27,000 kilómetros por hora.
 
