@@ -633,26 +633,20 @@ export default class SatelitesMode {
 
             const existing = document.getElementById('satellitejs-lib');
             if (existing) {
-                // Si ya está insertado, esperar a que aparezca el global
-                const start = Date.now();
-                const tick = () => {
-                    if (window.satellite && typeof window.satellite.twoline2satrec === 'function') return done(true);
-                    if (Date.now() - start > 19000) return done(false);
-                    setTimeout(tick, 120);
-                };
-                tick();
-                return;
+                // Si existe pero no cargó (o cargó 404), remover y reintentar
+                try { existing.remove(); } catch (e) { }
             }
 
             const tryUrls = [
-                'https://unpkg.com/satellite.js@5.0.1/dist/satellite.min.js',
-                'https://cdn.jsdelivr.net/npm/satellite.js@5.0.1/dist/satellite.min.js'
+                'https://unpkg.com/satellite.js@6.0.2/dist/satellite.min.js',
+                'https://cdn.jsdelivr.net/npm/satellite.js@6.0.2/dist/satellite.min.js'
             ];
 
             const script = document.createElement('script');
             script.id = 'satellitejs-lib';
             script.async = true;
             script.defer = true;
+            script.crossOrigin = 'anonymous';
 
             let idx = 0;
             const loadNext = () => {
