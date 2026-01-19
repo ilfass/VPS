@@ -20,6 +20,11 @@ export default class SatelitesMode {
         this.spaceWeatherOverlay = null;
         this.kpData = null;
         this.spaceWeatherInterval = null;
+
+        // Satélites extra (TLE + propagación)
+        this.extraSatellites = new Map(); // noradId -> { name, satrec, marker }
+        this.extraSatellitesInterval = null;
+        this.maxExtraSatellites = 40; // límite por performance (se puede subir)
     }
 
     async mount() {
@@ -47,6 +52,7 @@ export default class SatelitesMode {
         await this.waitForMapReady();
         await this.loadISSLocation();
         await this.loadSpaceWeather();
+        await this.initExtraSatellites();
         
         // Actualizar cada 5 segundos (ISS se mueve rápido)
         this.updateInterval = setInterval(() => {
@@ -57,6 +63,11 @@ export default class SatelitesMode {
         this.spaceWeatherInterval = setInterval(() => {
             this.loadSpaceWeather();
         }, 120000); // 2 min
+
+        // Satélites extra: actualización suave
+        this.extraSatellitesInterval = setInterval(() => {
+            this.updateExtraSatellites();
+        }, 5000);
         
         // Iniciar animaciones
         this.startAnimations();
@@ -249,7 +260,8 @@ export default class SatelitesMode {
                 // Crear icono personalizado para la ISS con efecto de brillo
                 const issIcon = L.divIcon({
                     className: 'iss-marker',
-                    html: '<div style="background: #00ffff; width: 14px; height: 14px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 15px #00ffff, 0 0 30px #00ffff;"></div>',
+                    // incluir emoji para mantener consistencia con “todos los satélites”
+                    html: '<div style="display:flex; align-items:center; gap:8px;"><div style="background: #00ffff; width: 14px; height: 14px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 15px #00ffff, 0 0 30px #00ffff;"></div><div style="font-size:14px; filter: drop-shadow(0 0 6px rgba(0,255,255,0.75));">🛰️</div></div>',
                     iconSize: [14, 14],
                     iconAnchor: [7, 7]
                 });
@@ -592,6 +604,187 @@ export default class SatelitesMode {
         return layer;
     }
 
+    // ---------------------------
+    // Satélites extra (TLE + satellite.js)
+    // ---------------------------
+
+    async ensureSatelliteJs() {
+        if (window.satellite && typeof window.satellite.twoline2satrec === 'function') return true;
+        if (document.getElementById('satellitejs-lib')) {
+            // esperar a que cargue
+            const start = Date.now();
+            while (Date.now() - start < 6000) {
+                if (window.satellite && typeof window.satellite.twoline2satrec === 'function') return true;
+                await new Promise(r => setTimeout(r, 80));
+            }
+            return false;
+        }
+        const script = document.createElement('script');
+        script.id = 'satellitejs-lib';
+        script.src = 'https://unpkg.com/satellite.js@5.0.1/dist/satellite.min.js';
+        document.body.appendChild(script);
+        const start = Date.now();
+        while (Date.now() - start < 6000) {
+            if (window.satellite && typeof window.satellite.twoline2satrec === 'function') return true;
+            await new Promise(r => setTimeout(r, 80));
+        }
+        return false;
+    }
+
+    async initExtraSatellites() {
+        if (!this.map || !window.L) return;
+        const ok = await this.ensureSatelliteJs();
+        if (!ok) {
+            console.warn('[Satélites] satellite.js no disponible; se omiten satélites extra');
+            return;
+        }
+
+        // Cargar TLEs (HTTPS, sin key) desde CelesTrak (grupo "visual")
+        const tleText = await this.fetchTleFromCelestrak('visual');
+        if (!tleText) return;
+
+        const entries = this.parseTleText(tleText)
+            .filter(e => e && e.line1 && e.line2)
+            .slice(0, this.maxExtraSatellites);
+
+        entries.forEach((e) => {
+            const noradId = this.extractNoradId(e.line1);
+            if (!noradId) return;
+            if (this.extraSatellites.has(noradId)) return;
+
+            const satrec = window.satellite.twoline2satrec(e.line1, e.line2);
+            const name = (e.name || `SAT-${noradId}`).trim();
+
+            const icon = L.divIcon({
+                className: 'extra-sat-marker',
+                html: `<div style="font-size:16px; filter: drop-shadow(0 0 8px rgba(255,255,255,0.25));">🛰️</div>`,
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            });
+
+            // Posición inicial (si falla, caer al centro del mapa)
+            const p0 = this.propagateToLatLon(satrec, new Date());
+            const lat = p0?.lat ?? 0;
+            const lon = p0?.lon ?? 0;
+            const alt = p0?.heightKm ?? null;
+
+            const marker = L.marker([lat, lon], { icon }).addTo(this.map);
+            marker.bindPopup(`
+                <div style="font-family:'Inter',sans-serif; min-width: 220px;">
+                    <div style="font-weight:800; color:#fff;">🛰️ ${this.escapeHtml(name)}</div>
+                    <div style="margin-top:6px; color: rgba(255,255,255,.75); font-size:12px;">
+                        NORAD: <b>${noradId}</b><br>
+                        Lat: <b>${lat.toFixed(2)}°</b> &nbsp; Lon: <b>${lon.toFixed(2)}°</b><br>
+                        Altitud: <b>${alt !== null ? alt.toFixed(0) + ' km' : '—'}</b>
+                    </div>
+                </div>
+            `);
+
+            this.extraSatellites.set(noradId, { name, satrec, marker });
+        });
+
+        this.updateExtraSatellitesOverlay();
+        // primer update para posicionar bien
+        this.updateExtraSatellites();
+    }
+
+    async fetchTleFromCelestrak(group) {
+        // CelesTrak GP endpoint
+        const urls = [
+            `https://celestrak.org/NORAD/elements/gp.php?GROUP=${encodeURIComponent(group)}&FORMAT=tle`,
+            `https://www.celestrak.org/NORAD/elements/gp.php?GROUP=${encodeURIComponent(group)}&FORMAT=tle`
+        ];
+        for (const url of urls) {
+            try {
+                const r = await fetch(url, { cache: 'no-store' });
+                if (!r.ok) continue;
+                const t = await r.text();
+                if (t && t.length > 100) return t;
+            } catch (e) { }
+        }
+        console.warn('[Satélites] No se pudo cargar TLE desde CelesTrak');
+        return null;
+    }
+
+    parseTleText(text) {
+        const lines = String(text).split('\n').map(l => l.trim()).filter(Boolean);
+        const out = [];
+        let i = 0;
+        while (i < lines.length) {
+            const a = lines[i];
+            // formato con nombre: NAME + line1 + line2
+            if (a && !a.startsWith('1 ') && !a.startsWith('2 ') && (i + 2) < lines.length && lines[i + 1].startsWith('1 ') && lines[i + 2].startsWith('2 ')) {
+                out.push({ name: a, line1: lines[i + 1], line2: lines[i + 2] });
+                i += 3;
+                continue;
+            }
+            // formato sin nombre: line1 + line2
+            if (a && a.startsWith('1 ') && (i + 1) < lines.length && lines[i + 1].startsWith('2 ')) {
+                out.push({ name: '', line1: a, line2: lines[i + 1] });
+                i += 2;
+                continue;
+            }
+            i += 1;
+        }
+        return out;
+    }
+
+    extractNoradId(line1) {
+        // TLE line1: "1 25544U ..."
+        const m = String(line1 || '').match(/^1\s+(\d{1,6})/);
+        return m ? m[1] : null;
+    }
+
+    propagateToLatLon(satrec, date) {
+        try {
+            const sat = window.satellite;
+            const pv = sat.propagate(satrec, date);
+            if (!pv || !pv.position) return null;
+            const gmst = sat.gstime(date);
+            const gd = sat.eciToGeodetic(pv.position, gmst);
+            const lat = sat.degreesLat(gd.latitude);
+            const lon = sat.degreesLong(gd.longitude);
+            const heightKm = gd.height;
+            return { lat, lon, heightKm };
+        } catch (e) {
+            return null;
+        }
+    }
+
+    updateExtraSatellites() {
+        if (!this.map || !window.L) return;
+        if (!this.extraSatellites || this.extraSatellites.size === 0) return;
+        if (!window.satellite) return;
+
+        const now = new Date();
+        for (const [noradId, s] of this.extraSatellites.entries()) {
+            const p = this.propagateToLatLon(s.satrec, now);
+            if (!p) continue;
+            const ll = [p.lat, p.lon];
+            try {
+                s.marker.setLatLng(ll);
+            } catch (e) { }
+        }
+    }
+
+    updateExtraSatellitesOverlay() {
+        if (!this.spaceWeatherOverlay) return;
+        // Insertar línea “satélites extra” sin romper el HTML existente
+        const count = this.extraSatellites ? this.extraSatellites.size : 0;
+        // Solo si ya está renderizado el panel con contenido
+        const header = this.spaceWeatherOverlay.querySelector('div');
+        if (!header) return;
+        // Añadir/actualizar badge simple
+        let badge = this.spaceWeatherOverlay.querySelector('#extra-sats-badge');
+        if (!badge) {
+            badge = document.createElement('div');
+            badge.id = 'extra-sats-badge';
+            badge.style.cssText = 'margin-top:6px; color: rgba(255,255,255,.75); font-size:11px;';
+            this.spaceWeatherOverlay.appendChild(badge);
+        }
+        badge.innerHTML = `🛰️ Satélites extra: <b>${count}</b> (grupo: visual)`;
+    }
+
     escapeHtml(s) {
         if (s === null || s === undefined) return '';
         return String(s).replace(/[&<>"']/g, (c) => ({
@@ -759,6 +952,16 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
         }
         if (this.spaceWeatherInterval) {
             clearInterval(this.spaceWeatherInterval);
+        }
+        if (this.extraSatellitesInterval) {
+            clearInterval(this.extraSatellitesInterval);
+        }
+        // Remover marcadores extra explícitamente
+        if (this.extraSatellites && this.map) {
+            for (const s of this.extraSatellites.values()) {
+                try { this.map.removeLayer(s.marker); } catch (e) { }
+            }
+            this.extraSatellites.clear();
         }
         if (this.map) {
             this.map.remove();
