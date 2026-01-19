@@ -1,5 +1,7 @@
 import { timeEngine } from './utils/time.js';
 import { scheduler } from './utils/scheduler.js';
+import { audioManager } from './utils/audio-manager.js';
+import { eventManager } from './utils/event-manager.js?v=2';
 
 // Mapa de modos disponibles y sus rutas de importación
 const MODES = {
@@ -23,6 +25,40 @@ const MODES = {
 };
 
 const DEFAULT_MODE = 'reloj';
+
+function initGlobalMusicControls() {
+    // Exponer para páginas que lo usan (ej: index.html)
+    window.audioManager = audioManager;
+
+    // Iniciar polling global (para que el botón del panel funcione en TODAS las hojas)
+    if (!eventManager.pollInterval) {
+        eventManager.init();
+    }
+
+    // Handler global: toggle/next
+    // Nota: algunos modos antiguos registran su propio handler; si lo hacen, pueden sobrescribir este.
+    eventManager.on('music_command', (musicState) => {
+        if (!musicState || !musicState.command) return;
+        if (musicState.command === 'toggle') {
+            audioManager.toggleMusic();
+        } else if (musicState.command === 'next') {
+            audioManager.nextTrack();
+        }
+    });
+
+    // Sincronizar preferencia inicial con el estado del servidor (persistencia entre hojas)
+    // Si el servidor indica "paused", evitamos arrancar música en páginas nuevas.
+    fetch('/control-api/api/music-status')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+            if (!data || typeof data.isPlaying !== 'boolean') return;
+            audioManager.setMusicEnabled?.(data.isPlaying);
+            if (!data.isPlaying) {
+                audioManager.pauseMusic();
+            }
+        })
+        .catch(() => { });
+}
 
 class App {
     constructor() {
@@ -156,6 +192,9 @@ streamNavigationChannel.addEventListener('message', (event) => {
 
 // Lógica de Inicio automático (sin overlay para streaming)
 document.addEventListener('DOMContentLoaded', () => {
+    // Global: música/control remoto (panel) para todas las hojas
+    initGlobalMusicControls();
+
     const startOverlay = document.getElementById('start-overlay');
     const startBtn = document.getElementById('start-btn');
 

@@ -12,6 +12,7 @@ export class AudioManager {
         this.currentUtterance = null;
         this.currentAudio = null; // Para Edge TTS
         this.useEdgeTTS = true; // Usar Edge TTS por defecto
+        this.musicPrefKey = 'bg_music_enabled'; // Persistir entre hojas/páginas
 
         // Capas de Audio (Music Layers)
         this.musicLayer = null; // Elemento de Audio HTML5
@@ -52,6 +53,26 @@ export class AudioManager {
         // Autoplay policy puede bloquear esto hasta interacción del usuario
         // El botón "Iniciar Sistema" del index.html debería desbloquearlo
     }
+
+    /**
+     * Preferencia persistente: música habilitada (1) / deshabilitada (0)
+     */
+    isMusicEnabled() {
+        try {
+            const v = localStorage.getItem(this.musicPrefKey);
+            // Default: enabled
+            if (v === null) return true;
+            return v === '1' || v === 'true';
+        } catch (e) {
+            return true;
+        }
+    }
+
+    setMusicEnabled(enabled) {
+        try {
+            localStorage.setItem(this.musicPrefKey, enabled ? '1' : '0');
+        } catch (e) { }
+    }
     
     /**
      * Carga un track específico
@@ -87,6 +108,7 @@ export class AudioManager {
      * Pausa la música de fondo
      */
     pauseMusic() {
+        this.setMusicEnabled(false);
         if (this.musicLayer && !this.musicLayer.paused) {
             this.musicLayer.pause();
             this.isMusicPlaying = false;
@@ -98,6 +120,8 @@ export class AudioManager {
      * Reanuda la música de fondo
      */
     resumeMusic() {
+        this.setMusicEnabled(true);
+        if (!this.musicLayer) this.init();
         if (this.musicLayer && this.musicLayer.paused) {
             this.musicLayer.play().then(() => {
                 this.isMusicPlaying = true;
@@ -140,6 +164,13 @@ export class AudioManager {
     startAmbience() {
         if (!this.musicLayer) this.init();
 
+        // Respetar preferencia persistente (pausa global entre hojas)
+        if (!this.isMusicEnabled()) {
+            this.isMusicPlaying = false;
+            console.log("[AudioManager] 🔇 Música deshabilitada por preferencia (bg_music_enabled=0)");
+            return;
+        }
+
         console.log("[AudioManager] Intentando reproducir música:", this.musicLayer.src);
         
         // Intentar reproducir
@@ -165,6 +196,12 @@ export class AudioManager {
      */
     tryStartAfterInteraction() {
         if (!this.musicLayer) this.init();
+
+        // Respetar preferencia persistente (pausa global entre hojas)
+        if (!this.isMusicEnabled()) {
+            this.isMusicPlaying = false;
+            return;
+        }
         
         if (!this.isMusicPlaying) {
             this.musicLayer.play().then(() => {
