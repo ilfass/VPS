@@ -517,38 +517,43 @@ export default class SatelitesMode {
         const layer = L.layerGroup();
 
         const CanvasLayer = L.Layer.extend({
-            initialize: () => {
+            initialize: function () {
                 this._canvas = document.createElement('canvas');
                 this._ctx = this._canvas.getContext('2d');
                 this._data = [];
             },
-            onAdd: (map) => {
+            onAdd: function (map) {
                 this._map = map;
                 const pane = map.getPanes().overlayPane;
                 this._canvas.style.position = 'absolute';
+                this._canvas.style.top = '0';
+                this._canvas.style.left = '0';
                 this._canvas.style.pointerEvents = 'none';
                 this._canvas.style.zIndex = '300';
                 pane.appendChild(this._canvas);
                 map.on('move zoom resize', this._reset, this);
                 this._reset();
             },
-            onRemove: (map) => {
+            onRemove: function (map) {
                 map.off('move zoom resize', this._reset, this);
                 if (this._canvas && this._canvas.parentNode) this._canvas.parentNode.removeChild(this._canvas);
             },
-            setData: (data) => {
+            setData: function (data) {
                 this._data = data || [];
                 this._draw();
             },
-            _reset: () => {
+            _reset: function () {
+                if (!this._map) return;
                 const size = this._map.getSize();
                 this._canvas.width = size.x;
                 this._canvas.height = size.y;
-                const pos = this._map._getMapPanePos();
-                this._canvas.style.transform = `translate(${-pos.x}px, ${-pos.y}px)`;
+                // Anclar al pane (Leaflet mueve los panes internamente)
+                if (window.L && L.DomUtil && typeof L.DomUtil.setPosition === 'function' && this._map._getMapPanePos) {
+                    L.DomUtil.setPosition(this._canvas, this._map._getMapPanePos());
+                }
                 this._draw();
             },
-            _colorFor: (v) => {
+            _colorFor: function (v) {
                 // v ~ 0..100 : gradiente verde->cian->violeta
                 const t = Math.max(0, Math.min(1, (v - 10) / 60));
                 const r = Math.round(20 + 140 * t);
@@ -557,7 +562,7 @@ export default class SatelitesMode {
                 const a = Math.max(0.08, Math.min(0.55, v / 120));
                 return `rgba(${r},${g},${b},${a})`;
             },
-            _draw: () => {
+            _draw: function () {
                 const ctx = this._ctx;
                 if (!ctx || !this._map) return;
                 ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
@@ -567,7 +572,10 @@ export default class SatelitesMode {
                 const radius = zoom >= 4 ? 4 : (zoom >= 3 ? 3 : 2);
 
                 for (let i = 0; i < this._data.length; i++) {
-                    const [lon, lat, v] = this._data[i];
+                    const item = this._data[i];
+                    const lon = item[0];
+                    const lat = item[1];
+                    const v = item[2];
                     const p = this._map.latLngToContainerPoint([lat, lon]);
                     ctx.fillStyle = this._colorFor(v);
                     ctx.beginPath();
