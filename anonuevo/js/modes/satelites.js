@@ -20,6 +20,7 @@ export default class SatelitesMode {
         this.spaceWeatherOverlay = null;
         this.kpData = null;
         this.spaceWeatherInterval = null;
+        this.lastAurora = null;
 
         // Satélites extra (TLE + propagación)
         this.extraSatellites = new Map(); // noradId -> { name, satrec, marker }
@@ -387,6 +388,7 @@ export default class SatelitesMode {
             }
 
             this.kpData = { kp, kpTime, series: kpSeries };
+            this.lastAurora = aurora;
             this.updateSpaceWeatherOverlay({ kp, kpTime, series: kpSeries, aurora });
             this.updateAuroraLayer(aurora);
         } catch (e) {
@@ -723,7 +725,15 @@ export default class SatelitesMode {
             this.extraSatellites.set(noradId, { name, satrec, marker });
         });
 
-        this.updateExtraSatellitesOverlay();
+        // Actualizar panel para reflejar cantidad de satélites extra inmediatamente
+        if (this.kpData) {
+            this.updateSpaceWeatherOverlay({
+                kp: this.kpData.kp,
+                kpTime: this.kpData.kpTime,
+                series: this.kpData.series,
+                aurora: this.lastAurora
+            });
+        }
         // primer update para posicionar bien
         this.updateExtraSatellites();
     }
