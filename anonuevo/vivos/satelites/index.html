@@ -25,6 +25,23 @@
             height: 100%;
             border: none;
         }
+
+        /* Tooltip de etiquetas de satélites (Leaflet) */
+        .sat-label-tooltip {
+            background: rgba(0, 0, 0, 0.72);
+            color: rgba(255, 255, 255, 0.92);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 10px;
+            padding: 6px 8px;
+            font-family: Inter, system-ui, sans-serif;
+            font-size: 11px;
+            line-height: 1.1;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(6px);
+        }
+        .sat-label-tooltip:before {
+            border-top-color: rgba(255, 255, 255, 0.18);
+        }
     </style>
 </head>
 <body>
