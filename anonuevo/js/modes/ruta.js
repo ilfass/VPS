@@ -94,6 +94,14 @@ export default class RutaMode {
                 }
             }
         });
+
+        // Controles remotos específicos de Ruta (panel)
+        eventManager.on('ruta_play_toggle', () => {
+            try { this.togglePlay(); } catch (e) { }
+        });
+        eventManager.on('ruta_follow_toggle', () => {
+            try { this.toggleFollow(); } catch (e) { }
+        });
         
         // Cargar datos, render y narración
         await this.loadRouteData();
@@ -279,18 +287,29 @@ export default class RutaMode {
         this.ui.btnPlay = left.querySelector('#ruta-btn-play');
         this.ui.btnFollow = left.querySelector('#ruta-btn-follow');
 
-        this.ui.btnPlay.onclick = () => {
-            this._travel.playing = !this._travel.playing;
-            this.ui.btnPlay.textContent = this._travel.playing ? '⏸ PAUSE' : '▶ PLAY';
-        };
-        this.ui.btnFollow.onclick = () => {
-            this._travel.follow = !this._travel.follow;
-            this.ui.btnFollow.style.opacity = this._travel.follow ? '1' : '0.55';
-            this.ui.btnFollow.textContent = this._travel.follow ? '🎥 FOLLOW' : '🧍 FREE';
-        };
-        // estado inicial
-        this.ui.btnPlay.textContent = this._travel.playing ? '⏸ PAUSE' : '▶ PLAY';
-        this.ui.btnFollow.style.opacity = this._travel.follow ? '1' : '0.55';
+        this.ui.btnPlay.onclick = () => this.togglePlay();
+        this.ui.btnFollow.onclick = () => this.toggleFollow();
+        this.applyControlsUi();
+    }
+
+    applyControlsUi() {
+        try {
+            if (this.ui?.btnPlay) this.ui.btnPlay.textContent = this._travel.playing ? '⏸ PAUSE' : '▶ PLAY';
+            if (this.ui?.btnFollow) {
+                this.ui.btnFollow.style.opacity = this._travel.follow ? '1' : '0.55';
+                this.ui.btnFollow.textContent = this._travel.follow ? '🎥 FOLLOW' : '🧍 FREE';
+            }
+        } catch (e) { }
+    }
+
+    togglePlay() {
+        this._travel.playing = !this._travel.playing;
+        this.applyControlsUi();
+    }
+
+    toggleFollow() {
+        this._travel.follow = !this._travel.follow;
+        this.applyControlsUi();
     }
 
     async ensureLeaflet() {

@@ -158,6 +158,12 @@ class EventManager {
                 case 'tv_toggles':
                     if (this.handlers['tv_toggles']) this.handlers['tv_toggles'](event.payload);
                     break;
+                case 'ruta_play_toggle':
+                    if (this.handlers['ruta_play_toggle']) this.handlers['ruta_play_toggle']();
+                    break;
+                case 'ruta_follow_toggle':
+                    if (this.handlers['ruta_follow_toggle']) this.handlers['ruta_follow_toggle']();
+                    break;
             }
         } catch (e) {
             console.error("Error processing event:", e);

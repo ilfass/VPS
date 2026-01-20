@@ -732,6 +732,17 @@
                 </div>
             </div>
 
+            <div class="panel" id="ruta-controls-panel" style="display:none;">
+                <h2>🗺️ Ruta Controls</h2>
+                <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px;">
+                    <button onclick="rutaTogglePlay()" id="btn-ruta-play" style="border-color: var(--accent); color: var(--accent);" disabled>⏯ PLAY/PAUSE</button>
+                    <button onclick="rutaToggleFollow()" id="btn-ruta-follow" style="border-color: var(--purple); color: var(--purple);" disabled>🎥 FOLLOW/FREE</button>
+                </div>
+                <div style="font-size:0.65rem; color: rgba(255,255,255,0.55);">
+                    Se habilita automáticamente cuando la escena activa es <code>ruta</code>.
+                </div>
+            </div>
+
             <div class="panel">
                 <h2>✂️ Clip Markers</h2>
                 <div style="display:flex; gap:8px; margin-bottom:10px;">
@@ -973,6 +984,16 @@
             refreshTvStatusUi();
             await api('/event/tv/toggles', 'POST', { recapsEnabled: newRec, bumpersEnabled: newBum });
             log(`TV toggles -> recaps=${newRec ? 'ON' : 'OFF'} bumpers=${newBum ? 'ON' : 'OFF'}`, 'success');
+        }
+
+        // --- RUTA CONTROLS (Panel) ---
+        async function rutaTogglePlay() {
+            log('Ruta: Toggle Play/Pause', 'info');
+            await api('/event/ruta/play_toggle', 'POST', {});
+        }
+        async function rutaToggleFollow() {
+            log('Ruta: Toggle Follow/Free', 'info');
+            await api('/event/ruta/follow_toggle', 'POST', {});
         }
 
         // --- CLIP MARKERS ---
@@ -1505,6 +1526,15 @@
             // 2. Current Scene
             const currentScene = data.currentScene || 'intro';
             document.getElementById('current-scene-display').textContent = `Scene: ${currentScene.toUpperCase()}`;
+
+            // Ruta controls: solo visibles/habilitados cuando la escena es ruta
+            const rutaPanel = document.getElementById('ruta-controls-panel');
+            const btnRutaPlay = document.getElementById('btn-ruta-play');
+            const btnRutaFollow = document.getElementById('btn-ruta-follow');
+            const isRuta = currentScene === 'ruta';
+            if (rutaPanel) rutaPanel.style.display = isRuta ? 'block' : 'none';
+            if (btnRutaPlay) btnRutaPlay.disabled = !isRuta;
+            if (btnRutaFollow) btnRutaFollow.disabled = !isRuta;
 
             // 3. Playlist
             const pl = document.getElementById('playlist-container');

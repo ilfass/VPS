@@ -1006,6 +1006,20 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // Ruta: Controles remotos (panel) — play/follow
+    if (req.method === 'POST' && apiPath === '/event/ruta/play_toggle') {
+        state.eventQueue.push({ type: 'ruta_play_toggle' });
+        res.writeHead(200, headers);
+        res.end('{"success":true}');
+        return;
+    }
+    if (req.method === 'POST' && apiPath === '/event/ruta/follow_toggle') {
+        state.eventQueue.push({ type: 'ruta_follow_toggle' });
+        res.writeHead(200, headers);
+        res.end('{"success":true}');
+        return;
+    }
+
     // Music Control: Pausar/Reanudar música
     if (req.method === 'POST' && apiPath === '/event/music/toggle') {
         // Solo establecer comando si no hay uno pendiente para evitar duplicados
