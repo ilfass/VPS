@@ -8,6 +8,7 @@ export class AvatarSubtitlesManager {
         this.container = null;
         this.avatarElement = null;
         this.subtitlesElement = null;
+        this.avatarContainerEl = null;
         this.isVisible = false;
         this.currentWords = [];
         this.wordIndex = 0;
@@ -23,6 +24,8 @@ export class AvatarSubtitlesManager {
         const avatarContainer = document.createElement('div');
         avatarContainer.id = 'avatar-subtitles-container';
         avatarContainer.className = 'avatar-subtitles-container';
+        avatarContainer.dataset.anchor = 'bl';
+        this.avatarContainerEl = avatarContainer;
         
         // Avatar (imagen)
         this.avatarElement = document.createElement('div');
@@ -45,6 +48,25 @@ export class AvatarSubtitlesManager {
         avatarContainer.appendChild(subtitlesWrapper);
         
         this.container.appendChild(avatarContainer);
+    }
+
+    /**
+     * Mueve el narrador a un ancla:
+     * - bl (bottom-left), br, tl, tr
+     */
+    moveTo(anchor = 'bl') {
+        const a = String(anchor || 'bl').toLowerCase();
+        const el = document.getElementById('avatar-subtitles-container') || this.avatarContainerEl;
+        if (!el) return;
+
+        el.dataset.anchor = a;
+
+        // Ajustar “lado” visual cuando está a la derecha
+        if (a === 'br' || a === 'tr') {
+            el.classList.add('right-sided');
+        } else {
+            el.classList.remove('right-sided');
+        }
     }
 
     /**
