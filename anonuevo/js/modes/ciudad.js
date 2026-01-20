@@ -449,19 +449,9 @@ export default class CiudadMode {
     }
 
     scheduleNextPage() {
-        if (eventManager.canProceedAuto()) {
-            console.log('[Ciudad] Dream Mode ON: Programando cambio de página...');
-            setTimeout(() => {
-                if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'diario', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo', 'clima', 'aereo', 'terremotos', 'satelites', 'aire', 'incendios', 'sol'];
-                    const currentPage = 'ciudad';
-                    const availablePages = pages.filter(p => p !== currentPage);
-                    const randomPage = availablePages[Math.floor(Math.random() * availablePages.length)];
-                    console.log(`[Ciudad] 🎲 Navegando a: ${randomPage}`);
-                    window.location.href = `/vivos/${randomPage}/`;
-                }
-            }, 30000 + Math.random() * 20000);
-        }
+        if (!eventManager.canProceedAuto()) return;
+        // Delegar a agenda editorial global (10–15 min por escena)
+        window.__autoNavSchedule?.('ciudad');
     }
 
     unmount() {

@@ -386,19 +386,8 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
     }
 
     scheduleNextPage() {
-        if (eventManager.canProceedAuto()) {
-            console.log('[Aéreo] Dream Mode ON: Programando cambio de página...');
-            setTimeout(() => {
-                if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'diario', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo', 'clima', 'terremotos', 'satelites'];
-                    const currentPage = 'aereo';
-                    const availablePages = pages.filter(p => p !== currentPage);
-                    const randomPage = availablePages[Math.floor(Math.random() * availablePages.length)];
-                    console.log(`[Aéreo] 🎲 Navegando a: ${randomPage}`);
-                    window.location.href = `/vivos/${randomPage}/`;
-                }
-            }, 30000 + Math.random() * 20000);
-        }
+        if (!eventManager.canProceedAuto()) return;
+        window.__autoNavSchedule?.('aereo');
     }
 
     unmount() {

@@ -712,6 +712,20 @@
                 </div>
             </div>
 
+            <div class="panel">
+                <h2>✂️ Clip Markers</h2>
+                <div style="display:flex; gap:8px; margin-bottom:10px;">
+                    <button onclick="refreshClipMarks()" style="flex:1;">🔄 Refresh</button>
+                    <button onclick="clearClipMarks()" style="flex:1; border-color: var(--warning); color: var(--warning);">🧹 Clear</button>
+                </div>
+                <div id="clip-marks-list" style="max-height: 260px; overflow-y: auto; font-family: 'JetBrains Mono'; font-size: 0.7rem; color: var(--text-dim);">
+                    <div style="text-align:center; padding:10px; color: var(--text-dim);">Sin marcas aún.</div>
+                </div>
+                <div style="margin-top:8px; font-size:0.65rem; color: rgba(255,255,255,0.55);">
+                    Tip: estas marcas sirven como guía para recortar Shorts/Clips (usa <code>sinceStartSec</code> si hay Día Editorial activo).
+                </div>
+            </div>
+
             <div class="panel" style="flex: 1;">
                 <h2>🎨 Media Repository</h2>
                 
@@ -830,6 +844,10 @@
 
             setInterval(poll, 1000);
             poll(); // Initial
+
+            // Clips
+            refreshClipMarks();
+            setInterval(refreshClipMarks, 15000);
         };
 
         // --- API & LOG ---
@@ -854,6 +872,62 @@
             } catch (e) { 
                 log(`API Error: ${e.message}`, 'error');
                 return null; 
+            }
+        }
+
+        // --- CLIP MARKERS ---
+        function formatSinceStart(sec) {
+            if (sec === null || sec === undefined) return '--:--';
+            const s = Number(sec);
+            const m = Math.floor(s / 60);
+            const r = s % 60;
+            return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`;
+        }
+
+        async function refreshClipMarks() {
+            const box = document.getElementById('clip-marks-list');
+            if (!box) return;
+            const data = await api('/api/clip/marks', 'GET');
+            const marks = data?.marks || [];
+            if (!Array.isArray(marks) || marks.length === 0) {
+                box.innerHTML = `<div style="text-align:center; padding:10px; color: var(--text-dim);">Sin marcas aún.</div>`;
+                return;
+            }
+
+            const items = marks.slice().reverse().slice(0, 30).map(m => {
+                const t = formatSinceStart(m.sinceStartSec);
+                const title = (m.title || m.type || 'clip').toString().slice(0, 120);
+                const scene = (m.scene || '').toString();
+                const next = (m.next || '').toString();
+                const note = (m.note || '').toString().slice(0, 90);
+                const text = `[${t}] ${title}${scene ? ` | scene=${scene}` : ''}${next ? ` | next=${next}` : ''}${note ? ` | ${note}` : ''}`;
+                const safeText = text.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                const encoded = encodeURIComponent(text);
+                return `
+                    <div style="padding:8px; border:1px solid rgba(255,255,255,0.08); border-radius:10px; margin-bottom:8px; background: rgba(255,255,255,0.03);">
+                        <div style="display:flex; justify-content:space-between; gap:10px;">
+                            <div style="color: rgba(255,255,255,0.85); font-family: 'JetBrains Mono';">${safeText}</div>
+                            <button style="font-size:0.65rem; padding:6px 8px;" onclick="copyClipText('${encoded}')">COPY</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            box.innerHTML = items;
+        }
+
+        async function clearClipMarks() {
+            if (!confirm('Clear all clip markers?')) return;
+            await api('/api/clip/clear', 'POST', {});
+            await refreshClipMarks();
+        }
+
+        function copyClipText(encodedText) {
+            try {
+                const decoded = decodeURIComponent(encodedText || '');
+                navigator.clipboard.writeText(decoded);
+                log('Clip marker copiado al portapapeles', 'success');
+            } catch (e) {
+                log('No se pudo copiar (clipboard)', 'warning');
             }
         }
 

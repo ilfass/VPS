@@ -510,21 +510,8 @@ NO repitas literalmente las entradas del diario. Habla sobre el diario como conc
 
     scheduleNextPage() {
         // Si Dream Mode está ON, cambiar automáticamente a otra página
-        if (eventManager.canProceedAuto()) {
-            console.log('[Diario] Dream Mode ON: Programando cambio de página...');
-            // Esperar 2-3 segundos después de la narración para transición suave
-            setTimeout(() => {
-                if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo'];
-                    // Excluir la página actual para evitar repetir
-                    const currentPage = 'diario';
-                    const availablePages = pages.filter(p => p !== currentPage);
-                    const randomPage = availablePages[Math.floor(Math.random() * availablePages.length)];
-                    console.log(`[Diario] 🎲 Navegando a: ${randomPage}`);
-                    window.location.href = `/vivos/${randomPage}/`;
-                }
-            }, 2000 + Math.random() * 1000); // 2-3 segundos aleatorios
-        }
+        if (!eventManager.canProceedAuto()) return;
+        window.__autoNavSchedule?.('diario');
     }
 
     unmount() {

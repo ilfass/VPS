@@ -4,6 +4,8 @@ import { audioManager } from './utils/audio-manager.js';
 import { eventManager } from './utils/event-manager.js?v=2';
 import { cinematicDirector } from './utils/cinematic-director.js';
 import { recapEngine } from './utils/recap-engine.js';
+import { autoNavigator } from './utils/auto-navigator.js';
+import { bumperEngine } from './utils/bumper-engine.js';
 
 // Mapa de modos disponibles y sus rutas de importación
 const MODES = {
@@ -71,6 +73,8 @@ class App {
         this.fpsCounter = document.getElementById('fps-counter');
         this.cinematicDirector = cinematicDirector;
         this.recapEngine = recapEngine;
+        this.autoNavigator = autoNavigator;
+        this.bumperEngine = bumperEngine;
 
         this.init();
     }
@@ -138,6 +142,9 @@ class App {
         this.cinematicDirector?.detach?.();
         // Detener recap del modo anterior
         this.recapEngine?.detach?.();
+        // Detener auto-navigator / bumpers del modo anterior
+        this.autoNavigator?.detach?.();
+        this.bumperEngine?.detach?.();
 
         // Limpiar tareas programadas del modo anterior
         scheduler.clearTasks();
@@ -159,6 +166,9 @@ class App {
             this.cinematicDirector?.attach?.(this.currentModeInstance);
             // Recaps TV globales (solo en circuito /vivos/)
             this.recapEngine?.attach?.(this.currentModeInstance, modeName, this.stage);
+            // Agenda editorial y bumpers
+            this.autoNavigator?.attach?.(modeName, this.currentModeInstance);
+            this.bumperEngine?.attach?.(modeName, this.currentModeInstance);
 
             console.log(`✅ Modo ${modeName} montado exitosamente.`);
         } catch (error) {
@@ -166,6 +176,8 @@ class App {
             this.stage.innerHTML = `<div class="center-content"><h1>Error cargando modo</h1><p>${error.message}</p></div>`;
             this.cinematicDirector?.detach?.();
             this.recapEngine?.detach?.();
+            this.autoNavigator?.detach?.();
+            this.bumperEngine?.detach?.();
         }
     }
 
@@ -214,6 +226,12 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         if (window.location.pathname.includes('/vivos/')) {
             recapEngine.init();
+            autoNavigator.init(document.getElementById('stage'));
+            bumperEngine.init(document.getElementById('stage'));
+            // Hook global para que los modos deleguen la navegación a la agenda
+            window.__autoNavSchedule = (modeName) => {
+                try { autoNavigator.schedule(modeName); } catch (e) { }
+            };
         }
     } catch (e) { }
 

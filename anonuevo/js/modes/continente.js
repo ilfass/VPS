@@ -561,21 +561,8 @@ export default class ContinenteMode {
 
     scheduleNextPage() {
         // Si Dream Mode está ON, cambiar automáticamente a otra página
-        if (eventManager.canProceedAuto()) {
-            console.log('[Continente] Dream Mode ON: Programando cambio de página...');
-            // Esperar 2-3 segundos después de la narración para transición suave
-            setTimeout(() => {
-                if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'diario', 'ruta', 'estadisticas', 'galeria', 'globo'];
-                    // Excluir la página actual para evitar repetir
-                    const currentPage = 'continente';
-                    const availablePages = pages.filter(p => p !== currentPage);
-                    const randomPage = availablePages[Math.floor(Math.random() * availablePages.length)];
-                    console.log(`[Continente] 🎲 Navegando a: ${randomPage}`);
-                    window.location.href = `/vivos/${randomPage}/`;
-                }
-            }, 2000 + Math.random() * 1000); // 2-3 segundos aleatorios
-        }
+        if (!eventManager.canProceedAuto()) return;
+        window.__autoNavSchedule?.('continente');
     }
 
     unmount() {

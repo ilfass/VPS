@@ -18,6 +18,7 @@ const STATE_FILE = path.join(__dirname, 'data', 'server-state.json');
 const COUNTRY_MEMORIES_DIR = path.join(__dirname, 'data', 'country-memories');
 const STORY_BIBLE_FILE = path.join(__dirname, 'data', 'story-bible.json');
 const STORY_STATE_FILE = path.join(__dirname, 'data', 'story-state.json');
+const CLIP_MARKERS_FILE = path.join(__dirname, 'data', 'clip-markers.json');
 
 // Asegurar que el directorio de memorias existe
 if (!fs.existsSync(COUNTRY_MEMORIES_DIR)) {
@@ -81,6 +82,25 @@ function loadState() {
 loadState();
 const storyBible = loadStoryBible();
 let storyState = loadStoryState();
+
+// =========================
+// CLIP MARKERS (recortes)
+// =========================
+function loadClipMarkers() {
+    try {
+        if (fs.existsSync(CLIP_MARKERS_FILE)) {
+            const v = JSON.parse(fs.readFileSync(CLIP_MARKERS_FILE, 'utf8'));
+            return Array.isArray(v) ? v : [];
+        }
+    } catch (e) { }
+    return [];
+}
+function saveClipMarkers() {
+    try {
+        fs.writeFileSync(CLIP_MARKERS_FILE, JSON.stringify(clipMarkers, null, 2));
+    } catch (e) { }
+}
+let clipMarkers = loadClipMarkers();
 
 // =========================
 // STORY / GUIÓN (continuidad)
@@ -1492,6 +1512,58 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && apiPath === '/api/story/reset') {
         storyState.lastN = [];
         saveStoryState();
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({ ok: true }));
+        return;
+    }
+
+    // =========================
+    // Clips: marcas de recorte (para shorts/edición)
+    // =========================
+    if (req.method === 'POST' && apiPath === '/api/clip/mark') {
+        let body = '';
+        req.on('data', c => body += c);
+        req.on('end', () => {
+            try {
+                const data = JSON.parse(body || '{}');
+                const now = Date.now();
+                const dayStart = state?.editorial?.startTime ? Number(state.editorial.startTime) : null;
+                const sinceStartSec = dayStart ? Math.max(0, Math.round((now - dayStart) / 1000)) : null;
+
+                const telemetry = state?.clientTelemetry || {};
+                const marker = {
+                    ts: now,
+                    sinceStartSec,
+                    dayId: state?.editorial?.dayId || null,
+                    type: data.type || 'clip',
+                    title: data.title || null,
+                    scene: data.scene || telemetry.scene || null,
+                    next: data.next || null,
+                    url: data.url || null,
+                    note: data.note || null
+                };
+                clipMarkers.push(marker);
+                if (clipMarkers.length > 400) clipMarkers = clipMarkers.slice(-400);
+                saveClipMarkers();
+                res.writeHead(200, headers);
+                res.end(JSON.stringify({ ok: true, marker }));
+            } catch (e) {
+                res.writeHead(400, headers);
+                res.end(JSON.stringify({ ok: false, error: 'bad_json' }));
+            }
+        });
+        return;
+    }
+
+    if (req.method === 'GET' && apiPath === '/api/clip/marks') {
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({ ok: true, marks: clipMarkers.slice(-80) }));
+        return;
+    }
+
+    if (req.method === 'POST' && apiPath === '/api/clip/clear') {
+        clipMarkers = [];
+        saveClipMarkers();
         res.writeHead(200, headers);
         res.end(JSON.stringify({ ok: true }));
         return;

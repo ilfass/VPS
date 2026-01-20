@@ -401,21 +401,8 @@ export default class GaleriaMode {
 
     scheduleNextPage() {
         // Si Dream Mode está ON, cambiar automáticamente a otra página
-        if (eventManager.canProceedAuto()) {
-            console.log('[Galería] Dream Mode ON: Programando cambio de página...');
-            // Esperar 2-3 segundos después de la narración para transición suave
-            setTimeout(() => {
-                if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'diario', 'continente', 'ruta', 'estadisticas', 'globo'];
-                    // Excluir la página actual para evitar repetir
-                    const currentPage = 'galeria';
-                    const availablePages = pages.filter(p => p !== currentPage);
-                    const randomPage = availablePages[Math.floor(Math.random() * availablePages.length)];
-                    console.log(`[Galería] 🎲 Navegando a: ${randomPage}`);
-                    window.location.href = `/vivos/${randomPage}/`;
-                }
-            }, 2000 + Math.random() * 1000); // 2-3 segundos aleatorios
-        }
+        if (!eventManager.canProceedAuto()) return;
+        window.__autoNavSchedule?.('galeria');
     }
 
     unmount() {

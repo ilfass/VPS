@@ -1,7 +1,9 @@
 import { eventManager } from './event-manager.js?v=2';
 import { audioManager } from './audio-manager.js';
 import { TvOverlays } from './tv-overlays.js';
-import { getModeLabel, markVisited, pickNextMode } from './stream-rotation.js';
+import { getModeLabel, markVisited } from './stream-rotation.js';
+import { agendaEngine } from './agenda-engine.js';
+import { markClip } from './clip-markers.js';
 
 function randBetween(min, max) {
     return min + Math.floor(Math.random() * (max - min));
@@ -141,7 +143,7 @@ export class RecapEngine {
 
     async runRecap() {
         const theme = getThemeOfDay();
-        const nextMode = pickNextMode(this.modeName);
+        const nextMode = agendaEngine.pickNextMode(this.modeName);
 
         // Contexto opcional del modo (ranking/datos)
         let recapContext = null;
@@ -198,6 +200,9 @@ Reglas:
 
         // Hablar (sin bloquear navegación del modo; solo recap)
         await audioManager.speak(`${recap} ${surprise} ${next}`, 'normal', () => { });
+
+        // Marca clip para recortes
+        markClip({ type: 'recap', title: title, scene: this.modeName, next: nextMode, note: surprise });
     }
 }
 

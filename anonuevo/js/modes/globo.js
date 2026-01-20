@@ -1554,19 +1554,8 @@ El texto debe ser natural, reflexivo y entre 80 y 120 palabras. Menciona explíc
     }
 
     scheduleNextPage() {
-        if (eventManager.canProceedAuto()) {
-            console.log('[Globo] Dream Mode ON: Programando cambio de página...');
-            setTimeout(() => {
-                if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'diario', 'continente', 'ruta', 'estadisticas', 'galeria'];
-                    const currentPage = 'globo';
-                    const availablePages = pages.filter(p => p !== currentPage);
-                    const randomPage = availablePages[Math.floor(Math.random() * availablePages.length)];
-                    console.log(`[Globo] 🎲 Navegando a: ${randomPage}`);
-                    window.location.href = `/vivos/${randomPage}/`;
-                }
-            }, 2000 + Math.random() * 1000);
-        }
+        if (!eventManager.canProceedAuto()) return;
+        window.__autoNavSchedule?.('globo');
     }
 
     unmount() {

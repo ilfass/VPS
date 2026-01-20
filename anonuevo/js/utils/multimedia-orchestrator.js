@@ -31,6 +31,12 @@ export class MultimediaOrchestrator {
                 requestAnimationFrame(() => {
                     overlay.classList.add('visible');
                 });
+
+                // TTL opcional (para bumpers/clips cortos)
+                const ttl = Number(mediaItem?.ttlMs || 0);
+                if (ttl > 0) {
+                    setTimeout(() => this.hideOverlay(overlay), ttl);
+                }
             }
         }, delay);
     }
@@ -50,6 +56,7 @@ export class MultimediaOrchestrator {
             content.autoplay = true;
             content.loop = true;
             content.muted = true;
+            content.playsInline = true;
             content.controls = false;
             content.style.width = '100%';
             content.style.height = 'auto';

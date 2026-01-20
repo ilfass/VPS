@@ -1617,18 +1617,9 @@ Genera una introducción en primera persona (como ilfass) que:
 
     scheduleNextPageAfterNarration() {
         // Si Dream Mode está ON, cambiar automáticamente a otra página después de la narración del país
-        if (eventManager.canProceedAuto()) {
-            console.log('[Mapa] Dream Mode ON: Programando cambio de página después de narración del país...');
-            // Esperar 2-3 segundos después de la narración para transición suave
-            setTimeout(() => {
-                if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['diario', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo'];
-                    const randomPage = pages[Math.floor(Math.random() * pages.length)];
-                    console.log(`[Mapa] 🎲 Navegando a: ${randomPage} (después de narración de país)`);
-                    window.location.href = `/vivos/${randomPage}/`;
-                }
-            }, 2000 + Math.random() * 1000); // 2-3 segundos aleatorios
-        }
+        if (!eventManager.canProceedAuto()) return;
+        // No navegar inmediatamente después de cada país: lo maneja la agenda editorial global (10–15 min).
+        window.__autoNavSchedule?.('mapa');
     }
 
     unmount() {
