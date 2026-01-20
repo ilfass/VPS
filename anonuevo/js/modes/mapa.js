@@ -1576,12 +1576,28 @@ Genera una introducción en primera persona (como ilfass) que:
             content = document.createElement('video');
             content.src = url;
             content.autoplay = true;
+            // Para evitar bloqueo de autoplay en navegadores
+            content.muted = true;
+            content.playsInline = true;
             content.controls = false; // Estilo cinemático
             content.style.maxWidth = '90%';
             content.style.maxHeight = '90%';
             content.style.borderRadius = '8px';
             content.style.boxShadow = '0 0 50px rgba(0,0,0,0.8)';
             content.onended = () => overlay.remove(); // Cerrar al terminar
+            // Si el autoplay falla por política del navegador, habilitar controles
+            setTimeout(() => {
+                try {
+                    const p = content.play?.();
+                    if (p && typeof p.catch === 'function') {
+                        p.catch(() => {
+                            content.controls = true;
+                        });
+                    }
+                } catch (e) {
+                    content.controls = true;
+                }
+            }, 0);
         } else {
             content = document.createElement('img');
             content.src = url;
