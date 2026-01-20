@@ -1073,7 +1073,7 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
             console.log('[Satélites] Dream Mode ON: Programando cambio de página...');
             setTimeout(() => {
                 if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo', 'clima', 'aereo', 'terremotos'];
+                    const pages = ['mapa', 'diario', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo', 'clima', 'aereo', 'terremotos'];
                     const currentPage = 'satelites';
                     const availablePages = pages.filter(p => p !== currentPage);
                     const randomPage = availablePages[Math.floor(Math.random() * availablePages.length)];

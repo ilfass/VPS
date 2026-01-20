@@ -406,7 +406,7 @@ export default class GaleriaMode {
             // Esperar 2-3 segundos después de la narración para transición suave
             setTimeout(() => {
                 if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas', 'globo'];
+                    const pages = ['mapa', 'diario', 'continente', 'ruta', 'estadisticas', 'globo'];
                     // Excluir la página actual para evitar repetir
                     const currentPage = 'galeria';
                     const availablePages = pages.filter(p => p !== currentPage);

@@ -57,11 +57,12 @@ export class SceneNavigator {
 
             let url = '';
             switch (scene) {
-                case SCENES.COVER: url = '/vivos/portada'; break; // Simulada
-                case SCENES.COUNTRY_PAGE: url = '/vivos/pais/actual'; break;
+                // Nota: portada/pais fueron sacados del circuito streaming; redirigir a mapa/diario.
+                case SCENES.COVER: url = '/vivos/mapa'; break;
+                case SCENES.COUNTRY_PAGE: url = '/vivos/mapa'; break;
                 case SCENES.TRAVEL_DIARY: url = '/vivos/diario'; break;
                 case SCENES.GLOBAL_INDEX: url = '/memoria/indice'; break;
-                default: url = '/vivos/portada';
+                default: url = '/vivos/mapa';
             }
 
             if (frame) frame.src = url;

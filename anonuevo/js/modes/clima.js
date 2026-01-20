@@ -361,7 +361,7 @@ El texto debe ser poético, reflexivo y entre 150 y 220 palabras.`;
             console.log('[Clima] Dream Mode ON: Programando cambio de página...');
             setTimeout(() => {
                 if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo', 'terremotos', 'aereo', 'satelites'];
+                    const pages = ['mapa', 'diario', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo', 'terremotos', 'aereo', 'satelites'];
                     const currentPage = 'clima';
                     const availablePages = pages.filter(p => p !== currentPage);
                     const randomPage = availablePages[Math.floor(Math.random() * availablePages.length)];

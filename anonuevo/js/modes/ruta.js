@@ -414,7 +414,7 @@ export default class RutaMode {
             // Esperar 2-3 segundos después de la narración para transición suave
             setTimeout(() => {
                 if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'continente', 'estadisticas', 'galeria', 'globo'];
+                    const pages = ['mapa', 'diario', 'continente', 'estadisticas', 'galeria', 'globo'];
                     // Excluir la página actual para evitar repetir
                     const currentPage = 'ruta';
                     const availablePages = pages.filter(p => p !== currentPage);

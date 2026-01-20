@@ -332,7 +332,7 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
             console.log('[Terremotos] Dream Mode ON: Programando cambio de página...');
             setTimeout(() => {
                 if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo', 'clima', 'aereo', 'satelites'];
+                    const pages = ['mapa', 'diario', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo', 'clima', 'aereo', 'satelites'];
                     const currentPage = 'terremotos';
                     const availablePages = pages.filter(p => p !== currentPage);
                     const randomPage = availablePages[Math.floor(Math.random() * availablePages.length)];

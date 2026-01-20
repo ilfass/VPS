@@ -215,12 +215,14 @@
             const CHECK_INTERVAL = 2000; // 2 segundos
             const SERVER_URL = '/control-api/status'; // Proxy Nginx maneja esto
 
-            // Mapeo de escenas del servidor a URLs reales
+            // Mapeo de escenas del servidor a URLs reales (circuito streaming)
             const SCENE_MAP = {
-                'intro': '/', // o /vivos/intro/
+                // Nota: intro/portada/pais/reflexion/estado-actual fueron sacados del circuito streaming.
+                // Mantener una URL segura para no caer en hojas vacías.
+                'intro': '/vivos/mapa/',
                 'mapa': '/vivos/mapa/',
-                'pais': '/vivos/pais/',
-                'reflexion': '/vivos/reflexion/'
+                'pais': '/vivos/mapa/',
+                'reflexion': '/vivos/diario/'
             };
 
             setInterval(() => {

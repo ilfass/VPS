@@ -566,7 +566,7 @@ export default class ContinenteMode {
             // Esperar 2-3 segundos después de la narración para transición suave
             setTimeout(() => {
                 if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'diario', 'estado-actual', 'reflexion', 'ruta', 'estadisticas', 'galeria', 'globo'];
+                    const pages = ['mapa', 'diario', 'ruta', 'estadisticas', 'galeria', 'globo'];
                     // Excluir la página actual para evitar repetir
                     const currentPage = 'continente';
                     const availablePages = pages.filter(p => p !== currentPage);

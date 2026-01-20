@@ -555,12 +555,8 @@
             <div class="panel">
                 <h2>🎬 Navigation</h2>
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px;">
-                    <button onclick="changeScene('intro')">🏠 Cover</button>
                     <button onclick="changeScene('mapa')">🌍 Map</button>
-                    <button onclick="changeScene('reflexion')">📖 Book</button>
-                    <button onclick="changeScene('pais')">🏳️ Detail</button>
                     <button onclick="changeScene('diario')">📔 Diary</button>
-                    <button onclick="changeScene('estado-actual')">⚡ Status</button>
                     <button onclick="changeScene('curiosidades')">✨ Curiosidades</button>
                 </div>
 
@@ -614,19 +610,13 @@
                 <h2>📚 Hojas del Libro</h2>
                 <div style="margin-bottom: 12px;">
                     <div style="font-size: 0.7rem; color: var(--text-dim); margin-bottom: 8px;">
-                        <strong style="color: var(--accent);">Total: <span id="book-total-pages">14</span> hojas</strong>
+                        <strong style="color: var(--accent);">Total: <span id="book-total-pages">17</span> hojas</strong>
                     </div>
                 </div>
                 
                 <div style="margin-bottom: 16px;">
                     <h3 style="font-size: 0.75rem; color: var(--accent); margin-bottom: 8px; text-transform: uppercase;">📄 Hojas Fijas</h3>
                     <div style="display: grid; grid-template-columns: 1fr; gap: 6px;">
-                        <button onclick="navigateToPage('/vivos/portada/')" class="book-page-btn" title="Portada del Viaje">
-                            📖 Portada
-                        </button>
-                        <button onclick="navigateToPage('/vivos/intro/')" class="book-page-btn" title="Introducción / Acto Cero">
-                            🎬 Introducción
-                        </button>
                         <button onclick="navigateToPage('/vivos/mapa/')" class="book-page-btn" title="Mapa Global">
                             🌍 Mapa Global
                         </button>
@@ -641,15 +631,6 @@
                     <div style="display: grid; grid-template-columns: 1fr; gap: 6px;">
                         <button onclick="navigateToPage('/vivos/diario/')" class="book-page-btn" title="Diario de Viaje">
                             📔 Diario
-                        </button>
-                        <button onclick="navigateToPage('/vivos/estado-actual/')" class="book-page-btn" title="Estado Actual">
-                            ⚡ Estado Actual
-                        </button>
-                        <button onclick="navigateToPage('/vivos/reflexion/')" class="book-page-btn" title="Reflexión">
-                            💭 Reflexión
-                        </button>
-                        <button onclick="navigateToPage('/vivos/pais/')" class="book-page-btn" title="Página de País">
-                            🏳️ País
                         </button>
                         <button onclick="navigateToPage('/vivos/curiosidades/')" class="book-page-btn" title="Curiosidades - Momentos Divertidos">
                             ✨ Curiosidades
