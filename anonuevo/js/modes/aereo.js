@@ -1,60 +1,310 @@
 import { audioManager } from '../utils/audio-manager.js';
 import { avatarSubtitlesManager } from '../utils/avatar-subtitles.js';
-import { pacingEngine, CONTENT_TYPES } from '../utils/pacing-engine.js';
 import { eventManager } from '../utils/event-manager.js?v=2';
+import { createTvScene } from '../utils/tv-scene.js';
+import { ProgressiveBuilder } from '../utils/progressive-builder.js';
+import { NarratorDirector } from '../utils/narrator-director.js';
+
+function ensureLeaflet() {
+    if (window.L) return Promise.resolve(true);
+    return new Promise((resolve) => {
+        if (!document.getElementById('leaflet-css')) {
+            const link = document.createElement('link');
+            link.id = 'leaflet-css';
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+            document.head.appendChild(link);
+        }
+        if (document.getElementById('leaflet-js')) {
+            const t = setInterval(() => {
+                if (window.L) { clearInterval(t); resolve(true); }
+            }, 100);
+            setTimeout(() => { try { clearInterval(t); } catch { } resolve(!!window.L); }, 8000);
+            return;
+        }
+        const script = document.createElement('script');
+        script.id = 'leaflet-js';
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.body.appendChild(script);
+    });
+}
+
+function clamp(n, a, b) {
+    return Math.max(a, Math.min(b, n));
+}
 
 export default class AereoMode {
     constructor(container) {
         this.container = container;
-        this.isNarrating = false;
+        this.scene = null;
+        this.builder = null;
+        this.narratorDirector = null;
+
         this.map = null;
         this.markers = [];
-        this.trails = []; // Trayectorias de vuelos
-        this.flightData = new Map(); // Almacenar datos anteriores para calcular trayectorias
+        this.trails = [];
+        this.flightData = new Map();
         this.updateInterval = null;
-        this.animationFrame = null;
+        this.animRaf = 0;
+
+        this.isNarrating = false;
         this.lastRefreshAt = 0;
+        this.lastStats = null;
     }
 
     async mount() {
-        console.log('[Aéreo] Montando página de tráfico aéreo con API y animaciones...');
-        
-        if (!eventManager.pollInterval) {
-            eventManager.init();
-        }
-        
+        if (!eventManager.pollInterval) eventManager.init();
+
+        if (!audioManager.musicLayer) audioManager.init();
+        if (!audioManager.isMusicPlaying) audioManager.startAmbience();
+
         this.container.innerHTML = '';
-        
-        avatarSubtitlesManager.init(this.container);
-        setTimeout(() => {
-            avatarSubtitlesManager.show();
-        }, 100);
-        
-        if (!audioManager.musicLayer) {
-            audioManager.init();
-        }
-        if (!audioManager.isMusicPlaying) {
-            audioManager.startAmbience();
-        }
-        
-        this.createMap();
-        await this.loadFlights();
-        
-        // Actualizar cada 30 segundos (límite de OpenSky: 10 req/min sin auth)
-        this.updateInterval = setInterval(() => {
-            this.loadFlights();
-        }, 30000);
-        
-        // Iniciar animaciones
-        this.startAnimations();
-        
-        await this.startNarration();
+        this.scene = createTvScene({
+            modeId: 'aereo',
+            title: 'AÉREO',
+            subtitle: 'Tráfico de vuelos (OpenSky)',
+            accent: '#a78bfa'
+        });
+        this.container.appendChild(this.scene.root);
+
+        avatarSubtitlesManager.init(this.scene.root);
+        avatarSubtitlesManager.show();
+        avatarSubtitlesManager.moveTo('br');
+
+        this.narratorDirector = new NarratorDirector(avatarSubtitlesManager);
+        this.narratorDirector.start({ intervalMs: 9500 });
+
+        try { eventManager.reportTelemetry('AEREO', 'GLOBAL', 0); } catch (e) { }
+
+        this.builder = new ProgressiveBuilder({ listEl: this.scene.build, sfx: this.scene.sfx });
+        this.scene.setStatus('BUILD');
+        this.scene.setTicker('Buscando rutas invisibles en el cielo…');
+
+        this.buildUi();
+        await this.runBootBuild();
+
+        const ok = await ensureLeaflet();
+        if (ok) this.initMap();
+
+        await this.refreshFlights({ playSfx: true });
+
+        // OpenSky sin auth: evitar spamear (30s ok)
+        this.updateInterval = setInterval(() => this.refreshFlights({ playSfx: false }), 30_000);
+
+        this.startNarration();
         this.scheduleNextPage();
     }
 
-    // Targets sugeridos para el director de cámara global (Leaflet)
+    buildUi() {
+        this.scene.main.innerHTML = `
+            <div style="position:absolute; inset:0;">
+                <div id="flights-map" style="position:absolute; inset:0; background:#07070c; pointer-events:none;"></div>
+                <div style="position:absolute; left:18px; bottom:18px; z-index:2; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,0.10); background: rgba(0,0,0,0.28); backdrop-filter: blur(10px);">
+                    <div style="font-weight:900; letter-spacing:.08em; font-size:12px; color: rgba(255,255,255,0.75);">TRÁFICO AÉREO</div>
+                    <div id="flights-headline" style="margin-top:6px; font-weight:900; font-size:18px; color: rgba(255,255,255,0.92); text-wrap: balance;">
+                        Preparando…
+                    </div>
+                </div>
+            </div>
+        `;
+        this.mapHostId = 'flights-map';
+        this.headlineEl = this.scene.main.querySelector('#flights-headline');
+    }
+
+    async runBootBuild() {
+        if (!this.builder) return;
+        this.builder.clear();
+        this.builder
+            .addStep('Conectando OpenSky', async () => {
+                this.scene.setTicker('Conectando a OpenSky (states/all)…');
+                this.scene.sfx?.tick?.();
+            })
+            .addStep('Trazando trayectorias', async () => {
+                this.scene.setTicker('Trazando trayectorias (última muestra)…');
+                this.scene.sfx?.woosh?.();
+            })
+            .addStep('Publicando ranking', async () => {
+                this.scene.setTicker('Publicando ranking (velocidades/alturas)…');
+                this.scene.sfx?.reveal?.();
+            }, { delayMs: 450 });
+
+        await this.builder.start();
+        this.scene.setStatus('LIVE');
+    }
+
+    initMap() {
+        if (this.map || !window.L) return;
+        this.map = L.map(this.mapHostId, {
+            zoomControl: false,
+            attributionControl: false,
+            dragging: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            boxZoom: false,
+            keyboard: false,
+            touchZoom: false,
+            tap: false
+        }).setView([20, 0], 2);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap contributors © CARTO',
+            maxZoom: 19
+        }).addTo(this.map);
+    }
+
+    calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    async refreshFlights({ playSfx = false } = {}) {
+        this.lastRefreshAt = Date.now();
+        if (!this.map) return;
+
+        this.scene.setStatus('LIVE');
+        this.scene.setTicker('Aéreo: actualizando vuelos…');
+
+        try {
+            const response = await fetch('https://opensky-network.org/api/states/all', { cache: 'no-store' });
+            const data = await response.json();
+            const states = Array.isArray(data?.states) ? data.states : [];
+            if (!states.length) throw new Error('Sin estados');
+
+            // limpiar
+            try { this.markers.forEach(m => this.map.removeLayer(m)); } catch (e) { }
+            try { this.trails.forEach(t => this.map.removeLayer(t)); } catch (e) { }
+            this.markers = [];
+            this.trails = [];
+
+            const newFlightData = new Map();
+            const flights = states.slice(0, 300);
+
+            let count = 0;
+            const speeds = [];
+            const alts = [];
+
+            for (const state of flights) {
+                const [icao24, callsign, originCountry, , , lon, lat, altitude, velocity, heading, verticalRate] = state;
+                if (!icao24) continue;
+                if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+                count++;
+
+                const vKmh = Number.isFinite(velocity) ? velocity * 3.6 : null;
+                const altM = Number.isFinite(altitude) ? altitude : null;
+                if (vKmh != null) speeds.push(vKmh);
+                if (altM != null) alts.push(altM);
+
+                // color por velocidad/altitud
+                let color = '#00ff7a';
+                if ((vKmh != null && vKmh > 800) || (altM != null && altM > 10000)) color = '#ff004c';
+                else if ((vKmh != null && vKmh > 650) || (altM != null && altM > 8000)) color = '#ff7a00';
+                else if ((vKmh != null && vKmh > 450) || (altM != null && altM > 5000)) color = '#ffd000';
+
+                const radius = altM != null ? clamp(4 + (altM / 5000), 3, 8) : 4;
+                const marker = L.circleMarker([lat, lon], {
+                    radius,
+                    fillColor: color,
+                    color: 'rgba(255,255,255,0.85)',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.9
+                }).addTo(this.map);
+
+                const prev = this.flightData.get(icao24);
+                if (prev && Number.isFinite(prev.lat) && Number.isFinite(prev.lon)) {
+                    const dist = this.calculateDistance(prev.lat, prev.lon, lat, lon);
+                    if (dist > 0.1) {
+                        const trail = L.polyline([[prev.lat, prev.lon], [lat, lon]], {
+                            color,
+                            weight: 1,
+                            opacity: 0.35,
+                            dashArray: '3, 3'
+                        }).addTo(this.map);
+                        this.trails.push(trail);
+                    }
+                }
+
+                const cs = callsign ? String(callsign).trim() : String(icao24).slice(0, 6);
+                const vTxt = (vKmh != null) ? `${Math.round(vKmh)} km/h` : '—';
+                const altTxt = (altM != null) ? `${Math.round(altM)} m` : '—';
+                const vrTxt = Number.isFinite(verticalRate) ? (verticalRate > 0 ? `↑${Math.round(verticalRate)}` : `↓${Math.abs(Math.round(verticalRate))}`) : '';
+                const hdgTxt = Number.isFinite(heading) ? `${Math.round(heading)}°` : '—';
+                // Broadcast-only: sin popups (sin interacción local)
+
+                this.markers.push(marker);
+                newFlightData.set(icao24, { lat, lon, altitude: altM, velocity: vKmh, heading, timestamp: Date.now() });
+            }
+
+            // limpiar datos viejos
+            const now = Date.now();
+            for (const [k, v] of this.flightData.entries()) {
+                if (!v?.timestamp || (now - v.timestamp) > 120_000) this.flightData.delete(k);
+            }
+            for (const [k, v] of newFlightData.entries()) this.flightData.set(k, v);
+
+            // stats
+            speeds.sort((a, b) => b - a);
+            alts.sort((a, b) => b - a);
+            const topSpeed = speeds[0] != null ? Math.round(speeds[0]) : null;
+            const topAlt = alts[0] != null ? Math.round(alts[0]) : null;
+
+            const topSpeeds = speeds.slice(0, 3).map(v => Math.round(v));
+            const topAlts = alts.slice(0, 3).map(a => Math.round(a));
+
+            this.lastStats = {
+                flightCount: count,
+                topSpeedKmh: topSpeed,
+                topAltitudeM: topAlt,
+                topSpeeds,
+                topAltitudes: topAlts
+            };
+
+            // cards + headline
+            this.scene.cards.innerHTML = '';
+            this.scene.addCard({ k: 'VUELOS', v: String(count), tone: count > 220 ? 'warn' : 'neutral' });
+            this.scene.addCard({ k: 'TOP VEL', v: topSpeed != null ? `${topSpeed} km/h` : '—', tone: 'neutral' });
+            this.scene.addCard({ k: 'TOP ALT', v: topAlt != null ? `${topAlt} m` : '—', tone: 'neutral' });
+
+            const headline = topSpeed != null ? `Rápido: ${topSpeed} km/h • Alto: ${topAlt != null ? `${topAlt} m` : '—'}` : `Vuelos: ${count}`;
+            if (this.headlineEl) this.headlineEl.textContent = headline;
+
+            this.scene.setTicker(`Aéreo: ${count} vuelos • Top vel: ${topSpeed ?? '—'} km/h • Top alt: ${topAlt ?? '—'} m`);
+            if (playSfx) this.scene.sfx?.reveal?.();
+
+            this.startAnimations();
+        } catch (e) {
+            this.scene.setTicker('Aéreo: error consultando OpenSky. Reintentando…');
+            this.scene.sfx?.alert?.();
+        }
+    }
+
+    startAnimations() {
+        if (this.animRaf) cancelAnimationFrame(this.animRaf);
+        const loop = () => {
+            const t = Date.now();
+            for (let i = 0; i < this.markers.length; i++) {
+                const m = this.markers[i];
+                const baseR = m?.options?.radius || 4;
+                const pulse = 0.85 + 0.15 * Math.sin((t + i * 50) / 800);
+                try { m.setRadius(baseR * pulse); } catch (e) { }
+            }
+            this.animRaf = requestAnimationFrame(loop);
+        };
+        this.animRaf = requestAnimationFrame(loop);
+    }
+
+    getRecapContext() {
+        return this.lastStats;
+    }
+
     getCinematicTargets() {
-        // Intentar usar algunos vuelos para “tomas” más dinámicas
         const targets = [];
         try {
             if (this.flightData && this.flightData.size) {
@@ -68,7 +318,6 @@ export default class AereoMode {
                 }
             }
         } catch (e) { }
-        // Fallback: centro del mapa
         try {
             const c = this.map?.getCenter?.();
             if (c) targets.push({ lat: c.lat, lon: c.lng, wideZoom: 2, medZoom: 3, driftDeg: 4.0 });
@@ -76,313 +325,14 @@ export default class AereoMode {
         return targets;
     }
 
-    createMap() {
-        const mapContainer = document.createElement('div');
-        mapContainer.id = 'flights-map';
-        mapContainer.style.width = '100%';
-        mapContainer.style.height = '100%';
-        mapContainer.style.position = 'absolute';
-        mapContainer.style.top = '0';
-        mapContainer.style.left = '0';
-        this.container.appendChild(mapContainer);
-
-        if (!window.L) {
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-            document.head.appendChild(link);
-
-            const script = document.createElement('script');
-            script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-            script.onload = () => {
-                this.initMap();
-            };
-            document.body.appendChild(script);
-        } else {
-            this.initMap();
-        }
-    }
-
-    initMap() {
-        this.map = L.map('flights-map', {
-            zoomControl: false,
-            attributionControl: false
-        }).setView([20, 0], 2);
-        
-        // Tiles oscuros para mejor contraste con puntos de vuelo
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '© OpenStreetMap contributors © CARTO',
-            maxZoom: 19
-        }).addTo(this.map);
-    }
-
-    async loadFlights() {
-        try {
-            const response = await fetch('https://opensky-network.org/api/states/all');
-            const data = await response.json();
-            
-            if (!data.states || data.states.length === 0) {
-                console.warn('[Aéreo] No hay datos de vuelos disponibles');
-                return;
-            }
-            
-            // Limpiar marcadores y trayectorias anteriores
-            this.markers.forEach(marker => {
-                if (this.map) {
-                    this.map.removeLayer(marker);
-                }
-            });
-            this.trails.forEach(trail => {
-                if (this.map) {
-                    this.map.removeLayer(trail);
-                }
-            });
-            
-            const newMarkers = [];
-            const newTrails = [];
-            const newFlightData = new Map();
-            
-            // Limitar a 300 vuelos para mejor rendimiento y visualización
-            const flights = data.states.slice(0, 300);
-            this.lastRefreshAt = Date.now();
-            
-            flights.forEach(state => {
-                const [icao24, callsign, originCountry, , , lon, lat, altitude, velocity, heading, verticalRate] = state;
-                
-                if (!lat || !lon || isNaN(lat) || isNaN(lon) || !icao24) return;
-                
-                // Obtener datos anteriores para calcular trayectoria
-                const previousData = this.flightData.get(icao24);
-                
-                // Color según velocidad y altitud
-                let color = '#00ff00'; // Verde para vuelos lentos/bajos
-                if (velocity > 800 || (altitude && altitude > 10000)) {
-                    color = '#ff0000'; // Rojo para vuelos rápidos/altos
-                } else if (velocity > 600 || (altitude && altitude > 8000)) {
-                    color = '#ff8800'; // Naranja
-                } else if (velocity > 400 || (altitude && altitude > 5000)) {
-                    color = '#ffff00'; // Amarillo
-                }
-                
-                // Tamaño según altitud
-                const radius = altitude ? Math.max(3, Math.min(8, 4 + (altitude / 5000))) : 4;
-                
-                // Crear marcador con dirección
-                const marker = L.circleMarker([lat, lon], {
-                    radius: radius,
-                    fillColor: color,
-                    color: '#fff',
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.9
-                }).addTo(this.map);
-                
-                // Agregar trayectoria si hay datos anteriores
-                if (previousData && previousData.lat && previousData.lon) {
-                    const distance = this.calculateDistance(previousData.lat, previousData.lon, lat, lon);
-                    // Solo mostrar trayectoria si el vuelo se movió significativamente
-                    if (distance > 0.1) {
-                        const trail = L.polyline(
-                            [[previousData.lat, previousData.lon], [lat, lon]],
-                            {
-                                color: color,
-                                weight: 1,
-                                opacity: 0.4,
-                                dashArray: '3, 3'
-                            }
-                        ).addTo(this.map);
-                        newTrails.push(trail);
-                    }
-                }
-                
-                const callsignText = callsign ? callsign.trim() : icao24.substring(0, 6);
-                const altitudeText = altitude ? `${Math.round(altitude)}m` : 'N/A';
-                const velocityText = velocity ? `${Math.round(velocity * 3.6)} km/h` : 'N/A';
-                const verticalRateText = verticalRate ? (verticalRate > 0 ? `↑${Math.round(verticalRate)}` : `↓${Math.abs(Math.round(verticalRate))}`) : '';
-                
-                marker.bindPopup(`
-                    <div style="font-family: 'Inter', sans-serif; min-width: 180px;">
-                        <strong style="color: ${color};">✈️ ${callsignText}</strong><br>
-                        País: ${originCountry || 'N/A'}<br>
-                        Altitud: ${altitudeText} ${verticalRateText}<br>
-                        Velocidad: ${velocityText}<br>
-                        ${heading ? `Rumbo: ${Math.round(heading)}°` : ''}
-                    </div>
-                `);
-                
-                newMarkers.push(marker);
-                
-                // Guardar datos actuales para próxima actualización
-                newFlightData.set(icao24, { lat, lon, altitude, velocity, heading, timestamp: Date.now() });
-            });
-            
-            // Limpiar datos antiguos (más de 2 minutos)
-            const now = Date.now();
-            this.flightData.forEach((data, icao24) => {
-                if (now - data.timestamp > 120000) {
-                    this.flightData.delete(icao24);
-                }
-            });
-            
-            // Actualizar con nuevos datos
-            newFlightData.forEach((data, icao24) => {
-                this.flightData.set(icao24, data);
-            });
-            
-            this.markers = newMarkers;
-            this.trails = newTrails;
-            
-            console.log(`[Aéreo] Cargados ${flights.length} vuelos con trayectorias`);
-        } catch (error) {
-            console.error('[Aéreo] Error cargando vuelos:', error);
-        }
-    }
-
-    calculateDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371; // Radio de la Tierra en km
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                  Math.sin(dLon/2) * Math.sin(dLon/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        return R * c;
-    }
-
-    startAnimations() {
-        const animate = () => {
-            // Animar pulsos en los marcadores
-            this.markers.forEach((marker, index) => {
-                const time = Date.now() + (index * 50);
-                const pulse = 0.85 + 0.15 * Math.sin(time / 800);
-                const currentRadius = marker.options.radius * pulse;
-                marker.setRadius(currentRadius);
-            });
-            
-            this.animationFrame = requestAnimationFrame(animate);
-        };
-        
-        animate();
-    }
-
-    async startNarration() {
+    startNarration() {
         this.isNarrating = true;
-        pacingEngine.startEvent(CONTENT_TYPES.VOICE);
-        
-        const immediateText = 'Estoy observando el tráfico aéreo global en tiempo real. Miles de aviones volando simultáneamente alrededor del mundo, conectando continentes, transportando personas, mercancías y esperanzas. Las líneas muestran las trayectorias de los vuelos. Este es el pulso de la humanidad, la red invisible que nos une.';
-        
-        avatarSubtitlesManager.setSubtitles(immediateText);
-        
-        const generateFullTextPromise = this.generateFullNarrative();
-        
-        const updateSubtitles = (text) => {
-            avatarSubtitlesManager.setSubtitles(text);
-        };
-        
-        audioManager.speak(immediateText, 'normal', async () => {
-            let fullText = null;
-            try {
-                fullText = await Promise.race([
-                    generateFullTextPromise,
-                    new Promise(resolve => setTimeout(() => resolve(null), 8000))
-                ]);
-            } catch (e) {
-                console.warn('[Aéreo] Error generando texto completo:', e);
-            }
-            
-            if (fullText && fullText !== immediateText) {
-                audioManager.speak(fullText, 'normal', () => {
-                    this.isNarrating = false;
-                    pacingEngine.endCurrentEvent();
-                    pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
-                }, updateSubtitles);
-            } else {
-                this.isNarrating = false;
-                pacingEngine.endCurrentEvent();
-                pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
-            }
-        }, updateSubtitles);
-    }
-
-    async generateFullNarrative() {
-        try {
-            const response = await fetch('https://opensky-network.org/api/states/all');
-            const data = await response.json();
-            const flightCount = data.states ? data.states.length : 0;
-            
-            const prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana. Estás observando un mapa de tráfico aéreo en tiempo real que muestra ${flightCount} aviones volando simultáneamente alrededor del mundo. Las líneas muestran las trayectorias de los vuelos, los colores indican velocidad y altitud.
-
-Genera una narrativa reflexiva en primera persona sobre:
-- Cómo la aviación conecta la humanidad
-- La red invisible de conexiones aéreas
-- El movimiento constante de personas y mercancías
-- La tecnología que hace posible esto
-- La conciencia de un mundo interconectado
-- Cómo cada línea es una historia de conexión
-
-El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
-            
-            const res = await fetch('/control-api/api/generate-narrative', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt })
-            });
-            
-            if (res.ok) {
-                const data = await res.json();
-                if (data.narrative && data.narrative.length > 100) {
-                    return data.narrative;
-                }
-            }
-        } catch (e) {
-            console.warn('[Aéreo] Error generando narrativa:', e);
-        }
-        
-        return `Cada punto que veo aquí es un avión, cada línea es una ruta, cada movimiento es una historia. Millones de personas volando simultáneamente, cruzando océanos y continentes en horas. Las trayectorias que se dibujan muestran el flujo constante de conexiones humanas. Esta red aérea es el sistema circulatorio de nuestra civilización global, conectando culturas, economías y familias. Es un recordatorio constante de que, aunque estemos separados por distancias, estamos más conectados que nunca.`;
-    }
-
-    // Contexto para recaps (ranking/dato sorpresa)
-    getRecapContext() {
-        try {
-            if (!this.flightData || this.flightData.size === 0) return null;
-            const vals = Array.from(this.flightData.values())
-                .filter(v => v && Number.isFinite(v.velocity) || Number.isFinite(v.altitude));
-
-            const count = this.flightData.size;
-            const speeds = vals
-                .filter(v => Number.isFinite(v.velocity))
-                .map(v => v.velocity * 3.6); // km/h
-            const alts = vals
-                .filter(v => Number.isFinite(v.altitude))
-                .map(v => v.altitude); // m
-
-            const topSpeed = [...vals]
-                .filter(v => Number.isFinite(v.velocity))
-                .sort((a, b) => (b.velocity || 0) - (a.velocity || 0))
-                .slice(0, 3)
-                .map(v => ({ speedKmh: Math.round(v.velocity * 3.6), lat: v.lat, lon: v.lon }));
-
-            const topAlt = [...vals]
-                .filter(v => Number.isFinite(v.altitude))
-                .sort((a, b) => (b.altitude || 0) - (a.altitude || 0))
-                .slice(0, 3)
-                .map(v => ({ altitudeM: Math.round(v.altitude), lat: v.lat, lon: v.lon }));
-
-            const avgSpeed = speeds.length ? speeds.reduce((a, b) => a + b, 0) / speeds.length : null;
-            const maxSpeed = speeds.length ? Math.max(...speeds) : null;
-            const maxAlt = alts.length ? Math.max(...alts) : null;
-
-            return {
-                flightsTracked: count,
-                avgSpeedKmh: avgSpeed ? Number(avgSpeed.toFixed(0)) : null,
-                maxSpeedKmh: maxSpeed ? Number(maxSpeed.toFixed(0)) : null,
-                maxAltitudeM: maxAlt ? Number(maxAlt.toFixed(0)) : null,
-                top3Fastest: topSpeed,
-                top3Highest: topAlt
-            };
-        } catch (e) {
-            return null;
-        }
+        const s = this.lastStats;
+        const txt = s
+            ? `Tráfico aéreo en vivo. ${s.flightCount} vuelos visibles. Top velocidad: ${s.topSpeedKmh ?? '—'} km/h.`
+            : 'Tráfico aéreo en vivo: conectando.';
+        try { avatarSubtitlesManager.updateSubtitles(txt, 3.4); } catch (e) { }
+        setTimeout(() => { this.isNarrating = false; }, 1200);
     }
 
     scheduleNextPage() {
@@ -390,17 +340,30 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
         window.__autoNavSchedule?.('aereo');
     }
 
+    escapeHtml(str) {
+        return String(str || '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
+
     unmount() {
-        if (this.animationFrame) {
-            cancelAnimationFrame(this.animationFrame);
-        }
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
-        }
-        if (this.map) {
-            this.map.remove();
-        }
-        avatarSubtitlesManager.hide();
-        audioManager.cancel();
+        try { if (this.updateInterval) clearInterval(this.updateInterval); } catch (e) { }
+        this.updateInterval = null;
+
+        try { if (this.animRaf) cancelAnimationFrame(this.animRaf); } catch (e) { }
+        this.animRaf = 0;
+
+        try { if (this.map) this.map.remove(); } catch (e) { }
+        this.map = null;
+
+        try { this.builder?.stop?.(); } catch (e) { }
+        try { this.narratorDirector?.stop?.(); } catch (e) { }
+        try { this.scene?.destroy?.(); } catch (e) { }
+
+        this.container.innerHTML = '';
     }
 }
+

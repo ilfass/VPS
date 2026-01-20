@@ -167,9 +167,22 @@ export default class SatelitesMode {
     }
 
     initMap() {
+        // Broadcast-only: sin interacción local (mouse/touch)
+        try {
+            const host = document.getElementById('satellites-map');
+            if (host) host.style.pointerEvents = 'none';
+        } catch (e) { }
+
         this.map = L.map('satellites-map', {
             zoomControl: false,
-            attributionControl: false
+            attributionControl: false,
+            dragging: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            boxZoom: false,
+            keyboard: false,
+            touchZoom: false,
+            tap: false
         }).setView([20, 0], 2);
         
         // Usar tiles oscuros para efecto espacial
@@ -481,16 +494,9 @@ export default class SatelitesMode {
             <div style="margin-top:8px; color: rgba(255,255,255,.75); font-size:11px;">
                 <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
                     <div>🛰️ Satélites extra: <b>${extraCount}</b> (grupo: visual)</div>
-                    <button id="toggle-sat-labels" style="
-                        cursor:pointer;
-                        border: 1px solid rgba(255,255,255,0.18);
-                        background: rgba(255,255,255,0.08);
-                        color: rgba(255,255,255,0.92);
-                        padding: 6px 8px;
-                        border-radius: 10px;
-                        font-size: 11px;
-                        line-height: 1;
-                    ">Etiquetas: ${this.labelsEnabled ? 'ON' : 'OFF'}</button>
+                    <div style="border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.85); padding: 6px 8px; border-radius: 10px; font-size: 11px; line-height: 1;">
+                        Etiquetas: ${this.labelsEnabled ? 'ON' : 'OFF'}
+                    </div>
                 </div>
             </div>
         `;
@@ -501,15 +507,7 @@ export default class SatelitesMode {
             if (canvas) this.drawKpSparkline(canvas, series?.slice(-12) || []);
         } catch (e) { }
 
-        // Hook del toggle (re-rendera este overlay cada vez; por eso se reengancha aquí)
-        try {
-            const btn = this.spaceWeatherOverlay.querySelector('#toggle-sat-labels');
-            if (btn) {
-                btn.onclick = () => {
-                    this.setLabelsEnabled(!this.labelsEnabled);
-                };
-            }
-        } catch (e) { }
+        // Broadcast-only: sin toggle local por mouse
     }
 
     setLabelsEnabled(enabled) {

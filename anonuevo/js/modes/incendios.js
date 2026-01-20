@@ -1,55 +1,309 @@
 import { audioManager } from '../utils/audio-manager.js';
 import { avatarSubtitlesManager } from '../utils/avatar-subtitles.js';
-import { pacingEngine, CONTENT_TYPES } from '../utils/pacing-engine.js';
 import { eventManager } from '../utils/event-manager.js?v=2';
+import { createTvScene } from '../utils/tv-scene.js';
+import { ProgressiveBuilder } from '../utils/progressive-builder.js';
+import { NarratorDirector } from '../utils/narrator-director.js';
+
+function ensureLeaflet() {
+    if (window.L) return Promise.resolve(true);
+    return new Promise((resolve) => {
+        if (!document.getElementById('leaflet-css')) {
+            const link = document.createElement('link');
+            link.id = 'leaflet-css';
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+            document.head.appendChild(link);
+        }
+        if (document.getElementById('leaflet-js')) {
+            const t = setInterval(() => {
+                if (window.L) { clearInterval(t); resolve(true); }
+            }, 100);
+            setTimeout(() => { try { clearInterval(t); } catch { } resolve(!!window.L); }, 8000);
+            return;
+        }
+        const script = document.createElement('script');
+        script.id = 'leaflet-js';
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.body.appendChild(script);
+    });
+}
 
 export default class IncendiosMode {
     constructor(container) {
         this.container = container;
-        this.isNarrating = false;
+        this.scene = null;
+        this.builder = null;
+        this.narratorDirector = null;
+
         this.map = null;
         this.markers = [];
+        this.animRaf = 0;
         this.updateInterval = null;
-        this.animationFrame = null;
+
+        this.isNarrating = false;
+        this.lastRefreshAt = 0;
+        this.lastStats = null;
     }
 
     async mount() {
-        console.log('[Incendios] Montando página de incendios forestales con API...');
-        
-        if (!eventManager.pollInterval) {
-            eventManager.init();
-        }
-        
+        if (!eventManager.pollInterval) eventManager.init();
+
+        if (!audioManager.musicLayer) audioManager.init();
+        if (!audioManager.isMusicPlaying) audioManager.startAmbience();
+
         this.container.innerHTML = '';
-        
-        avatarSubtitlesManager.init(this.container);
-        setTimeout(() => {
-            avatarSubtitlesManager.show();
-        }, 100);
-        
-        if (!audioManager.musicLayer) {
-            audioManager.init();
-        }
-        if (!audioManager.isMusicPlaying) {
-            audioManager.startAmbience();
-        }
-        
-        this.createMap();
-        await this.loadFires();
-        
-        // Actualizar cada 3 horas (NASA FIRMS actualiza cada 3 horas)
-        this.updateInterval = setInterval(() => {
-            this.loadFires();
-        }, 10800000);
-        
-        // Iniciar animaciones
-        this.startAnimations();
-        
-        await this.startNarration();
+        this.scene = createTvScene({
+            modeId: 'incendios',
+            title: 'INCENDIOS',
+            subtitle: 'Focos detectados (FIRMS / demo)',
+            accent: '#ef4444'
+        });
+        this.container.appendChild(this.scene.root);
+
+        avatarSubtitlesManager.init(this.scene.root);
+        avatarSubtitlesManager.show();
+        avatarSubtitlesManager.moveTo('br');
+
+        this.narratorDirector = new NarratorDirector(avatarSubtitlesManager);
+        this.narratorDirector.start({ intervalMs: 9000 });
+
+        try { eventManager.reportTelemetry('INCENDIOS', 'GLOBAL', 0); } catch (e) { }
+
+        this.builder = new ProgressiveBuilder({ listEl: this.scene.build, sfx: this.scene.sfx });
+        this.scene.setStatus('BUILD');
+        this.scene.setTicker('Buscando focos en el planeta…');
+
+        this.buildUi();
+        await this.runBootBuild();
+
+        const ok = await ensureLeaflet();
+        if (ok) this.initMap();
+
+        await this.refreshFires({ playSfx: true });
+
+        // FIRMS suele actualizar cada ~3h; refresco para streaming con un intervalo más largo
+        this.updateInterval = setInterval(() => this.refreshFires({ playSfx: false }), 3 * 60 * 60 * 1000);
+
+        this.startNarration();
         this.scheduleNextPage();
     }
 
-    // Targets sugeridos para el director de cámara global (Leaflet)
+    buildUi() {
+        this.scene.main.innerHTML = `
+            <div style="position:absolute; inset:0;">
+                <div id="fires-map" style="position:absolute; inset:0; background:#07070c; pointer-events:none;"></div>
+                <div style="position:absolute; left:18px; bottom:18px; z-index:2; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,0.10); background: rgba(0,0,0,0.28); backdrop-filter: blur(10px);">
+                    <div style="font-weight:900; letter-spacing:.08em; font-size:12px; color: rgba(255,255,255,0.75);">FOCOS</div>
+                    <div id="fires-headline" style="margin-top:6px; font-weight:900; font-size:18px; color: rgba(255,255,255,0.92); text-wrap: balance;">
+                        Preparando…
+                    </div>
+                </div>
+            </div>
+        `;
+        this.mapHostId = 'fires-map';
+        this.headlineEl = this.scene.main.querySelector('#fires-headline');
+    }
+
+    async runBootBuild() {
+        if (!this.builder) return;
+        this.builder.clear();
+        this.builder
+            .addStep('Encendiendo sensores', async () => {
+                this.scene.setTicker('Encendiendo sensores: térmico + confianza…');
+                this.scene.sfx?.tick?.();
+            })
+            .addStep('Agregando focos', async () => {
+                this.scene.setTicker('Agregando focos sobre mapa oscuro…');
+                this.scene.sfx?.woosh?.();
+            })
+            .addStep('Publicando alerta', async () => {
+                this.scene.setTicker('Publicando alerta: conteos y focos principales…');
+                this.scene.sfx?.reveal?.();
+            }, { delayMs: 450 });
+
+        await this.builder.start();
+        this.scene.setStatus('LIVE');
+    }
+
+    initMap() {
+        if (this.map || !window.L) return;
+        this.map = L.map(this.mapHostId, {
+            zoomControl: false,
+            attributionControl: false,
+            dragging: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            boxZoom: false,
+            keyboard: false,
+            touchZoom: false,
+            tap: false
+        }).setView([20, 0], 2);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap contributors © CARTO',
+            maxZoom: 19
+        }).addTo(this.map);
+    }
+
+    // Si FIRMS no responde/CORS, generamos una demo consistente para evitar “pantalla vacía”
+    generateDemoFires() {
+        const seeds = [
+            { lat: -8.4, lon: -63.9, brightness: 355, confidence: 'h', label: 'Amazonas' },
+            { lat: 38.3, lon: 22.1, brightness: 330, confidence: 'n', label: 'Mediterráneo' },
+            { lat: -33.0, lon: 147.0, brightness: 380, confidence: 'h', label: 'Australia' },
+            { lat: 55.7, lon: 37.6, brightness: 310, confidence: 'l', label: 'Eurasia' },
+            { lat: 34.2, lon: -118.2, brightness: 340, confidence: 'n', label: 'California' }
+        ];
+        const many = [];
+        for (let i = 0; i < 120; i++) {
+            const s = seeds[i % seeds.length];
+            many.push({
+                latitude: s.lat + (Math.random() - 0.5) * 7,
+                longitude: s.lon + (Math.random() - 0.5) * 10,
+                brightness: s.brightness + (Math.random() - 0.5) * 60,
+                confidence: s.confidence,
+                label: s.label
+            });
+        }
+        return many;
+    }
+
+    parseCsv(text) {
+        const lines = String(text || '').split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length < 2) return [];
+        const headers = lines[0].split(',').map(h => h.trim());
+        return lines.slice(1).map(line => {
+            const values = line.split(',');
+            const obj = {};
+            headers.forEach((h, i) => { obj[h] = values[i]?.trim(); });
+            return obj;
+        });
+    }
+
+    async fetchFirms() {
+        // Nota: Este endpoint puede fallar por CORS o por requerir token.
+        const countries = ['US', 'BR', 'AU', 'CA', 'RU', 'CN', 'IN', 'ID', 'AR', 'CL', 'ES', 'PT', 'GR', 'IT', 'FR'];
+        const promises = countries.map(country =>
+            fetch(`https://firms.modaps.eosdis.nasa.gov/api/country/csv/${country}/VIIRS_SNPP_NRT/1`)
+                .then(r => r.ok ? r.text() : '')
+                .then(t => this.parseCsv(t))
+                .catch(() => [])
+        );
+        const all = (await Promise.all(promises)).flat();
+        return all.slice(0, 200);
+    }
+
+    async refreshFires({ playSfx = false } = {}) {
+        this.lastRefreshAt = Date.now();
+        if (!this.map) return;
+
+        this.scene.setStatus('LIVE');
+        this.scene.setTicker('Incendios: actualizando focos…');
+
+        let fires = [];
+        let source = 'firms';
+        try {
+            fires = await this.fetchFirms();
+            if (!Array.isArray(fires) || fires.length < 10) {
+                source = 'demo';
+                fires = this.generateDemoFires();
+            }
+        } catch (e) {
+            source = 'demo';
+            fires = this.generateDemoFires();
+        }
+
+        // limpiar markers
+        try { this.markers.forEach(m => this.map.removeLayer(m)); } catch (e) { }
+        this.markers = [];
+
+        let maxBrightness = null;
+        let highConfidence = 0;
+        const topBuckets = new Map();
+
+        for (const fire of fires) {
+            const lat = Number(fire.latitude);
+            const lon = Number(fire.longitude);
+            const brightness = Number(fire.brightness) || 0;
+            const confidence = String(fire.confidence || 'n').toLowerCase();
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+
+            if (maxBrightness === null || brightness > maxBrightness) maxBrightness = brightness;
+            if (confidence === 'h') highConfidence++;
+
+            const label = fire.label || fire.country || '—';
+            topBuckets.set(label, (topBuckets.get(label) || 0) + 1);
+
+            let color = '#ff7a00';
+            if (brightness > 400) color = '#ff004c';
+            else if (brightness > 350) color = '#ff3300';
+            else if (brightness > 300) color = '#ff5500';
+
+            const radius = Math.max(4, Math.min(14, 5 + (brightness / 55)));
+            const marker = L.circleMarker([lat, lon], {
+                radius,
+                fillColor: color,
+                color: 'rgba(255,255,255,0.85)',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.9
+            }).addTo(this.map);
+            this.markers.push(marker);
+        }
+
+        // stats
+        const top = [...topBuckets.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([k, v]) => ({ region: k, count: v }));
+
+        this.lastStats = {
+            source,
+            fireCount: this.markers.length,
+            highConfidence,
+            maxBrightness: (typeof maxBrightness === 'number') ? Number(maxBrightness.toFixed(1)) : null,
+            topRegions: top
+        };
+
+        // cards
+        this.scene.cards.innerHTML = '';
+        this.scene.addCard({ k: 'FOCOS', v: String(this.lastStats.fireCount), tone: this.lastStats.fireCount > 120 ? 'warn' : 'neutral' });
+        this.scene.addCard({ k: 'CONFIANZA ALTA', v: String(highConfidence), tone: highConfidence > 0 ? 'warn' : 'neutral' });
+        this.scene.addCard({ k: 'BRILLO MAX', v: this.lastStats.maxBrightness ? `${this.lastStats.maxBrightness} K` : '—', tone: 'neutral' });
+        this.scene.addCard({ k: 'FUENTE', v: source.toUpperCase(), tone: source === 'demo' ? 'warn' : 'good' });
+
+        const headline = top[0] ? `Zona más activa: ${top[0].region} (${top[0].count})` : 'Mapa de focos activo';
+        if (this.headlineEl) this.headlineEl.textContent = headline;
+
+        this.scene.setTicker(`Incendios: ${this.lastStats.fireCount} focos • Confianza alta: ${highConfidence} • Top: ${(top[0]?.region || '—')}`);
+        if (playSfx) this.scene.sfx?.alert?.();
+
+        this.startFirePulse();
+    }
+
+    startFirePulse() {
+        if (this.animRaf) cancelAnimationFrame(this.animRaf);
+        const loop = () => {
+            const t = Date.now();
+            for (let i = 0; i < this.markers.length; i++) {
+                const m = this.markers[i];
+                const baseR = m?.options?.radius || 6;
+                const pulse = 0.82 + 0.22 * Math.sin((t + i * 160) / 600);
+                try { m.setRadius(baseR * pulse); } catch (e) { }
+                const op = 0.72 + 0.22 * Math.sin((t + i * 80) / 820);
+                try { m.setStyle({ fillOpacity: op }); } catch (e) { }
+            }
+            this.animRaf = requestAnimationFrame(loop);
+        };
+        this.animRaf = requestAnimationFrame(loop);
+    }
+
+    getRecapContext() {
+        return this.lastStats;
+    }
+
     getCinematicTargets() {
         const targets = [];
         try {
@@ -66,220 +320,14 @@ export default class IncendiosMode {
         return targets;
     }
 
-    createMap() {
-        const mapContainer = document.createElement('div');
-        mapContainer.id = 'fires-map';
-        mapContainer.style.width = '100%';
-        mapContainer.style.height = '100%';
-        mapContainer.style.position = 'absolute';
-        mapContainer.style.top = '0';
-        mapContainer.style.left = '0';
-        this.container.appendChild(mapContainer);
-
-        if (!window.L) {
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-            document.head.appendChild(link);
-
-            const script = document.createElement('script');
-            script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-            script.onload = () => {
-                this.initMap();
-            };
-            document.body.appendChild(script);
-        } else {
-            this.initMap();
-        }
-    }
-
-    initMap() {
-        this.map = L.map('fires-map', {
-            zoomControl: false,
-            attributionControl: false
-        }).setView([20, 0], 2);
-        
-        // Tiles oscuros para mejor contraste con fuego
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '© OpenStreetMap contributors © CARTO',
-            maxZoom: 19
-        }).addTo(this.map);
-    }
-
-    async loadFires() {
-        try {
-            // NASA FIRMS API - incendios detectados en las últimas 24 horas
-            // Usar varios países para tener buena cobertura
-            const countries = ['US', 'BR', 'AU', 'CA', 'RU', 'CN', 'IN', 'ID', 'AR', 'CL', 'ES', 'PT', 'GR', 'IT', 'FR'];
-            
-            const promises = countries.map(country => 
-                fetch(`https://firms.modaps.eosdis.nasa.gov/api/country/csv/${country}/VIIRS_SNPP_NRT/1`)
-                    .then(r => r.text())
-                    .then(text => {
-                        // Parsear CSV
-                        const lines = text.split('\n').filter(l => l.trim());
-                        if (lines.length < 2) return [];
-                        const headers = lines[0].split(',');
-                        return lines.slice(1).map(line => {
-                            const values = line.split(',');
-                            const obj = {};
-                            headers.forEach((h, i) => {
-                                obj[h.trim()] = values[i]?.trim();
-                            });
-                            return obj;
-                        });
-                    })
-                    .catch(() => [])
-            );
-            
-            const allFires = await Promise.all(promises);
-            const fires = allFires.flat().slice(0, 200); // Limitar a 200 incendios
-            
-            // Limpiar marcadores anteriores
-            this.markers.forEach(marker => {
-                if (this.map) {
-                    this.map.removeLayer(marker);
-                }
-            });
-            this.markers = [];
-            
-            fires.forEach(fire => {
-                const lat = parseFloat(fire.latitude);
-                const lon = parseFloat(fire.longitude);
-                const brightness = parseFloat(fire.brightness) || 0;
-                const confidence = fire.confidence || 'n';
-                const date = fire.acq_date || 'N/A';
-                const time = fire.acq_time || 'N/A';
-                
-                if (isNaN(lat) || isNaN(lon)) return;
-                
-                // Color según brillo (más brillo = fuego más intenso)
-                let color = '#ff6600'; // Naranja para fuegos pequeños
-                if (brightness > 400) color = '#ff0000'; // Rojo para fuegos grandes
-                else if (brightness > 350) color = '#ff3300'; // Rojo claro
-                else if (brightness > 300) color = '#ff5500'; // Naranja rojizo
-                
-                // Tamaño según brillo
-                const radius = Math.max(4, Math.min(15, 5 + (brightness / 50)));
-                
-                const marker = L.circleMarker([lat, lon], {
-                    radius: radius,
-                    fillColor: color,
-                    color: '#fff',
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.9
-                }).addTo(this.map);
-                
-                marker.bindPopup(`
-                    <div style="font-family: 'Inter', sans-serif; min-width: 200px;">
-                        <strong style="color: ${color}; font-size: 1.2em;">🔥 Incendio Detectado</strong><br>
-                        Brillo: ${brightness.toFixed(1)} K<br>
-                        Confianza: ${confidence === 'h' ? 'Alta' : confidence === 'n' ? 'Normal' : 'Baja'}<br>
-                        Fecha: ${date}<br>
-                        Hora: ${time}
-                    </div>
-                `);
-                
-                this.markers.push(marker);
-            });
-            
-            console.log(`[Incendios] Cargados ${this.markers.length} incendios forestales`);
-        } catch (error) {
-            console.error('[Incendios] Error cargando datos:', error);
-        }
-    }
-
-    startAnimations() {
-        const animate = () => {
-            // Animar pulsos en los marcadores (efecto de fuego)
-            this.markers.forEach((marker, index) => {
-                const time = Date.now() + (index * 200);
-                const pulse = 0.8 + 0.2 * Math.sin(time / 600);
-                const currentRadius = marker.options.radius * pulse;
-                marker.setRadius(currentRadius);
-                
-                // Cambiar opacidad para efecto de parpadeo
-                const opacity = 0.7 + 0.3 * Math.sin(time / 800);
-                marker.setStyle({ fillOpacity: opacity });
-            });
-            
-            this.animationFrame = requestAnimationFrame(animate);
-        };
-        
-        animate();
-    }
-
-    async startNarration() {
+    startNarration() {
         this.isNarrating = true;
-        pacingEngine.startEvent(CONTENT_TYPES.VOICE);
-        
-        const immediateText = 'Estoy observando los incendios forestales activos detectados por satélites de la NASA en las últimas 24 horas. Cada punto rojo es un incendio, detectado desde el espacio. Los incendios son una fuerza destructiva pero también parte del ciclo natural de muchos ecosistemas.';
-        
-        avatarSubtitlesManager.setSubtitles(immediateText);
-        
-        const generateFullTextPromise = this.generateFullNarrative();
-        
-        const updateSubtitles = (text) => {
-            avatarSubtitlesManager.setSubtitles(text);
-        };
-        
-        audioManager.speak(immediateText, 'normal', async () => {
-            let fullText = null;
-            try {
-                fullText = await Promise.race([
-                    generateFullTextPromise,
-                    new Promise(resolve => setTimeout(() => resolve(null), 8000))
-                ]);
-            } catch (e) {
-                console.warn('[Incendios] Error generando texto completo:', e);
-            }
-            
-            if (fullText && fullText !== immediateText) {
-                audioManager.speak(fullText, 'normal', () => {
-                    this.isNarrating = false;
-                    pacingEngine.endCurrentEvent();
-                    pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
-                }, updateSubtitles);
-            } else {
-                this.isNarrating = false;
-                pacingEngine.endCurrentEvent();
-                pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
-            }
-        }, updateSubtitles);
-    }
-
-    async generateFullNarrative() {
-        try {
-            const prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana. Estás observando un mapa de incendios forestales activos detectados por satélites de la NASA en las últimas 24 horas. Los puntos rojos y naranjas muestran incendios activos alrededor del mundo.
-
-Genera una narrativa reflexiva en primera persona sobre:
-- Cómo los incendios son parte del ciclo natural pero también pueden ser destructivos
-- La capacidad de la tecnología para detectar incendios desde el espacio
-- La fragilidad de los ecosistemas frente al fuego
-- La resiliencia de la naturaleza para regenerarse
-- La responsabilidad humana en la prevención de incendios
-- La belleza y el poder destructivo del fuego
-
-El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
-            
-            const res = await fetch('/control-api/api/generate-narrative', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt })
-            });
-            
-            if (res.ok) {
-                const data = await res.json();
-                if (data.narrative && data.narrative.length > 100) {
-                    return data.narrative;
-                }
-            }
-        } catch (e) {
-            console.warn('[Incendios] Error generando narrativa:', e);
-        }
-        
-        return `Desde el espacio, los satélites detectan el calor de los incendios, mostrándome dónde arde el fuego en nuestro planeta. Cada punto rojo es un incendio activo, una fuerza que puede ser destructiva pero también parte del ciclo natural de muchos ecosistemas. El fuego limpia, renueva, pero también puede devastar. Es un recordatorio de la fragilidad de nuestros bosques y la importancia de protegerlos. La tecnología nos permite ver desde arriba lo que está pasando abajo, dándonos una perspectiva única sobre estos eventos.`;
+        const s = this.lastStats;
+        const txt = s
+            ? `Incendios en vivo: ${s.fireCount} focos. Top: ${s.topRegions?.[0]?.region || '—'}.`
+            : 'Incendios en vivo: preparando focos.';
+        try { avatarSubtitlesManager.updateSubtitles(txt, 3.3); } catch (e) { }
+        setTimeout(() => { this.isNarrating = false; }, 1200);
     }
 
     scheduleNextPage() {
@@ -288,16 +336,20 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
     }
 
     unmount() {
-        if (this.animationFrame) {
-            cancelAnimationFrame(this.animationFrame);
-        }
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
-        }
-        if (this.map) {
-            this.map.remove();
-        }
-        avatarSubtitlesManager.hide();
-        audioManager.cancel();
+        try { if (this.updateInterval) clearInterval(this.updateInterval); } catch (e) { }
+        this.updateInterval = null;
+
+        try { if (this.animRaf) cancelAnimationFrame(this.animRaf); } catch (e) { }
+        this.animRaf = 0;
+
+        try { if (this.map) this.map.remove(); } catch (e) { }
+        this.map = null;
+
+        try { this.builder?.stop?.(); } catch (e) { }
+        try { this.narratorDirector?.stop?.(); } catch (e) { }
+        try { this.scene?.destroy?.(); } catch (e) { }
+
+        this.container.innerHTML = '';
     }
 }
+

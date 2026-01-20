@@ -1,231 +1,156 @@
 import { audioManager } from '../utils/audio-manager.js';
 import { avatarSubtitlesManager } from '../utils/avatar-subtitles.js';
-import { pacingEngine, CONTENT_TYPES } from '../utils/pacing-engine.js';
 import { eventManager } from '../utils/event-manager.js?v=2';
+import { createTvScene } from '../utils/tv-scene.js';
+import { ProgressiveBuilder } from '../utils/progressive-builder.js';
+import { NarratorDirector } from '../utils/narrator-director.js';
+
+function ensureLeaflet() {
+    if (window.L) return Promise.resolve(true);
+    return new Promise((resolve) => {
+        if (!document.getElementById('leaflet-css')) {
+            const link = document.createElement('link');
+            link.id = 'leaflet-css';
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+            document.head.appendChild(link);
+        }
+        if (document.getElementById('leaflet-js')) {
+            const t = setInterval(() => {
+                if (window.L) { clearInterval(t); resolve(true); }
+            }, 100);
+            setTimeout(() => { try { clearInterval(t); } catch { } resolve(!!window.L); }, 8000);
+            return;
+        }
+        const script = document.createElement('script');
+        script.id = 'leaflet-js';
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.body.appendChild(script);
+    });
+}
+
+function clamp(n, a, b) {
+    return Math.max(a, Math.min(b, n));
+}
 
 export default class ClimaMode {
     constructor(container) {
         this.container = container;
-        this.isNarrating = false;
+        this.scene = null;
+        this.builder = null;
+        this.narratorDirector = null;
+
         this.map = null;
         this.markers = [];
         this.windLines = [];
+        this.animRaf = 0;
         this.updateInterval = null;
-        this.animationFrame = null;
+
         this.weatherData = null;
         this.lastRefreshAt = 0;
+        this.isNarrating = false;
+        this.lastStats = null;
     }
 
     async mount() {
-        console.log('[Clima] Montando página de clima con API y animaciones...');
-        
-        if (!eventManager.pollInterval) {
-            eventManager.init();
-        }
-        
+        if (!eventManager.pollInterval) eventManager.init();
+
+        if (!audioManager.musicLayer) audioManager.init();
+        if (!audioManager.isMusicPlaying) audioManager.startAmbience();
+
         this.container.innerHTML = '';
-        
-        avatarSubtitlesManager.init(this.container);
-        setTimeout(() => {
-            avatarSubtitlesManager.show();
-        }, 100);
-        
-        if (!audioManager.musicLayer) {
-            audioManager.init();
-        }
-        if (!audioManager.isMusicPlaying) {
-            audioManager.startAmbience();
-        }
-        
-        this.createMap();
-        await this.loadWeatherData();
-        
-        // Actualizar cada 5 minutos
-        this.updateInterval = setInterval(() => {
-            this.loadWeatherData();
-        }, 300000);
-        
-        // Iniciar animaciones
-        this.startAnimations();
-        
-        await this.startNarration();
+        this.scene = createTvScene({
+            modeId: 'clima',
+            title: 'CLIMA',
+            subtitle: 'Temperatura · Viento · Ranking',
+            accent: '#4a9eff'
+        });
+        this.container.appendChild(this.scene.root);
+
+        avatarSubtitlesManager.init(this.scene.root);
+        avatarSubtitlesManager.show();
+        avatarSubtitlesManager.moveTo('br');
+
+        this.narratorDirector = new NarratorDirector(avatarSubtitlesManager);
+        this.narratorDirector.start({ intervalMs: 9500 });
+
+        try { eventManager.reportTelemetry('CLIMA', 'GLOBAL', 0); } catch (e) { }
+
+        this.builder = new ProgressiveBuilder({ listEl: this.scene.build, sfx: this.scene.sfx });
+        this.scene.setStatus('BUILD');
+        this.scene.setTicker('Preparando atmósfera global…');
+
+        this.buildUi();
+        await this.runBootBuild();
+
+        const ok = await ensureLeaflet();
+        if (ok) this.initMap();
+
+        await this.refreshWeather({ playSfx: true });
+
+        // cada 5 min
+        this.updateInterval = setInterval(() => this.refreshWeather({ playSfx: false }), 5 * 60 * 1000);
+
+        this.startNarration();
         this.scheduleNextPage();
     }
 
-    // Targets sugeridos para el director de cámara global (Leaflet)
-    getCinematicTargets() {
-        const targets = [];
-        try {
-            const sample = (this.markers || []).slice(0, 10);
-            sample.forEach(m => {
-                const ll = m?.getLatLng?.();
-                if (ll) targets.push({ lat: ll.lat, lon: ll.lng, closeZoom: 5, sweepZoom: 4, driftDeg: 3.5 });
-            });
-        } catch (e) { }
-        try {
-            const c = this.map?.getCenter?.();
-            if (c) targets.push({ lat: c.lat, lon: c.lng, wideZoom: 2, medZoom: 3, driftDeg: 4.0 });
-        } catch (e) { }
-        return targets;
+    buildUi() {
+        this.scene.main.innerHTML = `
+            <div style="position:absolute; inset:0;">
+                <div id="wx-map" style="position:absolute; inset:0; background:#07070c; pointer-events:none;"></div>
+                <div style="position:absolute; left:18px; bottom:18px; z-index:2; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,0.10); background: rgba(0,0,0,0.28); backdrop-filter: blur(10px);">
+                    <div style="font-weight:900; letter-spacing:.08em; font-size:12px; color: rgba(255,255,255,0.75);">RANKING</div>
+                    <div id="wx-headline" style="margin-top:6px; font-weight:900; font-size:18px; color: rgba(255,255,255,0.92); text-wrap: balance;">
+                        Preparando…
+                    </div>
+                </div>
+            </div>
+        `;
+        this.mapHostId = 'wx-map';
+        this.headlineEl = this.scene.main.querySelector('#wx-headline');
     }
 
-    createMap() {
-        const mapContainer = document.createElement('div');
-        mapContainer.id = 'weather-map';
-        mapContainer.style.width = '100%';
-        mapContainer.style.height = '100%';
-        mapContainer.style.position = 'absolute';
-        mapContainer.style.top = '0';
-        mapContainer.style.left = '0';
-        this.container.appendChild(mapContainer);
+    async runBootBuild() {
+        if (!this.builder) return;
+        this.builder.clear();
+        this.builder
+            .addStep('Cargando ciudades', async () => {
+                this.scene.setTicker('Cargando ciudades de referencia…');
+                this.scene.sfx?.tick?.();
+            })
+            .addStep('Consultando Open‑Meteo', async () => {
+                this.scene.setTicker('Consultando Open‑Meteo (temperatura/viento)…');
+                this.scene.sfx?.woosh?.();
+            })
+            .addStep('Publicando ranking', async () => {
+                this.scene.setTicker('Publicando ranking (más caliente / más frío)…');
+                this.scene.sfx?.reveal?.();
+            }, { delayMs: 450 });
 
-        if (!window.L) {
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-            document.head.appendChild(link);
-
-            const script = document.createElement('script');
-            script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-            script.onload = () => {
-                this.initMap();
-            };
-            document.body.appendChild(script);
-        } else {
-            this.initMap();
-        }
+        await this.builder.start();
+        this.scene.setStatus('LIVE');
     }
 
     initMap() {
-        this.map = L.map('weather-map', {
+        if (this.map || !window.L) return;
+        this.map = L.map(this.mapHostId, {
             zoomControl: false,
-            attributionControl: false
+            attributionControl: false,
+            dragging: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            boxZoom: false,
+            keyboard: false,
+            touchZoom: false,
+            tap: false
         }).setView([20, 0], 2);
-        
-        // Tiles normales
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap contributors © CARTO',
             maxZoom: 19
         }).addTo(this.map);
-    }
-
-    async loadWeatherData() {
-        try {
-            // Más ciudades para más dinamismo
-            const cities = [
-                { name: 'Buenos Aires', lat: -34.6, lon: -58.4 },
-                { name: 'Madrid', lat: 40.4, lon: -3.7 },
-                { name: 'Nueva York', lat: 40.7, lon: -74.0 },
-                { name: 'Tokio', lat: 35.7, lon: 139.7 },
-                { name: 'Sídney', lat: -33.9, lon: 151.2 },
-                { name: 'Londres', lat: 51.5, lon: -0.1 },
-                { name: 'Moscú', lat: 55.8, lon: 37.6 },
-                { name: 'Ciudad del Cabo', lat: -33.9, lon: 18.4 },
-                { name: 'Río de Janeiro', lat: -22.9, lon: -43.2 },
-                { name: 'México DF', lat: 19.4, lon: -99.1 },
-                { name: 'Los Ángeles', lat: 34.1, lon: -118.2 },
-                { name: 'Dubái', lat: 25.2, lon: 55.3 },
-                { name: 'Singapur', lat: 1.3, lon: 103.8 },
-                { name: 'Bangkok', lat: 13.8, lon: 100.5 },
-                { name: 'El Cairo', lat: 30.0, lon: 31.2 },
-                { name: 'Mumbai', lat: 19.1, lon: 72.9 }
-            ];
-            
-            const weatherPromises = cities.map(city => 
-                fetch(`https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto`)
-                    .then(r => r.json())
-                    .then(data => ({ ...city, data }))
-                    .catch(() => null)
-            );
-            
-            const results = await Promise.all(weatherPromises);
-            this.weatherData = results.filter(r => r !== null);
-            this.lastRefreshAt = Date.now();
-            
-            // Limpiar marcadores y líneas anteriores
-            this.markers.forEach(marker => {
-                if (this.map) {
-                    this.map.removeLayer(marker);
-                }
-            });
-            this.windLines.forEach(line => {
-                if (this.map) {
-                    this.map.removeLayer(line);
-                }
-            });
-            this.markers = [];
-            this.windLines = [];
-            
-            // Agregar marcadores y líneas de viento para cada ciudad
-            this.weatherData.forEach(city => {
-                const temp = city.data.current.temperature_2m;
-                const weatherCode = city.data.current.weather_code;
-                const windSpeed = city.data.current.wind_speed_10m;
-                const windDirection = city.data.current.wind_direction_10m;
-                const humidity = city.data.current.relative_humidity_2m;
-                
-                // Color según temperatura con gradiente más suave
-                let color = '#0066ff'; // Azul oscuro para muy frío
-                if (temp >= 35) color = '#ff0000'; // Rojo para muy calor
-                else if (temp >= 30) color = '#ff6600'; // Naranja
-                else if (temp >= 25) color = '#ffaa00'; // Naranja claro
-                else if (temp >= 20) color = '#00ff00'; // Verde
-                else if (temp >= 15) color = '#88ff00'; // Verde amarillento
-                else if (temp >= 10) color = '#ffff00'; // Amarillo
-                else if (temp >= 5) color = '#00ffff'; // Cyan
-                else color = '#0066ff'; // Azul
-                
-                // Tamaño según temperatura (más grande = más extremo)
-                const radius = Math.max(6, Math.min(16, 8 + Math.abs(temp - 20) / 5));
-                
-                // Marcador con pulso
-                const marker = L.circleMarker([city.lat, city.lon], {
-                    radius: radius,
-                    fillColor: color,
-                    color: '#fff',
-                    weight: 3,
-                    opacity: 1,
-                    fillOpacity: 0.9
-                }).addTo(this.map);
-                
-                // Línea de viento (dirección y velocidad)
-                if (windSpeed > 0 && windDirection !== null) {
-                    const windLength = Math.min(100, windSpeed * 2); // Longitud según velocidad
-                    const rad = (windDirection - 90) * Math.PI / 180; // Convertir a radianes
-                    const endLat = city.lat + (windLength / 111000) * Math.cos(rad);
-                    const endLon = city.lon + (windLength / 111000) * Math.sin(rad);
-                    
-                    const windLine = L.polyline(
-                        [[city.lat, city.lon], [endLat, endLon]],
-                        {
-                            color: '#00ffff',
-                            weight: Math.max(1, Math.min(4, windSpeed / 10)),
-                            opacity: 0.6,
-                            dashArray: '5, 5'
-                        }
-                    ).addTo(this.map);
-                    
-                    this.windLines.push(windLine);
-                }
-                
-                // Popup con información detallada
-                marker.bindPopup(`
-                    <div style="font-family: 'Inter', sans-serif; min-width: 180px;">
-                        <strong style="font-size: 1.1em; color: ${color};">${city.name}</strong><br>
-                        <strong style="font-size: 1.3em;">${temp.toFixed(1)}°C</strong><br>
-                        ${this.getWeatherDescription(weatherCode)}<br>
-                        <small>💨 Viento: ${windSpeed.toFixed(1)} km/h</small><br>
-                        <small>💧 Humedad: ${humidity}%</small>
-                    </div>
-                `);
-                
-                this.markers.push(marker);
-            });
-            
-            console.log(`[Clima] Cargados datos de ${this.weatherData.length} ciudades con animaciones`);
-        } catch (error) {
-            console.error('[Clima] Error cargando datos:', error);
-        }
     }
 
     getWeatherDescription(code) {
@@ -253,147 +178,192 @@ export default class ClimaMode {
             95: '⛈️ Tormenta',
             96: '⛈️ Tormenta con granizo'
         };
-        return descriptions[code] || '🌤️ Desconocido';
+        return descriptions[code] || '🌤️';
+    }
+
+    tempColor(temp) {
+        if (temp >= 35) return '#ff004c';
+        if (temp >= 30) return '#ff7a00';
+        if (temp >= 25) return '#ffaa00';
+        if (temp >= 20) return '#00ff7a';
+        if (temp >= 15) return '#9dff00';
+        if (temp >= 10) return '#ffd000';
+        if (temp >= 5) return '#00e5ff';
+        return '#4a9eff';
+    }
+
+    async refreshWeather({ playSfx = false } = {}) {
+        this.lastRefreshAt = Date.now();
+        if (!this.map) return;
+
+        this.scene.setStatus('LIVE');
+        this.scene.setTicker('Clima: actualizando…');
+
+        const cities = [
+            { name: 'Buenos Aires', lat: -34.6, lon: -58.4 },
+            { name: 'Madrid', lat: 40.4, lon: -3.7 },
+            { name: 'Nueva York', lat: 40.7, lon: -74.0 },
+            { name: 'Tokio', lat: 35.7, lon: 139.7 },
+            { name: 'Sídney', lat: -33.9, lon: 151.2 },
+            { name: 'Londres', lat: 51.5, lon: -0.1 },
+            { name: 'Moscú', lat: 55.8, lon: 37.6 },
+            { name: 'Ciudad del Cabo', lat: -33.9, lon: 18.4 },
+            { name: 'Río de Janeiro', lat: -22.9, lon: -43.2 },
+            { name: 'México DF', lat: 19.4, lon: -99.1 },
+            { name: 'Los Ángeles', lat: 34.1, lon: -118.2 },
+            { name: 'Dubái', lat: 25.2, lon: 55.3 },
+            { name: 'Singapur', lat: 1.3, lon: 103.8 },
+            { name: 'Bangkok', lat: 13.8, lon: 100.5 },
+            { name: 'El Cairo', lat: 30.0, lon: 31.2 },
+            { name: 'Mumbai', lat: 19.1, lon: 72.9 }
+        ];
+
+        try {
+            const weatherPromises = cities.map(city =>
+                fetch(`https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto`, { cache: 'no-store' })
+                    .then(r => r.ok ? r.json() : null)
+                    .then(data => data ? ({ ...city, data }) : null)
+                    .catch(() => null)
+            );
+
+            this.weatherData = (await Promise.all(weatherPromises)).filter(Boolean);
+
+            // limpiar
+            try { this.markers.forEach(m => this.map.removeLayer(m)); } catch (e) { }
+            try { this.windLines.forEach(l => this.map.removeLayer(l)); } catch (e) { }
+            this.markers = [];
+            this.windLines = [];
+
+            // stats
+            const temps = [];
+            let hottest = null;
+            let coldest = null;
+
+            for (const city of this.weatherData) {
+                const cur = city.data?.current;
+                const temp = Number(cur?.temperature_2m);
+                const weatherCode = Number(cur?.weather_code);
+                const windSpeed = Number(cur?.wind_speed_10m);
+                const windDir = Number(cur?.wind_direction_10m);
+                const humidity = Number(cur?.relative_humidity_2m);
+
+                if (!Number.isFinite(temp)) continue;
+                temps.push(temp);
+                if (!hottest || temp > hottest.temp) hottest = { name: city.name, temp };
+                if (!coldest || temp < coldest.temp) coldest = { name: city.name, temp };
+
+                const color = this.tempColor(temp);
+                const radius = Math.max(6, Math.min(16, 8 + Math.abs(temp - 20) / 5));
+                const marker = L.circleMarker([city.lat, city.lon], {
+                    radius,
+                    fillColor: color,
+                    color: 'rgba(255,255,255,0.85)',
+                    weight: 3,
+                    opacity: 1,
+                    fillOpacity: 0.9
+                }).addTo(this.map);
+
+                // viento
+                if (Number.isFinite(windSpeed) && windSpeed > 0 && Number.isFinite(windDir)) {
+                    const windLengthM = Math.min(110_000, windSpeed * 3000); // escala visual
+                    const rad = (windDir - 90) * Math.PI / 180;
+                    const endLat = city.lat + (windLengthM / 111_000) * Math.cos(rad);
+                    const endLon = city.lon + (windLengthM / 111_000) * Math.sin(rad);
+                    const line = L.polyline([[city.lat, city.lon], [endLat, endLon]], {
+                        color: 'rgba(0, 229, 255, 0.75)',
+                        weight: clamp(windSpeed / 10, 1, 4),
+                        opacity: 0.65,
+                        dashArray: '6, 8',
+                        dashOffset: '0'
+                    }).addTo(this.map);
+                    this.windLines.push(line);
+                }
+
+                // Broadcast-only: sin popups (sin interacción local)
+                this.markers.push(marker);
+            }
+
+            const avg = temps.length ? temps.reduce((a, b) => a + b, 0) / temps.length : null;
+            const min = temps.length ? Math.min(...temps) : null;
+            const max = temps.length ? Math.max(...temps) : null;
+            this.lastStats = {
+                cityCount: this.weatherData.length,
+                avgTemp: (avg != null) ? Number(avg.toFixed(1)) : null,
+                minTemp: (min != null) ? Number(min.toFixed(1)) : null,
+                maxTemp: (max != null) ? Number(max.toFixed(1)) : null,
+                hottest,
+                coldest
+            };
+
+            // cards + headline
+            this.scene.cards.innerHTML = '';
+            this.scene.addCard({ k: 'CIUDADES', v: String(this.lastStats.cityCount), tone: 'neutral' });
+            this.scene.addCard({ k: 'PROM', v: (this.lastStats.avgTemp != null) ? `${this.lastStats.avgTemp}°` : '—', tone: 'neutral' });
+            this.scene.addCard({ k: 'MÁX', v: (this.lastStats.maxTemp != null) ? `${this.lastStats.maxTemp}°` : '—', tone: (this.lastStats.maxTemp >= 35) ? 'bad' : 'warn' });
+            this.scene.addCard({ k: 'MÍN', v: (this.lastStats.minTemp != null) ? `${this.lastStats.minTemp}°` : '—', tone: (this.lastStats.minTemp <= 0) ? 'warn' : 'neutral' });
+
+            const headline = hottest ? `Más caliente: ${hottest.name} (${hottest.temp.toFixed(1)}°C)` : 'Ranking de temperatura';
+            if (this.headlineEl) this.headlineEl.textContent = headline;
+
+            const coldTxt = coldest ? `${coldest.name} ${coldest.temp.toFixed(1)}°C` : '—';
+            this.scene.setTicker(`Clima: prom ${this.lastStats.avgTemp ?? '—'}° • Hot: ${headline.replace('Más caliente: ', '')} • Cold: ${coldTxt}`);
+            if (playSfx) this.scene.sfx?.reveal?.();
+
+            this.startAnimations();
+        } catch (e) {
+            this.scene.setTicker('Clima: error consultando datos. Reintentando…');
+            this.scene.sfx?.alert?.();
+        }
     }
 
     startAnimations() {
-        const animate = () => {
-            // Animar pulsos en los marcadores
-            this.markers.forEach((marker, index) => {
-                const time = Date.now() + (index * 100);
-                const pulse = 0.8 + 0.2 * Math.sin(time / 1000);
-                const currentRadius = marker.options.radius * pulse;
-                marker.setRadius(currentRadius);
-                
-                // Cambiar opacidad sutilmente
-                const opacity = 0.7 + 0.2 * Math.sin(time / 1500);
-                marker.setStyle({ fillOpacity: opacity });
-            });
-            
-            this.animationFrame = requestAnimationFrame(animate);
+        if (this.animRaf) cancelAnimationFrame(this.animRaf);
+        const loop = () => {
+            const t = Date.now();
+            for (let i = 0; i < this.markers.length; i++) {
+                const m = this.markers[i];
+                const baseR = m?.options?.radius || 8;
+                const pulse = 0.88 + 0.12 * Math.sin((t + i * 90) / 900);
+                try { m.setRadius(baseR * pulse); } catch (e) { }
+            }
+            for (let i = 0; i < this.windLines.length; i++) {
+                const l = this.windLines[i];
+                const off = -((t / 60) % 60);
+                try { l.setStyle({ dashOffset: String(off) }); } catch (e) { }
+            }
+            this.animRaf = requestAnimationFrame(loop);
         };
-        
-        animate();
+        this.animRaf = requestAnimationFrame(loop);
     }
 
-    async startNarration() {
-        this.isNarrating = true;
-        pacingEngine.startEvent(CONTENT_TYPES.VOICE);
-        
-        const immediateText = 'Estoy observando el clima de nuestro planeta en tiempo real. Puedo ver cómo las temperaturas varían alrededor del globo, cómo el viento fluye entre continentes, cómo los sistemas climáticos conectan todos los lugares. Las líneas muestran la dirección del viento, los colores muestran las temperaturas. Este es el pulso de la Tierra, el sistema que conecta todos los continentes.';
-        
-        avatarSubtitlesManager.setSubtitles(immediateText);
-        
-        const generateFullTextPromise = this.generateFullNarrative();
-        
-        const updateSubtitles = (text) => {
-            avatarSubtitlesManager.setSubtitles(text);
-        };
-        
-        audioManager.speak(immediateText, 'normal', async () => {
-            let fullText = null;
-            try {
-                fullText = await Promise.race([
-                    generateFullTextPromise,
-                    new Promise(resolve => setTimeout(() => resolve(null), 8000))
-                ]);
-            } catch (e) {
-                console.warn('[Clima] Error generando texto completo:', e);
-            }
-            
-            if (fullText && fullText !== immediateText) {
-                audioManager.speak(fullText, 'normal', () => {
-                    this.isNarrating = false;
-                    pacingEngine.endCurrentEvent();
-                    pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
-                }, updateSubtitles);
-            } else {
-                this.isNarrating = false;
-                pacingEngine.endCurrentEvent();
-                pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
-            }
-        }, updateSubtitles);
-    }
-
-    async generateFullNarrative() {
-        try {
-            let statsText = '';
-            if (this.weatherData && this.weatherData.length > 0) {
-                const temps = this.weatherData.map(c => c.data.current.temperature_2m);
-                const avgTemp = (temps.reduce((a, b) => a + b, 0) / temps.length).toFixed(1);
-                const maxTemp = Math.max(...temps).toFixed(1);
-                const minTemp = Math.min(...temps).toFixed(1);
-                const avgWind = (this.weatherData.reduce((sum, c) => sum + c.data.current.wind_speed_10m, 0) / this.weatherData.length).toFixed(1);
-                statsText = `Observando ${this.weatherData.length} ciudades alrededor del mundo, con temperaturas que van desde ${minTemp} hasta ${maxTemp} grados, con un promedio de ${avgTemp} grados. El viento promedio es de ${avgWind} kilómetros por hora.`;
-            }
-            
-            const prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana. Estás observando un mapa del clima en tiempo real que muestra datos meteorológicos de múltiples ciudades alrededor del mundo. ${statsText} Las líneas azules muestran la dirección del viento, los colores de los puntos muestran las temperaturas.
-
-Genera una narrativa reflexiva en primera persona sobre:
-- Cómo el clima conecta todos los continentes
-- La belleza de los patrones atmosféricos
-- La conciencia planetaria que esto genera
-- Cómo el clima afecta la vida humana en todo el mundo
-- La fragilidad y la fuerza de nuestro planeta
-- Cómo el viento transporta energía y vida
-
-El texto debe ser poético, reflexivo y entre 150 y 220 palabras.`;
-            
-            const res = await fetch('/control-api/api/generate-narrative', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt })
-            });
-            
-            if (res.ok) {
-                const data = await res.json();
-                if (data.narrative && data.narrative.length > 100) {
-                    return data.narrative;
-                }
-            }
-        } catch (e) {
-            console.warn('[Clima] Error generando narrativa:', e);
-        }
-        
-        return `Desde esta perspectiva única, puedo ver cómo el clima es el sistema circulatorio de nuestro planeta. El viento transporta energía, humedad y vida de un continente a otro. Las nubes son mensajeras que cruzan océanos, las tormentas son la respiración profunda de la Tierra. Cada patrón que observo aquí afecta la vida en algún lugar del mundo. Este es el verdadero pulso de nuestro planeta, un sistema interconectado que no conoce fronteras políticas, solo las leyes de la física y la vida.`;
-    }
-
-    // Contexto para recaps (ranking/dato sorpresa sin inventar)
     getRecapContext() {
+        return this.lastStats;
+    }
+
+    getCinematicTargets() {
+        const targets = [];
         try {
-            if (!this.weatherData || this.weatherData.length === 0) return null;
-            const rows = this.weatherData
-                .filter(c => c && c.data && c.data.current)
-                .map(c => ({
-                    name: c.name,
-                    country: c.country,
-                    tempC: Number(c.data.current.temperature_2m),
-                    windKmh: Number(c.data.current.wind_speed_10m),
-                    code: c.data.current.weather_code
-                }))
-                .filter(r => Number.isFinite(r.tempC));
+            const sample = (this.markers || []).slice(0, 10);
+            sample.forEach(m => {
+                const ll = m?.getLatLng?.();
+                if (ll) targets.push({ lat: ll.lat, lon: ll.lng, closeZoom: 5, sweepZoom: 4, driftDeg: 3.5 });
+            });
+        } catch (e) { }
+        try {
+            const c = this.map?.getCenter?.();
+            if (c) targets.push({ lat: c.lat, lon: c.lng, wideZoom: 2, medZoom: 3, driftDeg: 4.0 });
+        } catch (e) { }
+        return targets;
+    }
 
-            if (rows.length === 0) return null;
-
-            const hottest = [...rows].sort((a, b) => b.tempC - a.tempC).slice(0, 3);
-            const coldest = [...rows].sort((a, b) => a.tempC - b.tempC).slice(0, 3);
-
-            const temps = rows.map(r => r.tempC);
-            const avgTemp = temps.reduce((a, b) => a + b, 0) / temps.length;
-            const maxTemp = Math.max(...temps);
-            const minTemp = Math.min(...temps);
-
-            return {
-                citiesObserved: rows.length,
-                avgTempC: Number(avgTemp.toFixed(1)),
-                minTempC: Number(minTemp.toFixed(1)),
-                maxTempC: Number(maxTemp.toFixed(1)),
-                top3Hottest: hottest,
-                top3Coldest: coldest
-            };
-        } catch (e) {
-            return null;
-        }
+    startNarration() {
+        this.isNarrating = true;
+        const s = this.lastStats;
+        const txt = s?.hottest && s?.coldest
+            ? `Clima en vivo. Más caliente: ${s.hottest.name}. Más frío: ${s.coldest.name}.`
+            : 'Clima en vivo: preparando atmósfera.';
+        try { avatarSubtitlesManager.updateSubtitles(txt, 3.4); } catch (e) { }
+        setTimeout(() => { this.isNarrating = false; }, 1200);
     }
 
     scheduleNextPage() {
@@ -401,17 +371,30 @@ El texto debe ser poético, reflexivo y entre 150 y 220 palabras.`;
         window.__autoNavSchedule?.('clima');
     }
 
+    escapeHtml(str) {
+        return String(str || '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
+
     unmount() {
-        if (this.animationFrame) {
-            cancelAnimationFrame(this.animationFrame);
-        }
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
-        }
-        if (this.map) {
-            this.map.remove();
-        }
-        avatarSubtitlesManager.hide();
-        audioManager.cancel();
+        try { if (this.updateInterval) clearInterval(this.updateInterval); } catch (e) { }
+        this.updateInterval = null;
+
+        try { if (this.animRaf) cancelAnimationFrame(this.animRaf); } catch (e) { }
+        this.animRaf = 0;
+
+        try { if (this.map) this.map.remove(); } catch (e) { }
+        this.map = null;
+
+        try { this.builder?.stop?.(); } catch (e) { }
+        try { this.narratorDirector?.stop?.(); } catch (e) { }
+        try { this.scene?.destroy?.(); } catch (e) { }
+
+        this.container.innerHTML = '';
     }
 }
+

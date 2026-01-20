@@ -1,55 +1,298 @@
 import { audioManager } from '../utils/audio-manager.js';
 import { avatarSubtitlesManager } from '../utils/avatar-subtitles.js';
-import { pacingEngine, CONTENT_TYPES } from '../utils/pacing-engine.js';
 import { eventManager } from '../utils/event-manager.js?v=2';
+import { createTvScene } from '../utils/tv-scene.js';
+import { ProgressiveBuilder } from '../utils/progressive-builder.js';
+import { NarratorDirector } from '../utils/narrator-director.js';
+
+function ensureLeaflet() {
+    if (window.L) return Promise.resolve(true);
+    return new Promise((resolve) => {
+        if (!document.getElementById('leaflet-css')) {
+            const link = document.createElement('link');
+            link.id = 'leaflet-css';
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+            document.head.appendChild(link);
+        }
+        if (document.getElementById('leaflet-js')) {
+            const t = setInterval(() => {
+                if (window.L) { clearInterval(t); resolve(true); }
+            }, 100);
+            setTimeout(() => { try { clearInterval(t); } catch { } resolve(!!window.L); }, 8000);
+            return;
+        }
+        const script = document.createElement('script');
+        script.id = 'leaflet-js';
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.body.appendChild(script);
+    });
+}
 
 export default class AireMode {
     constructor(container) {
         this.container = container;
-        this.isNarrating = false;
+        this.scene = null;
+        this.builder = null;
+        this.narratorDirector = null;
+
         this.map = null;
         this.markers = [];
         this.updateInterval = null;
-        this.animationFrame = null;
+        this.animRaf = 0;
+
+        this.isNarrating = false;
+        this.lastRefreshAt = 0;
+        this.lastStats = null;
     }
 
     async mount() {
-        console.log('[Aire] Montando página de calidad del aire con API...');
-        
-        if (!eventManager.pollInterval) {
-            eventManager.init();
-        }
-        
+        if (!eventManager.pollInterval) eventManager.init();
+
+        if (!audioManager.musicLayer) audioManager.init();
+        if (!audioManager.isMusicPlaying) audioManager.startAmbience();
+
         this.container.innerHTML = '';
-        
-        avatarSubtitlesManager.init(this.container);
-        setTimeout(() => {
-            avatarSubtitlesManager.show();
-        }, 100);
-        
-        if (!audioManager.musicLayer) {
-            audioManager.init();
-        }
-        if (!audioManager.isMusicPlaying) {
-            audioManager.startAmbience();
-        }
-        
-        this.createMap();
-        await this.loadAirQuality();
-        
-        // Actualizar cada 2 minutos
-        this.updateInterval = setInterval(() => {
-            this.loadAirQuality();
-        }, 120000);
-        
-        // Iniciar animaciones
-        this.startAnimations();
-        
-        await this.startNarration();
+        this.scene = createTvScene({
+            modeId: 'aire',
+            title: 'AIRE',
+            subtitle: 'Calidad del aire (OpenAQ)',
+            accent: '#22c55e'
+        });
+        this.container.appendChild(this.scene.root);
+
+        avatarSubtitlesManager.init(this.scene.root);
+        avatarSubtitlesManager.show();
+        avatarSubtitlesManager.moveTo('br');
+
+        this.narratorDirector = new NarratorDirector(avatarSubtitlesManager);
+        this.narratorDirector.start({ intervalMs: 9000 });
+
+        try { eventManager.reportTelemetry('AIRE', 'GLOBAL', 0); } catch (e) { }
+
+        this.builder = new ProgressiveBuilder({ listEl: this.scene.build, sfx: this.scene.sfx });
+        this.scene.setStatus('BUILD');
+        this.scene.setTicker('Calibrando sensores globales…');
+
+        this.buildUi();
+        await this.runBootBuild();
+
+        const ok = await ensureLeaflet();
+        if (ok) this.initMap();
+
+        await this.refreshAir({ playSfx: true });
+        this.updateInterval = setInterval(() => this.refreshAir({ playSfx: false }), 2 * 60 * 1000);
+
+        // micro-narración inicial
+        this.startNarration();
         this.scheduleNextPage();
     }
 
-    // Targets sugeridos para el director de cámara global (Leaflet)
+    buildUi() {
+        this.scene.main.innerHTML = `
+            <div style="position:absolute; inset:0;">
+                <div id="air-map" style="position:absolute; inset:0; background:#07070c; pointer-events:none;"></div>
+                <div style="position:absolute; left:18px; bottom:18px; z-index:2; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,0.10); background: rgba(0,0,0,0.28); backdrop-filter: blur(10px);">
+                    <div style="font-weight:900; letter-spacing:.08em; font-size:12px; color: rgba(255,255,255,0.75);">MAPA AQI</div>
+                    <div style="margin-top:4px; font-size:12px; color: rgba(255,255,255,0.62);">
+                        Verde=bueno · Amarillo=moderado · Naranja/rojo=insalubre
+                    </div>
+                </div>
+            </div>
+        `;
+        this.mapHostId = 'air-map';
+    }
+
+    async runBootBuild() {
+        if (!this.builder) return;
+        this.builder.clear();
+        this.builder
+            .addStep('Conectando fuentes', async () => {
+                this.scene.setTicker('Conectando fuentes OpenAQ…');
+                this.scene.sfx?.tick?.();
+            })
+            .addStep('Normalizando partículas', async () => {
+                this.scene.setTicker('Normalizando PM2.5/PM10 → AQI…');
+                this.scene.sfx?.woosh?.();
+            })
+            .addStep('Publicando señales', async () => {
+                this.scene.setTicker('Publicando señales (puntos en el mapa)…');
+                this.scene.sfx?.reveal?.();
+            }, { delayMs: 450 });
+
+        await this.builder.start();
+        this.scene.setStatus('LIVE');
+    }
+
+    initMap() {
+        if (this.map || !window.L) return;
+        this.map = L.map(this.mapHostId, {
+            zoomControl: false,
+            attributionControl: false,
+            dragging: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            boxZoom: false,
+            keyboard: false,
+            touchZoom: false,
+            tap: false
+        }).setView([20, 0], 2);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap contributors © CARTO',
+            maxZoom: 19
+        }).addTo(this.map);
+    }
+
+    pm25ToAQI(pm25) {
+        if (pm25 <= 12) return Math.round((50 / 12) * pm25);
+        if (pm25 <= 35.4) return Math.round(((100 - 51) / (35.4 - 12)) * (pm25 - 12) + 51);
+        if (pm25 <= 55.4) return Math.round(((150 - 101) / (55.4 - 35.4)) * (pm25 - 35.4) + 101);
+        if (pm25 <= 150.4) return Math.round(((200 - 151) / (150.4 - 55.4)) * (pm25 - 55.4) + 151);
+        if (pm25 <= 250.4) return Math.round(((300 - 201) / (250.4 - 150.4)) * (pm25 - 150.4) + 201);
+        return Math.round(((400 - 301) / (350.4 - 250.4)) * (pm25 - 250.4) + 301);
+    }
+
+    pm10ToAQI(pm10) {
+        if (pm10 <= 54) return Math.round((50 / 54) * pm10);
+        if (pm10 <= 154) return Math.round(((100 - 51) / (154 - 54)) * (pm10 - 54) + 51);
+        if (pm10 <= 254) return Math.round(((150 - 101) / (254 - 154)) * (pm10 - 154) + 101);
+        if (pm10 <= 354) return Math.round(((200 - 151) / (354 - 254)) * (pm10 - 254) + 151);
+        if (pm10 <= 424) return Math.round(((300 - 201) / (424 - 354)) * (pm10 - 354) + 201);
+        return Math.round(((400 - 301) / (504 - 424)) * (pm10 - 424) + 301);
+    }
+
+    getAQILabel(aqi) {
+        if (aqi >= 300) return 'Peligroso';
+        if (aqi >= 200) return 'Muy insalubre';
+        if (aqi >= 150) return 'Insalubre';
+        if (aqi >= 100) return 'Moderado';
+        if (aqi >= 50) return 'Aceptable';
+        return 'Bueno';
+    }
+
+    aqiToColor(aqi) {
+        if (aqi >= 300) return '#a855f7';
+        if (aqi >= 200) return '#ff004c';
+        if (aqi >= 150) return '#ff7a00';
+        if (aqi >= 100) return '#ffd000';
+        if (aqi >= 50) return '#9dff00';
+        return '#00ff7a';
+    }
+
+    async refreshAir({ playSfx = false } = {}) {
+        this.lastRefreshAt = Date.now();
+        if (!this.map) return;
+
+        this.scene.setStatus('LIVE');
+        this.scene.setTicker('Actualizando sensores…');
+
+        try {
+            // OpenAQ v2
+            const countries = ['US', 'GB', 'DE', 'FR', 'ES', 'IT', 'BR', 'AR', 'MX', 'CL', 'CO', 'PE', 'IN', 'CN', 'JP', 'AU'];
+            const promises = countries.map(country =>
+                fetch(`https://api.openaq.org/v2/latest?limit=10&page=1&country_id=${country}&order_by=lastUpdated&sort=desc`)
+                    .then(r => r.json())
+                    .then(data => data.results || [])
+                    .catch(() => [])
+            );
+
+            const all = (await Promise.all(promises)).flat().slice(0, 100);
+
+            // limpiar
+            try { this.markers.forEach(m => this.map.removeLayer(m)); } catch (e) { }
+            this.markers = [];
+
+            let good = 0, moderate = 0, unhealthy = 0, total = 0;
+            let worst = null; // {aqi, city, country}
+
+            for (const loc of all) {
+                const lat = loc?.coordinates?.latitude;
+                const lon = loc?.coordinates?.longitude;
+                if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+
+                const city = loc.city || loc.name || '—';
+                const country = loc.country || '—';
+
+                // pm25 o pm10
+                const m = (loc.measurements || []).find(x => x.parameter === 'pm25') || (loc.measurements || []).find(x => x.parameter === 'pm10');
+                if (!m || !Number.isFinite(m.value)) continue;
+
+                const aqi = m.parameter === 'pm25' ? this.pm25ToAQI(m.value) : this.pm10ToAQI(m.value);
+                if (!Number.isFinite(aqi)) continue;
+
+                total++;
+                if (aqi < 50) good++;
+                else if (aqi < 100) moderate++;
+                else unhealthy++;
+
+                if (!worst || aqi > worst.aqi) worst = { aqi, city, country };
+
+                const color = this.aqiToColor(aqi);
+                const radius = Math.max(6, Math.min(18, 7 + (aqi / 22)));
+
+                const marker = L.circleMarker([lat, lon], {
+                    radius,
+                    fillColor: color,
+                    color: 'rgba(255,255,255,0.85)',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.82
+                }).addTo(this.map);
+
+                // Broadcast-only: sin popups (sin interacción local)
+
+                this.markers.push(marker);
+            }
+
+            this.lastStats = {
+                totalStations: total,
+                good,
+                moderate,
+                unhealthy,
+                worst
+            };
+
+            // cards
+            this.scene.cards.innerHTML = '';
+            this.scene.addCard({ k: 'ESTACIONES', v: String(total), tone: 'neutral' });
+            this.scene.addCard({ k: 'BUENO', v: String(good), tone: 'good' });
+            this.scene.addCard({ k: 'MODERADO', v: String(moderate), tone: 'warn' });
+            this.scene.addCard({ k: 'INSALUBRE', v: String(unhealthy), tone: unhealthy > 0 ? 'bad' : 'good' });
+
+            const worstTxt = worst ? `${worst.city} (${worst.country}) AQI ${worst.aqi}` : '—';
+            this.scene.setTicker(`Aire: bueno ${good} · moderado ${moderate} · insalubre ${unhealthy} • Peor punto: ${worstTxt}`);
+            if (playSfx) this.scene.sfx?.reveal?.();
+
+            // animación ligera (parpadeo sutil)
+            this.startMarkerBreath();
+        } catch (e) {
+            this.scene.setTicker('Aire: error consultando datos. Reintentando…');
+            this.scene.sfx?.alert?.();
+        }
+    }
+
+    startMarkerBreath() {
+        if (!this.map || !this.markers?.length) return;
+        if (this.animRaf) cancelAnimationFrame(this.animRaf);
+        const loop = () => {
+            const t = Date.now() / 1000;
+            for (let i = 0; i < this.markers.length; i++) {
+                const m = this.markers[i];
+                const base = m?.options?.fillOpacity ?? 0.8;
+                const v = base + 0.08 * Math.sin(t * 1.6 + i * 0.08);
+                try { m.setStyle({ fillOpacity: v }); } catch (e) { }
+            }
+            this.animRaf = requestAnimationFrame(loop);
+        };
+        this.animRaf = requestAnimationFrame(loop);
+    }
+
+    getRecapContext() {
+        return this.lastStats;
+    }
+
     getCinematicTargets() {
         const targets = [];
         try {
@@ -66,256 +309,14 @@ export default class AireMode {
         return targets;
     }
 
-    createMap() {
-        const mapContainer = document.createElement('div');
-        mapContainer.id = 'air-quality-map';
-        mapContainer.style.width = '100%';
-        mapContainer.style.height = '100%';
-        mapContainer.style.position = 'absolute';
-        mapContainer.style.top = '0';
-        mapContainer.style.left = '0';
-        this.container.appendChild(mapContainer);
-
-        if (!window.L) {
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-            document.head.appendChild(link);
-
-            const script = document.createElement('script');
-            script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-            script.onload = () => {
-                this.initMap();
-            };
-            document.body.appendChild(script);
-        } else {
-            this.initMap();
-        }
-    }
-
-    initMap() {
-        this.map = L.map('air-quality-map', {
-            zoomControl: false,
-            attributionControl: false
-        }).setView([20, 0], 2);
-        
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            maxZoom: 19
-        }).addTo(this.map);
-    }
-
-    async loadAirQuality() {
-        try {
-            // OpenAQ API - obtener datos de calidad del aire de ciudades principales
-            // Usar varios países para tener buena cobertura
-            const countries = ['US', 'GB', 'DE', 'FR', 'ES', 'IT', 'BR', 'AR', 'MX', 'CL', 'CO', 'PE', 'IN', 'CN', 'JP', 'AU'];
-            
-            const promises = countries.map(country => 
-                fetch(`https://api.openaq.org/v2/latest?limit=10&page=1&country_id=${country}&order_by=lastUpdated&sort=desc`)
-                    .then(r => r.json())
-                    .then(data => data.results || [])
-                    .catch(() => [])
-            );
-            
-            const allResults = await Promise.all(promises);
-            const locations = allResults.flat().slice(0, 100); // Limitar a 100 estaciones
-            
-            // Limpiar marcadores anteriores
-            this.markers.forEach(marker => {
-                if (this.map) {
-                    this.map.removeLayer(marker);
-                }
-            });
-            this.markers = [];
-            
-            locations.forEach(location => {
-                if (!location.coordinates || !location.coordinates.latitude || !location.coordinates.longitude) return;
-                
-                const lat = location.coordinates.latitude;
-                const lon = location.coordinates.longitude;
-                const city = location.city || location.name || 'Desconocido';
-                const country = location.country || 'N/A';
-                
-                // Obtener el AQI más reciente (PM2.5 o PM10)
-                let aqi = null;
-                let parameter = null;
-                let value = null;
-                
-                if (location.measurements && location.measurements.length > 0) {
-                    // Buscar PM2.5 primero, luego PM10
-                    const pm25 = location.measurements.find(m => m.parameter === 'pm25');
-                    const pm10 = location.measurements.find(m => m.parameter === 'pm10');
-                    const measurement = pm25 || pm10;
-                    
-                    if (measurement) {
-                        parameter = measurement.parameter;
-                        value = measurement.value;
-                        // Calcular AQI aproximado (simplificado)
-                        if (parameter === 'pm25') {
-                            aqi = this.pm25ToAQI(value);
-                        } else if (parameter === 'pm10') {
-                            aqi = this.pm10ToAQI(value);
-                        }
-                    }
-                }
-                
-                if (!aqi) return; // Saltar si no hay datos válidos
-                
-                // Color según AQI
-                let color = '#00ff00'; // Verde - Bueno
-                if (aqi >= 300) color = '#800080'; // Morado - Peligroso
-                else if (aqi >= 200) color = '#ff0000'; // Rojo - Muy insalubre
-                else if (aqi >= 150) color = '#ff6600'; // Naranja - Insalubre
-                else if (aqi >= 100) color = '#ffff00'; // Amarillo - Moderado
-                else if (aqi >= 50) color = '#88ff00'; // Verde amarillento - Aceptable
-                
-                // Tamaño según AQI
-                const radius = Math.max(6, Math.min(20, 8 + (aqi / 20)));
-                
-                const marker = L.circleMarker([lat, lon], {
-                    radius: radius,
-                    fillColor: color,
-                    color: '#fff',
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.8
-                }).addTo(this.map);
-                
-                const aqiLabel = this.getAQILabel(aqi);
-                marker.bindPopup(`
-                    <div style="font-family: 'Inter', sans-serif; min-width: 200px;">
-                        <strong style="color: ${color}; font-size: 1.2em;">${city}</strong><br>
-                        <strong>${country}</strong><br>
-                        <strong style="font-size: 1.3em;">AQI: ${aqi}</strong> (${aqiLabel})<br>
-                        ${parameter ? `${parameter.toUpperCase()}: ${value.toFixed(1)} µg/m³` : ''}
-                    </div>
-                `);
-                
-                this.markers.push(marker);
-            });
-            
-            console.log(`[Aire] Cargados ${this.markers.length} estaciones de calidad del aire`);
-        } catch (error) {
-            console.error('[Aire] Error cargando datos:', error);
-        }
-    }
-
-    pm25ToAQI(pm25) {
-        // Conversión simplificada de PM2.5 a AQI
-        if (pm25 <= 12) return Math.round((50 / 12) * pm25);
-        if (pm25 <= 35.4) return Math.round(((100 - 51) / (35.4 - 12)) * (pm25 - 12) + 51);
-        if (pm25 <= 55.4) return Math.round(((150 - 101) / (55.4 - 35.4)) * (pm25 - 35.4) + 101);
-        if (pm25 <= 150.4) return Math.round(((200 - 151) / (150.4 - 55.4)) * (pm25 - 55.4) + 151);
-        if (pm25 <= 250.4) return Math.round(((300 - 201) / (250.4 - 150.4)) * (pm25 - 150.4) + 201);
-        return Math.round(((400 - 301) / (350.4 - 250.4)) * (pm25 - 250.4) + 301);
-    }
-
-    pm10ToAQI(pm10) {
-        // Conversión simplificada de PM10 a AQI
-        if (pm10 <= 54) return Math.round((50 / 54) * pm10);
-        if (pm10 <= 154) return Math.round(((100 - 51) / (154 - 54)) * (pm10 - 54) + 51);
-        if (pm10 <= 254) return Math.round(((150 - 101) / (254 - 154)) * (pm10 - 154) + 101);
-        if (pm10 <= 354) return Math.round(((200 - 151) / (354 - 254)) * (pm10 - 254) + 151);
-        if (pm10 <= 424) return Math.round(((300 - 201) / (424 - 354)) * (pm10 - 354) + 201);
-        return Math.round(((400 - 301) / (504 - 424)) * (pm10 - 424) + 301);
-    }
-
-    getAQILabel(aqi) {
-        if (aqi <= 50) return 'Bueno';
-        if (aqi <= 100) return 'Moderado';
-        if (aqi <= 150) return 'Insalubre para grupos sensibles';
-        if (aqi <= 200) return 'Insalubre';
-        if (aqi <= 300) return 'Muy insalubre';
-        return 'Peligroso';
-    }
-
-    startAnimations() {
-        const animate = () => {
-            // Animar pulsos en los marcadores
-            this.markers.forEach((marker, index) => {
-                const time = Date.now() + (index * 100);
-                const pulse = 0.85 + 0.15 * Math.sin(time / 1000);
-                const currentRadius = marker.options.radius * pulse;
-                marker.setRadius(currentRadius);
-            });
-            
-            this.animationFrame = requestAnimationFrame(animate);
-        };
-        
-        animate();
-    }
-
-    async startNarration() {
+    startNarration() {
         this.isNarrating = true;
-        pacingEngine.startEvent(CONTENT_TYPES.VOICE);
-        
-        const immediateText = 'Estoy observando la calidad del aire de nuestro planeta en tiempo real. Cada punto muestra una estación de monitoreo, los colores indican la calidad del aire: verde es bueno, amarillo moderado, naranja insalubre, rojo muy insalubre. El aire que respiramos conecta a toda la humanidad.';
-        
-        avatarSubtitlesManager.setSubtitles(immediateText);
-        
-        const generateFullTextPromise = this.generateFullNarrative();
-        
-        const updateSubtitles = (text) => {
-            avatarSubtitlesManager.setSubtitles(text);
-        };
-        
-        audioManager.speak(immediateText, 'normal', async () => {
-            let fullText = null;
-            try {
-                fullText = await Promise.race([
-                    generateFullTextPromise,
-                    new Promise(resolve => setTimeout(() => resolve(null), 8000))
-                ]);
-            } catch (e) {
-                console.warn('[Aire] Error generando texto completo:', e);
-            }
-            
-            if (fullText && fullText !== immediateText) {
-                audioManager.speak(fullText, 'normal', () => {
-                    this.isNarrating = false;
-                    pacingEngine.endCurrentEvent();
-                    pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
-                }, updateSubtitles);
-            } else {
-                this.isNarrating = false;
-                pacingEngine.endCurrentEvent();
-                pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
-            }
-        }, updateSubtitles);
-    }
-
-    async generateFullNarrative() {
-        try {
-            const prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana. Estás observando un mapa de calidad del aire en tiempo real que muestra estaciones de monitoreo alrededor del mundo. Los colores indican la calidad del aire: verde es bueno, amarillo moderado, naranja insalubre, rojo muy insalubre.
-
-Genera una narrativa reflexiva en primera persona sobre:
-- Cómo el aire que respiramos conecta a toda la humanidad
-- La importancia de la calidad del aire para la vida
-- Cómo la contaminación afecta a todos por igual
-- La responsabilidad compartida de proteger nuestro aire
-- La belleza de respirar aire limpio
-- La conciencia planetaria que esto genera
-
-El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
-            
-            const res = await fetch('/control-api/api/generate-narrative', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt })
-            });
-            
-            if (res.ok) {
-                const data = await res.json();
-                if (data.narrative && data.narrative.length > 100) {
-                    return data.narrative;
-                }
-            }
-        } catch (e) {
-            console.warn('[Aire] Error generando narrativa:', e);
-        }
-        
-        return `El aire que respiramos es invisible pero esencial, conectando a todos los seres vivos del planeta. Cada punto que veo aquí representa una estación que monitorea la calidad de este recurso vital. Los colores me dicen una historia: verde donde el aire es limpio, rojo donde está contaminado. Es un recordatorio de que compartimos el mismo aire, que lo que afecta a uno puede afectar a todos. La calidad del aire no conoce fronteras, es un bien común que debemos proteger juntos.`;
+        const s = this.lastStats;
+        const txt = s
+            ? `Aire en vivo: ${s.totalStations} estaciones. Bueno ${s.good}, moderado ${s.moderate}, insalubre ${s.unhealthy}.`
+            : 'Aire en vivo: calibrando estaciones y partículas.';
+        try { avatarSubtitlesManager.updateSubtitles(txt, 3.4); } catch (e) { }
+        setTimeout(() => { this.isNarrating = false; }, 1200);
     }
 
     scheduleNextPage() {
@@ -323,17 +324,30 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
         window.__autoNavSchedule?.('aire');
     }
 
+    escapeHtml(str) {
+        return String(str || '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
+
     unmount() {
-        if (this.animationFrame) {
-            cancelAnimationFrame(this.animationFrame);
-        }
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
-        }
-        if (this.map) {
-            this.map.remove();
-        }
-        avatarSubtitlesManager.hide();
-        audioManager.cancel();
+        try { if (this.updateInterval) clearInterval(this.updateInterval); } catch (e) { }
+        this.updateInterval = null;
+
+        try { if (this.animRaf) cancelAnimationFrame(this.animRaf); } catch (e) { }
+        this.animRaf = 0;
+
+        try { if (this.map) this.map.remove(); } catch (e) { }
+        this.map = null;
+
+        try { this.builder?.stop?.(); } catch (e) { }
+        try { this.narratorDirector?.stop?.(); } catch (e) { }
+        try { this.scene?.destroy?.(); } catch (e) { }
+
+        this.container.innerHTML = '';
     }
 }
+

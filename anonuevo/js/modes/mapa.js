@@ -69,14 +69,10 @@ export default class MapaMode {
             }
             
             // Remover listeners después de la primera interacción
-            document.removeEventListener('click', enableAudioOnInteraction);
-            document.removeEventListener('touchstart', enableAudioOnInteraction);
             document.removeEventListener('keydown', enableAudioOnInteraction);
         };
         
-        // Escuchar cualquier interacción del usuario
-        document.addEventListener('click', enableAudioOnInteraction, { once: true });
-        document.addEventListener('touchstart', enableAudioOnInteraction, { once: true });
+        // Broadcast-only: no dependemos de mouse/touch. Un keydown inicial desbloquea audio si hace falta.
         document.addEventListener('keydown', enableAudioOnInteraction, { once: true });
         
         // 1. Estructura Base (Capas)
@@ -1566,10 +1562,9 @@ Genera una introducción en primera persona (como ilfass) que:
         overlay.style.justifyContent = 'center';
         overlay.style.alignItems = 'center';
         overlay.style.zIndex = '500';
-        overlay.style.cursor = 'pointer';
-
-        // Cerrar al click
-        overlay.onclick = () => overlay.remove();
+        // Broadcast-only: sin interacción mouse/touch
+        overlay.style.cursor = 'default';
+        overlay.style.pointerEvents = 'none';
 
         let content;
         if (type === 'video') {
@@ -1610,6 +1605,12 @@ Genera una introducción en primera persona (como ilfass) que:
 
         overlay.appendChild(content);
         this.container.appendChild(overlay);
+
+        // Autocierre (sin click)
+        const ms = (type === 'video') ? 30_000 : 12_000;
+        setTimeout(() => {
+            try { overlay.remove(); } catch (e) { }
+        }, ms);
 
         // Sonido de "Open Media" (opcional)
         // audioManager.playSound('ui_open');

@@ -69,19 +69,15 @@ export default class RutaMode {
             audioManager.startAmbience();
         }
         
-        // Habilitar audio después de interacción
+        // Habilitar audio después de interacción (broadcast-only: evitar mouse)
         const enableAudio = () => {
             audioManager.tryStartAfterInteraction();
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
                 window.speechSynthesis.resume();
             }
-            document.removeEventListener('click', enableAudio);
-            document.removeEventListener('touchstart', enableAudio);
             document.removeEventListener('keydown', enableAudio);
         };
-        document.addEventListener('click', enableAudio, { once: true });
-        document.addEventListener('touchstart', enableAudio, { once: true });
         document.addEventListener('keydown', enableAudio, { once: true });
         
         // Registrar handler para comandos de música (ANTES de cargar datos)
@@ -229,15 +225,11 @@ export default class RutaMode {
                     <span style="color:#4a9eff;">RUTA</span> <span style="color:#e8e8f0;">DEL VIAJE</span>
                 </div>
                 <div id="ruta-live-pill" style="font-family:'Inter'; font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,0.14); color: rgba(255,255,255,0.75); background: rgba(255,255,255,0.06);">
-                    LIVE MAP
+                    BROADCAST
                 </div>
             </div>
             <div id="ruta-subtitle" style="font-size:12px; color: rgba(255,255,255,0.65); line-height:1.35;">
-                Secuencia de paradas (clic para enfocar). La línea muestra el recorrido.
-            </div>
-            <div id="ruta-controls" style="display:flex; gap:8px;">
-                <button id="ruta-btn-play" style="flex:1; padding:10px 12px; border-radius:12px; border:1px solid rgba(74,158,255,0.45); background: rgba(74,158,255,0.12); color:#cfe8ff; font-weight:700; cursor:pointer;">▶ PLAY</button>
-                <button id="ruta-btn-follow" style="flex:1; padding:10px 12px; border-radius:12px; border:1px solid rgba(168,85,247,0.45); background: rgba(168,85,247,0.10); color:#f2d7ff; font-weight:700; cursor:pointer;">🎥 FOLLOW</button>
+                Sin interacción local: control total desde el panel (PLAY/PAUSE + FOLLOW/FREE).
             </div>
             <div style="height:1px; background: rgba(255,255,255,0.08);"></div>
             <div id="ruta-timeline" style="flex:1; overflow:auto; padding-right:6px;"></div>
@@ -267,8 +259,7 @@ export default class RutaMode {
         // CSS helpers (animación línea)
         const style = document.createElement('style');
         style.textContent = `
-            .ruta-chip { padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04); cursor:pointer; transition: transform 160ms ease, border-color 160ms ease; }
-            .ruta-chip:hover { transform: translateY(-1px); border-color: rgba(74,158,255,0.45); }
+            .ruta-chip { padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04); cursor: default; transition: transform 160ms ease, border-color 160ms ease; pointer-events:none; }
             .ruta-chip.active { border-color: rgba(74,158,255,0.9); background: rgba(74,158,255,0.10); }
             .ruta-chip .t1 { font-weight:800; color: rgba(255,255,255,0.92); }
             .ruta-chip .t2 { font-size:11px; color: rgba(255,255,255,0.60); margin-top:4px; }
@@ -289,20 +280,17 @@ export default class RutaMode {
         this.ui.timeline = left.querySelector('#ruta-timeline');
         this.ui.stats = right.querySelector('#ruta-stats');
         this.ui.selected = right.querySelector('#ruta-selected');
-        this.ui.btnPlay = left.querySelector('#ruta-btn-play');
-        this.ui.btnFollow = left.querySelector('#ruta-btn-follow');
+        this.ui.pill = left.querySelector('#ruta-live-pill');
 
-        this.ui.btnPlay.onclick = () => this.togglePlay();
-        this.ui.btnFollow.onclick = () => this.toggleFollow();
         this.applyControlsUi();
     }
 
     applyControlsUi() {
         try {
-            if (this.ui?.btnPlay) this.ui.btnPlay.textContent = this._travel.playing ? '⏸ PAUSE' : '▶ PLAY';
-            if (this.ui?.btnFollow) {
-                this.ui.btnFollow.style.opacity = this._travel.follow ? '1' : '0.55';
-                this.ui.btnFollow.textContent = this._travel.follow ? '🎥 FOLLOW' : '🧍 FREE';
+            if (this.ui?.pill) {
+                const a = this._travel.playing ? 'PLAY' : 'PAUSE';
+                const b = this._travel.follow ? 'FOLLOW' : 'FREE';
+                this.ui.pill.textContent = `BROADCAST · ${a} · ${b}`;
             }
         } catch (e) { }
     }
@@ -334,7 +322,23 @@ export default class RutaMode {
 
     initMap() {
         if (this.map) return;
-        this.map = L.map('ruta-map', { zoomControl: false, attributionControl: false }).setView([20, 0], 2);
+        // Broadcast-only: sin interacción de mouse/touch
+        try {
+            const host = document.getElementById('ruta-map');
+            if (host) host.style.pointerEvents = 'none';
+        } catch (e) { }
+
+        this.map = L.map('ruta-map', {
+            zoomControl: false,
+            attributionControl: false,
+            dragging: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            boxZoom: false,
+            keyboard: false,
+            touchZoom: false,
+            tap: false
+        }).setView([20, 0], 2);
 
         // Dark tiles (más “TV”)
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -391,7 +395,6 @@ export default class RutaMode {
                 direction: 'top',
                 opacity: 0.9
             });
-            m.on('click', () => this.selectStop(idx, true));
             this._leafletMarkers.push(m);
         });
 
@@ -425,7 +428,6 @@ export default class RutaMode {
                 </div>
                 <div class="t2">Última: ${time}</div>
             `;
-            el.onclick = () => this.selectStop(idx, true);
             box.appendChild(el);
         });
     }

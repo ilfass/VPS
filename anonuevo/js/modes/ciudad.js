@@ -154,7 +154,23 @@ export default class CiudadMode {
 
     initMap() {
         if (this.map) return;
-        this.map = L.map('city-map', { zoomControl: false, attributionControl: false }).setView(this.city.center, this.city.zoom);
+        // Modo broadcast-only: sin interacción de mouse/touch
+        try {
+            const host = document.getElementById('city-map');
+            if (host) host.style.pointerEvents = 'none';
+        } catch (e) { }
+
+        this.map = L.map('city-map', {
+            zoomControl: false,
+            attributionControl: false,
+            dragging: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            boxZoom: false,
+            keyboard: false,
+            touchZoom: false,
+            tap: false
+        }).setView(this.city.center, this.city.zoom);
 
         // base tiles (claros) + overlay tráfico (colores)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {

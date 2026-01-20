@@ -63,8 +63,7 @@ export default class GloboMode {
                 window.speechSynthesis.resume();
             }
         };
-        document.addEventListener('click', enableAudio, { once: true });
-        document.addEventListener('touchstart', enableAudio, { once: true });
+        // Broadcast-only: evitar mouse/touch. Keydown opcional para desbloquear audio si hace falta.
         document.addEventListener('keydown', enableAudio, { once: true });
         
         // Registrar handler para comandos de música
@@ -114,6 +113,19 @@ export default class GloboMode {
                 fullscreenButton: false,
                 shouldAnimate: true
             });
+
+            // Broadcast-only: deshabilitar inputs del usuario (mouse/touch) en el globo
+            try {
+                const c = this.viewer?.scene?.screenSpaceCameraController;
+                if (c) {
+                    c.enableInputs = false;
+                    c.enableRotate = false;
+                    c.enableTranslate = false;
+                    c.enableZoom = false;
+                    c.enableTilt = false;
+                    c.enableLook = false;
+                }
+            } catch (e) { }
             
             // Intentar agregar terrain provider si está disponible
             try {
