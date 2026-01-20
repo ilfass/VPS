@@ -4,6 +4,7 @@ import { eventManager } from '../utils/event-manager.js?v=2';
 import { createTvScene } from '../utils/tv-scene.js';
 import { ProgressiveBuilder } from '../utils/progressive-builder.js';
 import { NarratorDirector } from '../utils/narrator-director.js';
+import { markClip } from '../utils/clip-markers.js';
 
 function ensureLeaflet() {
     if (window.L) return Promise.resolve(true);
@@ -52,6 +53,7 @@ export default class AereoMode {
         this.isNarrating = false;
         this.lastRefreshAt = 0;
         this.lastStats = null;
+        this._lastMomentAt = 0;
     }
 
     async mount() {
@@ -173,6 +175,7 @@ export default class AereoMode {
 
         try {
             const response = await fetch('https://opensky-network.org/api/states/all', { cache: 'no-store' });
+            if (!response.ok) throw new Error(`opensky_http_${response.status}`);
             const data = await response.json();
             const states = Array.isArray(data?.states) ? data.states : [];
             if (!states.length) throw new Error('Sin estados');
@@ -279,10 +282,103 @@ export default class AereoMode {
             if (playSfx) this.scene.sfx?.reveal?.();
 
             this.startAnimations();
+
+            // Clip factory (cooldown): “momento” cada ~90s máximo
+            this.maybeMarkMoment({
+                title: topSpeed != null ? `TOP VEL ${topSpeed} km/h` : `AÉREO ${count} vuelos`,
+                note: topAlt != null ? `Top alt: ${topAlt} m` : null
+            });
         } catch (e) {
-            this.scene.setTicker('Aéreo: error consultando OpenSky. Reintentando…');
-            this.scene.sfx?.alert?.();
+            // Fallback demo (IMPORTANTE: OpenSky responde 429 seguido)
+            this.renderDemoFlights(String(e?.message || 'error'));
         }
+    }
+
+    maybeMarkMoment({ title, note } = {}) {
+        const now = Date.now();
+        if ((now - (this._lastMomentAt || 0)) < 90_000) return;
+        this._lastMomentAt = now;
+        try {
+            markClip({
+                type: 'moment',
+                title: title || 'AÉREO',
+                scene: 'aereo',
+                note: note || null,
+                url: window.location?.href
+            });
+        } catch (e) { }
+    }
+
+    renderDemoFlights(reason = '') {
+        this.scene.setStatus('LIVE');
+        this.scene.sfx?.alert?.();
+
+        // limpiar layers
+        try { this.markers.forEach(m => this.map.removeLayer(m)); } catch (e) { }
+        try { this.trails.forEach(t => this.map.removeLayer(t)); } catch (e) { }
+        this.markers = [];
+        this.trails = [];
+
+        // Generar vuelos “demo” con corredores típicos
+        const hubs = [
+            { name: 'EU', lat: 50, lon: 10 },
+            { name: 'US', lat: 39, lon: -98 },
+            { name: 'SA', lat: -23, lon: -58 },
+            { name: 'AS', lat: 30, lon: 110 },
+            { name: 'AU', lat: -25, lon: 135 }
+        ];
+
+        const demo = [];
+        for (let i = 0; i < 140; i++) {
+            const h = hubs[i % hubs.length];
+            const lat = h.lat + (Math.random() - 0.5) * 18;
+            const lon = h.lon + (Math.random() - 0.5) * 26;
+            const v = 420 + Math.random() * 520; // km/h
+            const alt = 2500 + Math.random() * 10500; // m
+            demo.push({ lat, lon, v, alt });
+        }
+
+        const speeds = demo.map(d => d.v).sort((a, b) => b - a);
+        const alts = demo.map(d => d.alt).sort((a, b) => b - a);
+        const topSpeed = Math.round(speeds[0] || 0);
+        const topAlt = Math.round(alts[0] || 0);
+
+        for (let i = 0; i < demo.length; i++) {
+            const d = demo[i];
+            let color = '#00ff7a';
+            if (d.v > 800 || d.alt > 10000) color = '#ff004c';
+            else if (d.v > 650 || d.alt > 8000) color = '#ff7a00';
+            else if (d.v > 450 || d.alt > 5000) color = '#ffd000';
+
+            const radius = clamp(4 + (d.alt / 5000), 3, 8);
+            const marker = L.circleMarker([d.lat, d.lon], {
+                radius,
+                fillColor: color,
+                color: 'rgba(255,255,255,0.85)',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.9
+            }).addTo(this.map);
+            this.markers.push(marker);
+        }
+
+        this.lastStats = {
+            source: 'demo',
+            reason,
+            flightCount: demo.length,
+            topSpeedKmh: topSpeed,
+            topAltitudeM: topAlt
+        };
+
+        this.scene.cards.innerHTML = '';
+        this.scene.addCard({ k: 'VUELOS', v: String(demo.length), tone: 'warn' });
+        this.scene.addCard({ k: 'TOP VEL', v: `${topSpeed} km/h`, tone: 'neutral' });
+        this.scene.addCard({ k: 'TOP ALT', v: `${topAlt} m`, tone: 'neutral' });
+        this.scene.addCard({ k: 'FUENTE', v: 'DEMO', tone: 'warn' });
+
+        this.scene.setTicker(`Aéreo (DEMO): OpenSky limitado (${reason}). Simulando ${demo.length} vuelos para no cortar el stream.`);
+        this.maybeMarkMoment({ title: `OPEN SKY LIMITADO (${reason})`, note: 'Fallback DEMO activo' });
+        this.startAnimations();
     }
 
     startAnimations() {

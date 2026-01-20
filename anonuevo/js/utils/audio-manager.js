@@ -26,6 +26,13 @@ export class AudioManager {
             '/assets/audio/ambient_base.mp3', // Por ahora el mismo, pero se pueden agregar más
         ];
         this.currentTrackIndex = 0;
+
+        // Ducking (música baja mientras habla)
+        this._ducking = {
+            active: false,
+            baseVolume: 0.3,
+            duckVolume: 0.08
+        };
     }
 
     init() {
@@ -236,9 +243,27 @@ export class AudioManager {
     releaseChannel() {
         this.currentState = AUDIO_STATES.IDLE;
         // Restaurar volumen de música al terminar voz
-        if (this.isMusicPlaying) {
-            this.fadeAudio(this.musicLayer, this.musicLayer.volume, 0.3, 1000); // Volver a nivel ambiente
-        }
+        this.endDucking();
+    }
+
+    beginDucking() {
+        try {
+            if (!this.musicLayer) return;
+            if (!this.isMusicPlaying) return;
+            if (this.musicLayer.paused) return;
+            this._ducking.active = true;
+            this.fadeAudio(this.musicLayer, this.musicLayer.volume, this._ducking.duckVolume, 450);
+        } catch (e) { }
+    }
+
+    endDucking() {
+        try {
+            if (!this.musicLayer) return;
+            if (!this.isMusicPlaying) return;
+            this._ducking.active = false;
+            // Volver a nivel ambiente
+            this.fadeAudio(this.musicLayer, this.musicLayer.volume, this._ducking.baseVolume, 800);
+        } catch (e) { }
     }
 
     cancel() {
@@ -286,10 +311,8 @@ export class AudioManager {
         // Guardar callback para actualizar subtítulos
         this.updateSubtitlesCallback = updateSubtitlesCallback;
 
-        // ** DUCKING **: Bajar música antes de hablar
-        if (this.isMusicPlaying) {
-            this.fadeAudio(this.musicLayer, this.musicLayer.volume, 0.05, 500); // Bajar a 5% rápido
-        }
+        // ** DUCKING **: bajar música antes de hablar y restaurar al terminar
+        this.beginDucking();
 
         // Intentar usar Edge TTS primero (mejor calidad)
         if (this.useEdgeTTS) {
@@ -364,6 +387,7 @@ export class AudioManager {
                                     subtitleInterval = null;
                                 }
                                 this.notifySpeaking(false);
+                                this.endDucking();
                                 this.currentAudio = null;
                                 this.updateSubtitlesCallback = null; // Limpiar callback
                                 if (onEndCallback) onEndCallback();
@@ -376,6 +400,7 @@ export class AudioManager {
                                     subtitleInterval = null;
                                 }
                                 this.notifySpeaking(false);
+                                this.endDucking();
                                 this.currentAudio = null;
                                 this.updateSubtitlesCallback = null;
                                 // Fallback a Web Speech API
@@ -390,6 +415,7 @@ export class AudioManager {
                                         clearInterval(subtitleInterval);
                                         subtitleInterval = null;
                                     }
+                                    this.endDucking();
                                     // Fallback a Web Speech API
                                     this.speakWithFallback(text, priority, onEndCallback);
                                 });
@@ -453,12 +479,14 @@ export class AudioManager {
         utterance.onend = () => {
             console.log("[AudioManager] ✅ Voz terminada (Fallback Web Speech)");
             this.notifySpeaking(false);
+            this.endDucking();
             if (!utterance.wasCancelled && onEndCallback) onEndCallback();
         };
         
         utterance.onerror = (e) => {
             console.error("[AudioManager] ❌ Error en voz:", e.error, e);
             this.notifySpeaking(false);
+            this.endDucking();
         };
         
         // Seleccionar voz
@@ -513,12 +541,14 @@ export class AudioManager {
         utterance.onend = () => {
             console.log("[AudioManager] ✅ Voz terminada");
             this.notifySpeaking(false);
+            this.endDucking();
             if (!utterance.wasCancelled && onEndCallback) onEndCallback();
         };
         
         utterance.onerror = (e) => {
             console.error("[AudioManager] ❌ Error en voz (selectVoice):", e.error, e);
             this.notifySpeaking(false);
+            this.endDucking();
         };
     }
 
