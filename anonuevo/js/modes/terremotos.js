@@ -4,6 +4,7 @@ import { eventManager } from '../utils/event-manager.js?v=2';
 import { createTvScene } from '../utils/tv-scene.js';
 import { ProgressiveBuilder } from '../utils/progressive-builder.js';
 import { NarratorDirector } from '../utils/narrator-director.js';
+import { markClip } from '../utils/clip-markers.js';
 
 function ensureLeaflet() {
     if (window.L) return Promise.resolve(true);
@@ -54,6 +55,7 @@ export default class TerremotosMode {
         this.isNarrating = false;
         this.lastRefreshAt = 0;
         this.lastQuakeStats = null;
+        this._lastMomentAt = 0;
     }
 
     async mount() {
@@ -163,6 +165,7 @@ export default class TerremotosMode {
 
         try {
             const response = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson', { cache: 'no-store' });
+            if (!response.ok) throw new Error(`usgs_http_${response.status}`);
             const data = await response.json();
             const features = Array.isArray(data?.features) ? data.features : [];
             if (!features.length) throw new Error('Sin datos');
@@ -261,10 +264,112 @@ export default class TerremotosMode {
             if (playSfx) this.scene.sfx?.stinger?.();
 
             this.startWaveAnimation();
+
+            // Clip factory (cooldown)
+            this.maybeMarkMoment({
+                title: (top && top.mag) ? `M${top.mag} · ${top.place}` : 'TERREMOTOS',
+                note: (this.lastQuakeStats?.maxMagnitude != null) ? `Máx M${this.lastQuakeStats.maxMagnitude}` : null
+            });
         } catch (e) {
-            this.scene.setTicker('Terremotos: error consultando USGS. Reintentando…');
-            this.scene.sfx?.alert?.();
+            this.renderDemoQuakes(String(e?.message || 'error'));
         }
+    }
+
+    maybeMarkMoment({ title, note } = {}) {
+        const now = Date.now();
+        if ((now - (this._lastMomentAt || 0)) < 90_000) return;
+        this._lastMomentAt = now;
+        try {
+            markClip({
+                type: 'moment',
+                title: title || 'TERREMOTOS',
+                scene: 'terremotos',
+                note: note || null,
+                url: window.location?.href
+            });
+        } catch (e) { }
+    }
+
+    renderDemoQuakes(reason = '') {
+        if (!this.map) return;
+        this.scene.setStatus('LIVE');
+        this.scene.sfx?.alert?.();
+
+        try { this.markers.forEach(m => this.map.removeLayer(m)); } catch (e) { }
+        try { this.waves.forEach(w => this.map.removeLayer(w.circle)); } catch (e) { }
+        this.markers = [];
+        this.waves = [];
+
+        // Demo de eventos en el “anillo de fuego” (plausible para show)
+        const demo = [
+            { lat: 38.32, lon: 142.37, mag: 5.4, place: 'Japón (Pacífico)' },
+            { lat: -6.20, lon: 106.85, mag: 4.6, place: 'Indonesia' },
+            { lat: 61.02, lon: -147.65, mag: 4.9, place: 'Alaska' },
+            { lat: -33.05, lon: -71.62, mag: 4.3, place: 'Chile' },
+            { lat: 19.43, lon: -155.29, mag: 4.1, place: 'Hawái' }
+        ].map(q => ({
+            ...q,
+            mag: Number((q.mag + (Math.random() - 0.5) * 0.6).toFixed(1))
+        }));
+
+        const maxMag = Math.max(...demo.map(d => d.mag));
+        this.lastQuakeStats = {
+            source: 'demo',
+            reason,
+            count24h: demo.length,
+            recentCount1h: null,
+            maxMagnitude: maxMag,
+            top3: demo.slice().sort((a, b) => b.mag - a.mag).slice(0, 3).map(d => ({ mag: d.mag, place: d.place, time: Date.now() }))
+        };
+
+        for (const q of demo) {
+            const color = magColor(q.mag);
+            const radius = Math.max(6, Math.min(20, q.mag * 4));
+            const circle = L.circleMarker([q.lat, q.lon], {
+                radius,
+                fillColor: color,
+                color: 'rgba(255,255,255,0.85)',
+                weight: 3,
+                opacity: 1,
+                fillOpacity: 0.9
+            }).addTo(this.map);
+            this.markers.push(circle);
+
+            const waveCount = q.mag >= 5 ? 3 : (q.mag >= 4 ? 2 : 1);
+            const maxRadius = q.mag * 200_000;
+            for (let i = 0; i < waveCount; i++) {
+                const w = L.circle([q.lat, q.lon], {
+                    radius: 0,
+                    color,
+                    fillColor: color,
+                    fillOpacity: 0.10,
+                    weight: 2,
+                    opacity: 0.55
+                }).addTo(this.map);
+                this.waves.push({
+                    circle: w,
+                    maxRadius,
+                    currentRadius: 0,
+                    speed: 25_000 + (q.mag * 5_000),
+                    delay: i * 1700,
+                    startTime: Date.now() + i * 1700,
+                    color
+                });
+            }
+        }
+
+        const top = this.lastQuakeStats.top3?.[0];
+        const headline = top ? `DEMO · Mayor: M${top.mag} · ${top.place}` : 'DEMO · Eventos';
+        if (this.headlineEl) this.headlineEl.textContent = headline;
+
+        this.scene.cards.innerHTML = '';
+        this.scene.addCard({ k: 'EVENTOS', v: String(demo.length), tone: 'warn' });
+        this.scene.addCard({ k: 'MÁX MAG', v: `M${maxMag.toFixed(1)}`, tone: 'warn' });
+        this.scene.addCard({ k: 'FUENTE', v: 'DEMO', tone: 'warn' });
+
+        this.scene.setTicker(`Terremotos (DEMO): USGS falló (${reason}). Manteniendo señal con eventos simulados.`);
+        this.maybeMarkMoment({ title: `TERREMOTOS DEMO (${reason})`, note: 'Fallback activo' });
+        this.startWaveAnimation();
     }
 
     startWaveAnimation() {

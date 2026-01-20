@@ -4,6 +4,7 @@ import { eventManager } from '../utils/event-manager.js?v=2';
 import { createTvScene } from '../utils/tv-scene.js';
 import { ProgressiveBuilder } from '../utils/progressive-builder.js';
 import { NarratorDirector } from '../utils/narrator-director.js';
+import { markClip } from '../utils/clip-markers.js';
 
 function ensureLeaflet() {
     if (window.L) return Promise.resolve(true);
@@ -52,6 +53,7 @@ export default class ClimaMode {
         this.lastRefreshAt = 0;
         this.isNarrating = false;
         this.lastStats = null;
+        this._lastMomentAt = 0;
     }
 
     async mount() {
@@ -227,6 +229,9 @@ export default class ClimaMode {
             );
 
             this.weatherData = (await Promise.all(weatherPromises)).filter(Boolean);
+            if (!this.weatherData || this.weatherData.length < 4) {
+                throw new Error('open_meteo_insufficient');
+            }
 
             // limpiar
             try { this.markers.forEach(m => this.map.removeLayer(m)); } catch (e) { }
@@ -310,10 +315,118 @@ export default class ClimaMode {
             if (playSfx) this.scene.sfx?.reveal?.();
 
             this.startAnimations();
+
+            // Clip factory (cooldown)
+            this.maybeMarkMoment({
+                title: hottest ? `HOT: ${hottest.name} ${hottest.temp.toFixed(1)}°C` : 'CLIMA',
+                note: coldest ? `COLD: ${coldest.name} ${coldest.temp.toFixed(1)}°C` : null
+            });
         } catch (e) {
-            this.scene.setTicker('Clima: error consultando datos. Reintentando…');
-            this.scene.sfx?.alert?.();
+            this.renderDemoWeather(String(e?.message || 'error'));
         }
+    }
+
+    maybeMarkMoment({ title, note } = {}) {
+        const now = Date.now();
+        if ((now - (this._lastMomentAt || 0)) < 90_000) return;
+        this._lastMomentAt = now;
+        try {
+            markClip({
+                type: 'moment',
+                title: title || 'CLIMA',
+                scene: 'clima',
+                note: note || null,
+                url: window.location?.href
+            });
+        } catch (e) { }
+    }
+
+    renderDemoWeather(reason = '') {
+        if (!this.map) return;
+        this.scene.setStatus('LIVE');
+        this.scene.sfx?.alert?.();
+
+        try { this.markers.forEach(m => this.map.removeLayer(m)); } catch (e) { }
+        try { this.windLines.forEach(l => this.map.removeLayer(l)); } catch (e) { }
+        this.markers = [];
+        this.windLines = [];
+
+        // Demo de ciudades para no dejar la pantalla vacía
+        const demo = [
+            { name: 'Buenos Aires', lat: -34.6, lon: -58.4, temp: 26.4, wind: 18, dir: 120, hum: 64, code: 2 },
+            { name: 'Madrid', lat: 40.4, lon: -3.7, temp: 14.8, wind: 11, dir: 260, hum: 48, code: 3 },
+            { name: 'Tokio', lat: 35.7, lon: 139.7, temp: 9.2, wind: 22, dir: 20, hum: 58, code: 61 },
+            { name: 'Londres', lat: 51.5, lon: -0.1, temp: 7.6, wind: 26, dir: 310, hum: 76, code: 45 },
+            { name: 'Dubái', lat: 25.2, lon: 55.3, temp: 33.5, wind: 16, dir: 90, hum: 38, code: 0 },
+            { name: 'Sídney', lat: -33.9, lon: 151.2, temp: 21.3, wind: 19, dir: 200, hum: 54, code: 1 }
+        ].map(x => ({
+            ...x,
+            temp: Number((x.temp + (Math.random() - 0.5) * 2.2).toFixed(1)),
+            wind: Math.max(0, Number((x.wind + (Math.random() - 0.5) * 8).toFixed(1))),
+            hum: Math.max(20, Math.min(95, Math.round(x.hum + (Math.random() - 0.5) * 10)))
+        }));
+
+        let hottest = null, coldest = null;
+        const temps = [];
+
+        for (const city of demo) {
+            const temp = city.temp;
+            temps.push(temp);
+            if (!hottest || temp > hottest.temp) hottest = { name: city.name, temp };
+            if (!coldest || temp < coldest.temp) coldest = { name: city.name, temp };
+
+            const color = this.tempColor(temp);
+            const radius = Math.max(6, Math.min(16, 8 + Math.abs(temp - 20) / 5));
+            const marker = L.circleMarker([city.lat, city.lon], {
+                radius,
+                fillColor: color,
+                color: 'rgba(255,255,255,0.85)',
+                weight: 3,
+                opacity: 1,
+                fillOpacity: 0.9
+            }).addTo(this.map);
+            this.markers.push(marker);
+
+            // viento demo
+            const windLengthM = Math.min(110_000, city.wind * 3000);
+            const rad = (city.dir - 90) * Math.PI / 180;
+            const endLat = city.lat + (windLengthM / 111_000) * Math.cos(rad);
+            const endLon = city.lon + (windLengthM / 111_000) * Math.sin(rad);
+            const line = L.polyline([[city.lat, city.lon], [endLat, endLon]], {
+                color: 'rgba(0, 229, 255, 0.75)',
+                weight: clamp(city.wind / 10, 1, 4),
+                opacity: 0.65,
+                dashArray: '6, 8',
+                dashOffset: '0'
+            }).addTo(this.map);
+            this.windLines.push(line);
+        }
+
+        const avg = temps.reduce((a, b) => a + b, 0) / Math.max(1, temps.length);
+        const min = Math.min(...temps);
+        const max = Math.max(...temps);
+        this.lastStats = {
+            source: 'demo',
+            reason,
+            cityCount: demo.length,
+            avgTemp: Number(avg.toFixed(1)),
+            minTemp: Number(min.toFixed(1)),
+            maxTemp: Number(max.toFixed(1)),
+            hottest,
+            coldest
+        };
+
+        this.scene.cards.innerHTML = '';
+        this.scene.addCard({ k: 'CIUDADES', v: String(this.lastStats.cityCount), tone: 'warn' });
+        this.scene.addCard({ k: 'PROM', v: `${this.lastStats.avgTemp}°`, tone: 'neutral' });
+        this.scene.addCard({ k: 'MÁX', v: `${this.lastStats.maxTemp}°`, tone: 'warn' });
+        this.scene.addCard({ k: 'MÍN', v: `${this.lastStats.minTemp}°`, tone: 'warn' });
+
+        const headline = hottest ? `DEMO · Hot: ${hottest.name} (${hottest.temp.toFixed(1)}°C)` : 'DEMO · Ranking';
+        if (this.headlineEl) this.headlineEl.textContent = headline;
+        this.scene.setTicker(`Clima (DEMO): Open‑Meteo falló (${reason}). Manteniendo señal con datos simulados.`);
+        this.maybeMarkMoment({ title: `CLIMA DEMO (${reason})`, note: 'Fallback activo' });
+        this.startAnimations();
     }
 
     startAnimations() {

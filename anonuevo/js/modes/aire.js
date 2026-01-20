@@ -4,6 +4,7 @@ import { eventManager } from '../utils/event-manager.js?v=2';
 import { createTvScene } from '../utils/tv-scene.js';
 import { ProgressiveBuilder } from '../utils/progressive-builder.js';
 import { NarratorDirector } from '../utils/narrator-director.js';
+import { markClip } from '../utils/clip-markers.js';
 
 function ensureLeaflet() {
     if (window.L) return Promise.resolve(true);
@@ -46,6 +47,7 @@ export default class AireMode {
         this.isNarrating = false;
         this.lastRefreshAt = 0;
         this.lastStats = null;
+        this._lastMomentAt = 0;
     }
 
     async mount() {
@@ -199,6 +201,7 @@ export default class AireMode {
             );
 
             const all = (await Promise.all(promises)).flat().slice(0, 100);
+            if (!all || all.length < 10) throw new Error('openaq_insufficient');
 
             // limpiar
             try { this.markers.forEach(m => this.map.removeLayer(m)); } catch (e) { }
@@ -267,10 +270,93 @@ export default class AireMode {
 
             // animación ligera (parpadeo sutil)
             this.startMarkerBreath();
+
+            // Clip factory (cooldown)
+            this.maybeMarkMoment({
+                title: worst ? `PEOR AIRE: AQI ${worst.aqi}` : 'AIRE',
+                note: worst ? `${worst.city} (${worst.country})` : null
+            });
         } catch (e) {
-            this.scene.setTicker('Aire: error consultando datos. Reintentando…');
-            this.scene.sfx?.alert?.();
+            this.renderDemoAir(String(e?.message || 'error'));
         }
+    }
+
+    maybeMarkMoment({ title, note } = {}) {
+        const now = Date.now();
+        if ((now - (this._lastMomentAt || 0)) < 90_000) return;
+        this._lastMomentAt = now;
+        try {
+            markClip({
+                type: 'moment',
+                title: title || 'AIRE',
+                scene: 'aire',
+                note: note || null,
+                url: window.location?.href
+            });
+        } catch (e) { }
+    }
+
+    renderDemoAir(reason = '') {
+        if (!this.map) return;
+        this.scene.setStatus('LIVE');
+        this.scene.sfx?.alert?.();
+
+        try { this.markers.forEach(m => this.map.removeLayer(m)); } catch (e) { }
+        this.markers = [];
+
+        // Demo “zonas” con AQI plausible
+        const demo = [
+            { city: 'Delhi', country: 'IN', lat: 28.61, lon: 77.20, aqi: 180 },
+            { city: 'Beijing', country: 'CN', lat: 39.90, lon: 116.40, aqi: 120 },
+            { city: 'Madrid', country: 'ES', lat: 40.41, lon: -3.70, aqi: 62 },
+            { city: 'Londres', country: 'GB', lat: 51.50, lon: -0.12, aqi: 48 },
+            { city: 'São Paulo', country: 'BR', lat: -23.55, lon: -46.63, aqi: 88 },
+            { city: 'Buenos Aires', country: 'AR', lat: -34.60, lon: -58.38, aqi: 55 },
+            { city: 'Los Ángeles', country: 'US', lat: 34.05, lon: -118.24, aqi: 105 },
+            { city: 'Tokio', country: 'JP', lat: 35.68, lon: 139.69, aqi: 44 }
+        ].map(x => ({ ...x, aqi: Math.max(20, Math.min(240, Math.round(x.aqi + (Math.random() - 0.5) * 22))) }));
+
+        let good = 0, moderate = 0, unhealthy = 0;
+        let worst = null;
+
+        for (const d of demo) {
+            if (d.aqi < 50) good++;
+            else if (d.aqi < 100) moderate++;
+            else unhealthy++;
+            if (!worst || d.aqi > worst.aqi) worst = { aqi: d.aqi, city: d.city, country: d.country };
+
+            const color = this.aqiToColor(d.aqi);
+            const radius = Math.max(7, Math.min(18, 7 + (d.aqi / 22)));
+            const marker = L.circleMarker([d.lat, d.lon], {
+                radius,
+                fillColor: color,
+                color: 'rgba(255,255,255,0.85)',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.82
+            }).addTo(this.map);
+            this.markers.push(marker);
+        }
+
+        this.lastStats = {
+            source: 'demo',
+            reason,
+            totalStations: demo.length,
+            good,
+            moderate,
+            unhealthy,
+            worst
+        };
+
+        this.scene.cards.innerHTML = '';
+        this.scene.addCard({ k: 'ESTACIONES', v: String(demo.length), tone: 'warn' });
+        this.scene.addCard({ k: 'BUENO', v: String(good), tone: 'good' });
+        this.scene.addCard({ k: 'MODERADO', v: String(moderate), tone: 'warn' });
+        this.scene.addCard({ k: 'INSALUBRE', v: String(unhealthy), tone: unhealthy > 0 ? 'bad' : 'good' });
+
+        this.scene.setTicker(`Aire (DEMO): OpenAQ falló (${reason}). Manteniendo señal con AQI simulado. Peor: ${worst ? `${worst.city} AQI ${worst.aqi}` : '—'}`);
+        this.maybeMarkMoment({ title: `AIRE DEMO (${reason})`, note: 'Fallback activo' });
+        this.startMarkerBreath();
     }
 
     startMarkerBreath() {
