@@ -143,10 +143,38 @@ El libro:
 #### 6.1 Presente (VIVOS)
 *   `/`
 *   `/vivos/mapa/`
-*   `/vivos/portada/`
-*   `/vivos/estado-actual/`
 *   `/vivos/diario/`
+
+#### 6.1.1 Circuito de Streaming (rotación automática / Dream Mode)
+No todas las URLs en `/vivos/` deben entrar al circuito. Para evitar hojas “vacías” o no implementadas como modo, el **circuito de rotación automática** se limita a:
+
+*   `/vivos/mapa/`
+*   `/vivos/diario/`
+*   `/vivos/curiosidades/`
+*   `/vivos/continente/`
+*   `/vivos/ruta/`
+*   `/vivos/estadisticas/`
+*   `/vivos/galeria/`
+*   `/vivos/globo/`
+*   `/vivos/clima/`
+*   `/vivos/aereo/`
+*   `/vivos/satelites/`
+*   `/vivos/terremotos/`
+*   `/vivos/aire/`
+*   `/vivos/incendios/`
+*   `/vivos/sol/`
+*   `/vivos/ciudad/`
+
+#### 6.1.2 Hojas fuera del circuito (solo acceso manual / backlog)
+Estas hojas **existen** o pueden existir, pero **no deben** formar parte de la rotación automática hasta estar implementadas como “modo” y validadas:
+
+*   `/vivos/portada/`
+*   `/vivos/intro/`
+*   `/vivos/estado-actual/`
 *   `/vivos/reflexion/`
+*   `/vivos/pais/`
+*   `/vivos/cielo/`
+*   `/vivos/maritimo/`
 
 #### 6.2 Memoria (Libro)
 *   `/memoria/indice/`
@@ -192,6 +220,12 @@ La voz de ilfass:
 
 **Debe transmitir:** Respiración, Pausas reales, Intención, Ritmo humano, Emoción contenida.  
 **Si la voz suena artificial → el sistema falla.**
+
+#### 9.1 Voz “servida” (Edge TTS) — requisito operativo
+Si se usa Edge TTS (MP3 generado), los audios deben ser accesibles desde:
+*   `/assets/audio/generated/*.mp3`
+
+Regla técnica: el contenedor web (Nginx) **debe servir** ese directorio (volumen compartido con el generador).
 
 ---
 
@@ -318,6 +352,29 @@ narrativeContext = {
   energia: "media"
 }
 ```
+
+#### 19.1.1 Biblia/Guion central (persistente) — NO opcional
+Para que el relato sea coherente entre hojas, la continuidad **no depende** de prompts aislados por modo.
+Se mantiene una **Biblia Narrativa** y un estado mínimo de continuidad:
+
+*   `data/story-bible.json`: voz, reglas, arcos, frases a evitar.
+*   `data/story-state.json`: historial breve (hints) para evitar repetición.
+
+Y se exponen endpoints editoriales:
+*   `GET /control-api/api/story/state` (auditar continuidad)
+*   `POST /control-api/api/story/arc` (cambiar arco activo)
+*   `POST /control-api/api/story/reset` (reset historial)
+
+Regla: toda narrativa generada por `/control-api/api/generate-narrative` debe inyectar biblia + contexto (escena/país/día) antes de llamar a la IA.
+
+---
+
+### 19.6 Auditoría del libro (sanidad del catálogo)
+El proyecto crece; se debe auditar la integridad de hojas:
+*   Reporte: `AUDITORIA_LIBRO.md`
+*   Script: `scripts/auditar-libro.js`
+
+Regla: si una hoja está en `/vivos/<x>/` pero no existe como modo o no está en `MODES`, **no entra al circuito de streaming**.
 
 #### 19.2 IA Visual (Imágenes y Video)
 Dos fuentes de contenido obligatorias:
