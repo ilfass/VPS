@@ -10,6 +10,7 @@ export class AudioManager {
         this.currentState = AUDIO_STATES.IDLE;
         this.synth = window.speechSynthesis; // Fallback
         this.currentUtterance = null;
+        this.isSpeaking = false;
         this.currentAudio = null; // Para Edge TTS
         this.useEdgeTTS = true; // Usar Edge TTS por defecto
         this.musicPrefKey = 'bg_music_enabled'; // Persistir entre hojas/páginas
@@ -568,6 +569,7 @@ export class AudioManager {
      * Notifica cuando el avatar está hablando (para animaciones)
      */
     notifySpeaking(isSpeaking) {
+        this.isSpeaking = !!isSpeaking;
         const avatarElement = document.querySelector('.avatar-image');
         if (avatarElement) {
             if (isSpeaking) {
@@ -576,6 +578,37 @@ export class AudioManager {
                 avatarElement.classList.remove('speaking');
             }
         }
+    }
+
+    /**
+     * Micro‑SFX (sin assets): stingers/alerts muy sutiles para “TV”.
+     */
+    playSfx(name = 'tick') {
+        try {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+            const ctx = new AudioCtx();
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.connect(g);
+            g.connect(ctx.destination);
+
+            const now = ctx.currentTime;
+            let freq = 440;
+            let dur = 0.08;
+            if (name === 'stinger') { freq = 740; dur = 0.12; }
+            if (name === 'alert') { freq = 880; dur = 0.10; }
+
+            o.type = 'sine';
+            o.frequency.setValueAtTime(freq, now);
+            g.gain.setValueAtTime(0.0001, now);
+            g.gain.exponentialRampToValueAtTime(0.035, now + 0.01);
+            g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+            o.start(now);
+            o.stop(now + dur + 0.02);
+            setTimeout(() => ctx.close?.(), (dur + 0.1) * 1000);
+        } catch (e) { }
     }
 
     /**

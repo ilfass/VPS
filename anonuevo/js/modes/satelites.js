@@ -1084,6 +1084,27 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
         }
     }
 
+    // Contexto para recaps (sin inventar)
+    getRecapContext() {
+        try {
+            const ctx = {
+                iss: this.lastPosition ? {
+                    lat: Number(this.lastPosition.lat?.toFixed?.(2) ?? this.lastPosition.lat),
+                    lon: Number(this.lastPosition.lon?.toFixed?.(2) ?? this.lastPosition.lon),
+                    ts: this.lastPosition.timestamp || null
+                } : null,
+                kp: this.kpData ? {
+                    kp: this.kpData.kp,
+                    time: this.kpData.kpTime || null
+                } : null,
+                extraSatellites: this.extraSatellites ? this.extraSatellites.size : 0
+            };
+            return ctx;
+        } catch (e) {
+            return null;
+        }
+    }
+
     unmount() {
         if (this.animationFrame) {
             cancelAnimationFrame(this.animationFrame);

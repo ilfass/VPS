@@ -3,6 +3,7 @@ import { scheduler } from './utils/scheduler.js';
 import { audioManager } from './utils/audio-manager.js';
 import { eventManager } from './utils/event-manager.js?v=2';
 import { cinematicDirector } from './utils/cinematic-director.js';
+import { recapEngine } from './utils/recap-engine.js';
 
 // Mapa de modos disponibles y sus rutas de importación
 const MODES = {
@@ -69,6 +70,7 @@ class App {
         this.modeIndicator = document.getElementById('mode-indicator');
         this.fpsCounter = document.getElementById('fps-counter');
         this.cinematicDirector = cinematicDirector;
+        this.recapEngine = recapEngine;
 
         this.init();
     }
@@ -134,6 +136,8 @@ class App {
         }
         // Detener cámara “cinemática” del modo anterior
         this.cinematicDirector?.detach?.();
+        // Detener recap del modo anterior
+        this.recapEngine?.detach?.();
 
         // Limpiar tareas programadas del modo anterior
         scheduler.clearTasks();
@@ -153,12 +157,15 @@ class App {
             // Activar “tomas” automáticas si el modo expone Leaflet map o Cesium viewer.
             // El director hace polling hasta que el mapa/cámara exista.
             this.cinematicDirector?.attach?.(this.currentModeInstance);
+            // Recaps TV globales (solo en circuito /vivos/)
+            this.recapEngine?.attach?.(this.currentModeInstance, modeName, this.stage);
 
             console.log(`✅ Modo ${modeName} montado exitosamente.`);
         } catch (error) {
             console.error(`❌ Error cargando el modo ${modeName}:`, error);
             this.stage.innerHTML = `<div class="center-content"><h1>Error cargando modo</h1><p>${error.message}</p></div>`;
             this.cinematicDirector?.detach?.();
+            this.recapEngine?.detach?.();
         }
     }
 
@@ -203,6 +210,12 @@ streamNavigationChannel.addEventListener('message', (event) => {
 document.addEventListener('DOMContentLoaded', () => {
     // Global: música/control remoto (panel) para todas las hojas
     initGlobalMusicControls();
+    // Global: recaps (si está en /vivos/)
+    try {
+        if (window.location.pathname.includes('/vivos/')) {
+            recapEngine.init();
+        }
+    } catch (e) { }
 
     const startOverlay = document.getElementById('start-overlay');
     const startBtn = document.getElementById('start-btn');

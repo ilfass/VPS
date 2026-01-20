@@ -47,6 +47,11 @@ export default class CiudadMode {
 
         this.updateInterval = null;
         this.animationFrame = null;
+
+        // Para recaps / “ranking del momento”
+        this.lastTrafficHealth = null;
+        this.lastTfl = null;
+        this.lastRefreshAt = 0;
     }
 
     async mount() {
@@ -259,20 +264,54 @@ export default class CiudadMode {
         const cards = [];
 
         const traffic = await this.fetchTomTomHealth();
+        this.lastTrafficHealth = traffic;
         cards.push(this.renderTrafficCard(traffic));
 
         // Transporte (TfL) – solo si city.transportProvider=tfl
         if (this.city.transportProvider === 'tfl') {
             const tfl = await this.fetchTfLStatus();
+            this.lastTfl = tfl;
             cards.push(this.renderTransportCard(tfl));
         } else {
+            this.lastTfl = { ok: false, message: 'Sin proveedor configurado' };
             cards.push(this.renderTransportCard({ ok: false, message: 'Transporte: sin proveedor configurado para esta ciudad.' }));
         }
 
         // “Indicador” de directo
         cards.push(this.renderLiveCard());
 
+        this.lastRefreshAt = Date.now();
         this.statusEl.innerHTML = cards.join('');
+    }
+
+    getRecapContext() {
+        try {
+            const ctx = {
+                city: this.city?.name || null,
+                country: this.city?.country || null,
+                transportProvider: this.city?.transportProvider || null,
+                trafficOk: this.lastTrafficHealth?.ok === true,
+                lastRefreshAt: this.lastRefreshAt || null
+            };
+
+            if (this.lastTfl?.ok && Array.isArray(this.lastTfl.data)) {
+                const lines = this.lastTfl.data.slice(0, 12);
+                let good = 0, minor = 0, severe = 0;
+                lines.forEach(l => {
+                    const statuses = (l.lineStatuses || []).map(s => s.statusSeverityDescription).join(', ') || '';
+                    if (statuses.includes('Good Service')) good++;
+                    else if (statuses.includes('Minor')) minor++;
+                    else severe++;
+                });
+                ctx.transport = { linesSampled: lines.length, good, minor, severe };
+            } else {
+                ctx.transport = { ok: false, message: this.lastTfl?.message || 'Sin datos' };
+            }
+
+            return ctx;
+        } catch (e) {
+            return null;
+        }
     }
 
     async fetchTomTomHealth() {

@@ -13,6 +13,7 @@ export default class AereoMode {
         this.flightData = new Map(); // Almacenar datos anteriores para calcular trayectorias
         this.updateInterval = null;
         this.animationFrame = null;
+        this.lastRefreshAt = 0;
     }
 
     async mount() {
@@ -143,6 +144,7 @@ export default class AereoMode {
             
             // Limitar a 300 vuelos para mejor rendimiento y visualización
             const flights = data.states.slice(0, 300);
+            this.lastRefreshAt = Date.now();
             
             flights.forEach(state => {
                 const [icao24, callsign, originCountry, , , lon, lat, altitude, velocity, heading, verticalRate] = state;
@@ -337,6 +339,50 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
         }
         
         return `Cada punto que veo aquí es un avión, cada línea es una ruta, cada movimiento es una historia. Millones de personas volando simultáneamente, cruzando océanos y continentes en horas. Las trayectorias que se dibujan muestran el flujo constante de conexiones humanas. Esta red aérea es el sistema circulatorio de nuestra civilización global, conectando culturas, economías y familias. Es un recordatorio constante de que, aunque estemos separados por distancias, estamos más conectados que nunca.`;
+    }
+
+    // Contexto para recaps (ranking/dato sorpresa)
+    getRecapContext() {
+        try {
+            if (!this.flightData || this.flightData.size === 0) return null;
+            const vals = Array.from(this.flightData.values())
+                .filter(v => v && Number.isFinite(v.velocity) || Number.isFinite(v.altitude));
+
+            const count = this.flightData.size;
+            const speeds = vals
+                .filter(v => Number.isFinite(v.velocity))
+                .map(v => v.velocity * 3.6); // km/h
+            const alts = vals
+                .filter(v => Number.isFinite(v.altitude))
+                .map(v => v.altitude); // m
+
+            const topSpeed = [...vals]
+                .filter(v => Number.isFinite(v.velocity))
+                .sort((a, b) => (b.velocity || 0) - (a.velocity || 0))
+                .slice(0, 3)
+                .map(v => ({ speedKmh: Math.round(v.velocity * 3.6), lat: v.lat, lon: v.lon }));
+
+            const topAlt = [...vals]
+                .filter(v => Number.isFinite(v.altitude))
+                .sort((a, b) => (b.altitude || 0) - (a.altitude || 0))
+                .slice(0, 3)
+                .map(v => ({ altitudeM: Math.round(v.altitude), lat: v.lat, lon: v.lon }));
+
+            const avgSpeed = speeds.length ? speeds.reduce((a, b) => a + b, 0) / speeds.length : null;
+            const maxSpeed = speeds.length ? Math.max(...speeds) : null;
+            const maxAlt = alts.length ? Math.max(...alts) : null;
+
+            return {
+                flightsTracked: count,
+                avgSpeedKmh: avgSpeed ? Number(avgSpeed.toFixed(0)) : null,
+                maxSpeedKmh: maxSpeed ? Number(maxSpeed.toFixed(0)) : null,
+                maxAltitudeM: maxAlt ? Number(maxAlt.toFixed(0)) : null,
+                top3Fastest: topSpeed,
+                top3Highest: topAlt
+            };
+        } catch (e) {
+            return null;
+        }
     }
 
     scheduleNextPage() {

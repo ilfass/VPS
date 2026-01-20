@@ -12,6 +12,8 @@ export default class TerremotosMode {
         this.waves = []; // Ondas expansivas animadas
         this.updateInterval = null;
         this.animationFrame = null;
+        this.lastQuakeStats = null;
+        this.lastRefreshAt = 0;
     }
 
     async mount() {
@@ -132,6 +134,31 @@ export default class TerremotosMode {
                 .sort((a, b) => b.properties.mag - a.properties.mag)
                 .slice(0, 50);
             
+            this.lastRefreshAt = Date.now();
+
+            // Stats para recaps (sin inventar)
+            try {
+                const mags = data.features.map(f => f?.properties?.mag).filter(m => typeof m === 'number');
+                const maxMag = mags.length ? Math.max(...mags) : null;
+                const recentCount = data.features.filter(f => {
+                    const t = Number(f?.properties?.time || 0);
+                    return (Date.now() - t) < 3600000;
+                }).length;
+                const top3 = sortedFeatures.slice(0, 3).map(f => ({
+                    mag: Number((f.properties.mag || 0).toFixed(1)),
+                    place: f.properties.place,
+                    time: f.properties.time
+                }));
+                this.lastQuakeStats = {
+                    count24h: data.features.length,
+                    recentCount1h: recentCount,
+                    maxMagnitude: (typeof maxMag === 'number') ? Number(maxMag.toFixed(1)) : null,
+                    top3
+                };
+            } catch (e) {
+                this.lastQuakeStats = null;
+            }
+            
             sortedFeatures.forEach((feature, index) => {
                 const [longitude, latitude] = feature.geometry.coordinates;
                 const magnitude = feature.properties.mag;
@@ -205,6 +232,10 @@ export default class TerremotosMode {
         } catch (error) {
             console.error('[Terremotos] Error cargando datos:', error);
         }
+    }
+
+    getRecapContext() {
+        return this.lastQuakeStats;
     }
 
     getTimeAgo(date) {

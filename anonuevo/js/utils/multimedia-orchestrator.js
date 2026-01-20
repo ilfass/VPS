@@ -7,10 +7,12 @@ export class MultimediaOrchestrator {
     constructor() {
         this.activeOverlays = [];
         this.container = null;
+        this._stylesInjected = false;
     }
 
     init(container) {
         this.container = container;
+        this.injectStylesOnce();
     }
 
     /**
@@ -61,6 +63,12 @@ export class MultimediaOrchestrator {
             content = document.createElement('img');
             content.src = mediaItem.url;
             content.alt = mediaItem.context || '';
+            // Ken Burns “TV” (suave) para que imágenes no se sientan estáticas
+            content.className = 'tv-kenburns';
+            // Variar duración/dirección
+            const dur = 14 + Math.random() * 10; // 14-24s
+            content.style.animationDuration = `${dur.toFixed(1)}s`;
+            content.style.animationDirection = Math.random() > 0.5 ? 'alternate' : 'alternate-reverse';
             content.onerror = () => {
                 console.warn(`[MultimediaOrchestrator] Error cargando imagen: ${mediaItem.url}`);
                 overlay.style.display = 'none';
@@ -77,6 +85,28 @@ export class MultimediaOrchestrator {
 
         overlay.appendChild(content);
         return overlay;
+    }
+
+    injectStylesOnce() {
+        if (this._stylesInjected) return;
+        this._stylesInjected = true;
+        if (document.getElementById('tv-kenburns-style')) return;
+        const style = document.createElement('style');
+        style.id = 'tv-kenburns-style';
+        style.textContent = `
+            .tv-kenburns{
+                width: 100%;
+                height: auto;
+                transform-origin: center center;
+                will-change: transform;
+                animation: tvKenBurns 18s ease-in-out infinite;
+            }
+            @keyframes tvKenBurns{
+                0%{ transform: scale(1) translate(0,0); filter: saturate(1.02) contrast(1.02); }
+                100%{ transform: scale(1.08) translate(-1.5%, -1.5%); filter: saturate(1.06) contrast(1.04); }
+            }
+        `;
+        document.head.appendChild(style);
     }
 
     /**

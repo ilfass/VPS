@@ -13,6 +13,7 @@ export default class ClimaMode {
         this.updateInterval = null;
         this.animationFrame = null;
         this.weatherData = null;
+        this.lastRefreshAt = 0;
     }
 
     async mount() {
@@ -139,6 +140,7 @@ export default class ClimaMode {
             
             const results = await Promise.all(weatherPromises);
             this.weatherData = results.filter(r => r !== null);
+            this.lastRefreshAt = Date.now();
             
             // Limpiar marcadores y líneas anteriores
             this.markers.forEach(marker => {
@@ -354,6 +356,44 @@ El texto debe ser poético, reflexivo y entre 150 y 220 palabras.`;
         }
         
         return `Desde esta perspectiva única, puedo ver cómo el clima es el sistema circulatorio de nuestro planeta. El viento transporta energía, humedad y vida de un continente a otro. Las nubes son mensajeras que cruzan océanos, las tormentas son la respiración profunda de la Tierra. Cada patrón que observo aquí afecta la vida en algún lugar del mundo. Este es el verdadero pulso de nuestro planeta, un sistema interconectado que no conoce fronteras políticas, solo las leyes de la física y la vida.`;
+    }
+
+    // Contexto para recaps (ranking/dato sorpresa sin inventar)
+    getRecapContext() {
+        try {
+            if (!this.weatherData || this.weatherData.length === 0) return null;
+            const rows = this.weatherData
+                .filter(c => c && c.data && c.data.current)
+                .map(c => ({
+                    name: c.name,
+                    country: c.country,
+                    tempC: Number(c.data.current.temperature_2m),
+                    windKmh: Number(c.data.current.wind_speed_10m),
+                    code: c.data.current.weather_code
+                }))
+                .filter(r => Number.isFinite(r.tempC));
+
+            if (rows.length === 0) return null;
+
+            const hottest = [...rows].sort((a, b) => b.tempC - a.tempC).slice(0, 3);
+            const coldest = [...rows].sort((a, b) => a.tempC - b.tempC).slice(0, 3);
+
+            const temps = rows.map(r => r.tempC);
+            const avgTemp = temps.reduce((a, b) => a + b, 0) / temps.length;
+            const maxTemp = Math.max(...temps);
+            const minTemp = Math.min(...temps);
+
+            return {
+                citiesObserved: rows.length,
+                avgTempC: Number(avgTemp.toFixed(1)),
+                minTempC: Number(minTemp.toFixed(1)),
+                maxTempC: Number(maxTemp.toFixed(1)),
+                top3Hottest: hottest,
+                top3Coldest: coldest
+            };
+        } catch (e) {
+            return null;
+        }
     }
 
     scheduleNextPage() {
