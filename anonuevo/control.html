@@ -1523,15 +1523,18 @@
                 document.getElementById('session-timer').innerText = "00:00:00";
             }
 
-            // 2. Current Scene
-            const currentScene = data.currentScene || 'intro';
-            document.getElementById('current-scene-display').textContent = `Scene: ${currentScene.toUpperCase()}`;
+            // 2. Current Scene (preferir telemetría del cliente si existe)
+            const serverScene = (data.currentScene || 'intro').toString().toLowerCase();
+            const telSceneRaw = (data.clientTelemetry && data.clientTelemetry.scene) ? String(data.clientTelemetry.scene) : '';
+            const telScene = telSceneRaw ? telSceneRaw.toLowerCase() : '';
+            const effectiveScene = telScene || serverScene;
+            document.getElementById('current-scene-display').textContent = `Scene: ${effectiveScene.toUpperCase()}`;
 
-            // Ruta controls: solo visibles/habilitados cuando la escena es ruta
+            // Ruta controls: solo visibles/habilitados cuando la escena efectiva es ruta
             const rutaPanel = document.getElementById('ruta-controls-panel');
             const btnRutaPlay = document.getElementById('btn-ruta-play');
             const btnRutaFollow = document.getElementById('btn-ruta-follow');
-            const isRuta = currentScene === 'ruta';
+            const isRuta = effectiveScene === 'ruta';
             if (rutaPanel) rutaPanel.style.display = isRuta ? 'block' : 'none';
             if (btnRutaPlay) btnRutaPlay.disabled = !isRuta;
             if (btnRutaFollow) btnRutaFollow.disabled = !isRuta;
@@ -1558,7 +1561,7 @@
             const bookPageEl = document.getElementById('book-page');
             if (bookPageEl) {
                 const telemetry = data.clientTelemetry || {};
-                const bookPage = getBookPageFromScene(currentScene, telemetry);
+                const bookPage = getBookPageFromScene(effectiveScene, telemetry);
                 bookPageEl.textContent = bookPage;
             }
             

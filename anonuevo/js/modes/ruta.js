@@ -45,6 +45,11 @@ export default class RutaMode {
         if (!eventManager.pollInterval) {
             eventManager.init();
         }
+
+        // Telemetría: marcar escena actual para el panel de control
+        try {
+            eventManager.reportTelemetry('RUTA', 'GLOBAL', 0);
+        } catch (e) { }
         
         // Limpiar contenedor primero
         this.container.innerHTML = '';
