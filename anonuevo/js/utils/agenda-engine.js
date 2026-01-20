@@ -41,6 +41,15 @@ export class AgendaEngine {
         } catch (e) { }
     }
 
+    reset() {
+        const now = Date.now();
+        this.state.blockIdx = 0;
+        this.state.blockStart = now;
+        const b = this.currentBlock();
+        this.state.blockDurationMs = rand(b.minMin, b.maxMin + 1) * 60 * 1000;
+        this.save();
+    }
+
     currentBlock() {
         const b = this.blocks[this.state.blockIdx] || this.blocks[0];
         return b;

@@ -55,6 +55,10 @@ export class BumperEngine {
     async tick() {
         if (!this.stage || !this.modeName) return;
         if (!eventManager.canProceedAuto()) return;
+        try {
+            const pref = localStorage.getItem('tv_bumpers_enabled');
+            if (pref === '0') return;
+        } catch (e) { }
         const now = Date.now();
         if (now < this.nextAt) return;
         if (this.isBusy()) {
@@ -94,6 +98,13 @@ export class BumperEngine {
             context: `🎥 BUMPER • ${pick.name || 'Video'}`,
             ttlMs
         }, 0);
+    }
+
+    async forceNow() {
+        if (!eventManager.canProceedAuto()) return;
+        if (this.isBusy()) return;
+        await this.runBumper();
+        this.scheduleNext(false);
     }
 }
 

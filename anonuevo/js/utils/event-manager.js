@@ -146,6 +146,18 @@ class EventManager {
                 case 'auto_off':
                     // Ya manejado por el flag
                     break;
+                case 'recap_now':
+                    if (this.handlers['recap_now']) this.handlers['recap_now']();
+                    break;
+                case 'bumper_now':
+                    if (this.handlers['bumper_now']) this.handlers['bumper_now']();
+                    break;
+                case 'agenda_reset':
+                    if (this.handlers['agenda_reset']) this.handlers['agenda_reset']();
+                    break;
+                case 'tv_toggles':
+                    if (this.handlers['tv_toggles']) this.handlers['tv_toggles'](event.payload);
+                    break;
             }
         } catch (e) {
             console.error("Error processing event:", e);

@@ -6,6 +6,7 @@ import { cinematicDirector } from './utils/cinematic-director.js';
 import { recapEngine } from './utils/recap-engine.js';
 import { autoNavigator } from './utils/auto-navigator.js';
 import { bumperEngine } from './utils/bumper-engine.js';
+import { agendaEngine } from './utils/agenda-engine.js';
 
 // Mapa de modos disponibles y sus rutas de importación
 const MODES = {
@@ -232,6 +233,25 @@ document.addEventListener('DOMContentLoaded', () => {
             window.__autoNavSchedule = (modeName) => {
                 try { autoNavigator.schedule(modeName); } catch (e) { }
             };
+
+            // TV control events desde panel
+            eventManager.on('recap_now', () => recapEngine.forceNow?.());
+            eventManager.on('bumper_now', () => bumperEngine.forceNow?.());
+            eventManager.on('agenda_reset', () => {
+                try { agendaEngine.reset?.(); } catch (e) { }
+                try { autoNavigator.schedule(window.app?.currentModeInstance ? (new URLSearchParams(window.location.search).get('mode') || window.location.pathname.split('/').filter(Boolean).pop()) : null); } catch (e) { }
+            });
+            eventManager.on('tv_toggles', (payload) => {
+                try {
+                    if (payload && typeof payload.recapsEnabled === 'boolean') {
+                        localStorage.setItem('tv_recaps_enabled', payload.recapsEnabled ? '1' : '0');
+                        try { recapEngine.setEnabled?.(payload.recapsEnabled); } catch (e) { }
+                    }
+                    if (payload && typeof payload.bumpersEnabled === 'boolean') {
+                        localStorage.setItem('tv_bumpers_enabled', payload.bumpersEnabled ? '1' : '0');
+                    }
+                } catch (e) { }
+            });
         }
     } catch (e) { }
 

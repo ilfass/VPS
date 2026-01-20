@@ -970,6 +970,42 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // TV Controls (recap / bumper / agenda)
+    if (req.method === 'POST' && apiPath === '/event/recap/now') {
+        state.eventQueue.push({ type: 'recap_now' });
+        res.writeHead(200, headers);
+        res.end('{"success":true}');
+        return;
+    }
+    if (req.method === 'POST' && apiPath === '/event/bumper/now') {
+        state.eventQueue.push({ type: 'bumper_now' });
+        res.writeHead(200, headers);
+        res.end('{"success":true}');
+        return;
+    }
+    if (req.method === 'POST' && apiPath === '/event/agenda/reset') {
+        state.eventQueue.push({ type: 'agenda_reset' });
+        res.writeHead(200, headers);
+        res.end('{"success":true}');
+        return;
+    }
+    if (req.method === 'POST' && apiPath === '/event/tv/toggles') {
+        let body = '';
+        req.on('data', c => body += c);
+        req.on('end', () => {
+            try {
+                const data = JSON.parse(body || '{}');
+                state.eventQueue.push({ type: 'tv_toggles', payload: data });
+                res.writeHead(200, headers);
+                res.end('{"success":true}');
+            } catch (e) {
+                res.writeHead(400, headers);
+                res.end('{"success":false,"error":"bad_json"}');
+            }
+        });
+        return;
+    }
+
     // Music Control: Pausar/Reanudar música
     if (req.method === 'POST' && apiPath === '/event/music/toggle') {
         // Solo establecer comando si no hay uno pendiente para evitar duplicados
@@ -1514,6 +1550,24 @@ const server = http.createServer(async (req, res) => {
         saveStoryState();
         res.writeHead(200, headers);
         res.end(JSON.stringify({ ok: true }));
+        return;
+    }
+
+    // Story Bible: exponer subset seguro para panel (arcos + meta)
+    if (req.method === 'GET' && apiPath === '/api/story/bible') {
+        const bible = loadStoryBible();
+        const arcs = Array.isArray(bible?.arcs) ? bible.arcs : [];
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({
+            ok: true,
+            canon: bible?.canon || {},
+            voice: bible?.voice ? { persona: bible.voice.persona, language: bible.voice.language } : {},
+            arcs: arcs.map(a => ({
+                id: a?.id,
+                title: a?.title,
+                beats: Array.isArray(a?.beats) ? a.beats : []
+            })).filter(a => a.id && a.title)
+        }));
         return;
     }
 

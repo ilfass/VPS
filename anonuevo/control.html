@@ -713,6 +713,26 @@
             </div>
 
             <div class="panel">
+                <h2>📺 TV Controls</h2>
+                <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px;">
+                    <button onclick="recapNow()" style="border-color: var(--accent); color: var(--accent);">🗣️ RECAP NOW</button>
+                    <button onclick="bumperNow()" style="border-color: var(--purple); color: var(--purple);">🎥 BUMPER NOW</button>
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px;">
+                    <button onclick="resetAgenda()" style="border-color: var(--warning); color: var(--warning);">🧭 RESET AGENDA</button>
+                    <button onclick="toggleTvSettings()" id="btn-tv-toggles" style="border-color: var(--border-light); color: var(--text-main);">⚙️ TOGGLES</button>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Recaps:</span>
+                    <span id="tv-recaps-status" class="stat-val" style="font-size:0.75rem;">--</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Bumpers:</span>
+                    <span id="tv-bumpers-status" class="stat-val" style="font-size:0.75rem;">--</span>
+                </div>
+            </div>
+
+            <div class="panel">
                 <h2>✂️ Clip Markers</h2>
                 <div style="display:flex; gap:8px; margin-bottom:10px;">
                     <button onclick="refreshClipMarks()" style="flex:1;">🔄 Refresh</button>
@@ -723,6 +743,30 @@
                 </div>
                 <div style="margin-top:8px; font-size:0.65rem; color: rgba(255,255,255,0.55);">
                     Tip: estas marcas sirven como guía para recortar Shorts/Clips (usa <code>sinceStartSec</code> si hay Día Editorial activo).
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>🧭 Guion / Arco</h2>
+                <div class="stat-row">
+                    <span class="stat-label">Arco activo:</span>
+                    <span id="story-arc-active" class="stat-val" style="font-size:0.75rem;">--</span>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:10px;">
+                    <select id="story-arc-select" style="margin:0; flex:1;">
+                        <option value="">(cargando arcos...)</option>
+                    </select>
+                    <button onclick="applySelectedArc()" class="btn-small" style="width: 120px;">SET</button>
+                </div>
+                <div id="story-arc-beats" style="margin-top:10px; padding:10px; border:1px solid rgba(255,255,255,0.08); border-radius:10px; background: rgba(255,255,255,0.03); font-family:'JetBrains Mono'; font-size:0.68rem; color: rgba(255,255,255,0.75);">
+                    <div style="color: rgba(255,255,255,0.55);">Beats del arco: —</div>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:10px;">
+                    <button onclick="refreshStoryState()" style="flex:1;">🔄 Refresh</button>
+                    <button onclick="resetStoryState()" style="flex:1; border-color: var(--warning); color: var(--warning);">🧹 Reset</button>
+                </div>
+                <div id="story-lastn" style="margin-top:10px; max-height: 160px; overflow:auto; font-family:'JetBrains Mono'; font-size:0.68rem; color: var(--text-dim);">
+                    <div style="text-align:center; padding:10px; color: var(--text-dim);">—</div>
                 </div>
             </div>
 
@@ -848,6 +892,14 @@
             // Clips
             refreshClipMarks();
             setInterval(refreshClipMarks, 15000);
+
+            // TV + Story
+            refreshTvStatusUi();
+            setInterval(refreshTvStatusUi, 5000);
+            refreshStoryState();
+            setInterval(refreshStoryState, 15000);
+            refreshStoryBible();
+            setInterval(refreshStoryBible, 60000);
         };
 
         // --- API & LOG ---
@@ -873,6 +925,54 @@
                 log(`API Error: ${e.message}`, 'error');
                 return null; 
             }
+        }
+
+        // --- TV CONTROLS ---
+        function getTvPref(key, fallback = true) {
+            try {
+                const v = localStorage.getItem(key);
+                if (v === null) return fallback;
+                return v !== '0';
+            } catch (e) {
+                return fallback;
+            }
+        }
+        function setTvPref(key, enabled) {
+            try { localStorage.setItem(key, enabled ? '1' : '0'); } catch (e) { }
+        }
+        function refreshTvStatusUi() {
+            const rec = document.getElementById('tv-recaps-status');
+            const bum = document.getElementById('tv-bumpers-status');
+            if (rec) rec.textContent = getTvPref('tv_recaps_enabled', true) ? 'ON' : 'OFF';
+            if (bum) bum.textContent = getTvPref('tv_bumpers_enabled', true) ? 'ON' : 'OFF';
+        }
+        async function recapNow() {
+            log('Recap NOW', 'info');
+            await api('/event/recap/now', 'POST', {});
+        }
+        async function bumperNow() {
+            log('Bumper NOW', 'info');
+            await api('/event/bumper/now', 'POST', {});
+        }
+        async function resetAgenda() {
+            log('Reset Agenda', 'warning');
+            await api('/event/agenda/reset', 'POST', {});
+        }
+        async function toggleTvSettings() {
+            const rec = getTvPref('tv_recaps_enabled', true);
+            const bum = getTvPref('tv_bumpers_enabled', true);
+            const choice = window.prompt('TV Toggles (ej: \"recaps off\" o \"bumpers on\")', 'recaps on');
+            if (!choice) return;
+            const c = choice.toLowerCase();
+            let newRec = rec;
+            let newBum = bum;
+            if (c.includes('recaps')) newRec = c.includes('off') ? false : true;
+            if (c.includes('bumpers')) newBum = c.includes('off') ? false : true;
+            setTvPref('tv_recaps_enabled', newRec);
+            setTvPref('tv_bumpers_enabled', newBum);
+            refreshTvStatusUi();
+            await api('/event/tv/toggles', 'POST', { recapsEnabled: newRec, bumpersEnabled: newBum });
+            log(`TV toggles -> recaps=${newRec ? 'ON' : 'OFF'} bumpers=${newBum ? 'ON' : 'OFF'}`, 'success');
         }
 
         // --- CLIP MARKERS ---
@@ -929,6 +1029,85 @@
             } catch (e) {
                 log('No se pudo copiar (clipboard)', 'warning');
             }
+        }
+
+        // --- STORY / ARC ---
+        async function refreshStoryState() {
+            const arcEl = document.getElementById('story-arc-active');
+            const box = document.getElementById('story-lastn');
+            const data = await api('/api/story/state', 'GET');
+            if (!data || !data.ok) return;
+            if (arcEl) arcEl.textContent = data.activeArcId || '--';
+            const lastN = data.lastN || [];
+            if (!box) return;
+            if (!Array.isArray(lastN) || lastN.length === 0) {
+                box.innerHTML = `<div style="text-align:center; padding:10px; color: var(--text-dim);">Sin historial.</div>`;
+                return;
+            }
+            box.innerHTML = lastN.slice().reverse().map(x => {
+                const t = new Date(x.ts || Date.now()).toLocaleTimeString('es-ES');
+                const line = `[${t}] ${x.scene || '—'} ${x.country || '—'} · ${String(x.narrativeHint || '').slice(0, 140)}`;
+                const safe = line.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                return `<div style="padding:6px 8px; border-bottom:1px solid rgba(255,255,255,0.06);">${safe}</div>`;
+            }).join('');
+        }
+        let storyBibleCache = null;
+        async function refreshStoryBible() {
+            const sel = document.getElementById('story-arc-select');
+            const beatsEl = document.getElementById('story-arc-beats');
+            if (!sel) return;
+            const data = await api('/api/story/bible', 'GET');
+            if (!data || !data.ok) {
+                sel.innerHTML = `<option value="">(no se pudo cargar)</option>`;
+                return;
+            }
+            storyBibleCache = data;
+            const arcs = Array.isArray(data.arcs) ? data.arcs : [];
+            if (arcs.length === 0) {
+                sel.innerHTML = `<option value="">(sin arcos)</option>`;
+                return;
+            }
+            sel.innerHTML = `<option value="">(sin arco)</option>` + arcs.map(a => {
+                const id = String(a.id || '');
+                const title = String(a.title || '');
+                const safeTitle = title.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                return `<option value="${id}">${id} — ${safeTitle}</option>`;
+            }).join('');
+
+            sel.onchange = () => {
+                const id = sel.value;
+                const arc = arcs.find(x => x.id === id);
+                const beats = arc?.beats || [];
+                if (!beatsEl) return;
+                if (!id) {
+                    beatsEl.innerHTML = `<div style="color: rgba(255,255,255,0.55);">Beats del arco: —</div>`;
+                    return;
+                }
+                beatsEl.innerHTML = `
+                    <div style="font-weight:700; color: rgba(255,255,255,0.9); margin-bottom:6px;">${arc.id} · ${arc.title}</div>
+                    <div style="color: rgba(255,255,255,0.7);">- ${beats.map(b => String(b).replace(/</g,'&lt;').replace(/>/g,'&gt;')).join('<br>- ')}</div>
+                `;
+            };
+            // disparar para pintar beats iniciales
+            sel.onchange();
+        }
+
+        async function applySelectedArc() {
+            const sel = document.getElementById('story-arc-select');
+            const arcId = (sel?.value || '').trim();
+            if (!arcId) {
+                log('Arco: (sin arco) — no se cambia (usa RESET si querés limpiar historial)', 'warning');
+                return;
+            }
+            const res = await api('/api/story/arc', 'POST', { arcId });
+            if (res && res.ok) log(`Arco activo -> ${arcId}`, 'success');
+            else log(`No se pudo setear arco.`, 'warning');
+            refreshStoryState();
+        }
+        async function resetStoryState() {
+            if (!confirm('Reset story history?')) return;
+            await api('/api/story/reset', 'POST', {});
+            refreshStoryState();
         }
 
         // --- EDITORIAL ACTIONS ---

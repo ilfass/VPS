@@ -54,6 +54,10 @@ export class RecapEngine {
     init() {
         const params = new URLSearchParams(window.location.search);
         if (params.get('recap') === '0') this.enabled = false;
+        try {
+            const pref = localStorage.getItem('tv_recaps_enabled');
+            if (pref === '0') this.enabled = false;
+        } catch (e) { }
 
         // Ticker siempre activo (aunque no haya recap aún)
         this.overlays.ensure(document.getElementById('stage'));
@@ -203,6 +207,22 @@ Reglas:
 
         // Marca clip para recortes
         markClip({ type: 'recap', title: title, scene: this.modeName, next: nextMode, note: surprise });
+    }
+
+    async forceNow() {
+        if (!this.enabled) return;
+        if (!this.modeInstance || !this.modeName) return;
+        if (this.isBusy()) return;
+        await this.runRecap();
+        this.lastRecapAt = Date.now();
+        this.scheduleNext(false);
+    }
+
+    setEnabled(enabled) {
+        this.enabled = !!enabled;
+        if (this.enabled) {
+            this.scheduleNext(true);
+        }
     }
 }
 
