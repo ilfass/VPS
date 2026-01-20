@@ -1409,7 +1409,10 @@ export default class GloboMode {
         console.log(`[Globo] Explorando profundamente: ${city.name}`);
         
         // Generar narración específica
-        const cityNarrative = await this.generateCityNarrative(city);
+        let cityNarrative = await this.generateCityNarrative(city);
+        if (!cityNarrative || String(cityNarrative).trim().length === 0) {
+            cityNarrative = `Estoy sobrevolando ${city.name}, ${city.country}. No quiero inventar detalles si el sistema no me devuelve una narración clara, así que me quedo con lo esencial: la forma de la ciudad, sus avenidas como venas y el pulso humano que imagino debajo. Respiro este momento y sigo el viaje.`;
+        }
         
         // Mostrar subtítulos y narrar
         avatarSubtitlesManager.setSubtitles(cityNarrative);

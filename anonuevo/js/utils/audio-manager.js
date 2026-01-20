@@ -266,6 +266,17 @@ export class AudioManager {
         
         if (!text || text.trim().length === 0) {
             console.warn("[AudioManager] ⚠️ Texto vacío, no se puede hablar");
+            // IMPORTANT: No “colgar” flujos que esperan el callback (ej: Globo/Ciudades).
+            // Si no hay texto, tratamos esto como “terminó inmediatamente”.
+            this.notifySpeaking(false);
+            this.currentAudio = null;
+            this.currentUtterance = null;
+            this.updateSubtitlesCallback = null;
+            if (typeof onEndCallback === 'function') {
+                setTimeout(() => {
+                    try { onEndCallback(); } catch (e) { }
+                }, 0);
+            }
             return;
         }
 
