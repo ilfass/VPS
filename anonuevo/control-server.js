@@ -20,6 +20,28 @@ const STORY_BIBLE_FILE = path.join(__dirname, 'data', 'story-bible.json');
 const STORY_STATE_FILE = path.join(__dirname, 'data', 'story-state.json');
 const CLIP_MARKERS_FILE = path.join(__dirname, 'data', 'clip-markers.json');
 
+// Mapa mínimo de países (códigos ISO numéricos como strings) para prompts del control.
+// Nota: el frontend hoy expone este set en el selector; si llega un código fuera de esta lista,
+// el sistema igual funciona (usa el código como fallback) pero evita 500s.
+const COUNTRY_INFO = {
+    "032": { name: "Argentina" },
+    "076": { name: "Brazil" },
+    "840": { name: "USA" },
+    "156": { name: "China" },
+    "392": { name: "Japan" },
+    "250": { name: "France" },
+    "276": { name: "Germany" },
+    "380": { name: "Italy" },
+    "724": { name: "Spain" },
+    "826": { name: "UK" },
+    "643": { name: "Russia" },
+    "356": { name: "India" },
+    "036": { name: "Australia" },
+    "124": { name: "Canada" },
+    "484": { name: "Mexico" },
+    "710": { name: "South Africa" }
+};
+
 // Asegurar que el directorio de memorias existe
 if (!fs.existsSync(COUNTRY_MEMORIES_DIR)) {
     fs.mkdirSync(COUNTRY_MEMORIES_DIR, { recursive: true });
