@@ -1,4 +1,4 @@
-import { eventManager } from './event-manager.js';
+import { eventManager } from './event-manager.js?v=2';
 import { COUNTRY_INFO } from '../data/country-info.js';
 import { streamManager } from './stream-manager.js';
 import { choreographer, SCENES } from './choreographer.js';
