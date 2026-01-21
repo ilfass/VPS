@@ -30,7 +30,8 @@ let state = {
     autoMode: false, currentScene: 'intro', eventQueue: [], travelQueue: [],
     clientTelemetry: { scene: 'UNKNOWN', country: 'UNKNOWN', day: 0, lastUpdate: 0 },
     editorial: { status: 'IDLE', dayId: null, isTest: false, startTime: null, visits: [], currentVisit: null },
-    music: { isPlaying: false, currentTrack: 0, command: null } // Comando de música pendiente
+    music: { isPlaying: false, currentTrack: 0, command: null }, // Comando de música pendiente
+    showRunner: { active: false, mission: '', startedAt: 0 }
 };
 
 const headers = {
@@ -501,7 +502,8 @@ const server = http.createServer(async (req, res) => {
             editorial: state.editorial, 
             queue: state.travelQueue,
             clientTelemetry: state.clientTelemetry, // Incluir telemetría para determinar hoja del libro
-            music: state.music // Incluir estado de música
+            music: state.music, // Incluir estado de música
+            showRunner: state.showRunner
         }));
         return;
     }
@@ -996,12 +998,70 @@ const server = http.createServer(async (req, res) => {
             try {
                 const data = JSON.parse(body || '{}');
                 state.eventQueue.push({ type: 'tv_toggles', payload: data });
+                saveState();
                 res.writeHead(200, headers);
                 res.end('{"success":true}');
             } catch (e) {
                 res.writeHead(400, headers);
                 res.end('{"success":false,"error":"bad_json"}');
             }
+        });
+        return;
+    }
+
+    // =========================
+    // SHOW RUNNER (60’ wheel)
+    // =========================
+    if (req.method === 'POST' && apiPath === '/event/show/start') {
+        let body = '';
+        req.on('data', c => body += c);
+        req.on('end', () => {
+            let mission = '';
+            try {
+                const data = JSON.parse(body || '{}');
+                mission = String(data.mission || '').trim().slice(0, 260);
+            } catch (e) { }
+            state.showRunner = { active: true, mission, startedAt: Date.now() };
+            state.eventQueue.push({ type: 'show_start', payload: { mission } });
+            saveState();
+            res.writeHead(200, headers);
+            res.end(JSON.stringify({ success: true, showRunner: state.showRunner }));
+        });
+        return;
+    }
+
+    if (req.method === 'POST' && apiPath === '/event/show/stop') {
+        state.showRunner = { active: false, mission: state.showRunner?.mission || '', startedAt: 0 };
+        state.eventQueue.push({ type: 'show_stop' });
+        saveState();
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({ success: true, showRunner: state.showRunner }));
+        return;
+    }
+
+    if (req.method === 'POST' && apiPath === '/event/show/next') {
+        state.eventQueue.push({ type: 'show_next' });
+        saveState();
+        res.writeHead(200, headers);
+        res.end('{"success":true}');
+        return;
+    }
+
+    if (req.method === 'POST' && apiPath === '/event/show/mission') {
+        let body = '';
+        req.on('data', c => body += c);
+        req.on('end', () => {
+            let mission = '';
+            try {
+                const data = JSON.parse(body || '{}');
+                mission = String(data.mission || '').trim().slice(0, 260);
+            } catch (e) { }
+            if (!state.showRunner) state.showRunner = { active: false, mission: '', startedAt: 0 };
+            state.showRunner.mission = mission;
+            state.eventQueue.push({ type: 'show_mission', payload: { mission } });
+            saveState();
+            res.writeHead(200, headers);
+            res.end(JSON.stringify({ success: true, showRunner: state.showRunner }));
         });
         return;
     }

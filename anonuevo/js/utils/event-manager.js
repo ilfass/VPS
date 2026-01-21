@@ -164,6 +164,18 @@ class EventManager {
                 case 'ruta_follow_toggle':
                     if (this.handlers['ruta_follow_toggle']) this.handlers['ruta_follow_toggle']();
                     break;
+                case 'show_start':
+                    if (this.handlers['show_start']) this.handlers['show_start'](event.payload || {});
+                    break;
+                case 'show_stop':
+                    if (this.handlers['show_stop']) this.handlers['show_stop']();
+                    break;
+                case 'show_next':
+                    if (this.handlers['show_next']) this.handlers['show_next']();
+                    break;
+                case 'show_mission':
+                    if (this.handlers['show_mission']) this.handlers['show_mission'](event.payload || {});
+                    break;
             }
         } catch (e) {
             console.error("Error processing event:", e);

@@ -7,6 +7,7 @@ import { recapEngine } from './utils/recap-engine.js';
 import { autoNavigator } from './utils/auto-navigator.js';
 import { bumperEngine } from './utils/bumper-engine.js';
 import { agendaEngine } from './utils/agenda-engine.js';
+import { showRunnerEngine } from './utils/show-runner-engine.js';
 
 // Mapa de modos disponibles y sus rutas de importación
 const MODES = {
@@ -146,6 +147,8 @@ class App {
         // Detener auto-navigator / bumpers del modo anterior
         this.autoNavigator?.detach?.();
         this.bumperEngine?.detach?.();
+        // Detener show runner (solo detach del modo; no apaga estado global)
+        showRunnerEngine?.detach?.();
 
         // Limpiar tareas programadas del modo anterior
         scheduler.clearTasks();
@@ -170,6 +173,8 @@ class App {
             // Agenda editorial y bumpers
             this.autoNavigator?.attach?.(modeName, this.currentModeInstance);
             this.bumperEngine?.attach?.(modeName, this.currentModeInstance);
+            // Show runner: conoce el modo actual para decisiones (busy/ticker)
+            showRunnerEngine?.attach?.(modeName, this.currentModeInstance);
 
             console.log(`✅ Modo ${modeName} montado exitosamente.`);
         } catch (error) {
@@ -179,6 +184,7 @@ class App {
             this.recapEngine?.detach?.();
             this.autoNavigator?.detach?.();
             this.bumperEngine?.detach?.();
+            showRunnerEngine?.detach?.();
         }
     }
 
@@ -229,6 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
             recapEngine.init();
             autoNavigator.init(document.getElementById('stage'));
             bumperEngine.init(document.getElementById('stage'));
+            showRunnerEngine.init(document.getElementById('stage'));
             // Hook global para que los modos deleguen la navegación a la agenda
             window.__autoNavSchedule = (modeName) => {
                 try { autoNavigator.schedule(modeName); } catch (e) { }
@@ -251,6 +258,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         localStorage.setItem('tv_bumpers_enabled', payload.bumpersEnabled ? '1' : '0');
                     }
                 } catch (e) { }
+            });
+
+            // Show Runner events desde panel
+            eventManager.on('show_start', (payload) => {
+                try { showRunnerEngine.start(payload || {}); } catch (e) { }
+            });
+            eventManager.on('show_stop', () => {
+                try { showRunnerEngine.stop(); } catch (e) { }
+            });
+            eventManager.on('show_next', () => {
+                try { showRunnerEngine.nextSegment(); } catch (e) { }
+            });
+            eventManager.on('show_mission', (payload) => {
+                try { showRunnerEngine.setMission(payload?.mission || ''); } catch (e) { }
             });
         }
     } catch (e) { }

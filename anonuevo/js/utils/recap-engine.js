@@ -130,6 +130,10 @@ export class RecapEngine {
 
         // Recaps pensados para modo automático
         if (!eventManager.canProceedAuto()) return;
+        // Si hay “Show Runner” activo, los recaps automáticos se manejan por la rueda (no por timer).
+        try {
+            if (localStorage.getItem('show_runner_active_v1') === '1') return;
+        } catch (e) { }
 
         const now = Date.now();
         this.maybeWatchdog(now);

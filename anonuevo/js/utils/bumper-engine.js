@@ -55,6 +55,10 @@ export class BumperEngine {
     async tick() {
         if (!this.stage || !this.modeName) return;
         if (!eventManager.canProceedAuto()) return;
+        // Si hay “Show Runner” activo, los bumpers automáticos se manejan por la rueda (no por timer).
+        try {
+            if (localStorage.getItem('show_runner_active_v1') === '1') return;
+        } catch (e) { }
         try {
             const pref = localStorage.getItem('tv_bumpers_enabled');
             if (pref === '0') return;

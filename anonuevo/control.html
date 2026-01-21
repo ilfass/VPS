@@ -732,6 +732,29 @@
                 </div>
             </div>
 
+            <div class="panel">
+                <h2>🎛️ Show Runner (60’)</h2>
+                <div class="stat-row">
+                    <span class="stat-label">Estado:</span>
+                    <span id="showrunner-status" class="stat-val" style="font-size:0.75rem;">--</span>
+                </div>
+                <div style="margin-top:10px;">
+                    <div style="font-size:0.7rem; color: var(--text-dim); margin-bottom:6px; font-family:'JetBrains Mono';">MISIÓN DEL DÍA</div>
+                    <input id="showrunner-mission" placeholder="Ej: Encontrar una señal que conecte clima + rutas + memoria" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background: rgba(0,0,0,0.18); color: var(--text-main); outline:none; font-family:'Inter';" />
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px;">
+                    <button onclick="showRunnerStart()" class="btn-primary">▶ START SHOW</button>
+                    <button onclick="showRunnerStop()" class="btn-danger">⏹ STOP</button>
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px;">
+                    <button onclick="showRunnerNext()" style="border-color: var(--accent); color: var(--accent);">⏭ NEXT BLOQUE</button>
+                    <button onclick="showRunnerSetMission()" style="border-color: var(--border-light); color: var(--text-main);">💾 GUARDAR MISIÓN</button>
+                </div>
+                <div style="margin-top:8px; font-size:0.65rem; color: rgba(255,255,255,0.55);">
+                    La rueda ejecuta 5×12min: Apertura → Urbano → Rutas → Espacio → Memoria. Mientras está activa, la agenda/recaps/bumpers automáticos se pausan.
+                </div>
+            </div>
+
             <div class="panel" id="ruta-controls-panel" style="display:none;">
                 <h2>🗺️ Ruta Controls</h2>
                 <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px;">
@@ -968,6 +991,24 @@
         async function resetAgenda() {
             log('Reset Agenda', 'warning');
             await api('/event/agenda/reset', 'POST', {});
+        }
+        async function showRunnerStart() {
+            const mission = (document.getElementById('showrunner-mission')?.value || '').trim();
+            log("Start Show Runner 60'", 'success');
+            await api('/event/show/start', 'POST', { mission });
+        }
+        async function showRunnerStop() {
+            log('Stop Show Runner', 'warning');
+            await api('/event/show/stop', 'POST', {});
+        }
+        async function showRunnerNext() {
+            log('Show Runner: Next Bloque', 'info');
+            await api('/event/show/next', 'POST', {});
+        }
+        async function showRunnerSetMission() {
+            const mission = (document.getElementById('showrunner-mission')?.value || '').trim();
+            log('Guardar misión del día', 'info');
+            await api('/event/show/mission', 'POST', { mission });
         }
         async function toggleTvSettings() {
             const rec = getTvPref('tv_recaps_enabled', true);
@@ -1555,6 +1596,18 @@
             } else {
                 btnDream.innerText = "OFF";
                 btnDream.className = "";
+            }
+
+            // 4b. Show Runner
+            const sr = data.showRunner || {};
+            const srStatusEl = document.getElementById('showrunner-status');
+            const srMissionInput = document.getElementById('showrunner-mission');
+            if (srStatusEl) {
+                srStatusEl.textContent = sr.active ? '▶ ACTIVO' : '⏸ INACTIVO';
+                srStatusEl.style.color = sr.active ? 'var(--success)' : 'var(--text-dim)';
+            }
+            if (srMissionInput && typeof sr.mission === 'string') {
+                if (!srMissionInput.value) srMissionInput.value = sr.mission;
             }
             
             // 5. Hoja del Libro
