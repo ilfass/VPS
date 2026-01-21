@@ -409,6 +409,27 @@ export default class SatelitesMode {
         // - Kp: https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json
         // - Aurora: https://services.swpc.noaa.gov/json/ovation_aurora_latest.json  (coordinates: [lon, lat, value])
         try {
+            const safeJsonFromResponse = async (res) => {
+                try {
+                    const text = await res.text();
+                    if (!text) return null;
+                    // Algunos endpoints pueden traer basura al final; parseamos el primer bloque JSON válido.
+                    const firstBrace = Math.min(
+                        ...['[', '{'].map(ch => {
+                            const i = text.indexOf(ch);
+                            return i === -1 ? Number.POSITIVE_INFINITY : i;
+                        })
+                    );
+                    if (!Number.isFinite(firstBrace)) return null;
+                    const lastBracket = Math.max(text.lastIndexOf(']'), text.lastIndexOf('}'));
+                    if (lastBracket <= firstBrace) return null;
+                    const slice = text.slice(firstBrace, lastBracket + 1).trim();
+                    return JSON.parse(slice);
+                } catch (e) {
+                    return null;
+                }
+            };
+
             const [kpRes, aurRes] = await Promise.allSettled([
                 fetch('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json', { cache: 'no-store' }),
                 fetch('https://services.swpc.noaa.gov/json/ovation_aurora_latest.json', { cache: 'no-store' })
@@ -418,7 +439,7 @@ export default class SatelitesMode {
             let kpTime = null;
             let kpSeries = [];
             if (kpRes.status === 'fulfilled' && kpRes.value.ok) {
-                const rows = await kpRes.value.json();
+                const rows = await safeJsonFromResponse(kpRes.value);
                 // rows: [ [headers...], [time, Kp, ...], ... ]
                 const dataRows = Array.isArray(rows) ? rows.slice(1) : [];
                 kpSeries = dataRows
@@ -433,7 +454,7 @@ export default class SatelitesMode {
 
             let aurora = null;
             if (aurRes.status === 'fulfilled' && aurRes.value.ok) {
-                aurora = await aurRes.value.json();
+                aurora = await safeJsonFromResponse(aurRes.value);
             }
 
             this.kpData = { kp, kpTime, series: kpSeries };
@@ -441,7 +462,8 @@ export default class SatelitesMode {
             this.updateSpaceWeatherOverlay({ kp, kpTime, series: kpSeries, aurora });
             this.updateAuroraLayer(aurora);
         } catch (e) {
-            console.warn('[Satélites] Error cargando clima espacial:', e);
+            // No cortar la escena por APIs externas.
+            console.debug('[Satélites] Clima espacial no disponible en este momento.');
             if (this.spaceWeatherOverlay) {
                 this.spaceWeatherOverlay.innerHTML = `
                     <div style="font-weight:800; color:#a78bfa;">🌌 Clima espacial</div>
