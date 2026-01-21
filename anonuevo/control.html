@@ -1010,16 +1010,29 @@
             log('Guardar misión del día', 'info');
             await api('/event/show/mission', 'POST', { mission });
         }
+        function safePrompt(message, defaultValue = '') {
+            try {
+                return window.prompt(message, defaultValue);
+            } catch (e) {
+                // Algunos entornos (p.ej. tests automatizados) no soportan prompt().
+                return null;
+            }
+        }
         async function toggleTvSettings() {
             const rec = getTvPref('tv_recaps_enabled', true);
             const bum = getTvPref('tv_bumpers_enabled', true);
-            const choice = window.prompt('TV Toggles (ej: \"recaps off\" o \"bumpers on\")', 'recaps on');
-            if (!choice) return;
-            const c = choice.toLowerCase();
             let newRec = rec;
             let newBum = bum;
-            if (c.includes('recaps')) newRec = c.includes('off') ? false : true;
-            if (c.includes('bumpers')) newBum = c.includes('off') ? false : true;
+            const choice = safePrompt('TV Toggles (ej: "recaps off" o "bumpers on")', 'recaps on');
+            if (choice) {
+                const c = choice.toLowerCase();
+                if (c.includes('recaps')) newRec = c.includes('off') ? false : true;
+                if (c.includes('bumpers')) newBum = c.includes('off') ? false : true;
+            } else {
+                // Fallback sin prompt(): dos confirms independientes.
+                newRec = window.confirm(`Recaps actualmente: ${rec ? 'ON' : 'OFF'}\nOK = ON | Cancel = OFF`);
+                newBum = window.confirm(`Bumpers actualmente: ${bum ? 'ON' : 'OFF'}\nOK = ON | Cancel = OFF`);
+            }
             setTvPref('tv_recaps_enabled', newRec);
             setTvPref('tv_bumpers_enabled', newBum);
             refreshTvStatusUi();
@@ -1238,7 +1251,7 @@
                 alert("Select a country first");
                 return;
             }
-            const prompt = window.prompt("Image prompt:", "");
+            const prompt = safePrompt("Image prompt:", "");
             if (!prompt) return;
             log("Generating image...", 'info');
             await api('/api/generate-image', 'POST', { prompt });
@@ -1353,7 +1366,7 @@
                     genBtn.style.color = "white";
                     genBtn.style.border = "none";
                     genBtn.onclick = async () => {
-                        const userPrompt = window.prompt("Descripción del sueño (Imagen):", `Paisaje onírico de ${countryName}`);
+                        const userPrompt = safePrompt("Descripción del sueño (Imagen):", `Paisaje onírico de ${countryName}`);
                         if (userPrompt) {
                             genBtn.innerText = "Dreaming... ⏳";
                             try {
