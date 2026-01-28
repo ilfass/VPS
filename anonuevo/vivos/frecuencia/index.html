@@ -47,8 +47,9 @@
         // Simulación de Visualizador de Audio (Estilo Tunnel/Waves)
         // No depende de input de audio real para evitar problemas de permisos/silencio,
         // pero se mueve rítmicamente.
+        // USAMOS THREE GLOBAL (cargado en <head>)
 
-        import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
+        const THREE = window.THREE;
 
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
