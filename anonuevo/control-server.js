@@ -21,6 +21,7 @@ const COUNTRY_MEMORIES_DIR = path.join(__dirname, 'data', 'country-memories');
 const STORY_BIBLE_FILE = path.join(__dirname, 'data', 'story-bible.json');
 const STORY_STATE_FILE = path.join(__dirname, 'data', 'story-state.json');
 const CLIP_MARKERS_FILE = path.join(__dirname, 'data', 'clip-markers.json');
+const MEDIA_MEMORY_FILE = path.join(__dirname, 'data', 'media-memory.json');
 
 // Mapa mínimo de países (códigos ISO numéricos como strings) para prompts del control.
 // Nota: el frontend hoy expone este set en el selector; si llega un código fuera de esta lista,
@@ -2783,6 +2784,107 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(500, headers);
             res.end(JSON.stringify({ ok: false, error: e.message }));
         }
+        return;
+    }
+
+    // =========================
+    // MEDIA MEMORY (Persistencia de imágenes/video)
+    // =========================
+
+    // GET /api/media-memory?query=xyz
+    if (req.method === 'GET' && apiPath === '/api/media-memory') {
+        const u = new URL(req.url, `http://${req.headers.host}`);
+        const q = (u.searchParams.get('query') || '').trim().toLowerCase();
+
+        try {
+            let memory = [];
+            if (fs.existsSync(MEDIA_MEMORY_FILE)) {
+                memory = JSON.parse(fs.readFileSync(MEDIA_MEMORY_FILE, 'utf8'));
+            }
+
+            // Si hay query, filtrar. Si no, retornar vacío o últimos.
+            let results = [];
+            if (q) {
+                // Búsqueda simple: coincidencia en 'query' tag o 'context'
+                results = memory.filter(m => {
+                    const matchQuery = (m.query || '').toLowerCase().includes(q);
+                    const matchCtx = (m.context || '').toLowerCase().includes(q);
+                    return matchQuery || matchCtx;
+                });
+            } else {
+                // Últimos 20 si no hay query
+                results = memory.slice(-20);
+            }
+
+            // Ordenar por uso reciente o timestamp (aquí por ts desc)
+            results.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+            res.writeHead(200, headers);
+            res.end(JSON.stringify({ ok: true, results }));
+        } catch (e) {
+            console.error('[MediaMemory] GET error:', e);
+            res.writeHead(500, headers);
+            res.end(JSON.stringify({ ok: false, error: e.message }));
+        }
+        return;
+    }
+
+    // POST /api/media-memory
+    if (req.method === 'POST' && apiPath === '/api/media-memory') {
+        let body = '';
+        req.on('data', c => body += c);
+        req.on('end', () => {
+            try {
+                const data = JSON.parse(body || '{}');
+                // Campos esperados: query, url, type (image/video), context (opcional)
+                if (!data.url) {
+                    res.writeHead(400, headers);
+                    res.end(JSON.stringify({ ok: false, error: 'missing_url' }));
+                    return;
+                }
+
+                let memory = [];
+                if (fs.existsSync(MEDIA_MEMORY_FILE)) {
+                    memory = JSON.parse(fs.readFileSync(MEDIA_MEMORY_FILE, 'utf8'));
+                }
+
+                // Verificar duplicados por URL
+                const exists = memory.find(m => m.url === data.url);
+                if (exists) {
+                    // Actualizar timestamp
+                    exists.timestamp = Date.now();
+                    exists.useCount = (exists.useCount || 1) + 1;
+                } else {
+                    // Nuevo registro
+                    memory.push({
+                        id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+                        query: (data.query || '').toLowerCase(),
+                        url: data.url,
+                        type: data.type || 'image',
+                        context: data.context || '',
+                        timestamp: Date.now(),
+                        useCount: 1,
+                        source: data.source || 'external'
+                    });
+                }
+
+                // Guardar (limitar tamaño si crece mucho, ej: 2000 items)
+                if (memory.length > 2000) {
+                    // Eliminar los más viejos de hace mucho
+                    memory.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                    memory = memory.slice(0, 2000);
+                }
+
+                fs.writeFileSync(MEDIA_MEMORY_FILE, JSON.stringify(memory, null, 2));
+
+                res.writeHead(200, headers);
+                res.end(JSON.stringify({ ok: true, saved: !exists }));
+            } catch (e) {
+                console.error('[MediaMemory] POST error:', e);
+                res.writeHead(500, headers);
+                res.end(JSON.stringify({ ok: false, error: e.message }));
+            }
+        });
         return;
     }
 

@@ -195,19 +195,51 @@ export class DialogueEngine {
           try {
             const { multimediaOrchestrator } = await import('./multimedia-orchestrator.js');
             const { pexelsClient } = await import('./pexels-client.js');
-            const { sfxEngine } = await import('./sfx-engine.js'); // Importar SFX
+            const { sfxEngine } = await import('./sfx-engine.js');
 
-            // Sonido de revelación visual
             sfxEngine.reveal();
 
-            // Usar el contexto visual actual o keywords del texto
             const currentMode = currentModeFromPath();
             const query = currentMode === 'mapa' ? (localStorage.getItem('last_country_name') || 'world map') : currentMode;
+            // 40% chance de video
+            const wantVideo = Math.random() > 0.6;
+            const context = query.toUpperCase();
 
-            // Decidir si video o imagen (40% video)
-            const useVideo = Math.random() > 0.6;
+            // 1. INTENTAR RECUPERAR DE MEMORIA (PERSISTENCIA)
+            try {
+              const memRes = await fetch(`/control-api/api/media-memory?query=${encodeURIComponent(query)}`);
+              if (memRes.ok) {
+                const memData = await memRes.json();
+                if (memData.results && memData.results.length > 0) {
+                  // Filtrar por preferencia de tipo (video vs image) si es posible, o tomar cualquiera
+                  // Priorizar lo que queremos (video o imagen)
+                  const preferred = memData.results.find(m => m.type === (wantVideo ? 'video' : 'image'));
+                  const candidate = preferred || memData.results[0]; // Fallback a cualquiera
 
-            if (useVideo) {
+                  if (candidate) {
+                    console.log(`[DialogueEngine] 💾 Usando media de memoria: ${candidate.url}`);
+                    multimediaOrchestrator.showMediaOverlay({
+                      type: candidate.type,
+                      url: candidate.url,
+                      context: context,
+                      ttlMs: candidate.type === 'video' ? 15000 : 8000
+                    });
+
+                    // "Touch" (actualizar uso)
+                    fetch('/control-api/api/media-memory', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ url: candidate.url })
+                    }).catch(() => { });
+
+                    return; // Éxito con memoria
+                  }
+                }
+              }
+            } catch (e) { console.warn("[DialogueEngine] Error leyendo memoria media:", e); }
+
+            // 2. FALLBACK A PEXELS (SI NO HAY MEMORIA)
+            if (wantVideo) {
               const videos = await pexelsClient.searchVideos(query, 3);
               if (videos && videos.length > 0) {
                 const vid = videos[0];
@@ -216,9 +248,21 @@ export class DialogueEngine {
                   multimediaOrchestrator.showMediaOverlay({
                     type: 'video',
                     url: file.link,
-                    context: query.toUpperCase(),
-                    ttlMs: 15000 // Videos duran más (15s)
+                    context: context,
+                    ttlMs: 15000
                   });
+                  // GUARDAR EN MEMORIA
+                  fetch('/control-api/api/media-memory', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      query: query,
+                      url: file.link,
+                      type: 'video',
+                      context: context,
+                      source: 'pexels'
+                    })
+                  }).catch(() => { });
                   return;
                 }
               }
@@ -231,9 +275,21 @@ export class DialogueEngine {
               multimediaOrchestrator.showMediaOverlay({
                 type: 'image',
                 url: pic.src.landscape,
-                context: query.toUpperCase(),
+                context: context,
                 ttlMs: 8000
               });
+              // GUARDAR EN MEMORIA
+              fetch('/control-api/api/media-memory', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  query: query,
+                  url: pic.src.landscape,
+                  type: 'image',
+                  context: context,
+                  source: 'pexels'
+                })
+              }).catch(() => { });
             }
           } catch (e) { console.warn("Visual Trigger Error", e); }
         })();
