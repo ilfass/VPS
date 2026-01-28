@@ -194,17 +194,38 @@ export class DialogueEngine {
 
             // Usar el contexto visual actual o keywords del texto
             const currentMode = currentModeFromPath();
-            // Limpiar palabras comunes para busqueda simple
             const query = currentMode === 'mapa' ? (localStorage.getItem('last_country_name') || 'world map') : currentMode;
 
-            // Buscar y mostrar
-            const photos = await pexelsClient.searchPhotos(query, 1);
+            // Decidir si video o imagen (30% video)
+            const useVideo = Math.random() > 0.7;
+
+            if (useVideo) {
+              const videos = await pexelsClient.searchVideos(query, 3);
+              if (videos && videos.length > 0) {
+                const vid = videos[0];
+                // Buscar el mejor archivo de video (HD pero no 4k para no saturar)
+                const file = vid.video_files.find(f => f.quality === 'hd' && f.width >= 1280) || vid.video_files[0];
+                if (file) {
+                  multimediaOrchestrator.showMediaOverlay({
+                    type: 'video',
+                    url: file.link,
+                    context: query.toUpperCase(),
+                    ttlMs: 15000 // Videos duran más (15s)
+                  });
+                  return;
+                }
+              }
+            }
+
+            // Fallback o elección de Imagen
+            const photos = await pexelsClient.searchPhotos(query, 5); // Fetch más para variedad
             if (photos.length > 0) {
+              const pic = photos[Math.floor(Math.random() * photos.length)];
               multimediaOrchestrator.showMediaOverlay({
                 type: 'image',
-                url: photos[0].src.landscape,
+                url: pic.src.landscape,
                 context: query.toUpperCase(),
-                ttlMs: 5000 // Mostrar por 5s
+                ttlMs: 6000
               });
             }
           } catch (e) { console.warn("Visual Trigger Error", e); }
