@@ -15,6 +15,19 @@ export class AvatarSubtitlesManager {
     }
 
     init(container) {
+        // Si ya está inicializado y tiene contenedor, no crear otro avatar
+        if (this.container && document.getElementById('avatar-subtitles-container')) {
+            // Solo actualizar el contenedor si es diferente
+            if (this.container !== container) {
+                // Mover el avatar existente al nuevo contenedor si es necesario
+                const existingAvatar = document.getElementById('avatar-subtitles-container');
+                if (existingAvatar && existingAvatar.parentNode !== container) {
+                    container.appendChild(existingAvatar);
+                }
+            }
+            this.container = container;
+            return; // No crear otro avatar
+        }
         this.container = container;
         this.createAvatarUI();
     }
@@ -26,27 +39,27 @@ export class AvatarSubtitlesManager {
         avatarContainer.className = 'avatar-subtitles-container';
         avatarContainer.dataset.anchor = 'bl';
         this.avatarContainerEl = avatarContainer;
-        
+
         // Avatar (imagen)
         this.avatarElement = document.createElement('div');
         this.avatarElement.className = 'avatar-image';
-        this.avatarElement.style.backgroundImage = 'url(/avata-placeholder.png)';
+        this.avatarElement.style.backgroundImage = 'url(/assets/images/companion_avatar.png)';
         this.avatarElement.style.backgroundSize = 'cover';
         this.avatarElement.style.backgroundPosition = 'center';
-        
+
         // Contenedor de subtítulos
         const subtitlesWrapper = document.createElement('div');
         subtitlesWrapper.className = 'subtitles-wrapper';
-        
+
         this.subtitlesElement = document.createElement('div');
         this.subtitlesElement.className = 'subtitles-text';
         this.subtitlesElement.textContent = '';
-        
+
         subtitlesWrapper.appendChild(this.subtitlesElement);
-        
+
         avatarContainer.appendChild(this.avatarElement);
         avatarContainer.appendChild(subtitlesWrapper);
-        
+
         this.container.appendChild(avatarContainer);
     }
 
@@ -82,7 +95,7 @@ export class AvatarSubtitlesManager {
                 return;
             }
         }
-        
+
         const container = document.getElementById('avatar-subtitles-container');
         if (container) {
             container.classList.add('visible');
@@ -109,33 +122,33 @@ export class AvatarSubtitlesManager {
      */
     updateSubtitles(text, wordsPerSecond = 2.5) {
         if (!this.subtitlesElement) return;
-        
+
         // Limpiar texto antes de procesar
         text = this.cleanText(text);
-        
+
         this.currentWords = text.split(' ').filter(w => w.trim().length > 0);
         this.wordIndex = 0;
         this.displayedWords = []; // Palabras actualmente mostradas (máximo para 2 líneas)
-        
+
         // Limpiar intervalo anterior si existe
         if (this.subtitlesInterval) {
             clearInterval(this.subtitlesInterval);
         }
-        
+
         const interval = 1000 / wordsPerSecond; // ms entre palabras
         const maxWordsPerLine = 8; // Aproximadamente 8 palabras por línea
         const maxTotalWords = maxWordsPerLine * 2; // Máximo 2 líneas
-        
+
         this.subtitlesInterval = setInterval(() => {
             if (this.wordIndex < this.currentWords.length) {
                 // Agregar nueva palabra
                 this.displayedWords.push(this.currentWords[this.wordIndex]);
-                
+
                 // Si excede el máximo, eliminar la primera palabra
                 if (this.displayedWords.length > maxTotalWords) {
                     this.displayedWords.shift();
                 }
-                
+
                 // Mostrar solo las palabras actuales (no acumulativo)
                 const wordsToShow = this.displayedWords.join(' ');
                 this.subtitlesElement.textContent = wordsToShow;
@@ -157,10 +170,10 @@ export class AvatarSubtitlesManager {
      */
     cleanText(text) {
         if (!text || typeof text !== 'string') return '';
-        
+
         // Eliminar caracteres de escape
         text = text.replace(/\\n/g, ' ').replace(/\\"/g, '"').replace(/\\'/g, "'");
-        
+
         // Eliminar texto de debugging
         text = text.replace(/Let's count words:.*?words\./gi, '');
         text = text.replace(/Words:.*?words\./gi, '');
@@ -173,22 +186,22 @@ export class AvatarSubtitlesManager {
         text = text.replace(/Should be fine\./gi, '');
         text = text.replace(/\[.*?\]/g, '');
         text = text.replace(/\{.*?\}/g, '');
-        
+
         // Limpiar espacios múltiples
         text = text.replace(/\s+/g, ' ').trim();
-        
+
         // Filtrar líneas de debugging
         const lines = text.split('.');
         text = lines.filter(line => {
             const lower = line.toLowerCase().trim();
-            return !lower.includes('tool_calls') && 
-                   !lower.includes('json') &&
-                   !lower.startsWith('illones') &&
-                   !lower.includes('count words') &&
-                   !lower.includes('meets') &&
-                   lower.length > 5;
+            return !lower.includes('tool_calls') &&
+                !lower.includes('json') &&
+                !lower.startsWith('illones') &&
+                !lower.includes('count words') &&
+                !lower.includes('meets') &&
+                lower.length > 5;
         }).join('. ').trim();
-        
+
         return text;
     }
 
@@ -202,8 +215,8 @@ export class AvatarSubtitlesManager {
             // Limitar a 2 líneas
             const words = cleanedText.split(' ').filter(w => w.trim().length > 0);
             const maxWords = 16; // Aproximadamente 2 líneas
-            const displayText = words.length > maxWords 
-                ? words.slice(-maxWords).join(' ') 
+            const displayText = words.length > maxWords
+                ? words.slice(-maxWords).join(' ')
                 : cleanedText;
             this.subtitlesElement.textContent = displayText;
         }
