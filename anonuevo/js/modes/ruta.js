@@ -40,7 +40,7 @@ export default class RutaMode {
 
     async mount() {
         console.log('[Ruta] Montando página de ruta del viaje...');
-        
+
         // Inicializar eventManager si no está inicializado
         if (!eventManager.pollInterval) {
             eventManager.init();
@@ -50,7 +50,7 @@ export default class RutaMode {
         try {
             eventManager.reportTelemetry('RUTA', 'GLOBAL', 0);
         } catch (e) { }
-        
+
         // Limpiar contenedor primero
         this.container.innerHTML = '';
 
@@ -60,7 +60,7 @@ export default class RutaMode {
         // Inicializar avatar (sobre el root)
         avatarSubtitlesManager.init(this.ui.root);
         setTimeout(() => avatarSubtitlesManager.show(), 100);
-        
+
         // Iniciar música de fondo
         if (!audioManager.musicLayer) {
             audioManager.init();
@@ -68,7 +68,7 @@ export default class RutaMode {
         if (!audioManager.isMusicPlaying) {
             audioManager.startAmbience();
         }
-        
+
         // Habilitar audio después de interacción (broadcast-only: evitar mouse)
         const enableAudio = () => {
             audioManager.tryStartAfterInteraction();
@@ -79,7 +79,7 @@ export default class RutaMode {
             document.removeEventListener('keydown', enableAudio);
         };
         document.addEventListener('keydown', enableAudio, { once: true });
-        
+
         // Registrar handler para comandos de música (ANTES de cargar datos)
         eventManager.on('music_command', (musicState) => {
             console.log('[Ruta] 🎵 Comando de música recibido:', musicState.command);
@@ -103,7 +103,7 @@ export default class RutaMode {
         eventManager.on('ruta_follow_toggle', () => {
             try { this.toggleFollow(); } catch (e) { }
         });
-        
+
         // Cargar datos, render y narración
         await this.loadRouteData();
         await this.ensureLeaflet();
@@ -176,17 +176,43 @@ export default class RutaMode {
             }
 
             // Fallback “demo” si no hay datos aún (pantalla nunca vacía)
+            // Fallback DINÁMICO si no hay datos aún (User Request: "No info hardcodded")
             if (stops.length === 0) {
-                const demo = [
-                    { countryId: '032', name: 'Argentina', lat: -34.6, lon: -58.4 },
-                    { countryId: '724', name: 'España', lat: 40.4, lon: -3.7 },
-                    { countryId: '250', name: 'Francia', lat: 48.85, lon: 2.35 },
-                    { countryId: '276', name: 'Alemania', lat: 52.52, lon: 13.4 },
-                    { countryId: '826', name: 'Reino Unido', lat: 51.5, lon: -0.12 }
-                ];
+                console.log('[Ruta] Sin historial previo. Generando ruta aleatoria procedural...');
+                const allIds = Object.keys(COUNTRY_INFO);
+                const demoStops = [];
+
+                // Empezar en un país aleatorio
+                let currentId = allIds[Math.floor(Math.random() * allIds.length)];
+
+                // Generar 5 paradas conectadas
+                for (let i = 0; i < 5; i++) {
+                    const info = COUNTRY_INFO[currentId];
+                    if (info && info.coords) {
+                        demoStops.push({
+                            countryId: currentId,
+                            name: info.name,
+                            lat: info.coords.lat,
+                            lon: info.coords.lng
+                        });
+                    }
+                    // Saltar a otro aleatorio (simulando vuelo)
+                    currentId = allIds[Math.floor(Math.random() * allIds.length)];
+                }
+
+                // Asignar timestamps recientes
                 const now = Date.now();
-                this.visitEvents = demo.map((d, i) => ({ ...d, timestamp: now - (demo.length - i) * 3600_000 }));
-                this.stops = demo.map((d, i) => ({ ...d, firstTs: now - (demo.length - i) * 3600_000, lastTs: now - (demo.length - i) * 3600_000, count: 1 }));
+                this.visitEvents = demoStops.map((d, i) => ({
+                    ...d,
+                    timestamp: now - (demoStops.length - i) * 3600_000 * 4, // 4 horas entre saltos
+                    narrative: "Ruta de exploración inicial generada por el sistema."
+                }));
+                this.stops = demoStops.map((d, i) => ({
+                    ...d,
+                    firstTs: now - (demoStops.length - i) * 3600_000 * 4,
+                    lastTs: now - (demoStops.length - i) * 3600_000 * 4,
+                    count: 1
+                }));
             } else {
                 this.stops = stops;
             }
@@ -535,18 +561,18 @@ export default class RutaMode {
 
         const countriesCount = new Set(this.visitEvents.map(e => e.countryId)).size;
         const totalVisits = this.visitEvents.length;
-        
+
         // Texto inicial inmediato
         const immediateText = `Esta es la ruta que hemos recorrido hasta ahora. Hemos visitado ${countriesCount} país${countriesCount !== 1 ? 'es' : ''}, con un total de ${totalVisits} visita${totalVisits !== 1 ? 's' : ''}. Cada punto en el mapa representa un lugar donde hemos aprendido algo nuevo sobre nuestro mundo.`;
-        
+
         avatarSubtitlesManager.setSubtitles(immediateText);
-        
+
         const generateFullTextPromise = this.generateFullNarrative();
-        
+
         const updateSubtitles = (text) => {
             avatarSubtitlesManager.setSubtitles(text);
         };
-        
+
         audioManager.speak(immediateText, 'normal', async () => {
             let fullText = null;
             try {
@@ -557,7 +583,7 @@ export default class RutaMode {
             } catch (e) {
                 console.warn('[Ruta] Error generando texto completo:', e);
             }
-            
+
             if (fullText && fullText !== immediateText) {
                 audioManager.speak(fullText, 'normal', () => {
                     this.isNarrating = false;
@@ -583,13 +609,13 @@ export default class RutaMode {
             Hemos recorrido ${new Set(this.visitEvents.map(e => e.countryId)).size} países: ${countriesList}${this.stops.length > 10 ? ' y más' : ''}.
             El relato debe ser reflexivo sobre el camino recorrido, las conexiones entre lugares, y la experiencia del viaje.
             Habla en primera persona como ilfass, el explorador digital.`;
-            
+
             const res = await fetch('/control-api/api/generate-narrative', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ prompt })
             });
-            
+
             if (res.ok) {
                 const data = await res.json();
                 return data.narrative || null;
@@ -597,7 +623,7 @@ export default class RutaMode {
         } catch (e) {
             console.warn('[Ruta] Error generando narrativa:', e);
         }
-        
+
         return `Cada línea en el mapa representa un paso en este viaje. 
         Cada país visitado nos ha enseñado algo único sobre la humanidad y nuestro planeta. 
         El camino continúa, y con cada nuevo lugar descubrimos más sobre este mundo que exploramos.`;
