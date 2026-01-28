@@ -23,7 +23,7 @@ export class AudioManager {
         // Usar rutas absolutas desde la raíz del servidor
         this.tracks = [
             '/assets/audio/ambient_base.mp3',
-            '/assets/audio/ambient_base.mp3', // Por ahora el mismo, pero se pueden agregar más
+            '/assets/audio/ambient_base.mp3', // Placeholder for more tracks
         ];
         this.currentTrackIndex = 0;
 
@@ -33,6 +33,17 @@ export class AudioManager {
             baseVolume: 0.3,
             duckVolume: 0.08
         };
+
+        // Subtítulos: modo y callback
+        // - words: legacy (actualiza cada palabra)
+        // - lines: actualiza por líneas/bloques completos (más legible)
+        this.subtitleMode = 'words';
+        this.updateSubtitlesCallback = null;
+
+        // Audio Processor (procesamiento profesional)
+        this.audioProcessor = null;
+        this.audioContext = null;
+        this.processorEnabled = true; // Habilitado por defecto
     }
 
     init() {
@@ -58,6 +69,24 @@ export class AudioManager {
             }
         });
 
+        // Inicializar Audio Processor si está habilitado
+        if (this.processorEnabled) {
+            try {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                // Cargar dinámicamente el módulo
+                import('./audio-processor.js').then(module => {
+                    this.audioProcessor = new module.AudioProcessor(this.audioContext);
+                    console.log("[AudioManager] Audio processor initialized");
+                }).catch(e => {
+                    console.warn("[AudioManager] Could not load audio processor:", e);
+                    this.processorEnabled = false;
+                });
+            } catch (e) {
+                console.warn("[AudioManager] Could not create audio context:", e);
+                this.processorEnabled = false;
+            }
+        }
+
         // Autoplay policy puede bloquear esto hasta interacción del usuario
         // El botón "Iniciar Sistema" del index.html debería desbloquearlo
     }
@@ -81,7 +110,7 @@ export class AudioManager {
             localStorage.setItem(this.musicPrefKey, enabled ? '1' : '0');
         } catch (e) { }
     }
-    
+
     /**
      * Carga un track específico
      */
@@ -103,7 +132,7 @@ export class AudioManager {
             }
         }
     }
-    
+
     /**
      * Cambia al siguiente track
      */
@@ -111,7 +140,7 @@ export class AudioManager {
         const nextIndex = (this.currentTrackIndex + 1) % this.tracks.length;
         this.loadTrack(nextIndex);
     }
-    
+
     /**
      * Pausa la música de fondo
      */
@@ -123,7 +152,7 @@ export class AudioManager {
             console.log("[AudioManager] ⏸️ Música pausada");
         }
     }
-    
+
     /**
      * Reanuda la música de fondo
      */
@@ -139,7 +168,7 @@ export class AudioManager {
             });
         }
     }
-    
+
     /**
      * Alterna entre pausar y reanudar
      */
@@ -152,7 +181,7 @@ export class AudioManager {
             }
         }
     }
-    
+
     /**
      * Obtiene información del track actual
      */
@@ -180,10 +209,10 @@ export class AudioManager {
         }
 
         console.log("[AudioManager] Intentando reproducir música:", this.musicLayer.src);
-        
+
         // Intentar reproducir
         const playPromise = this.musicLayer.play();
-        
+
         if (playPromise !== undefined) {
             playPromise.then(() => {
                 this.isMusicPlaying = true;
@@ -197,7 +226,7 @@ export class AudioManager {
             });
         }
     }
-    
+
     /**
      * Intenta iniciar el audio después de interacción del usuario
      * Debe ser llamado después de un click o interacción
@@ -210,7 +239,7 @@ export class AudioManager {
             this.isMusicPlaying = false;
             return;
         }
-        
+
         if (!this.isMusicPlaying) {
             this.musicLayer.play().then(() => {
                 this.isMusicPlaying = true;
@@ -273,14 +302,14 @@ export class AudioManager {
             this.currentAudio.currentTime = 0;
             this.currentAudio = null;
         }
-        
+
         // Cancelar Web Speech API si está hablando
         if (this.synth) {
             if (this.currentUtterance) this.currentUtterance.wasCancelled = true;
             this.synth.cancel();
             this.currentUtterance = null;
         }
-        
+
         this.notifySpeaking(false);
     }
 
@@ -289,7 +318,7 @@ export class AudioManager {
 
         // Limpiar texto: eliminar caracteres de escape, texto de debugging, etc.
         text = this.cleanText(text);
-        
+
         if (!text || text.trim().length === 0) {
             console.warn("[AudioManager] ⚠️ Texto vacío, no se puede hablar");
             // IMPORTANT: No “colgar” flujos que esperan el callback (ej: Globo/Ciudades).
@@ -307,9 +336,11 @@ export class AudioManager {
         }
 
         console.log("[AudioManager] 🔊 Hablando:", text.substring(0, 50) + "...");
-        
+
         // Guardar callback para actualizar subtítulos
-        this.updateSubtitlesCallback = updateSubtitlesCallback;
+        const sub = normalizeSubtitlesArg(updateSubtitlesCallback);
+        this.subtitleMode = sub.mode;
+        this.updateSubtitlesCallback = sub.cb;
 
         // ** DUCKING **: bajar música antes de hablar y restaurar al terminar
         this.beginDucking();
@@ -320,7 +351,7 @@ export class AudioManager {
                 const response = await fetch('/control-api/api/tts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         text: text,
                         voice: priority === 'news' ? 'es-ES-ElviraNeural' : 'es-ES-AlvaroNeural'
                     })
@@ -328,10 +359,10 @@ export class AudioManager {
 
                 if (response.ok) {
                     const result = await response.json();
-                    
+
                     if (result.success && result.url) {
                         console.log("[AudioManager] ✅ Audio generado con Edge TTS:", result.url);
-                        
+
                         // Crear elemento de audio para reproducir directamente
                         // No verificar con HEAD ya que puede fallar por CORS o timing
                         try {
@@ -339,66 +370,40 @@ export class AudioManager {
                             audio.volume = 1.0;
                             audio.preload = 'auto';
                             this.currentAudio = audio;
-                            
+
                             // Notificar que el avatar está hablando
                             this.notifySpeaking(true);
-                            
+
                             // Sincronizar subtítulos con Edge TTS
-                            // Dividir texto en palabras para actualización progresiva
-                            const words = text.split(' ').filter(w => w.trim().length > 0);
-                            let wordsShown = 0;
-                            const maxWordsPerSubtitle = 16;
-                            const msPerWord = 630; // Tiempo estimado por palabra
-                            let subtitleInterval = null;
-                            
+                            const msPerWord = 630; // Tiempo estimado por palabra (aprox)
+                            let subtitleStopper = null;
+
                             audio.onplay = () => {
                                 console.log("[AudioManager] ✅ Voz iniciada (Edge TTS)");
-                                wordsShown = 0;
-                                
-                                // Mostrar primeras palabras inmediatamente
-                                const initialWords = words.slice(0, maxWordsPerSubtitle).join(' ');
-                                this.updateSubtitlesCallback?.(initialWords);
-                                wordsShown = maxWordsPerSubtitle;
-                                
-                                // Actualizar subtítulos palabra por palabra
-                                subtitleInterval = setInterval(() => {
-                                    if (wordsShown < words.length && !audio.paused) {
-                                        const startIndex = Math.max(0, wordsShown - maxWordsPerSubtitle);
-                                        const endIndex = Math.min(words.length, wordsShown + 1);
-                                        const wordsToShow = words.slice(startIndex, endIndex).join(' ');
-                                        
-                                        if (wordsToShow.trim().length > 0) {
-                                            this.updateSubtitlesCallback?.(wordsToShow);
-                                        }
-                                        wordsShown++;
-                                    } else if (wordsShown >= words.length) {
-                                        if (subtitleInterval) {
-                                            clearInterval(subtitleInterval);
-                                            subtitleInterval = null;
-                                        }
-                                    }
-                                }, msPerWord);
+                                try { subtitleStopper?.(); } catch (e) { }
+                                subtitleStopper = startSubtitleSync({
+                                    text,
+                                    mode: this.subtitleMode,
+                                    onUpdate: this.updateSubtitlesCallback,
+                                    msPerWord
+                                });
                             };
-                            
+
                             audio.onended = () => {
                                 console.log("[AudioManager] ✅ Voz terminada (Edge TTS)");
-                                if (subtitleInterval) {
-                                    clearInterval(subtitleInterval);
-                                    subtitleInterval = null;
-                                }
+                                try { subtitleStopper?.(); } catch (e) { }
+                                subtitleStopper = null;
                                 this.notifySpeaking(false);
                                 this.endDucking();
                                 this.currentAudio = null;
                                 this.updateSubtitlesCallback = null; // Limpiar callback
                                 if (onEndCallback) onEndCallback();
                             };
-                            
+
                             audio.onerror = (e) => {
                                 console.error("[AudioManager] ❌ Error reproduciendo audio Edge TTS:", e, result.url);
-                                if (subtitleInterval) {
-                                    clearInterval(subtitleInterval);
-                                    subtitleInterval = null;
-                                }
+                                try { subtitleStopper?.(); } catch (e2) { }
+                                subtitleStopper = null;
                                 this.notifySpeaking(false);
                                 this.endDucking();
                                 this.currentAudio = null;
@@ -406,15 +411,13 @@ export class AudioManager {
                                 // Fallback a Web Speech API
                                 this.speakWithFallback(text, priority, onEndCallback);
                             };
-                            
+
                             // Reproducir audio con pequeño delay para asegurar que el archivo esté listo
                             setTimeout(() => {
                                 audio.play().catch(e => {
                                     console.error("[AudioManager] ❌ Error iniciando audio:", e, result.url);
-                                    if (subtitleInterval) {
-                                        clearInterval(subtitleInterval);
-                                        subtitleInterval = null;
-                                    }
+                                    try { subtitleStopper?.(); } catch (e2) { }
+                                    subtitleStopper = null;
                                     this.endDucking();
                                     // Fallback a Web Speech API
                                     this.speakWithFallback(text, priority, onEndCallback);
@@ -425,7 +428,7 @@ export class AudioManager {
                             // Fallback a Web Speech API
                             this.speakWithFallback(text, priority, onEndCallback);
                         }
-                        
+
                         return; // Éxito con Edge TTS
                     } else if (result.fallback) {
                         console.warn("[AudioManager] ⚠️ Edge TTS falló, usando fallback");
@@ -471,24 +474,38 @@ export class AudioManager {
 
         this.currentUtterance = utterance;
         this.notifySpeaking(true);
-        
+        let subtitleStopper = null;
+
         utterance.onstart = () => {
             console.log("[AudioManager] ✅ Voz iniciada (Fallback Web Speech)");
+            try { subtitleStopper?.(); } catch (e) { }
+            subtitleStopper = startSubtitleSync({
+                text,
+                mode: this.subtitleMode,
+                onUpdate: this.updateSubtitlesCallback,
+                msPerWord: 630
+            });
         };
-        
+
         utterance.onend = () => {
             console.log("[AudioManager] ✅ Voz terminada (Fallback Web Speech)");
+            try { subtitleStopper?.(); } catch (e) { }
+            subtitleStopper = null;
             this.notifySpeaking(false);
             this.endDucking();
+            this.updateSubtitlesCallback = null;
             if (!utterance.wasCancelled && onEndCallback) onEndCallback();
         };
-        
+
         utterance.onerror = (e) => {
             console.error("[AudioManager] ❌ Error en voz:", e.error, e);
+            try { subtitleStopper?.(); } catch (e2) { }
+            subtitleStopper = null;
             this.notifySpeaking(false);
             this.endDucking();
+            this.updateSubtitlesCallback = null;
         };
-        
+
         // Seleccionar voz
         const getVoices = () => {
             const voices = this.synth.getVoices();
@@ -513,7 +530,7 @@ export class AudioManager {
             this.synth.onvoiceschanged = getVoices;
         }
     }
-    
+
     selectVoice(utterance, voices, priority, onEndCallback = null) {
         const spanishVoices = voices.filter(v => v.lang.includes('es'));
         if (spanishVoices.length > 0) {
@@ -530,21 +547,21 @@ export class AudioManager {
         }
 
         this.currentUtterance = utterance;
-        
+
         // Notificar que el avatar está hablando
         this.notifySpeaking(true);
-        
+
         utterance.onstart = () => {
             console.log("[AudioManager] ✅ Voz iniciada correctamente");
         };
-        
+
         utterance.onend = () => {
             console.log("[AudioManager] ✅ Voz terminada");
             this.notifySpeaking(false);
             this.endDucking();
             if (!utterance.wasCancelled && onEndCallback) onEndCallback();
         };
-        
+
         utterance.onerror = (e) => {
             console.error("[AudioManager] ❌ Error en voz (selectVoice):", e.error, e);
             this.notifySpeaking(false);
@@ -557,10 +574,10 @@ export class AudioManager {
      */
     cleanText(text) {
         if (!text || typeof text !== 'string') return '';
-        
+
         // Eliminar caracteres de escape
         text = text.replace(/\\n/g, ' ').replace(/\\"/g, '"').replace(/\\'/g, "'");
-        
+
         // Eliminar texto de debugging (conteo de palabras, instrucciones, etc.)
         text = text.replace(/Let's count words:.*?words\./gi, '');
         text = text.replace(/Words:.*?words\./gi, '');
@@ -571,27 +588,27 @@ export class AudioManager {
         text = text.replace(/Good\./gi, '');
         text = text.replace(/Use purely Spanish\./gi, '');
         text = text.replace(/Should be fine\./gi, '');
-        
+
         // Eliminar patrones de debugging comunes
         text = text.replace(/\[.*?\]/g, ''); // [Debug info]
         text = text.replace(/\(.*?\)/g, ''); // (Debug info)
         text = text.replace(/\{.*?\}/g, ''); // {Debug info}
-        
+
         // Limpiar espacios múltiples
         text = text.replace(/\s+/g, ' ').trim();
-        
+
         // Eliminar texto que parece ser instrucciones de sistema
         const lines = text.split('.');
         text = lines.filter(line => {
             const lower = line.toLowerCase().trim();
-            return !lower.includes('tool_calls') && 
-                   !lower.includes('json') &&
-                   !lower.startsWith('illones') &&
-                   !lower.includes('count words') &&
-                   !lower.includes('meets') &&
-                   lower.length > 5; // Filtrar líneas muy cortas que suelen ser debugging
+            return !lower.includes('tool_calls') &&
+                !lower.includes('json') &&
+                !lower.startsWith('illones') &&
+                !lower.includes('count words') &&
+                !lower.includes('meets') &&
+                lower.length > 5; // Filtrar líneas muy cortas que suelen ser debugging
         }).join('. ').trim();
-        
+
         return text;
     }
 
@@ -670,5 +687,109 @@ export class AudioManager {
         }, stepTime);
     }
 }
+
+function normalizeSubtitlesArg(arg) {
+    // Legacy: function(partialText)
+    if (typeof arg === 'function') return { mode: 'words', cb: arg };
+    // New: { mode: 'lines'|'words', onUpdate: fn }
+    if (arg && typeof arg === 'object') {
+        const mode = String(arg.mode || 'lines').toLowerCase();
+        const cb = typeof arg.onUpdate === 'function' ? arg.onUpdate : null;
+        return { mode: mode === 'words' ? 'words' : 'lines', cb };
+    }
+    return { mode: 'words', cb: null };
+}
+
+function splitIntoSubtitleChunks(text, maxWords = 18) {
+    const clean = String(text || '').replace(/\s+/g, ' ').trim();
+    if (!clean) return [];
+
+    // Prefer sentence-ish splitting first
+    const rawParts = clean
+        .split(/(?<=[\.\!\?\:\;])\s+/)
+        .map(s => s.trim())
+        .filter(Boolean);
+
+    const chunks = [];
+    let buf = [];
+    let bufCount = 0;
+
+    const flush = () => {
+        if (!buf.length) return;
+        chunks.push(buf.join(' ').trim());
+        buf = [];
+        bufCount = 0;
+    };
+
+    for (const part of rawParts.length ? rawParts : [clean]) {
+        const words = part.split(' ').filter(Boolean);
+        // If a single sentence is huge, hard chunk it.
+        if (words.length > maxWords) {
+            flush();
+            for (let i = 0; i < words.length; i += maxWords) {
+                chunks.push(words.slice(i, i + maxWords).join(' '));
+            }
+            continue;
+        }
+        if ((bufCount + words.length) > maxWords) flush();
+        buf.push(part);
+        bufCount += words.length;
+    }
+    flush();
+
+    return chunks.length ? chunks : [clean];
+}
+
+function startSubtitleSync({ text, mode, onUpdate, msPerWord = 630 } = {}) {
+    if (typeof onUpdate !== 'function') return () => { };
+    const t = String(text || '').trim();
+    if (!t) return () => { };
+
+    // Mode: lines (preferred) vs words (legacy)
+    const m = (mode || 'words').toLowerCase();
+    if (m === 'lines') {
+        const chunks = splitIntoSubtitleChunks(t, 18);
+        let idx = 0;
+        let timer = null;
+
+        const step = () => {
+            if (idx >= chunks.length) return;
+            const chunk = chunks[idx++];
+            if (chunk) onUpdate(chunk);
+            const wc = Math.max(4, chunk.split(' ').filter(Boolean).length);
+            const delay = Math.max(1400, Math.min(6500, wc * msPerWord));
+            timer = setTimeout(step, delay);
+        };
+
+        step();
+        return () => { try { if (timer) clearTimeout(timer); } catch (e) { } };
+    }
+
+    // Legacy words mode: sliding window (old behavior)
+    const words = t.split(' ').filter(Boolean);
+    let wordsShown = 0;
+    const maxWordsPerSubtitle = 16;
+    let interval = null;
+
+    const initialWords = words.slice(0, maxWordsPerSubtitle).join(' ');
+    onUpdate(initialWords);
+    wordsShown = maxWordsPerSubtitle;
+
+    interval = setInterval(() => {
+        if (wordsShown < words.length) {
+            const startIndex = Math.max(0, wordsShown - maxWordsPerSubtitle);
+            const endIndex = Math.min(words.length, wordsShown + 1);
+            const wordsToShow = words.slice(startIndex, endIndex).join(' ');
+            if (wordsToShow.trim().length > 0) onUpdate(wordsToShow);
+            wordsShown++;
+        } else {
+            try { clearInterval(interval); } catch (e) { }
+            interval = null;
+        }
+    }, msPerWord);
+
+    return () => { try { if (interval) clearInterval(interval); } catch (e) { } };
+}
+
 
 export const audioManager = new AudioManager();

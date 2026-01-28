@@ -26,7 +26,7 @@ export class MultimediaOrchestrator {
             if (this.container) {
                 this.container.appendChild(overlay);
                 this.activeOverlays.push(overlay);
-                
+
                 // Animar entrada
                 requestAnimationFrame(() => {
                     overlay.classList.add('visible');
@@ -70,14 +70,12 @@ export class MultimediaOrchestrator {
             content = document.createElement('img');
             content.src = mediaItem.url;
             content.alt = mediaItem.context || '';
-            // Ken Burns “TV” (suave) para que imágenes no se sientan estáticas
-            content.className = 'tv-kenburns';
-            // Variar duración/dirección
-            const dur = 14 + Math.random() * 10; // 14-24s
-            content.style.animationDuration = `${dur.toFixed(1)}s`;
-            content.style.animationDirection = Math.random() > 0.5 ? 'alternate' : 'alternate-reverse';
+            // Importante: sin Ken Burns / sin zoom automático (mejor legibilidad)
+            content.style.width = '100%';
+            content.style.height = 'auto';
+            content.style.transform = 'none';
             content.onerror = () => {
-                console.warn(`[MultimediaOrchestrator] Error cargando imagen: ${mediaItem.url}`);
+                console.warn(`[MultimediaOrchestrator] Error cargando imagen: ${mediaItem.url}. Sugerencia: Buscar en https://www.pexels.com/es-es/buscar/${encodeURIComponent(mediaItem.context || 'paisaje')}/`);
                 overlay.style.display = 'none';
             };
         }
@@ -97,23 +95,7 @@ export class MultimediaOrchestrator {
     injectStylesOnce() {
         if (this._stylesInjected) return;
         this._stylesInjected = true;
-        if (document.getElementById('tv-kenburns-style')) return;
-        const style = document.createElement('style');
-        style.id = 'tv-kenburns-style';
-        style.textContent = `
-            .tv-kenburns{
-                width: 100%;
-                height: auto;
-                transform-origin: center center;
-                will-change: transform;
-                animation: tvKenBurns 18s ease-in-out infinite;
-            }
-            @keyframes tvKenBurns{
-                0%{ transform: scale(1) translate(0,0); filter: saturate(1.02) contrast(1.02); }
-                100%{ transform: scale(1.08) translate(-1.5%, -1.5%); filter: saturate(1.06) contrast(1.04); }
-            }
-        `;
-        document.head.appendChild(style);
+        // Sin estilos de Ken Burns / zoom.
     }
 
     /**
