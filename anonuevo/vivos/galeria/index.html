@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,11 +9,87 @@
     <script type="module" src="/js/main.js"></script>
     <link rel="stylesheet" href="/css/styles.css">
 </head>
+
 <body>
-    <div id="stage" style="width: 100vw; height: 100vh; position: relative; background: #0a0a0f;"></div>
-    <div id="debug-layer" style="display: none; position: fixed; top: 10px; left: 10px; z-index: 10000; background: rgba(0,0,0,0.8); color: #fff; padding: 10px; font-family: monospace; font-size: 12px;">
-        <div id="mode-indicator">Modo: --</div>
-        <div id="fps-counter">FPS: --</div>
+    <div class="tv-scene-root">
+        <div class="tv-bg">
+            <div class="tv-bg-grid"></div>
+        </div>
+
+        <!-- TV Header -->
+        <div class="tv-topbar">
+            <div class="tv-title">
+                <div class="badge">LIVE</div>
+                <div class="t1">GALERÍA</div>
+                <div class="t2">ARCHIVO VISUAL GLOBAL</div>
+            </div>
+            <div class="tv-meta">
+                <div class="pill">CULTURAL_MEMORY_BANK</div>
+                <div class="pill">AUTO_JURISDICTION</div>
+            </div>
+        </div>
+
+        <!-- Main Gallery Display -->
+        <div id="gallery-container"
+            style="position: relative; z-index: 5; height: 100%; display: flex; align-items: center; justify-content: center;">
+            <div id="current-image-wrapper"
+                style="width: 80%; height: 70%; position: relative; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; overflow: hidden; box-shadow: 0 0 50px rgba(0,0,0,0.5);">
+                <!-- Image injected here by JS -->
+                <img id="gallery-img" src=""
+                    style="width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1s ease;">
+                <div id="img-caption"
+                    style="position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding: 40px 20px 20px; color: white; font-family: 'JetBrains Mono'; font-size: 0.9rem; transform: translateY(100%); transition: transform 0.5s ease;">
+                    // CARGANDO_ARCHIVO...
+                </div>
+            </div>
+        </div>
+
+        <!-- TV Ticker -->
+        <div class="tv-ticker">
+            <div class="label">MEMORY</div>
+            <div class="msg">PROCESANDO IMÁGENES DEL MUNDO • ARCHIVO HISTÓRICO EN TIEMPO REAL • CONEXIÓN VISUAL
+                ESTABLECIDA</div>
+        </div>
     </div>
+
+    <!-- Script especifico de Galeria -->
+    <script type="module">
+        import { pexelsClient } from '../../js/utils/pexels-client.js';
+
+        const imgEl = document.getElementById('gallery-img');
+        const capEl = document.getElementById('img-caption');
+
+        async function loadNextImage() {
+            // Fade out
+            imgEl.style.opacity = 0;
+            capEl.style.transform = 'translateY(100%)';
+
+            // Wait for fade
+            setTimeout(async () => {
+                // Get Country from memory or random
+                const lastCountry = localStorage.getItem('last_country_name') || 'Architecture';
+
+                // Fetch Pexels
+                const imageData = await pexelsClient.getBestImageForCountry(lastCountry);
+
+                if (imageData) {
+                    imgEl.src = imageData.url;
+                    imgEl.onload = () => {
+                        imgEl.style.opacity = 1;
+                        capEl.textContent = `// ${lastCountry.toUpperCase()} | PHOTO: ${imageData.photographer.toUpperCase()}`;
+                        capEl.style.transform = 'translateY(0)';
+                    };
+                } else {
+                    // Fallback local or retry
+                    console.warn("No gallery image found");
+                }
+            }, 1000);
+        }
+
+        // Cycle images every 10-15s
+        loadNextImage();
+        setInterval(loadNextImage, 12000);
+    </script>
 </body>
+
 </html>
