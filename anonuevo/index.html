@@ -235,6 +235,15 @@
             // Trigger internal start
             if (window.initExperience) window.initExperience();
         }
+
+        // STREAM DEFAULT: si nadie clickea, arrancar igual (evita “silencio/pausa” en OBS)
+        // El overlay ya tiene contenido visual; esto solo evita quedarse bloqueado esperando interacción.
+        setTimeout(() => {
+            try {
+                const overlay = document.getElementById('intro-overlay');
+                if (overlay && typeof startExperience === 'function') startExperience();
+            } catch (e) { }
+        }, 3500);
     </script>
 
     <script type="module">
@@ -450,7 +459,7 @@
             if (currentIndex >= script.length) {
                 textDisplay.innerHTML = "<span style='font-size: 1rem; color: #64748b;'>ESPERANDO COMANDO DEL DIRECTOR...</span>";
                 progressBar.style.width = "100%";
-                
+
                 // Si Dream Mode está ON, cambiar automáticamente a otra página
                 checkDreamModeAndNavigate();
                 return;
@@ -471,19 +480,29 @@
         // Verificar Dream Mode y navegar automáticamente
         async function checkDreamModeAndNavigate() {
             try {
+                // Si AutoMode está ON, arrancar Show Runner y pasar al circuito /vivos/*
                 const res = await fetch('/control-api/status');
                 if (res.ok) {
                     const data = await res.json();
                     if (data.autoMode) {
-                        console.log('🌙 Dream Mode ON: Cambiando automáticamente a otra página...');
-                        // Esperar 2 segundos antes de cambiar
-                        setTimeout(() => {
-                            // Elegir página aleatoria (circuito streaming)
-                            const pages = ['mapa', 'diario', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo', 'clima', 'aereo', 'satelites', 'terremotos', 'aire', 'incendios', 'sol', 'ciudad'];
-                            const randomPage = pages[Math.floor(Math.random() * pages.length)];
-                            console.log(`🎲 Navegando a: ${randomPage}`);
-                            window.location.href = `/vivos/${randomPage}/`;
-                        }, 2000);
+                        console.log('🌙 AutoMode ON: iniciando Show Runner y entrando a /vivos/mapa ...');
+
+                        // 1) Asegurar Auto ON (idempotente)
+                        try { await fetch('/control-api/event/auto_on', { method: 'POST' }); } catch (e) { }
+
+                        // 2) Start Show Runner con misión default si no hay una
+                        const mission = (data?.showRunner?.mission || '').trim()
+                            || 'Mantener un hilo continuo: mapa → urbano → rutas → espacio → memoria. Sin silencios.';
+                        try {
+                            await fetch('/control-api/event/show/start', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ mission })
+                            });
+                        } catch (e) { }
+
+                        // 3) Entrar al circuito de streaming
+                        setTimeout(() => { window.location.href = '/vivos/mapa/'; }, 1200);
                     }
                 }
             } catch (e) {
@@ -521,7 +540,7 @@
 
         // STYLE
         const styleSheet = document.createElement("style");
-        styleSheet.innerText = `@keyframes speaking { 0% { box-shadow: 0 0 20px #38bdf8; transform: scale(1); } 100% { box-shadow: 0 0 60px #38bdf8; transform: scale(1.02); } }`;
+        styleSheet.innerText = `@keyframes speaking { 0% { box-shadow: 0 0 20px #38bdf8; transform: scale(1); } 100% { box-shadow: 0 0 60px #38bdf8; transform: scale(1); } }`;
         document.head.appendChild(styleSheet);
 
         // ON LOAD
