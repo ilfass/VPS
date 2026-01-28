@@ -119,7 +119,152 @@ export class DialogueEngine {
     this.lastCycleAt = 0;
   }
 
-  // ... (init/stop/tick methods remain same until generateCycle)
+  init() {
+    if (!isActive()) return;
+    if (this.timer) return;
+    this.tick();
+    this.timer = setInterval(() => this.tick(), 2000); // Check rápido cada 2s
+  }
+
+  stop() {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
+    this.queue = [];
+    this.isSpeaking = false;
+  }
+
+  async tick() {
+    if (!isActive()) return;
+
+    // Música ambiente siempre viva
+    try { if (!audioManager.musicLayer) await audioManager.init(); } catch (e) { }
+    try { if (!audioManager.isMusicPlaying) audioManager.startAmbience(); } catch (e) { }
+
+    const last = getLastSpoke();
+    const gap = last ? (now() - last) : 999_999;
+
+    // Anti-silencio: si pasan 35s sin voz, disparar algo para que no parezca muerto
+    if (gap > 35_000 && !this.isSpeaking && !this.queue.length && !isBusy()) {
+      try {
+        const ev = new CustomEvent('stream_force_recap');
+        window.dispatchEvent(ev);
+        setLastSpoke(now());
+      } catch (e) { }
+      return;
+    }
+
+    // Generación de cola
+    // Si pasó mucho tiempo O la cola está vacía y hay silencio incómodo (>15s)
+    if ((now() - this.lastCycleAt) > this.cycleMs || (this.queue.length === 0 && gap > 15_000)) {
+      if (!this.isSpeaking && !this.queue.length) {
+        this.lastCycleAt = now();
+        await this.generateCycle();
+      }
+    }
+
+    // Consumo de cola (Event Driven Loop)
+    // Si hay items y no estamos hablando actualmente
+    if (this.queue.length && !this.isSpeaking && !isBusy()) {
+      this.playNext();
+    }
+  }
+
+  playNext() {
+    if (!this.queue.length) return;
+
+    // Sacar siguiente item
+    const item = this.queue.shift();
+    if (!item?.text) {
+      this.playNext(); // Skip empty
+      return;
+    }
+
+    this.isSpeaking = true;
+    const priority = getVoicePriority(item.role);
+
+    console.log(`🎙️ [${item.role}] Speaking: "${item.text.substring(0, 30)}..."`);
+
+    // Hablar y esperar callback al terminar
+    // ESTO ES CLAVE: audioManager.speak llama al callback CUANDO TERMINA EL AUDIO.
+    audioManager.speak(item.text, priority, () => {
+      setLastSpoke(now());
+
+      // ILUSTRACIÓN VISUAL (90% de probabilidad o si es Ilfass)
+      if (item.role === 'ilfass' && Math.random() > 0.1) {
+        (async () => {
+          try {
+            const { multimediaOrchestrator } = await import('./multimedia-orchestrator.js');
+            const { pexelsClient } = await import('./pexels-client.js');
+            const { sfxEngine } = await import('./sfx-engine.js'); // Importar SFX
+
+            // Sonido de revelación visual
+            sfxEngine.reveal();
+
+            // Usar el contexto visual actual o keywords del texto
+            const currentMode = currentModeFromPath();
+            const query = currentMode === 'mapa' ? (localStorage.getItem('last_country_name') || 'world map') : currentMode;
+
+            // Decidir si video o imagen (40% video)
+            const useVideo = Math.random() > 0.6;
+
+            if (useVideo) {
+              const videos = await pexelsClient.searchVideos(query, 3);
+              if (videos && videos.length > 0) {
+                const vid = videos[0];
+                const file = vid.video_files.find(f => f.quality === 'hd' && f.width >= 1280) || vid.video_files[0];
+                if (file) {
+                  multimediaOrchestrator.showMediaOverlay({
+                    type: 'video',
+                    url: file.link,
+                    context: query.toUpperCase(),
+                    ttlMs: 15000 // Videos duran más (15s)
+                  });
+                  return;
+                }
+              }
+            }
+
+            // Fallback o elección de Imagen
+            const photos = await pexelsClient.searchPhotos(query, 5);
+            if (photos.length > 0) {
+              const pic = photos[Math.floor(Math.random() * photos.length)];
+              multimediaOrchestrator.showMediaOverlay({
+                type: 'image',
+                url: pic.src.landscape,
+                context: query.toUpperCase(),
+                ttlMs: 8000
+              });
+            }
+          } catch (e) { console.warn("Visual Trigger Error", e); }
+        })();
+      } else {
+        // Si no hay imagen, al menos un tick de sonido
+        import('./sfx-engine.js').then(m => m.sfxEngine.tick());
+      }
+
+      // Calcular "aire" dinámico antes del siguiente
+      // Si cambia de hablante, el gap es corto (0.5 - 1.5s) para sensación de charla.
+      // Si es el mismo, es una pausa de énfasis (2 - 3s).
+      const nextRole = this.queue[0]?.role;
+      const isConversation = nextRole && nextRole !== item.role;
+      // Gap agresivamente corto para evitar "aire" muerto
+      const gap = isConversation ? (200 + Math.random() * 500) : (800 + Math.random() * 1000);
+
+      console.log(`⏱️ Gap para siguiente: ${Math.round(gap)}ms`);
+
+      setTimeout(() => {
+        this.isSpeaking = false;
+        // El tick() o esta misma recursión dispararán el siguiente
+        if (this.queue.length) {
+          this.playNext();
+        } else {
+          console.log("✅ Ráfaga finalizada. Forzando nuevo ciclo inmediato...");
+          this.lastCycleAt = 0; // Reset timer para forzar generación en el próximo tick
+          setTimeout(() => this.tick(), 100);
+        }
+      }, gap);
+    });
+  }
 
   async generateCycle() {
     console.log("🧠 Generando nuevo ciclo narrativo (Conversacional)...");
