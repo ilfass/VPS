@@ -10,11 +10,11 @@ const PLAN_3H_V1 = {
   totalMs: 180 * MIN,
   blockMs: 30 * MIN,
   blocks: [
-    { id: 'encendido', label: 'ENCENDIDO', scenes: ['intro', 'portada', 'globo', 'reloj'] },
+    { id: 'encendido', label: 'ENCENDIDO', scenes: ['intro', 'portada', 'globo', 'reloj', 'sistema'] },
     { id: 'aire_viaje', label: 'AIRE Y VIAJE', scenes: ['aereo', 'ruta', 'mapa'] },
     { id: 'respiracion', label: 'RESPIRACIÓN', scenes: ['clima', 'aire', 'sol'] },
-    { id: 'invisible', label: 'LO INVISIBLE', scenes: ['satelites', 'sol', 'globo'] },
-    { id: 'tension', label: 'TENSIÓN', scenes: ['terremotos', 'incendios', 'observador'] },
+    { id: 'invisible', label: 'LO INVISIBLE', scenes: ['satelites', 'sol', 'globo', 'radar'] },
+    { id: 'tension', label: 'TENSIÓN', scenes: ['terremotos', 'incendios', 'observador', 'frecuencia'] },
     { id: 'humanidad', label: 'HUMANIDAD', scenes: ['diario', 'curiosidades', 'galeria', 'reloj'] }
   ]
 };
