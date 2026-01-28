@@ -205,40 +205,86 @@ export class DialogueEngine {
             const wantVideo = Math.random() > 0.6;
             const context = query.toUpperCase();
 
-            // 1. INTENTAR RECUPERAR DE MEMORIA (PERSISTENCIA)
+            // LÓGICA DE MEMORIA INTELIGENTE (User Request: 2 uses limit, 6 saturation, AI fallback)
+            let useFromMemory = null;
+            let forceNew = false;
+
             try {
               const memRes = await fetch(`/control-api/api/media-memory?query=${encodeURIComponent(query)}`);
               if (memRes.ok) {
                 const memData = await memRes.json();
                 if (memData.results && memData.results.length > 0) {
-                  // Filtrar por preferencia de tipo (video vs image) si es posible, o tomar cualquiera
-                  // Priorizar lo que queremos (video o imagen)
-                  const preferred = memData.results.find(m => m.type === (wantVideo ? 'video' : 'image'));
-                  const candidate = preferred || memData.results[0]; // Fallback a cualquiera
+                  // Filtrar por tipo
+                  const candidates = memData.results.filter(m => m.type === (wantVideo ? 'video' : 'image'));
 
-                  if (candidate) {
-                    console.log(`[DialogueEngine] 💾 Usando media de memoria: ${candidate.url}`);
-                    multimediaOrchestrator.showMediaOverlay({
-                      type: candidate.type,
-                      url: candidate.url,
-                      context: context,
-                      ttlMs: candidate.type === 'video' ? 15000 : 8000
-                    });
-
-                    // "Touch" (actualizar uso)
-                    fetch('/control-api/api/media-memory', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ url: candidate.url })
-                    }).catch(() => { });
-
-                    return; // Éxito con memoria
+                  // 1. SATURACIÓN: Si hay 6 o más opciones, rotación aleatoria pura
+                  if (candidates.length >= 6) {
+                    useFromMemory = candidates[Math.floor(Math.random() * candidates.length)];
+                    console.log(`[DialogueEngine] 🔄 Saturación alcanzada (${candidates.length} items). Rotando aleatoriamente.`);
+                  } else {
+                    // 2. USO LIMITADO: Buscar items usados < 2 veces
+                    const fresh = candidates.filter(m => (m.useCount || 0) < 2);
+                    if (fresh.length > 0) {
+                      // Usar uno de los frescos
+                      useFromMemory = fresh[0];
+                    } else {
+                      // Todos usados >= 2 veces -> FORZAR NUEVO para enriquecer la DB
+                      console.log(`[DialogueEngine] ♻️ Items existentes agotados (uso >= 2). Forzando nueva descarga/generación.`);
+                      forceNew = true;
+                    }
                   }
+                } else {
+                  forceNew = true;
                 }
               }
-            } catch (e) { console.warn("[DialogueEngine] Error leyendo memoria media:", e); }
+            } catch (e) { forceNew = true; }
 
-            // 2. FALLBACK A PEXELS (SI NO HAY MEMORIA)
+            // EJECUTAR: MEMORIA
+            if (useFromMemory && !forceNew) {
+              console.log(`[DialogueEngine] 💾 Usando media de memoria: ${useFromMemory.url} (uso: ${useFromMemory.useCount || 0})`);
+              multimediaOrchestrator.showMediaOverlay({
+                type: useFromMemory.type,
+                url: useFromMemory.url,
+                context: context,
+                ttlMs: useFromMemory.type === 'video' ? 15000 : 8000
+              });
+              // Actualizar uso
+              fetch('/control-api/api/media-memory', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: useFromMemory.url })
+              }).catch(() => { });
+              return;
+            }
+
+            // EJECUTAR: GENERACIÓN / PEXELS (NUEVO)
+
+            // Si es IMAGEN, intentar GENERAR con IA primero (User Request)
+            if (!wantVideo) {
+              // 95% de intentar IA primero
+              if (Math.random() < 0.95) {
+                console.log(`[DialogueEngine] 🎨 Intentando generar imagen IA para "${query}"...`);
+                try {
+                  const aiRes = await fetch('/control-api/api/generate-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: `Cinematic shot of ${query}, highly detailed, 8k, atmospheric lighting`, context: context })
+                  });
+                  const aiData = await aiRes.json();
+                  if (aiRes.ok && aiData.url) {
+                    multimediaOrchestrator.showMediaOverlay({
+                      type: 'image',
+                      url: aiData.url,
+                      context: context + ' (AI)',
+                      ttlMs: 8000
+                    });
+                    return; // Éxito con IA
+                  }
+                } catch (e) { console.warn("AI Gen failed, falling back to Pexels", e); }
+              }
+            }
+
+            // FALLBACK A PEXELS
             if (wantVideo) {
               const videos = await pexelsClient.searchVideos(query, 3);
               if (videos && videos.length > 0) {
@@ -268,7 +314,7 @@ export class DialogueEngine {
               }
             }
 
-            // Fallback o elección de Imagen
+            // Fallback Pexels Imagen
             const photos = await pexelsClient.searchPhotos(query, 5);
             if (photos.length > 0) {
               const pic = photos[Math.floor(Math.random() * photos.length)];

@@ -2888,6 +2888,60 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // POST /api/generate-image - Generar imagen con IA
+    if (req.method === 'POST' && apiPath === '/api/generate-image') {
+        let body = '';
+        req.on('data', c => body += c);
+        req.on('end', async () => {
+            try {
+                const data = JSON.parse(body || '{}');
+                const prompt = data.prompt;
+                if (!prompt) {
+                    res.writeHead(400, headers);
+                    res.end(JSON.stringify({ error: 'missing_prompt' }));
+                    return;
+                }
+
+                console.log(`🎨 Generando imagen IA: "${prompt.slice(0, 50)}..."`);
+
+                // Usar generación HF (que tiene fallback a Pollinations)
+                const result = await generateImageHF(prompt);
+
+                if (result && result.url) {
+                    // Guardar en memoria automáticamente
+                    try {
+                        let memory = [];
+                        if (fs.existsSync(MEDIA_MEMORY_FILE)) {
+                            memory = JSON.parse(fs.readFileSync(MEDIA_MEMORY_FILE, 'utf8'));
+                        }
+                        memory.push({
+                            id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+                            query: (data.context || prompt).toLowerCase(),
+                            url: result.url,
+                            type: 'image',
+                            context: data.context || prompt,
+                            timestamp: Date.now(),
+                            useCount: 1, // Cuenta como usado
+                            source: 'ai_gen'
+                        });
+                        fs.writeFileSync(MEDIA_MEMORY_FILE, JSON.stringify(memory, null, 2));
+                    } catch (e) { console.error("Error saving generated image to memory", e); }
+
+                    res.writeHead(200, headers);
+                    res.end(JSON.stringify({ ok: true, url: result.url }));
+                } else {
+                    res.writeHead(500, headers);
+                    res.end(JSON.stringify({ ok: false, error: 'generation_failed' }));
+                }
+            } catch (e) {
+                console.error("Error in generate-image:", e);
+                res.writeHead(500, headers);
+                res.end(JSON.stringify({ ok: false, error: e.message }));
+            }
+        });
+        return;
+    }
+
     // Serve control.html
     if (apiPath === '/control.html' || apiPath === '/') {
         const htmlPath = path.join(__dirname, 'control.html');
