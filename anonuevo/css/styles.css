@@ -1284,3 +1284,110 @@ html {
     pointer-events: none;
     transition: opacity 1s ease;
 }
+/* =========================================
+   CINEMATIC / INTRO STYLE SCENE (New Standard)
+   ========================================= */
+
+.cinematic-root {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background: #020617; /* Slate 950 - Intro Style */
+    color: #fff;
+    font-family: 'Outfit', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.cinematic-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: radial-gradient(circle at 50% 50%, #0f172a 0%, #020617 80%);
+}
+
+.cinematic-container {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+}
+
+.cinematic-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    z-index: 20;
+    animation: fadeInDown 1.5s ease-out;
+}
+
+.cinematic-title {
+    font-size: 4rem;
+    margin: 0;
+    letter-spacing: 8px;
+    color: #38bdf8; /* Sky 400 */
+    text-transform: uppercase;
+    font-weight: 700;
+    text-shadow: 0 0 30px rgba(56, 189, 248, 0.3);
+}
+
+.cinematic-subtitle {
+    font-size: 1rem;
+    color: #94a3b8;
+    letter-spacing: 4px;
+    font-weight: 300;
+    margin-top: 10px;
+    text-transform: uppercase;
+    border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+    display: inline-block;
+    padding-bottom: 10px;
+}
+
+/* Central Content Area */
+.cinematic-body {
+    flex: 1;
+    width: 100%;
+    max-width: 1400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 15;
+}
+
+.cinematic-footer {
+    width: 100%;
+    text-align: center;
+    padding: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    color: #64748b;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    z-index: 20;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 90%;
+}
+
+.cinematic-ticker {
+    color: #a855f7; /* Purple for AI thoughts */
+}
+
+/* Utility containers for legacy compatibility */
+.cinematic-hidden-panel {
+    display: none; /* Hide legacy panels unless we find a way to show them elegantly */
+}
+
+/* Animations */
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}

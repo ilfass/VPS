@@ -8,58 +8,46 @@ export function createTvScene({
     modeId = 'mode',
     title = 'ESCENA',
     subtitle = '',
-    accent = '#4a9eff'
+    accent = '#38bdf8'
 } = {}) {
     const root = document.createElement('div');
-    root.className = 'tv-scene-root';
+    root.className = 'cinematic-root'; // New class
     root.dataset.mode = modeId;
-    root.style.setProperty('--tv-accent', accent);
 
+    // Intro/Cinematic Structure
     root.innerHTML = `
-        <div class="tv-bg">
-            <div class="tv-bg-grid"></div>
-            <div class="tv-bg-noise"></div>
-            <div class="tv-bg-vignette"></div>
+        <div class="cinematic-bg"></div>
+        
+        <div class="cinematic-header">
+            <h1 class="cinematic-title">${escapeHtml(title)}</h1>
+            <div class="cinematic-subtitle">${escapeHtml(subtitle || '')}</div>
         </div>
 
-        <div class="tv-topbar">
-            <div class="tv-title">
-                <div class="badge">LIVE</div>
-                <div class="t1">${escapeHtml(title)}</div>
-                <div class="t2">${escapeHtml(subtitle || '')}</div>
-            </div>
-            <div class="tv-meta">
-                <div class="pill" id="tv-clock">--:--:--</div>
-                <div class="pill" id="tv-status">BUILD</div>
-            </div>
+        <div id="tv-main" class="cinematic-body"></div>
+
+        <div class="cinematic-footer">
+            <span id="tv-clock" style="color: #64748b;">--:--</span>
+            <span id="tv-ticker" class="cinematic-ticker">Preparando escena...</span>
+            <span id="tv-status" style="font-size: 0.7em; opacity: 0.5;">LIVE</span>
         </div>
 
-        <div class="tv-body">
-            <div class="tv-panel left">
-                <div class="hdr">CONSTRUCCIÓN</div>
-                <div class="tv-build" id="tv-build"></div>
-                <div class="tv-mini" id="tv-mini"></div>
-            </div>
-            <div class="tv-main" id="tv-main"></div>
-            <div class="tv-panel right">
-                <div class="hdr">SEÑALES</div>
-                <div class="tv-cards" id="tv-cards"></div>
-            </div>
-        </div>
-
-        <div class="tv-ticker" id="tv-ticker">
-            <span class="label">ILFASS</span>
-            <span class="msg">Preparando escena…</span>
+        <!-- Hidden containers so legacy code doesn't crash on null -->
+        <div style="display: none;">
+            <div id="tv-build"></div>
+            <div id="tv-mini"></div>
+            <div id="tv-cards"></div>
         </div>
     `;
 
     const api = {
         root,
         main: root.querySelector('#tv-main'),
+        // Map legacy panels to hidden divs
         build: root.querySelector('#tv-build'),
         mini: root.querySelector('#tv-mini'),
         cards: root.querySelector('#tv-cards'),
-        ticker: root.querySelector('#tv-ticker .msg'),
+
+        ticker: root.querySelector('#tv-ticker'),
         clock: root.querySelector('#tv-clock'),
         status: root.querySelector('#tv-status'),
         sfx: sfxEngine
@@ -76,24 +64,22 @@ export function createTvScene({
     api._clockTimer = setInterval(tickClock, 1000);
 
     api.setStatus = (txt) => {
-        if (api.status) api.status.textContent = (txt || '').toUpperCase();
+        if (api.status) {
+            api.status.textContent = (txt || '').toUpperCase();
+        }
     };
+
     api.setTicker = (txt) => {
         if (api.ticker) api.ticker.textContent = txt || '';
     };
 
     api.addCard = ({ k, v, tone = 'neutral' } = {}) => {
+        // En modo cinemático, las tarjetas de "datos" no se muestran por defecto en el panel lateral.
+        // Podríamos loguearlas o mostrarlas como notificaciones flotantes si fuera crítico.
+        // Por ahora, solo las agregamos al DOM oculto para cumplir el contrato.
         const card = document.createElement('div');
-        card.className = `tv-card ${tone}`;
-        card.innerHTML = `
-            <div class="k"></div>
-            <div class="v"></div>
-        `;
-        card.querySelector('.k').textContent = k || '';
-        card.querySelector('.v').textContent = v || '';
-        api.cards.appendChild(card);
-        // animación de entrada
-        requestAnimationFrame(() => card.classList.add('in'));
+        card.textContent = `${k}: ${v}`;
+        if (api.cards) api.cards.appendChild(card);
         return card;
     };
 
@@ -102,7 +88,6 @@ export function createTvScene({
         api._clockTimer = null;
     };
 
-    // Armar SFX (autoplay-safe)
     try { api.sfx.arm(); } catch (e) { }
 
     return api;
