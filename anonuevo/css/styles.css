@@ -406,6 +406,7 @@ html {
     pointer-events: auto;
 }
 
+/* Avatar Image (Sprite Based) */
 .avatar-image {
     width: 120px;
     height: 120px;
@@ -415,29 +416,58 @@ html {
     flex-shrink: 0;
     background-color: #0f172a;
     overflow: hidden;
-    transition: all 0.3s ease;
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
     position: relative;
+
+    /* Sprite Configuration (2 frames: Closed | Open) */
+    background-image: url(/assets/images/avatar_sprite.png);
+    background-size: 200% 100%;
+    /* El sprite es el doble de ancho */
+    background-position: 0 0;
+    /* Frame 1: Boca cerrada */
 }
 
-/* Animación cuando el avatar está hablando */
+/* Animación cuando el avatar está hablando (Sprite Toggling) */
 .avatar-image.speaking {
-    animation: avatarSpeaking 0.5s ease-in-out infinite;
-    box-shadow: 0 0 40px rgba(56, 189, 248, 0.6);
-    border-color: rgba(96, 165, 250, 0.8);
+    /* Alternar entre frame 1 y 2 rápidamente para simular hablar */
+    animation:
+        avatarTalkSprite 0.2s steps(1) infinite,
+        /* Boca: cambiar frames */
+        avatarPulseSpeaking 0.5s ease-in-out infinite alternate;
+    /* Glow: pulsar intensidad */
+    box-shadow: 0 0 45px rgba(56, 189, 248, 0.7);
+    border-color: rgba(96, 165, 250, 0.9);
 }
 
-/* Efecto de "boca" moviéndose */
-.avatar-image.speaking::after {
-    content: '';
-    position: absolute;
-    bottom: 20%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 40px;
-    height: 8px;
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 50%;
-    animation: mouthMove 0.3s ease-in-out infinite;
+/* Keyframes para Sprite (0% = Cerrado, 50% = Abierto) */
+@keyframes avatarTalkSprite {
+
+    0%,
+    100% {
+        background-position: 0 0;
+    }
+
+    50% {
+        background-position: 100% 0;
+    }
+}
+
+/* Keyframes para Glow/Escala sutil */
+@keyframes avatarPulseSpeaking {
+    0% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
+
+    100% {
+        transform: scale(1.02);
+        filter: brightness(1.2);
+    }
+}
+
+/* Eliminar el "after" antiguo que simulaba la boca */
+.avatar-image::after {
+    display: none;
 }
 
 @keyframes avatarSpeaking {
@@ -1284,6 +1314,7 @@ html {
     pointer-events: none;
     transition: opacity 1s ease;
 }
+
 /* =========================================
    CINEMATIC / INTRO STYLE SCENE (New Standard)
    ========================================= */
@@ -1292,7 +1323,8 @@ html {
     width: 100%;
     height: 100%;
     position: relative;
-    background: #020617; /* Slate 950 - Intro Style */
+    background: #020617;
+    /* Slate 950 - Intro Style */
     color: #fff;
     font-family: 'Outfit', sans-serif;
     display: flex;
@@ -1332,7 +1364,8 @@ html {
     font-size: 4rem;
     margin: 0;
     letter-spacing: 8px;
-    color: #38bdf8; /* Sky 400 */
+    color: #38bdf8;
+    /* Sky 400 */
     text-transform: uppercase;
     font-weight: 700;
     text-shadow: 0 0 30px rgba(56, 189, 248, 0.3);
@@ -1378,18 +1411,27 @@ html {
 }
 
 .cinematic-ticker {
-    color: #a855f7; /* Purple for AI thoughts */
+    color: #a855f7;
+    /* Purple for AI thoughts */
 }
 
 /* Utility containers for legacy compatibility */
 .cinematic-hidden-panel {
-    display: none; /* Hide legacy panels unless we find a way to show them elegantly */
+    display: none;
+    /* Hide legacy panels unless we find a way to show them elegantly */
 }
 
 /* Animations */
 @keyframes fadeInDown {
-    from { opacity: 0; transform: translateY(-20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* =========================================
@@ -1403,7 +1445,8 @@ html {
     pointer-events: none;
     z-index: 1;
     overflow: hidden;
-    opacity: 0.15; /* Sutil */
+    opacity: 0.15;
+    /* Sutil */
 }
 
 .data-stream {
@@ -1419,10 +1462,23 @@ html {
 }
 
 @keyframes dataFall {
-    0% { transform: translateY(-100px); opacity: 0; }
-    10% { opacity: 1; }
-    90% { opacity: 1; }
-    100% { transform: translateY(110vh); opacity: 0; }
+    0% {
+        transform: translateY(-100px);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    90% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(110vh);
+        opacity: 0;
+    }
 }
 
 /* Efecto de "Respiración" en el fondo */
@@ -1431,8 +1487,15 @@ html {
 }
 
 @keyframes deepBreath {
-    0% { transform: scale(1); filter: brightness(1); }
-    100% { transform: scale(1.02); filter: brightness(1.1); }
+    0% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
+
+    100% {
+        transform: scale(1.02);
+        filter: brightness(1.1);
+    }
 }
 
 /* Partículas flotantes */
@@ -1445,8 +1508,21 @@ html {
 }
 
 @keyframes floatUp {
-    0% { transform: translateY(100vh) scale(0); opacity: 0; }
-    20% { opacity: 0.5; }
-    80% { opacity: 0.5; }
-    100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+    0% {
+        transform: translateY(100vh) scale(0);
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 0.5;
+    }
+
+    80% {
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: translateY(-10vh) scale(1);
+        opacity: 0;
+    }
 }

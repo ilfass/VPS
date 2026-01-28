@@ -43,7 +43,7 @@ export class AvatarSubtitlesManager {
         // Avatar (imagen)
         this.avatarElement = document.createElement('div');
         this.avatarElement.className = 'avatar-image';
-        this.avatarElement.style.backgroundImage = 'url(/assets/images/companion_avatar.png)';
+        this.avatarElement.style.backgroundImage = 'url(/assets/images/avatar_sprite.png)';
         this.avatarElement.style.backgroundSize = 'cover';
         this.avatarElement.style.backgroundPosition = 'center';
 
