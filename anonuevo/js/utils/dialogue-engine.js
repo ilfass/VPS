@@ -1,3 +1,4 @@
+
 const KEY_ACTIVE = 'streaming_plan_active_v1';
 const KEY_LAST_SPOKE = 'streaming_last_spoke_at_v1';
 const KEY_COMPANION_NAME = 'streaming_companion_name_v1';
@@ -86,6 +87,8 @@ async function aiGenerate(prompt) {
 
 function isBusy() {
   try {
+    // Si el AudioManager está hablando, estamos ocupados.
+    // La cola gestiona el flujo, así que "busy" es hablar.
     if (audioManager.isSpeaking) return true;
     if (audioManager.currentAudio) return true;
     if (audioManager.currentUtterance) return true;
@@ -97,27 +100,18 @@ function isBusy() {
 }
 
 // Mapeo de Rol -> Voz/Prioridad
-async function speakRole(text, role) {
-  if (!text) return;
-  // Role mapping:
+function getVoicePriority(role) {
   // 'ilfass' -> 'normal' (Voz Masculina Principal)
   // 'companion' -> 'companion' (Voz Femenina/Alternativa)
-  const priority = role === 'companion' ? 'news' : 'normal';
-
-  setLastSpoke(now());
-
-  // Pequeño delay artificial antes de hablar para "respirar"
-  await new Promise(r => setTimeout(r, 500));
-
-  await audioManager.speak(text, priority, () => { });
+  return role === 'companion' ? 'news' : 'normal';
 }
 
 export class DialogueEngine {
   constructor() {
     this.timer = null;
-    this.cycleMs = 12 * 60 * 1000; // Ciclos más largos (12 min) como pide el bloque de ritmo
+    this.cycleMs = 4 * 60 * 1000; // Ciclos de generación (~4 min)
     this.queue = [];
-    this.running = false;
+    this.isSpeaking = false;
     this.lastCycleAt = 0;
   }
 
@@ -125,14 +119,14 @@ export class DialogueEngine {
     if (!isActive()) return;
     if (this.timer) return;
     this.tick();
-    this.timer = setInterval(() => this.tick(), 2500); // Check rápido
+    this.timer = setInterval(() => this.tick(), 2000); // Check rápido cada 2s
   }
 
   stop() {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
     this.queue = [];
-    this.running = false;
+    this.isSpeaking = false;
   }
 
   async tick() {
@@ -145,102 +139,103 @@ export class DialogueEngine {
     const last = getLastSpoke();
     const gap = last ? (now() - last) : 999_999;
 
-    // Regla de Oro: Evitar silencios > 20-25s de VOZ (cubiertos por música, pero riesgo de vacío)
-    if (gap > 25_000 && !isBusy() && !this.queue.length) {
-      // Disparar recap o bumper visual si no hay nada en cola
+    // Anti-silencio: si pasan 35s sin voz, disparar algo para que no parezca muerto
+    if (gap > 35_000 && !this.isSpeaking && !this.queue.length && !isBusy()) {
       try {
         const ev = new CustomEvent('stream_force_recap');
         window.dispatchEvent(ev);
-        // Marcamos como "hablado" para resetear timer y no spammear
         setLastSpoke(now());
       } catch (e) { }
       return;
     }
 
     // Generación de cola
+    // Si pasó mucho tiempo O la cola está vacía y hay silencio incómodo (>15s)
     if ((now() - this.lastCycleAt) > this.cycleMs || (this.queue.length === 0 && gap > 15_000)) {
-      if (!this.running && !this.queue.length) {
+      if (!this.isSpeaking && !this.queue.length) {
         this.lastCycleAt = now();
         await this.generateCycle();
       }
     }
 
-    // Consumo de cola
-    if (this.queue.length && !this.running && !isBusy()) {
-      // Verificar si toca esperar (ritmo de música)
-      // Cada item en cola puede tener un 'delay' pre-calculado
-      const nextItem = this.queue[0];
-      if (nextItem && nextItem.timestamp && now() < nextItem.timestamp) {
-        return; // Esperando delay de música
-      }
-
-      this.running = true;
-      try {
-        await this.runQueue();
-      } finally {
-        this.running = false;
-      }
+    // Consumo de cola (Event Driven Loop)
+    // Si hay items y no estamos hablando actualmente
+    if (this.queue.length && !this.isSpeaking && !isBusy()) {
+      this.playNext();
     }
   }
 
+  playNext() {
+    if (!this.queue.length) return;
+
+    // Sacar siguiente item
+    const item = this.queue.shift();
+    if (!item?.text) {
+      this.playNext(); // Skip empty
+      return;
+    }
+
+    this.isSpeaking = true;
+    const priority = getVoicePriority(item.role);
+
+    console.log(`🎙️ [${item.role}] Speaking: "${item.text.substring(0, 30)}..."`);
+
+    // Hablar y esperar callback al terminar
+    // ESTO ES CLAVE: audioManager.speak llama al callback CUANDO TERMINA EL AUDIO.
+    audioManager.speak(item.text, priority, () => {
+      setLastSpoke(now());
+
+      // Calcular "aire" dinámico antes del siguiente
+      // Si cambia de hablante, el gap es corto (0.5 - 1.5s) para sensación de charla.
+      // Si es el mismo, es una pausa de énfasis (2 - 3s).
+      const nextRole = this.queue[0]?.role;
+      const isConversation = nextRole && nextRole !== item.role;
+      const gap = isConversation ? (500 + Math.random() * 1000) : (2000 + Math.random() * 1500);
+
+      console.log(`⏱️ Gap para siguiente: ${Math.round(gap)}ms`);
+
+      setTimeout(() => {
+        this.isSpeaking = false;
+        // El tick() o esta misma recursión dispararán el siguiente
+        if (this.queue.length) {
+          this.playNext();
+        } else {
+          console.log("✅ Ráfaga de diálogo finalizada.");
+        }
+      }, gap);
+    });
+  }
+
   async generateCycle() {
-    console.log("🧠 Generando nuevo ciclo narrativo...");
+    console.log("🧠 Generando nuevo ciclo narrativo (Conversacional)...");
     const mode = currentModeFromPath();
     const movement = mapMovement(mode);
-    const worldState = mapWorldState(mode);
     const emotional = mapEmotional(mode);
-    const hoja = mode.toUpperCase();
 
-    // 1. ILFASS PROMPT
+    // 1. ILFASS PROMPT (Refiexivo)
     const ilfassPrompt = `
-Sos Ilfass.
-Sos un viajante que observa el mundo en tiempo real.
-No explicás tecnología ni datos técnicos.
-Hablás en frases cortas, poéticas y reflexivas.
-No repetís frases de transmisiones anteriores.
-No hacés preguntas al público.
-No usás muletillas.
-
-Contexto visual actual: ${hoja}
-Movimiento dominante: ${movement}
-Estado del mundo: ${worldState}
-Clima emocional: ${emotional}
-
-Generá entre 2 y 3 intervenciones de 1 o 2 frases cada una.
-Formato: Texto plano, una por línea.
+Sos Ilfass. Voz poética principal.
+Contexto visual: ${mode}.
+Tono: ${emotional}.
+Generá 2 frases cortas y profundas sobre lo que ves o sentís. Directo al grano.
 `.trim();
 
-    // 2. COMPANION PROMPT
+    // 2. COMPANION PROMPT (Interactivo)
     const companionName = getCompanionName();
     const companionPrompt = `
-Sos ${companionName}, una voz acompañante de Ilfass.
-No sos protagonista.
-Tu función es sostener el ritmo.
-Podés:
-- Hacer preguntas breves.
-- Aportar una observación concreta.
-- Reaccionar suavemente a lo que dijo Ilfass.
-- Leer el pulso general del chat (sin mencionar nombres).
-
-No explicás de más.
-No debates.
-No interrumpís.
-
-Contexto visual actual: ${hoja}
-Tema del bloque: ${movement}
-Nivel de actividad del chat: MEDIO
-
-Generá entre 2 y 3 intervenciones breves.
-Formato: Texto plano, una por línea.
+Sos ${companionName}. Voz acompañante, femenina y curiosa.
+Contexto: ${mode}.
+Generá 2 intervenciones BREVES:
+1. Una pregunta corta a Ilfass sobre su reflexión ("¿Crees que ellos nos ven?").
+2. Un dato curioso rápido sobre la imagen ("La temperatura ahí abajo es de...").
 `.trim();
 
-    // 3. CHAT INTERACTION (Eventual, 40% chance of triggering)
+    // 3. CHAT INTERACTION (Eventual, 50% chance)
     let chatLine = null;
-    if (Math.random() < 0.4) {
+    // Intentamos obtener chat real siempre que sea posible
+    if (Math.random() < 0.5) {
       try {
-        // Intentar leer chat REAL primero
         let realMessages = [];
-        // El token y videoId deben estar en localStorage (guardados por control.html)
         const ytToken = localStorage.getItem('youtube_oauth_token');
         const ytVideoId = localStorage.getItem('yt_video_id_v1') || localStorage.getItem('youtube-video-id');
 
@@ -250,34 +245,17 @@ Formato: Texto plano, una por línea.
               headers: { 'Authorization': `Bearer ${ytToken}` }
             });
             const chatData = await chatReq.json();
-            if (chatData.messages && chatData.messages.length > 0) {
-              realMessages = chatData.messages;
-            }
-          } catch (e) { console.warn("Fallo lectura chat real", e); }
+            if (chatData.messages?.length > 0) realMessages = chatData.messages;
+          } catch (e) { }
         }
 
+        // Si hay chat real, usalo. Si no, simula.
         let chatPrompt = "";
-
         if (realMessages.length > 0) {
-          // Usar mensajes reales
-          // Tomamos 3 al azar para dar contexto
-          const sample = realMessages.sort(() => 0.5 - Math.random()).slice(0, 3).map(m => `"${m.text}"`).join(" / ");
-          chatPrompt = `
-El chat está activo con mensajes reales: ${sample}.
-Seleccioná UNO o reaccioná al clima general de estos mensajes.
-Respondé de forma breve, abierta y no técnica como la voz acompañante "La Señal".
-Nunca cierres el tema.
-No cites usuarios por nombre exacto, referite a ellos como "alguien dice" o "nos cuentan".
-`.trim();
+          const sample = realMessages.sort(() => 0.5 - Math.random()).slice(0, 2).map(m => `"${m.text}"`).join(" / ");
+          chatPrompt = `El chat dice: ${sample}. Como ${companionName}, reaccioná brevemente a esto sin leer nombres de usuario.`;
         } else {
-          // Simulación (fallback)
-          chatPrompt = `
-El chat está activo (simulado). Temas: viajes, clima, noche, insomnio, tecnología.
-Seleccioná UNA pregunta o reacción genérica del público.
-Respondé de forma breve, abierta y no técnica como la voz acompañante "La Señal".
-Nunca cierres el tema.
-No cites usuarios.
-`.trim();
+          chatPrompt = `Simulá leer un mensaje del chat sobre el paisaje actual. Como ${companionName}, comentalo brevemente.`;
         }
 
         chatLine = await aiGenerate(chatPrompt);
@@ -289,62 +267,34 @@ No cites usuarios.
       aiGenerate(companionPrompt)
     ]);
 
-    const ilfassLines = safeLines(t1, 3);
-    const compLines = safeLines(t2, 3);
-    if (chatLine) compLines.push(safeLines(chatLine, 1)[0]);
+    const ilfassLines = safeLines(t1, 4);
+    const compLines = safeLines(t2, 4);
 
-    // Algoritmo de mezclado con tiempos (RITMO DE RADIO)
-    // Patrón: Voz (15s) -> Musica (8s) -> Voz 2 -> Musica -> Voz 1
+    // Armar conversación entrelazada (PING PONG)
     const newQueue = [];
-    let currentTime = now() + 2000; // Arranque suave
 
-    // Maximo de items por ciclo
-    const items = [];
+    // Patrón conversacional: A -> B (rápido) -> A (pausa) -> B (Chat)
 
-    // Primero Ilfass (fuerte)
-    if (ilfassLines[0]) items.push({ role: 'ilfass', text: ilfassLines.shift() });
+    // 1. Apertura Ilfass
+    if (ilfassLines[0]) newQueue.push({ role: 'ilfass', text: ilfassLines.shift() });
 
-    // Luego Companion
-    if (compLines[0]) items.push({ role: 'companion', text: compLines.shift() });
+    // 2. Reacción Companion (pregunta/dato)
+    if (compLines[0]) newQueue.push({ role: 'companion', text: compLines.shift() });
 
-    // Luego Ilfass
-    if (ilfassLines[0]) items.push({ role: 'ilfass', text: ilfassLines.shift() });
+    // 3. Respuesta/Continuación Ilfass
+    if (ilfassLines[0]) newQueue.push({ role: 'ilfass', text: ilfassLines.shift() });
 
-    // Cierre Companion
-    if (compLines[0]) items.push({ role: 'companion', text: compLines.shift() });
-
-    // Asignar tiempos
-    items.forEach(item => {
-      newQueue.push({
-        ...item,
-        timestamp: currentTime
-      });
-      // Calculo de duración estimada + Silencio de música (5-10s)
-      // 100 caracteres ~ 6-8 seg audio. + 8 seg música.
-      const audioDur = Math.max(5000, (item.text.length * 60));
-      const musicGap = 6000 + Math.random() * 4000; // 6 a 10 seg de música
-      currentTime += audioDur + musicGap;
-    });
+    // 4. Chat o Cierre Companion
+    if (chatLine) {
+      newQueue.push({ role: 'companion', text: safeLines(chatLine, 1)[0] });
+    } else if (compLines[0]) {
+      newQueue.push({ role: 'companion', text: compLines.shift() });
+    }
 
     this.queue = newQueue;
-    console.log(`✅ Ciclo generado: ${newQueue.length} items. Próxima voz: ${new Date(newQueue[0]?.timestamp).toTimeString()}`);
-  }
-
-  async runQueue() {
-    if (!this.queue.length) return;
-
-    // Sacar el primero
-    const item = this.queue.shift();
-    if (!item?.text) return;
-
-    console.log(`🎙️ [${item.role}] Playing: "${item.text.substring(0, 30)}..."`);
-    await speakRole(item.text, item.role);
-
-    // El "silencio con música" es implícito: 
-    // runQueue termina, el tick vuelve a evaluar, 
-    // y el siguiente item tiene 'timestamp' en el futuro gracias a generateCycle.
+    console.log(`✅ Ciclo generado: ${newQueue.length} items.`);
+    this.queue.forEach(q => console.log(`  -> [${q.role}] ${q.text.substring(0, 25)}...`));
   }
 }
 
 export const dialogueEngine = new DialogueEngine();
-
