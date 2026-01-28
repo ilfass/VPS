@@ -23,8 +23,16 @@ export class AudioManager {
         // Usar rutas absolutas desde la raíz del servidor
         this.tracks = [
             '/assets/audio/ambient_base.mp3',
-            '/assets/audio/ambient_base.mp3', // Placeholder for more tracks
+            '/assets/audio/music/By Myself - The Grey Room _ Clark Sims.mp3',
+            '/assets/audio/music/Claim To Fame - The Grey Room _ Clark Sims.mp3',
+            '/assets/audio/music/Down The Rabbit Hole - The Grey Room _ Density & Time.mp3',
+            '/assets/audio/music/Drifting at 432 Hz - Unicorn Heads.mp3',
+            '/assets/audio/music/Josef Suk, Serenade, Op 6 - A Far Cry.mp3',
+            '/assets/audio/music/Resolution Or Reflection - The Grey Room _ Clark Sims.mp3',
+            '/assets/audio/music/TRAVELATOR - Density & Time.mp3'
         ];
+        // Shuffle inicial para que no siempre empiece por la misma
+        this.tracks.sort(() => Math.random() - 0.5);
         this.currentTrackIndex = 0;
 
         // Ducking (música baja mientras habla)
