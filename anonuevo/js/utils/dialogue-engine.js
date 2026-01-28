@@ -218,6 +218,7 @@ Sos Ilfass. Voz poética principal.
 Contexto visual: ${mode}.
 Tono: ${emotional}.
 Generá 2 frases cortas y profundas sobre lo que ves o sentís. Directo al grano.
+RESPONDÉ SIEMPRE EN ESPAÑOL.
 `.trim();
 
     // 2. COMPANION PROMPT (Interactivo)
@@ -225,7 +226,7 @@ Generá 2 frases cortas y profundas sobre lo que ves o sentís. Directo al grano
     const companionPrompt = `
 Sos ${companionName}. Voz acompañante, femenina y curiosa.
 Contexto: ${mode}.
-Generá 2 intervenciones BREVES:
+Generá 2 intervenciones BREVES en ESPAÑOL:
 1. Una pregunta corta a Ilfass sobre su reflexión ("¿Crees que ellos nos ven?").
 2. Un dato curioso rápido sobre la imagen ("La temperatura ahí abajo es de...").
 `.trim();
