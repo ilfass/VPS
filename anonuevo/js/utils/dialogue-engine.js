@@ -234,18 +234,52 @@ Generá entre 2 y 3 intervenciones breves.
 Formato: Texto plano, una por línea.
 `.trim();
 
-    // 3. CHAT INTERACTION (Eventual, 30% chance)
+    // 3. CHAT INTERACTION (Eventual, 40% chance of triggering)
     let chatLine = null;
     if (Math.random() < 0.4) {
       try {
-        // Simulación de interacción. En futuro conectar a API real de chat.
-        const chatPrompt = `
-El chat está activo. Temas: viajes, clima, noche, insomnio, tecnología.
+        // Intentar leer chat REAL primero
+        let realMessages = [];
+        // El token y videoId deben estar en localStorage (guardados por control.html)
+        const ytToken = localStorage.getItem('youtube_oauth_token');
+        const ytVideoId = localStorage.getItem('yt_video_id_v1') || localStorage.getItem('youtube-video-id');
+
+        if (ytToken && ytVideoId) {
+          try {
+            const chatReq = await fetch(`/control-api/api/chat/live?videoId=${ytVideoId}`, {
+              headers: { 'Authorization': `Bearer ${ytToken}` }
+            });
+            const chatData = await chatReq.json();
+            if (chatData.messages && chatData.messages.length > 0) {
+              realMessages = chatData.messages;
+            }
+          } catch (e) { console.warn("Fallo lectura chat real", e); }
+        }
+
+        let chatPrompt = "";
+
+        if (realMessages.length > 0) {
+          // Usar mensajes reales
+          // Tomamos 3 al azar para dar contexto
+          const sample = realMessages.sort(() => 0.5 - Math.random()).slice(0, 3).map(m => `"${m.text}"`).join(" / ");
+          chatPrompt = `
+El chat está activo con mensajes reales: ${sample}.
+Seleccioná UNO o reaccioná al clima general de estos mensajes.
+Respondé de forma breve, abierta y no técnica como la voz acompañante "La Señal".
+Nunca cierres el tema.
+No cites usuarios por nombre exacto, referite a ellos como "alguien dice" o "nos cuentan".
+`.trim();
+        } else {
+          // Simulación (fallback)
+          chatPrompt = `
+El chat está activo (simulado). Temas: viajes, clima, noche, insomnio, tecnología.
 Seleccioná UNA pregunta o reacción genérica del público.
 Respondé de forma breve, abierta y no técnica como la voz acompañante "La Señal".
 Nunca cierres el tema.
 No cites usuarios.
 `.trim();
+        }
+
         chatLine = await aiGenerate(chatPrompt);
       } catch (e) { }
     }

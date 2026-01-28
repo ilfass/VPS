@@ -1,3 +1,5 @@
+try { require('dotenv').config({ path: require('path').join(__dirname, '.env') }); } catch (e) { /* dotenv opcional */ }
+
 const http = require('http');
 const url = require('url');
 const fs = require('fs');
@@ -62,6 +64,425 @@ const headers = {
     'Access-Control-Allow-Headers': 'Content-Type',
     'Content-Type': 'application/json'
 };
+
+// =========================
+// REAL-TIME OBSERVER (NEWS / TRENDS / CULTURE / SCI-TECH / HEALTH / SECURITY)
+// =========================
+// Objetivo: agregar señales “en tiempo real” sin intervención humana:
+// - Noticias / agenda (Google News RSS por tópico/búsqueda)
+// - Tendencias sociales (Google Trends RSS)
+// - Cultura (feriados + “on this day”)
+// - Ciencia/tech (arXiv RSS)
+// - Seguridad (CISA KEV JSON)
+// - Salud pública (Google News HEALTH + CDC EID RSS)
+//
+// Nota: evitamos dependencias externas (parser RSS simple).
+
+const OBSERVER_CACHE = new Map(); // key -> { ts, value }
+const OBSERVER_TTL_MS = 8 * 60 * 1000; // 8 min: suficiente para “live” sin golpear upstream
+
+function nowIso() { return new Date().toISOString(); }
+
+function stripHtml(s) {
+    return String(s || '')
+        .replace(/<!\[CDATA\[/g, '')
+        .replace(/\]\]>/g, '')
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function safeSlice(s, n = 260) {
+    return String(s || '').replace(/\s+/g, ' ').trim().slice(0, n);
+}
+
+function parseXmlItems(xml, itemTag) {
+    const items = [];
+    const re = new RegExp(`<${itemTag}\\b[\\s\\S]*?<\\/${itemTag}>`, 'gi');
+    const matches = xml.match(re) || [];
+    for (const chunk of matches) items.push(chunk);
+    return items;
+}
+
+function extractTag(chunk, tag) {
+    const re = new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i');
+    const m = chunk.match(re);
+    return m ? stripHtml(m[1]) : '';
+}
+
+function extractAttr(chunk, tag, attr) {
+    // Ej: <link href="..."/>
+    const re = new RegExp(`<${tag}\\b[^>]*\\s${attr}="([^"]+)"[^>]*\\/?>`, 'i');
+    const m = chunk.match(re);
+    return m ? String(m[1] || '').trim() : '';
+}
+
+function parseRssOrAtom(xmlText) {
+    const xml = String(xmlText || '');
+    const isAtom = /<feed\b/i.test(xml) && /<entry\b/i.test(xml);
+
+    const chunks = isAtom ? parseXmlItems(xml, 'entry') : parseXmlItems(xml, 'item');
+    const out = [];
+
+    for (const c of chunks) {
+        const title = safeSlice(extractTag(c, 'title'), 220);
+        const summary = safeSlice(extractTag(c, isAtom ? 'summary' : 'description'), 420);
+        const link = safeSlice(
+            (isAtom ? (extractAttr(c, 'link', 'href') || extractTag(c, 'link')) : extractTag(c, 'link')),
+            500
+        );
+        const publishedAt =
+            safeSlice(extractTag(c, isAtom ? 'updated' : 'pubDate'), 60) ||
+            safeSlice(extractTag(c, 'published'), 60);
+
+        if (!title) continue;
+        out.push({ title, summary, link, publishedAt });
+    }
+
+    return out;
+}
+
+async function fetchTextWithTimeout(url, timeoutMs = 12000, headers = {}) {
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const r = await fetch(url, {
+            method: 'GET',
+            signal: controller.signal,
+            headers: {
+                'User-Agent': 'ilfass-control-server/observer (+https://local)',
+                'Accept': 'text/html,application/xml,text/xml,application/json;q=0.9,*/*;q=0.8',
+                ...headers
+            }
+        });
+        const text = await r.text();
+        return { ok: r.ok, status: r.status, text };
+    } finally {
+        clearTimeout(t);
+    }
+}
+
+async function fetchJsonWithTimeout(url, timeoutMs = 12000, headers = {}) {
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const r = await fetch(url, {
+            method: 'GET',
+            signal: controller.signal,
+            headers: {
+                'User-Agent': 'ilfass-control-server/observer (+https://local)',
+                'Accept': 'application/json,*/*;q=0.8',
+                ...headers
+            }
+        });
+        const json = await r.json().catch(() => null);
+        return { ok: r.ok, status: r.status, json };
+    } finally {
+        clearTimeout(t);
+    }
+}
+
+async function cached(key, ttlMs, loaderFn) {
+    const hit = OBSERVER_CACHE.get(key);
+    if (hit && (Date.now() - hit.ts) < ttlMs) return hit.value;
+    const value = await loaderFn();
+    OBSERVER_CACHE.set(key, { ts: Date.now(), value });
+    return value;
+}
+
+function googleNewsBase({ hl = 'es-419', gl = 'US', ceid = 'US:es-419' } = {}) {
+    // hl: idioma (ej: es-419), gl: país (ISO2), ceid: ${gl}:${lang}
+    return `https://news.google.com/rss?hl=${encodeURIComponent(hl)}&gl=${encodeURIComponent(gl)}&ceid=${encodeURIComponent(ceid)}`;
+}
+
+function googleNewsTopicUrl(topic, opts) {
+    // topic: WORLD, TECHNOLOGY, SCIENCE, HEALTH, ENTERTAINMENT...
+    return `https://news.google.com/rss/headlines/section/topic/${encodeURIComponent(topic)}?hl=${encodeURIComponent(opts.hl)}&gl=${encodeURIComponent(opts.gl)}&ceid=${encodeURIComponent(opts.ceid)}`;
+}
+
+function googleNewsSearchUrl(query, opts) {
+    return `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=${encodeURIComponent(opts.hl)}&gl=${encodeURIComponent(opts.gl)}&ceid=${encodeURIComponent(opts.ceid)}`;
+}
+
+function buildLocale({ lang = 'es-419', geo = 'US' } = {}) {
+    const gl = String(geo || 'US').toUpperCase().slice(0, 2);
+    const hl = String(lang || 'es-419');
+    // ceid necesita idioma corto (ej: "es" o "en")
+    const langShort = hl.split('-')[0] || 'es';
+    const ceid = `${gl}:${langShort}`;
+    return { hl, gl, ceid };
+}
+
+function tokenize(text) {
+    return String(text || '')
+        .toLowerCase()
+        .replace(/https?:\/\/\S+/g, ' ')
+        .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
+        .split(/\s+/)
+        .map(s => s.trim())
+        .filter(Boolean);
+}
+
+const STOPWORDS = new Set([
+    // ES
+    'de', 'la', 'que', 'el', 'en', 'y', 'a', 'los', 'del', 'se', 'las', 'por', 'un', 'para', 'con', 'no', 'una', 'su', 'al', 'lo', 'como', 'más', 'pero', 'sus', 'le', 'ya', 'o', 'este', 'sí', 'porque', 'esta', 'entre', 'cuando', 'muy', 'sin', 'sobre', 'también', 'me', 'hasta', 'hay', 'donde', 'quien', 'desde', 'todo', 'nos', 'durante', 'todos', 'uno', 'les', 'ni', 'contra', 'otros', 'ese', 'eso', 'ante', 'ellos', 'e', 'esto', 'mí', 'antes', 'algunos', 'qué', 'unos', 'yo', 'otro', 'otras', 'otra', 'él', 'tanto', 'esa', 'estos', 'mucho', 'quienes', 'nada', 'muchos', 'cual', 'poco', 'ella', 'estar', 'estas', 'algunas', 'algo', 'nosotros', 'mi', 'mis', 'tú', 'te', 'ti', 'tu', 'tus',
+    // EN
+    'the', 'and', 'to', 'of', 'in', 'a', 'for', 'on', 'with', 'as', 'by', 'is', 'at', 'from', 'it', 'an', 'be', 'are', 'was', 'were', 'or', 'that', 'this', 'these', 'those', 'has', 'have', 'had', 'but', 'not', 'will', 'can', 'may', 'about', 'into', 'over', 'after', 'before', 'more', 'most', 'new', 'today', 'now'
+]);
+
+function topKeywords(items, limit = 10) {
+    const counts = new Map();
+    for (const it of (items || [])) {
+        const tokens = tokenize(`${it.title || ''} ${it.summary || ''}`);
+        for (const tok of tokens) {
+            if (tok.length < 3) continue;
+            if (STOPWORDS.has(tok)) continue;
+            if (/^\d+$/.test(tok)) continue;
+            counts.set(tok, (counts.get(tok) || 0) + 1);
+        }
+    }
+    return Array.from(counts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+        .map(([k, c]) => ({ keyword: k, count: c }));
+}
+
+async function fetchGoogleNewsTopic(topic, locale) {
+    const url = googleNewsTopicUrl(topic, locale);
+    const r = await fetchTextWithTimeout(url, 12000);
+    if (!r.ok) return [];
+    const parsed = parseRssOrAtom(r.text);
+    return parsed.map(x => ({
+        kind: 'news',
+        topic,
+        title: x.title,
+        summary: x.summary,
+        url: x.link,
+        publishedAt: x.publishedAt,
+        source: 'Google News'
+    }));
+}
+
+async function fetchGoogleNewsSearch(query, locale) {
+    const url = googleNewsSearchUrl(query, locale);
+    const r = await fetchTextWithTimeout(url, 12000);
+    if (!r.ok) return [];
+    const parsed = parseRssOrAtom(r.text);
+    return parsed.map(x => ({
+        kind: 'news',
+        topic: 'SEARCH',
+        title: x.title,
+        summary: x.summary,
+        url: x.link,
+        publishedAt: x.publishedAt,
+        source: 'Google News'
+    }));
+}
+
+async function fetchGoogleTrendsDaily(geo = 'US') {
+    const g = String(geo || 'US').toUpperCase().slice(0, 2);
+    const url = `https://trends.google.com/trends/trendingsearches/daily/rss?geo=${encodeURIComponent(g)}`;
+    const r = await fetchTextWithTimeout(url, 12000);
+    if (!r.ok) return [];
+    const parsed = parseRssOrAtom(r.text);
+    return parsed.map(x => ({
+        kind: 'trend',
+        geo: g,
+        title: x.title,
+        summary: x.summary,
+        url: x.link,
+        publishedAt: x.publishedAt,
+        source: 'Google Trends'
+    }));
+}
+
+async function fetchArxivRss(subject = 'cs.ai+cs.lg') {
+    const s = String(subject || 'cs.ai').toLowerCase().replace(/[^a-z0-9+._-]/g, '');
+    const url = `https://rss.arxiv.org/rss/${encodeURIComponent(s)}`;
+    const r = await fetchTextWithTimeout(url, 12000);
+    if (!r.ok) return [];
+    const parsed = parseRssOrAtom(r.text);
+    return parsed.map(x => ({
+        kind: 'scitech',
+        title: x.title,
+        summary: x.summary,
+        url: x.link,
+        publishedAt: x.publishedAt,
+        source: `arXiv (${s})`
+    }));
+}
+
+async function fetchCisaKev(days = 30) {
+    const d = Math.max(1, Math.min(180, Number(days) || 30));
+    const url = 'https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json';
+    const r = await fetchJsonWithTimeout(url, 12000);
+    if (!r.ok || !r.json) return [];
+    const items = Array.isArray(r.json?.vulnerabilities) ? r.json.vulnerabilities : [];
+    const cutoff = Date.now() - (d * 24 * 60 * 60 * 1000);
+    return items
+        .filter(v => {
+            const ts = Date.parse(v?.dateAdded || '') || 0;
+            return ts >= cutoff;
+        })
+        .slice(0, 30)
+        .map(v => ({
+            kind: 'security',
+            title: safeSlice(`${v.cveID || 'CVE'} — ${v.vendorProject || 'Vendor'} ${v.product || ''}`, 220),
+            summary: safeSlice(v.shortDescription || v.vulnerabilityName || '', 420),
+            url: safeSlice(v?.notes || '', 300) || null,
+            publishedAt: v?.dateAdded || '',
+            source: 'CISA KEV'
+        }));
+}
+
+async function fetchCdcEidRss() {
+    const url = 'http://wwwnc.cdc.gov/eid/rss/ahead-of-print.xml';
+    const r = await fetchTextWithTimeout(url, 12000);
+    if (!r.ok) return [];
+    const parsed = parseRssOrAtom(r.text);
+    return parsed.map(x => ({
+        kind: 'health',
+        title: x.title,
+        summary: x.summary,
+        url: x.link,
+        publishedAt: x.publishedAt,
+        source: 'CDC EID'
+    }));
+}
+
+async function fetchWikipediaOnThisDay(lang = 'es', type = 'events') {
+    const l = String(lang || 'es').toLowerCase().replace(/[^a-z-]/g, '').slice(0, 12) || 'es';
+    const t = new Date();
+    const mm = String(t.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(t.getUTCDate()).padStart(2, '0');
+    const tp = String(type || 'events').toLowerCase().replace(/[^a-z]/g, '') || 'events';
+    const url = `https://${l}.wikipedia.org/api/rest_v1/feed/onthisday/${tp}/${mm}/${dd}`;
+    const r = await fetchJsonWithTimeout(url, 12000);
+    if (!r.ok || !r.json) return [];
+    const arr = Array.isArray(r.json?.[tp]) ? r.json[tp] : [];
+    return arr.slice(0, 10).map(x => ({
+        year: x?.year,
+        text: safeSlice(x?.text || '', 220)
+    })).filter(x => x.text);
+}
+
+async function fetchNagerTodayHolidays(countryCode = 'ES') {
+    const cc = String(countryCode || 'ES').toUpperCase().slice(0, 2);
+    const year = new Date().getUTCFullYear();
+    const url = `https://date.nager.at/api/v3/PublicHolidays/${encodeURIComponent(year)}/${encodeURIComponent(cc)}`;
+    const r = await fetchJsonWithTimeout(url, 12000);
+    if (!r.ok || !Array.isArray(r.json)) return [];
+    const today = new Date().toISOString().slice(0, 10);
+    return r.json
+        .filter(h => h && h.date === today)
+        .slice(0, 10)
+        .map(h => ({
+            kind: 'culture',
+            title: safeSlice(h.localName || h.name || 'Feriado', 220),
+            summary: safeSlice(`${h.name || ''} (${cc})`, 220),
+            url: null,
+            publishedAt: today,
+            source: 'Nager.Date'
+        }));
+}
+
+function buildObserverPrompt({ localeLang = 'es', geo = 'US', blocks, keywords, onThisDay }) {
+    const lang = localeLang.startsWith('es') ? 'es' : 'en';
+    const top = (keywords || []).slice(0, 8).map(k => `${k.keyword}(${k.count})`).join(', ');
+    const fmt = (arr, n = 5) => (arr || []).slice(0, n).map((x, i) => `- ${i + 1}) ${safeSlice(x.title, 160)}${x.source ? ` [${x.source}]` : ''}`).join('\n');
+    const hist = (onThisDay || []).slice(0, 3).map(x => `- ${x.year}: ${x.text}`).join('\n');
+
+    return `
+Eres ilfass. Voz humana, reflexiva, observacional. Primera persona. Español neutro.
+
+Tarea: comentar señales en TIEMPO REAL sin inventar hechos. Si una afirmación no está explícita en los ítems, no la afirmes; usa lenguaje de probabilidad ("parece", "asoma", "se insinúa").
+No nombres APIs ni URLs. No hagas propaganda. No des consejos médicos/financieros. No alarmismo.
+Longitud: 120–180 palabras. Un párrafo, ritmo de transmisión.
+
+Región de observación: ${geo}.
+Palabras que se repiten hoy: ${top || '(sin señales claras)'}.
+
+NOTICIAS (titulares):
+${fmt(blocks?.news, 6) || '(sin datos)'}
+
+TENDENCIAS (búsquedas/temas):
+${fmt(blocks?.trends, 6) || '(sin datos)'}
+
+CULTURA / AGENDA (hoy):
+${fmt(blocks?.culture, 6) || '(sin datos)'}
+
+CIENCIA/TEC (papers):
+${fmt(blocks?.scitech, 4) || '(sin datos)'}
+
+SALUD (señales):
+${fmt(blocks?.health, 4) || '(sin datos)'}
+
+SEGURIDAD (vulnerabilidades activas):
+${fmt(blocks?.security, 4) || '(sin datos)'}
+
+Contexto histórico opcional (si ayuda, 1 frase):
+${hist || '(omití si no aporta)'}
+`.trim();
+}
+
+async function generateObserverCommentary(prompt) {
+    // Reusar el stack existente: Grok > OpenAI > Gemini > HF
+    let txt = null;
+    try { txt = await dreamWithGrok(prompt); } catch (e) { }
+    if (!txt) {
+        try { txt = await dreamWithOpenAI(prompt); } catch (e) { }
+    }
+    if (!txt) {
+        try { txt = await dreamWithGemini(prompt); } catch (e) { }
+    }
+    if (!txt) {
+        try { txt = await dreamWithHF(prompt); } catch (e) { }
+    }
+    return safeSlice(txt || '', 1200);
+}
+
+function normalizeObserverOnlyParam(raw) {
+    const allowed = new Set(['news', 'trends', 'culture', 'scitech', 'health', 'security', 'all']);
+    const s = String(raw || '').toLowerCase().trim();
+    if (!s) return 'all';
+    // allow csv: only=news,trends
+    const parts = s.split(',').map(x => x.trim()).filter(Boolean);
+    const filtered = parts.filter(p => allowed.has(p));
+    if (!filtered.length) return 'all';
+    if (filtered.includes('all')) return 'all';
+    return filtered.join(',');
+}
+
+function filterObserverBlocks(blocks, onlyCsv) {
+    const only = normalizeObserverOnlyParam(onlyCsv);
+    if (only === 'all') return blocks;
+    const keep = new Set(only.split(',').filter(Boolean));
+    const out = {
+        news: keep.has('news') ? (blocks?.news || []) : [],
+        trends: keep.has('trends') ? (blocks?.trends || []) : [],
+        culture: keep.has('culture') ? (blocks?.culture || []) : [],
+        scitech: keep.has('scitech') ? (blocks?.scitech || []) : [],
+        health: keep.has('health') ? (blocks?.health || []) : [],
+        security: keep.has('security') ? (blocks?.security || []) : []
+    };
+    return out;
+}
+
+function titleForOnly(onlyCsv) {
+    const only = normalizeObserverOnlyParam(onlyCsv);
+    if (only === 'all') return 'Pulso del mundo';
+    const map = {
+        news: 'Pulso: Noticias',
+        trends: 'Pulso: Tendencias',
+        culture: 'Pulso: Cultura/Agenda',
+        scitech: 'Pulso: Ciencia/Tech',
+        health: 'Pulso: Salud',
+        security: 'Pulso: Seguridad'
+    };
+    const parts = only.split(',').filter(Boolean);
+    if (parts.length === 1) return map[parts[0]] || 'Pulso';
+    return `Pulso: ${parts.map(p => map[p]?.replace('Pulso: ', '') || p).join(' + ')}`;
+}
 
 // =========================
 // SPACE (PROXY ENDPOINTS)
@@ -210,7 +631,7 @@ ${rawPrompt}
 function extractCuriositiesFromNarrative(narrative, countryId, timestamp) {
     const curiosities = [];
     const sentences = narrative.split(/[.!?]+/).filter(s => s.trim().length > 20);
-    
+
     const interestingPatterns = [
         /(?:descubrí|encontré|me sorprendió|me llamó la atención|interesante|curioso|fascinante|increíble|único|especial)/i,
         /(?:conecta|vincula|relaciona|similar|parecido|comparte)/i,
@@ -220,7 +641,7 @@ function extractCuriositiesFromNarrative(narrative, countryId, timestamp) {
     ];
 
     const icons = ['🌟', '💡', '🎯', '🔍', '✨', '🎨', '🌍', '🧠', '💫', '🎭', '🎪', '🔮', '⚡', '🎊', '🎈'];
-    
+
     const countryMap = {
         '124': 'Chile', '276': 'Alemania', '528': 'Países Bajos',
         '616': 'Polonia', '858': 'Uruguay', '032': 'Argentina',
@@ -232,12 +653,12 @@ function extractCuriositiesFromNarrative(narrative, countryId, timestamp) {
     let found = 0;
     for (const sentence of sentences) {
         if (found >= 3) break;
-        
+
         const trimmed = sentence.trim();
         if (trimmed.length < 30 || trimmed.length > 200) continue;
 
         const isInteresting = interestingPatterns.some(pattern => pattern.test(trimmed));
-        
+
         if (isInteresting) {
             const tags = [];
             if (/cultura|tradición|costumbre/i.test(trimmed)) tags.push('culture');
@@ -280,23 +701,23 @@ async function generateImagePollinations(prompt) {
     if (timeSinceLastRequest < POLLINATIONS_MIN_DELAY) {
         await new Promise(resolve => setTimeout(resolve, POLLINATIONS_MIN_DELAY - timeSinceLastRequest));
     }
-    
+
     console.log("🎨 Fallback to Pollinations...");
     try {
         const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}`;
         const response = await fetch(url);
-        
+
         // Verificar si hay error de rate limit
         if (response.status === 429) {
             console.warn("⚠️ Pollinations rate limit alcanzado, usando placeholder");
             return null; // Retornar null para usar fallback
         }
-        
+
         if (!response.ok) {
             console.warn(`⚠️ Pollinations error: ${response.status}`);
             return null;
         }
-        
+
         const blob = await response.blob();
         const buffer = Buffer.from(await blob.arrayBuffer());
         const filename = `AI_Pollinations_${Date.now()}.jpg`;
@@ -319,19 +740,19 @@ async function dreamWithPollinations(prompt) {
     if (timeSinceLastRequest < POLLINATIONS_MIN_DELAY) {
         await new Promise(resolve => setTimeout(resolve, POLLINATIONS_MIN_DELAY - timeSinceLastRequest));
     }
-    
+
     try {
         const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(prompt)}`);
-        
+
         if (response.status === 429) {
             console.warn("⚠️ Pollinations rate limit alcanzado para texto");
             return null;
         }
-        
+
         if (!response.ok) {
             return null;
         }
-        
+
         const text = await response.text();
         pollinationsLastRequest = Date.now();
         return text.trim();
@@ -384,7 +805,7 @@ async function dreamWithHF(prompt) {
         const data = await resp.json();
         const hfText = (data[0]?.generated_text || "").replace(/"/g, '').trim();
         if (hfText) return hfText;
-        
+
         const pollResult = await dreamWithPollinations(prompt);
         return pollResult || null;
     } catch (e) {
@@ -409,7 +830,7 @@ async function dreamWithGemini(prompt) {
             return content;
         }
         console.warn("⚠️ Gemini no retornó contenido válido");
-    } catch (e) { 
+    } catch (e) {
         console.error("❌ Gemini Dream failed:", e.message);
     }
     return null;
@@ -442,7 +863,7 @@ async function dreamWithGrok(prompt) {
             console.error(`⚠️ Grok API error: ${response.status} - ${JSON.stringify(errorData)}`);
             return null;
         }
-        
+
         const data = await response.json();
         if (data.choices && data.choices[0] && data.choices[0].message) {
             const content = data.choices[0].message.content.replace(/"/g, '').trim();
@@ -452,7 +873,7 @@ async function dreamWithGrok(prompt) {
             }
         }
         console.warn("⚠️ Grok no retornó contenido válido");
-    } catch (e) { 
+    } catch (e) {
         console.error("❌ Grok Dream failed:", e.message, e.stack);
     }
     return null;
@@ -464,12 +885,12 @@ async function dreamWithOpenAI(prompt) {
     try {
         const resp = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST', headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                model: "gpt-4o", 
+            body: JSON.stringify({
+                model: "gpt-4o",
                 messages: [
                     { role: "system", content: "Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana. Tu voz es reflexiva, observacional y personal. Hablas en primera persona." },
                     { role: "user", content: prompt }
-                ], 
+                ],
                 max_tokens: 800, // Aumentado para relatos más largos
                 temperature: 0.8 // Más creatividad
             })
@@ -518,10 +939,10 @@ const server = http.createServer(async (req, res) => {
     // Endpoints
     if (req.method === 'GET' && apiPath === '/status') {
         res.writeHead(200, headers);
-        res.end(JSON.stringify({ 
-            autoMode: state.autoMode, 
-            currentScene: state.currentScene, 
-            editorial: state.editorial, 
+        res.end(JSON.stringify({
+            autoMode: state.autoMode,
+            currentScene: state.currentScene,
+            editorial: state.editorial,
             queue: state.travelQueue,
             clientTelemetry: state.clientTelemetry, // Incluir telemetría para determinar hoja del libro
             music: state.music, // Incluir estado de música
@@ -536,7 +957,7 @@ const server = http.createServer(async (req, res) => {
         req.on('end', async () => {
             const { prompt } = JSON.parse(body || '{}');
             if (!prompt) { res.writeHead(400, headers); res.end('{"error":"No prompt"}'); return; }
-            
+
             try {
                 const result = await generateImageOpenAI(prompt);
                 if (result) {
@@ -563,12 +984,12 @@ const server = http.createServer(async (req, res) => {
             const m = JSON.parse(body || '{}');
             let txt = m.narrate ? await dreamNarrative(m.name || "imagen") : null;
             // Incluir nombre y tipo en el evento para mejor tracking
-            state.eventQueue.push({ 
-                type: 'media', 
-                url: m.url, 
-                mediaType: m.type || 'image', 
+            state.eventQueue.push({
+                type: 'media',
+                url: m.url,
+                mediaType: m.type || 'image',
                 name: m.name || 'Media',
-                textToSpeak: txt 
+                textToSpeak: txt
             });
             console.log(`📺 Media Event Queued: ${m.name || 'Unknown'} (${m.type || 'image'})`);
             res.writeHead(200, headers);
@@ -589,6 +1010,130 @@ const server = http.createServer(async (req, res) => {
 
         res.writeHead(200, headers);
         res.end(JSON.stringify({ intro: introText || "Sistemas listos. Iniciando viaje." }));
+        return;
+    }
+
+    // -------------------------
+    // Videos (Pexels + IA intro/outro para videowall)
+    // GET /api/videos/next?query=nature
+    // GET /api/videos/outro?query=nature&id=123
+    // -------------------------
+    if (req.method === 'GET' && apiPath === '/api/videos/next') {
+        const query = safeSlice(String(parsedUrl.query?.query || 'nature'), 80);
+        const key = process.env.PEXELS_API_KEY;
+        if (!key) {
+            res.writeHead(200, headers);
+            res.end(JSON.stringify({ ok: false, error: 'PEXELS_API_KEY not configured' }));
+            return;
+        }
+        try {
+            const r = await fetch(
+                `https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=5`,
+                { headers: { 'Authorization': key } }
+            );
+            const data = await r.json().catch(() => null);
+            const videos = Array.isArray(data?.videos) ? data.videos : [];
+            if (!videos.length) {
+                res.writeHead(200, headers);
+                res.end(JSON.stringify({ ok: false, error: 'no_videos', query }));
+                return;
+            }
+            const v = videos[Math.floor(Math.random() * videos.length)];
+            const files = Array.isArray(v.video_files) ? v.video_files : [];
+            const mp4 = files
+                .filter(f => /video\/mp4|\.mp4/i.test(String(f?.file_type || '')) && f?.link)
+                .sort((a, b) => (b.width || 0) * (b.height || 0) - (a.width || 0) * (a.height || 0));
+            const best = mp4[0] || files.find(f => f?.link) || {};
+            const url = best.link || null;
+            if (!url) {
+                res.writeHead(200, headers);
+                res.end(JSON.stringify({ ok: false, error: 'no_playable_link', query }));
+                return;
+            }
+            const attribution = `Pexels / ${(v.user?.name || 'Videographer').toString().trim()}`;
+            const introPrompt = `En una sola frase en español, presenta este video para un stream. Tema: ${query}. Breve y natural.`;
+            let intro = null;
+            try { intro = await dreamWithGrok(introPrompt); } catch (e) { }
+            if (!intro) try { intro = await dreamWithOpenAI(introPrompt); } catch (e) { }
+            if (!intro) try { intro = await dreamWithGemini(introPrompt); } catch (e) { }
+            if (!intro) try { intro = await dreamWithHF(introPrompt); } catch (e) { }
+            intro = safeSlice(intro || `Un momento de ${query}.`, 300);
+            res.writeHead(200, headers);
+            res.end(JSON.stringify({
+                ok: true,
+                url,
+                attribution,
+                intro,
+                id: v.id,
+                query
+            }));
+        } catch (e) {
+            res.writeHead(500, headers);
+            res.end(JSON.stringify({ ok: false, error: 'videos_fetch_failed', message: e.message }));
+        }
+        return;
+    }
+
+    if (req.method === 'GET' && apiPath === '/api/videos/outro') {
+        const query = safeSlice(String(parsedUrl.query?.query || 'nature'), 80);
+        const id = safeSlice(String(parsedUrl.query?.id || ''), 32);
+        const prompt = `En una sola frase en español, comenta o cierra el video que acaba de verse en un stream. Tema: ${query}. Breve y natural.`;
+        let text = null;
+        try { text = await dreamWithGrok(prompt); } catch (e) { }
+        if (!text) try { text = await dreamWithOpenAI(prompt); } catch (e) { }
+        if (!text) try { text = await dreamWithGemini(prompt); } catch (e) { }
+        if (!text) try { text = await dreamWithHF(prompt); } catch (e) { }
+        text = safeSlice(text || 'Hasta la próxima.', 300);
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({ text }));
+        return;
+    }
+
+    // -------------------------
+    // Images (Pexels) para modos visuales
+    // GET /api/images/next?query=technology&orientation=landscape
+    // -------------------------
+    if (req.method === 'GET' && apiPath === '/api/images/next') {
+        const query = safeSlice(String(parsedUrl.query?.query || 'technology'), 80);
+        const orientation = safeSlice(String(parsedUrl.query?.orientation || 'landscape'), 20);
+        const key = process.env.PEXELS_API_KEY;
+        if (!key) {
+            res.writeHead(200, headers);
+            res.end(JSON.stringify({ ok: false, error: 'PEXELS_API_KEY not configured' }));
+            return;
+        }
+        try {
+            const r = await fetch(
+                `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=10&orientation=${orientation}`,
+                { headers: { 'Authorization': key } }
+            );
+            const data = await r.json().catch(() => null);
+            const photos = Array.isArray(data?.photos) ? data.photos : [];
+            if (!photos.length) {
+                res.writeHead(200, headers);
+                res.end(JSON.stringify({ ok: false, error: 'no_photos', query }));
+                return;
+            }
+            const p = photos[Math.floor(Math.random() * photos.length)];
+            const url = p?.src?.large || p?.src?.original || null;
+            const photographer = p?.photographer || 'Photographer';
+            if (!url) {
+                res.writeHead(200, headers);
+                res.end(JSON.stringify({ ok: false, error: 'no_image_url', query }));
+                return;
+            }
+            res.writeHead(200, headers);
+            res.end(JSON.stringify({
+                ok: true,
+                url,
+                photographer,
+                id: p.id,
+                query
+            }));
+        } catch (e) {
+            res.writeHead(500, headers);
+            res.end(JSON.stringify({ ok: false, error: 'images_fetch_failed', message: e.message }));
+        }
         return;
     }
 
@@ -668,7 +1213,7 @@ const server = http.createServer(async (req, res) => {
 
     // API: Memoria de presentaciones del mapa
     const MAP_INTRO_MEMORY_FILE = path.join(__dirname, 'data', 'map-intro-memory.json');
-    
+
     if (req.method === 'GET' && apiPath === '/api/map-intro-memory') {
         try {
             let memory = { presentations: [] };
@@ -684,7 +1229,7 @@ const server = http.createServer(async (req, res) => {
         }
         return;
     }
-    
+
     if (req.method === 'POST' && apiPath === '/api/map-intro-memory') {
         let body = '';
         req.on('data', c => body += c);
@@ -692,28 +1237,28 @@ const server = http.createServer(async (req, res) => {
             try {
                 const presentationData = JSON.parse(body || '{}');
                 let memory = { presentations: [] };
-                
+
                 if (fs.existsSync(MAP_INTRO_MEMORY_FILE)) {
                     memory = JSON.parse(fs.readFileSync(MAP_INTRO_MEMORY_FILE, 'utf8'));
                 }
-                
+
                 // Agregar nueva presentación
                 memory.presentations.push({
                     timestamp: presentationData.timestamp || Date.now(),
                     text: presentationData.text || '',
                     presentationsCount: presentationData.presentationsCount || memory.presentations.length + 1
                 });
-                
+
                 // Mantener solo las últimas 50 presentaciones
                 if (memory.presentations.length > 50) {
                     memory.presentations = memory.presentations.slice(-50);
                 }
-                
+
                 // Guardar
                 fs.writeFileSync(MAP_INTRO_MEMORY_FILE, JSON.stringify(memory, null, 2));
-                
+
                 console.log(`💾 Presentación del mapa guardada (total: ${memory.presentations.length})`);
-                
+
                 res.writeHead(200, headers);
                 res.end(JSON.stringify({ success: true, total: memory.presentations.length }));
             } catch (e) {
@@ -729,20 +1274,195 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && apiPath === '/api/news') {
         const url = new URL(req.url, `http://${req.headers.host}`);
         const country = url.searchParams.get('country') || '';
-        
+
         try {
-            // Simular noticias (en producción se usaría una API real)
-            const news = [
-                { title: `Actualidad en ${country}`, text: `Noticias recientes sobre ${country}` },
-                { title: `Contexto actual de ${country}`, text: `Situación contemporánea en ${country}` }
-            ];
-            
+            const locale = buildLocale({ lang: 'es-419', geo: 'US' });
+            const q = safeSlice(country, 80);
+            const items = q
+                ? await cached(`news:country:${q}`, 6 * 60 * 1000, async () => {
+                    // “when:7d” limita a ventana reciente
+                    const query = `${q} when:7d`;
+                    const r = await fetchGoogleNewsSearch(query, locale);
+                    return (r || []).slice(0, 12);
+                })
+                : [];
+
+            const news = (items || []).slice(0, 5).map(x => ({
+                title: x.title,
+                text: x.summary || x.title,
+                source: x.source || 'Google News',
+                url: x.url || null
+            }));
+
             res.writeHead(200, headers);
             res.end(JSON.stringify({ news, country }));
         } catch (e) {
             res.writeHead(500, headers);
             res.end(JSON.stringify({ news: [], error: e.message }));
         }
+        return;
+    }
+
+    // API: Observador en tiempo real (multi-fuente)
+    // GET /api/observer/pulse?lang=es-419&geo=US&cc=ES&max=8
+    if (req.method === 'GET' && apiPath === '/api/observer/pulse') {
+        const u = new URL(req.url, `http://${req.headers.host}`);
+        const lang = safeSlice(u.searchParams.get('lang') || 'es-419', 12);
+        const geo = safeSlice((u.searchParams.get('geo') || 'US').toUpperCase(), 2);
+        const cc = safeSlice((u.searchParams.get('cc') || geo || 'ES').toUpperCase(), 2);
+        const max = Math.max(3, Math.min(12, Number(u.searchParams.get('max') || 8)));
+        const only = normalizeObserverOnlyParam(u.searchParams.get('only') || 'all');
+
+        try {
+            const locale = buildLocale({ lang, geo });
+            const cacheKey = `pulse:${locale.hl}:${locale.gl}:${cc}:${max}:${only}`;
+
+            const payload = await cached(cacheKey, OBSERVER_TTL_MS, async () => {
+                const [newsWorld, newsTech, newsSci, newsHealth, trends, arxiv, kev, cdc, holidays, onThisDayEvents] = await Promise.all([
+                    fetchGoogleNewsTopic('WORLD', locale),
+                    fetchGoogleNewsTopic('TECHNOLOGY', locale),
+                    fetchGoogleNewsTopic('SCIENCE', locale),
+                    fetchGoogleNewsTopic('HEALTH', locale),
+                    fetchGoogleTrendsDaily(locale.gl),
+                    fetchArxivRss('cs.ai+cs.lg'),
+                    fetchCisaKev(45),
+                    fetchCdcEidRss(),
+                    fetchNagerTodayHolidays(cc),
+                    fetchWikipediaOnThisDay(locale.hl.split('-')[0] || 'es', 'events')
+                ]);
+
+                const allBlocks = {
+                    news: ([]).concat(newsWorld, newsTech, newsSci).slice(0, max),
+                    trends: (trends || []).slice(0, max),
+                    culture: ([]).concat(holidays || []).slice(0, max),
+                    scitech: (arxiv || []).slice(0, Math.max(3, Math.floor(max / 2))),
+                    health: ([]).concat(newsHealth || [], cdc || []).slice(0, Math.max(3, Math.floor(max / 2))),
+                    security: (kev || []).slice(0, Math.max(3, Math.floor(max / 2)))
+                };
+
+                const blocks = filterObserverBlocks(allBlocks, only);
+                const flat = []
+                    .concat(blocks.news, blocks.trends, blocks.culture, blocks.scitech, blocks.health, blocks.security)
+                    .filter(Boolean);
+                const keywords = topKeywords(flat, 10);
+
+                const prompt = buildObserverPrompt({
+                    localeLang: locale.hl,
+                    geo: locale.gl,
+                    blocks,
+                    keywords,
+                    onThisDay: onThisDayEvents
+                });
+                const commentary = await generateObserverCommentary(prompt);
+
+                return {
+                    ok: true,
+                    generatedAt: nowIso(),
+                    locale,
+                    only,
+                    title: titleForOnly(only),
+                    blocks,
+                    keywords,
+                    onThisDay: onThisDayEvents.slice(0, 6),
+                    commentary
+                };
+            });
+
+            res.writeHead(200, headers);
+            res.end(JSON.stringify(payload));
+        } catch (e) {
+            res.writeHead(500, headers);
+            res.end(JSON.stringify({ ok: false, error: e.message }));
+        }
+        return;
+    }
+
+    // EVENT: Disparar narración del Observador (Pulso) como evento directo a clientes
+    // POST /event/observer/pulse  body: { lang, geo, cc, only, max }
+    if (req.method === 'POST' && apiPath === '/event/observer/pulse') {
+        let body = '';
+        req.on('data', c => body += c);
+        req.on('end', async () => {
+            try {
+                const data = JSON.parse(body || '{}');
+                const lang = safeSlice(data.lang || 'es-419', 12);
+                const geo = safeSlice(String(data.geo || 'US').toUpperCase(), 2);
+                const cc = safeSlice(String(data.cc || geo || 'ES').toUpperCase(), 2);
+                const max = Math.max(3, Math.min(12, Number(data.max || 10)));
+                const only = normalizeObserverOnlyParam(data.only || 'all');
+
+                // Reusar el mismo endpoint (cacheado) internamente
+                const locale = buildLocale({ lang, geo });
+                const cacheKey = `pulse:${locale.hl}:${locale.gl}:${cc}:${max}:${only}`;
+                const payload = await cached(cacheKey, OBSERVER_TTL_MS, async () => {
+                    // llamar a la ruta GET sin HTTP, copiando la lógica (simple): hacemos fetches aquí también
+                    const [newsWorld, newsTech, newsSci, newsHealth, trends, arxiv, kev, cdc, holidays, onThisDayEvents] = await Promise.all([
+                        fetchGoogleNewsTopic('WORLD', locale),
+                        fetchGoogleNewsTopic('TECHNOLOGY', locale),
+                        fetchGoogleNewsTopic('SCIENCE', locale),
+                        fetchGoogleNewsTopic('HEALTH', locale),
+                        fetchGoogleTrendsDaily(locale.gl),
+                        fetchArxivRss('cs.ai+cs.lg'),
+                        fetchCisaKev(45),
+                        fetchCdcEidRss(),
+                        fetchNagerTodayHolidays(cc),
+                        fetchWikipediaOnThisDay(locale.hl.split('-')[0] || 'es', 'events')
+                    ]);
+
+                    const allBlocks = {
+                        news: ([]).concat(newsWorld, newsTech, newsSci).slice(0, max),
+                        trends: (trends || []).slice(0, max),
+                        culture: ([]).concat(holidays || []).slice(0, max),
+                        scitech: (arxiv || []).slice(0, Math.max(3, Math.floor(max / 2))),
+                        health: ([]).concat(newsHealth || [], cdc || []).slice(0, Math.max(3, Math.floor(max / 2))),
+                        security: (kev || []).slice(0, Math.max(3, Math.floor(max / 2)))
+                    };
+
+                    const blocks = filterObserverBlocks(allBlocks, only);
+                    const flat = []
+                        .concat(blocks.news, blocks.trends, blocks.culture, blocks.scitech, blocks.health, blocks.security)
+                        .filter(Boolean);
+                    const keywords = topKeywords(flat, 10);
+
+                    const prompt = buildObserverPrompt({
+                        localeLang: locale.hl,
+                        geo: locale.gl,
+                        blocks,
+                        keywords,
+                        onThisDay: onThisDayEvents
+                    });
+                    const commentary = await generateObserverCommentary(prompt);
+                    return {
+                        ok: true,
+                        generatedAt: nowIso(),
+                        locale,
+                        only,
+                        title: titleForOnly(only),
+                        blocks,
+                        keywords,
+                        onThisDay: onThisDayEvents.slice(0, 6),
+                        commentary
+                    };
+                });
+
+                // Encolar evento para clientes
+                state.eventQueue.push({
+                    type: 'observer_speak',
+                    payload: {
+                        title: payload.title,
+                        only: payload.only,
+                        commentary: payload.commentary,
+                        keywords: payload.keywords
+                    }
+                });
+
+                res.writeHead(200, headers);
+                res.end(JSON.stringify({ success: true, title: payload.title, only: payload.only }));
+            } catch (e) {
+                res.writeHead(400, headers);
+                res.end(JSON.stringify({ success: false, error: e.message }));
+            }
+        });
         return;
     }
 
@@ -884,16 +1604,16 @@ const server = http.createServer(async (req, res) => {
             currentTrack: state.music.currentTrack,
             command: state.music.command // Incluir comando si existe
         };
-        
+
         // Limpiar comando después de enviarlo (para evitar que se procese múltiples veces)
         const commandToSend = state.music.command;
         if (state.music.command) {
             state.music.command = null;
         }
-        
+
         res.writeHead(200, headers);
-        res.end(JSON.stringify({ 
-            autoMode: state.autoMode, 
+        res.end(JSON.stringify({
+            autoMode: state.autoMode,
             events: state.eventQueue,
             music: {
                 ...musicState,
@@ -911,6 +1631,25 @@ const server = http.createServer(async (req, res) => {
         saveState(); // PERSIST
         res.writeHead(200, headers);
         res.end(JSON.stringify({ success: true }));
+        return;
+    }
+
+    // Auto explicit on/off (para guion/ruta sin depender de "toggle")
+    if (apiPath === '/event/auto_on') {
+        state.autoMode = true;
+        state.eventQueue.push({ type: 'mode_change', autoMode: true });
+        saveState();
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({ success: true, autoMode: true }));
+        return;
+    }
+
+    if (apiPath === '/event/auto_off') {
+        state.autoMode = false;
+        state.eventQueue.push({ type: 'mode_change', autoMode: false });
+        saveState();
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({ success: true, autoMode: false }));
         return;
     }
 
@@ -1043,6 +1782,8 @@ const server = http.createServer(async (req, res) => {
                 const data = JSON.parse(body || '{}');
                 mission = String(data.mission || '').trim().slice(0, 260);
             } catch (e) { }
+            // El Show Runner implica automatización (sin blancos): forzamos AutoMode ON.
+            state.autoMode = true;
             state.showRunner = { active: true, mission, startedAt: Date.now() };
             state.eventQueue.push({ type: 'show_start', payload: { mission } });
             saveState();
@@ -1146,7 +1887,7 @@ const server = http.createServer(async (req, res) => {
         req.on('end', () => {
             try {
                 const { text, voice } = JSON.parse(body || '{}');
-                
+
                 if (!text || text.trim().length === 0) {
                     res.writeHead(400, headers);
                     res.end(JSON.stringify({ error: 'Texto requerido' }));
@@ -1157,14 +1898,14 @@ const server = http.createServer(async (req, res) => {
                 const { exec } = require('child_process');
                 const ttsServicePath = path.join(__dirname, 'scripts', 'edge-tts-service.js');
                 const inputData = JSON.stringify({ text, voice: voice || 'es-ES-AlvaroNeural' });
-                
-                exec(`echo '${inputData.replace(/'/g, "'\\''")}' | node "${ttsServicePath}"`, 
+
+                exec(`echo '${inputData.replace(/'/g, "'\\''")}' | node "${ttsServicePath}"`,
                     { maxBuffer: 1024 * 1024 * 10, cwd: __dirname },
                     (error, stdout, stderr) => {
                         if (error) {
                             console.error('[TTS] Error:', error);
                             res.writeHead(500, headers);
-                            res.end(JSON.stringify({ 
+                            res.end(JSON.stringify({
                                 error: 'Error generando audio',
                                 message: error.message,
                                 fallback: true // Indicar que debe usar fallback
@@ -1179,7 +1920,7 @@ const server = http.createServer(async (req, res) => {
                                 res.end(JSON.stringify(result));
                             } else {
                                 res.writeHead(500, headers);
-                                res.end(JSON.stringify({ 
+                                res.end(JSON.stringify({
                                     error: result.error || 'Error desconocido',
                                     message: result.message,
                                     fallback: true
@@ -1188,7 +1929,7 @@ const server = http.createServer(async (req, res) => {
                         } catch (parseError) {
                             console.error('[TTS] Error parseando resultado:', parseError);
                             res.writeHead(500, headers);
-                            res.end(JSON.stringify({ 
+                            res.end(JSON.stringify({
                                 error: 'Error procesando resultado',
                                 message: parseError.message,
                                 fallback: true
@@ -1312,7 +2053,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && apiPath === '/api/curiosities') {
         try {
             const curiosities = [];
-            
+
             // Generar curiosidades desde las memorias
             if (fs.existsSync(COUNTRY_MEMORIES_DIR)) {
                 const files = fs.readdirSync(COUNTRY_MEMORIES_DIR);
@@ -1321,7 +2062,7 @@ const server = http.createServer(async (req, res) => {
                         try {
                             const filePath = path.join(COUNTRY_MEMORIES_DIR, file);
                             const memory = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-                            
+
                             if (memory.visits && memory.visits.length > 0) {
                                 for (const visit of memory.visits) {
                                     if (visit.narrative) {
@@ -1341,10 +2082,10 @@ const server = http.createServer(async (req, res) => {
                     }
                 }
             }
-            
+
             // Ordenar por timestamp (más recientes primero)
             curiosities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-            
+
             res.writeHead(200, headers);
             res.end(JSON.stringify({ curiosities, total: curiosities.length }));
         } catch (e) {
@@ -1385,13 +2126,13 @@ const server = http.createServer(async (req, res) => {
                     }
                 }
             }
-            
+
             // Ordenar por timestamp (más recientes primero)
             entries.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-            
+
             // Limitar a 20 entradas más recientes
             const recentEntries = entries.slice(0, 20);
-            
+
             res.writeHead(200, headers);
             res.end(JSON.stringify({ entries: recentEntries }));
         } catch (e) {
@@ -1405,7 +2146,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && apiPath.startsWith('/api/country-memory/') && !apiPath.endsWith('/visit')) {
         const countryId = apiPath.split('/').pop();
         const memoryFile = path.join(COUNTRY_MEMORIES_DIR, `${countryId}.json`);
-        
+
         try {
             if (fs.existsSync(memoryFile)) {
                 const memory = JSON.parse(fs.readFileSync(memoryFile, 'utf8'));
@@ -1439,7 +2180,7 @@ const server = http.createServer(async (req, res) => {
             try {
                 const visitData = JSON.parse(body || '{}');
                 const memoryFile = path.join(COUNTRY_MEMORIES_DIR, `${countryId}.json`);
-                
+
                 // Cargar memoria existente o crear nueva
                 let memory = {
                     countryId: countryId,
@@ -1448,28 +2189,28 @@ const server = http.createServer(async (req, res) => {
                     lastVisit: null,
                     accumulatedNarrative: ""
                 };
-                
+
                 if (fs.existsSync(memoryFile)) {
                     memory = JSON.parse(fs.readFileSync(memoryFile, 'utf8'));
                 }
-                
+
                 // Agregar nueva visita
                 memory.visits.push(visitData);
                 memory.totalVisits = memory.visits.length;
                 memory.lastVisit = visitData.timestamp;
-                
+
                 // Actualizar narrativa acumulada
                 if (memory.accumulatedNarrative) {
                     memory.accumulatedNarrative += "\n\n" + visitData.narrative;
                 } else {
                     memory.accumulatedNarrative = visitData.narrative;
                 }
-                
+
                 // Guardar
                 fs.writeFileSync(memoryFile, JSON.stringify(memory, null, 2));
-                
+
                 console.log(`💾 Memoria guardada para país ${countryId} (${memory.totalVisits} visitas)`);
-                
+
                 res.writeHead(200, headers);
                 res.end(JSON.stringify(memory));
             } catch (e) {
@@ -1489,7 +2230,7 @@ const server = http.createServer(async (req, res) => {
             try {
                 const data = JSON.parse(body || '{}');
                 let prompt = data.prompt;
-                
+
                 // Si se envía countryCode en lugar de prompt, generar el prompt
                 if (!prompt && data.countryCode) {
                     const countryInfo = COUNTRY_INFO[data.countryCode];
@@ -1501,7 +2242,7 @@ const server = http.createServer(async (req, res) => {
                         return;
                     }
                 }
-                
+
                 if (!prompt) {
                     res.writeHead(400, headers);
                     res.end('{"error":"No prompt or countryCode provided"}');
@@ -1511,13 +2252,13 @@ const server = http.createServer(async (req, res) => {
                 // Inyectar biblia/guion + continuidad (centralizado, aplica a todos los modos)
                 const rawPrompt = prompt;
                 prompt = buildNarrativePromptWithStory(prompt);
-                
+
                 console.log(`[GenerateNarrative] Iniciando generación con prompt de ${prompt.length} caracteres...`);
-                
+
                 // Usar el sistema de IA disponible (prioridad: Grok > OpenAI > Gemini > HF)
                 // Con timeout más largo para relatos más extensos
                 let narrative = null;
-                
+
                 try {
                     narrative = await Promise.race([
                         dreamWithGrok(prompt),
@@ -1526,7 +2267,7 @@ const server = http.createServer(async (req, res) => {
                 } catch (e) {
                     console.warn(`[GenerateNarrative] Grok falló o timeout: ${e.message}`);
                 }
-                
+
                 if (!narrative || narrative.length < 100) {
                     try {
                         narrative = await Promise.race([
@@ -1537,7 +2278,7 @@ const server = http.createServer(async (req, res) => {
                         console.warn(`[GenerateNarrative] OpenAI falló o timeout: ${e.message}`);
                     }
                 }
-                
+
                 if (!narrative || narrative.length < 100) {
                     try {
                         narrative = await Promise.race([
@@ -1548,7 +2289,7 @@ const server = http.createServer(async (req, res) => {
                         console.warn(`[GenerateNarrative] Gemini falló o timeout: ${e.message}`);
                     }
                 }
-                
+
                 if (!narrative || narrative.length < 100) {
                     try {
                         narrative = await dreamWithHF(prompt);
@@ -1556,7 +2297,7 @@ const server = http.createServer(async (req, res) => {
                         console.warn(`[GenerateNarrative] HF falló: ${e.message}`);
                     }
                 }
-                
+
                 // Fallback mejorado si todo falla
                 if (!narrative || narrative.length < 100) {
                     console.warn(`[GenerateNarrative] Usando fallback - todas las IAs fallaron`);
@@ -1568,7 +2309,7 @@ const server = http.createServer(async (req, res) => {
                     ];
                     narrative = fallbacks[Math.floor(Math.random() * fallbacks.length)];
                 }
-                
+
                 console.log(`[GenerateNarrative] Relato generado: ${narrative.length} caracteres`);
 
                 // Persistir “hilo” (resumen corto para evitar repetición y para auditoría)
@@ -1589,7 +2330,7 @@ const server = http.createServer(async (req, res) => {
                     if (storyState.lastN.length > 40) storyState.lastN = storyState.lastN.slice(-40);
                     saveStoryState();
                 } catch (e) { }
-                
+
                 res.writeHead(200, headers);
                 res.end(JSON.stringify({ narrative }));
             } catch (e) {
@@ -1719,13 +2460,345 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // POST /api/clips/marker - Guardar marcador de clip
+    if (req.method === 'POST' && apiPath === '/api/clips/marker') {
+        try {
+            let body = '';
+            req.on('data', chunk => { body += chunk.toString(); });
+            req.on('end', async () => {
+                try {
+                    const marker = JSON.parse(body);
+                    clipMarkers.push({
+                        ...marker,
+                        savedAt: nowIso()
+                    });
+                    saveClipMarkers();
+                    res.writeHead(200, headers);
+                    res.end(JSON.stringify({ ok: true, id: marker.id }));
+                } catch (e) {
+                    res.writeHead(400, headers);
+                    res.end(JSON.stringify({ ok: false, error: e.message }));
+                }
+            });
+        } catch (e) {
+            res.writeHead(500, headers);
+            res.end(JSON.stringify({ ok: false, error: e.message }));
+        }
+        return;
+    }
+
+    // POST /api/notifications/twitter - Enviar notificación a Twitter
+    if (req.method === 'POST' && apiPath === '/api/notifications/twitter') {
+        try {
+            let body = '';
+            req.on('data', chunk => { body += chunk.toString(); });
+            req.on('end', async () => {
+                try {
+                    const { message } = JSON.parse(body);
+                    // TODO: Implementar integración con Twitter API
+                    // Por ahora solo loguear
+                    console.log('[Notifications] Twitter:', message);
+                    res.writeHead(200, headers);
+                    res.end(JSON.stringify({ ok: true, sent: false, note: 'Twitter integration not implemented' }));
+                } catch (e) {
+                    res.writeHead(400, headers);
+                    res.end(JSON.stringify({ ok: false, error: e.message }));
+                }
+            });
+        } catch (e) {
+            res.writeHead(500, headers);
+            res.end(JSON.stringify({ ok: false, error: e.message }));
+        }
+        return;
+    }
+
+    // POST /api/notifications/discord - Enviar webhook a Discord
+    if (req.method === 'POST' && apiPath === '/api/notifications/discord') {
+        try {
+            let body = '';
+            req.on('data', chunk => { body += chunk.toString(); });
+            req.on('end', async () => {
+                try {
+                    const { embed, webhookUrl } = JSON.parse(body);
+                    const discordWebhookUrl = webhookUrl || process.env.DISCORD_WEBHOOK_URL;
+
+                    if (!discordWebhookUrl) {
+                        res.writeHead(200, headers);
+                        res.end(JSON.stringify({ ok: false, error: 'Discord webhook URL not configured' }));
+                        return;
+                    }
+
+                    // Enviar webhook a Discord
+                    const discordRes = await fetch(discordWebhookUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ embeds: [embed] })
+                    });
+
+                    if (discordRes.ok) {
+                        res.writeHead(200, headers);
+                        res.end(JSON.stringify({ ok: true, sent: true }));
+                    } else {
+                        res.writeHead(200, headers);
+                        res.end(JSON.stringify({ ok: false, error: 'Discord webhook failed' }));
+                    }
+                } catch (e) {
+                    res.writeHead(400, headers);
+                    res.end(JSON.stringify({ ok: false, error: e.message }));
+                }
+            });
+        } catch (e) {
+            res.writeHead(500, headers);
+            res.end(JSON.stringify({ ok: false, error: e.message }));
+        }
+        return;
+    }
+
+    // POST /api/notifications/email - Enviar email
+    if (req.method === 'POST' && apiPath === '/api/notifications/email') {
+        try {
+            let body = '';
+            req.on('data', chunk => { body += chunk.toString(); });
+            req.on('end', async () => {
+                try {
+                    const { subject, body: emailBody, to } = JSON.parse(body);
+                    // TODO: Implementar envío de email (usar nodemailer o similar)
+                    console.log('[Notifications] Email:', { subject, to });
+                    res.writeHead(200, headers);
+                    res.end(JSON.stringify({ ok: true, sent: false, note: 'Email integration not implemented' }));
+                } catch (e) {
+                    res.writeHead(400, headers);
+                    res.end(JSON.stringify({ ok: false, error: e.message }));
+                }
+            });
+        } catch (e) {
+            res.writeHead(500, headers);
+            res.end(JSON.stringify({ ok: false, error: e.message }));
+        }
+        return;
+    }
+
+    // =========================
+    // YOUTUBE CHAT INTEGRATION
+    // =========================
+    // Cache de Video ID -> Live Chat ID para ahorrar quota
+    const ytVideoChatMap = new Map(); // videoId -> liveChatId
+
+    // Endpoint: Obtener chat en vivo (real con fallback a simulación)
+    // GET /api/chat/live?videoId=XYZ
+    if (req.method === 'GET' && apiPath === '/api/chat/live') {
+        const u = new URL(req.url, `http://${req.headers.host}`);
+        const videoId = safeSlice(u.searchParams.get('videoId'), 20);
+        let accessToken = req.headers['authorization'] || '';
+        if (accessToken.startsWith('Bearer ')) accessToken = accessToken.slice(7);
+
+        // Si no hay token o videoId, devolvemos simulación (fallback mode)
+        if (!accessToken || !videoId) {
+            const sim = [
+                { id: `sim-${Date.now()}-1`, author: 'Usuario1', text: 'Increíble vista desde el satélite!', timestamp: Date.now() - 5000 },
+                { id: `sim-${Date.now()}-2`, author: 'Viajero_X', text: 'Saludos desde México 🇲🇽', timestamp: Date.now() - 12000 },
+                { id: `sim-${Date.now()}-3`, author: 'AnaM', text: '¿Saben qué ciudad es esa?', timestamp: Date.now() - 25000 }
+            ];
+            res.writeHead(200, headers);
+            // Solo devolvemos si la "suerte" dice que hay actividad, para no saturar
+            res.end(JSON.stringify({ messages: Math.random() > 0.3 ? sim : [] }));
+            return;
+        }
+
+        try {
+            // 1. Obtener Live Chat ID si no lo tenemos cacheado
+            let liveChatId = ytVideoChatMap.get(videoId);
+            if (!liveChatId) {
+                const vidRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${videoId}`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+
+                if (vidRes.status === 401 || vidRes.status === 403) {
+                    throw new Error('youtube_auth_error');
+                }
+
+                const vidData = await vidRes.json();
+                const DETAILS = vidData?.items?.[0]?.liveStreamingDetails;
+                liveChatId = DETAILS?.activeLiveChatId;
+
+                if (liveChatId) {
+                    ytVideoChatMap.set(videoId, liveChatId);
+                } else {
+                    // El video no está en vivo o no tiene chat activo.
+                    // Devolver array vacío (no simulación, porque se pidió real explícitamente y falló por lógica de negocio)
+                    res.writeHead(200, headers);
+                    res.end(JSON.stringify({ messages: [], status: 'no_live_chat' }));
+                    return;
+                }
+            }
+
+            // 2. Leer mensajes del chat
+            // Usamos nextPageToken para paginación si quisiéramos persistencia, 
+            // pero para "live pulse" nos basta lo último.
+            const chatRes = await fetch(`https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${liveChatId}&part=snippet,authorDetails&maxResults=15`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+
+            if (!chatRes.ok) {
+                // Si falla (ej: chat terminó), invalidar cache y lanzar
+                ytVideoChatMap.delete(videoId);
+                const errText = await chatRes.text();
+                throw new Error('chat_fetch_failed: ' + errText);
+            }
+
+            const chatData = await chatRes.json();
+            const items = chatData.items || [];
+
+            const messages = items.map(item => ({
+                id: item.id,
+                author: item.authorDetails?.displayName || 'Anónimo',
+                text: item.snippet?.displayMessage || '',
+                timestamp: new Date(item.snippet?.publishedAt).getTime(),
+                isMod: item.authorDetails?.isChatModerator || false,
+                isOwner: item.authorDetails?.isChatOwner || false
+            }));
+
+            res.writeHead(200, headers);
+            res.end(JSON.stringify({ messages, pollingInterval: chatData.pollingIntervalMillis || 5000 }));
+
+        } catch (e) {
+            console.warn(`[YouTubeChat] Error fetching real chat for ${videoId}:`, e.message);
+            // Fallback silencioso o error explícito
+            res.writeHead(200, headers);
+            // En caso de error de auth real, forzamos re-login en el cliente enviando error especifico
+            if (e.message === 'youtube_auth_error') {
+                res.end(JSON.stringify({ error: 'auth_required', messages: [] }));
+            } else {
+                res.end(JSON.stringify({ error: e.message, messages: [] }));
+            }
+        }
+        return;
+    }
+
+    // =========================
+    // YOUTUBE OAUTH ENDPOINTS
+    // =========================
+
+    // POST /api/youtube/oauth/token - Intercambiar código por tokens
+    if (req.method === 'POST' && apiPath === '/api/youtube/oauth/token') {
+        try {
+            let body = '';
+            req.on('data', chunk => { body += chunk.toString(); });
+            req.on('end', async () => {
+                try {
+                    const { code, redirectUri } = JSON.parse(body);
+                    const clientId = process.env.YOUTUBE_OAUTH_CLIENT_ID || '';
+                    const clientSecret = process.env.YOUTUBE_OAUTH_CLIENT_SECRET || '';
+
+                    if (!clientId || !clientSecret) {
+                        res.writeHead(400, headers);
+                        res.end(JSON.stringify({ ok: false, error: 'OAuth credentials not configured' }));
+                        return;
+                    }
+
+                    // Intercambiar código por tokens
+                    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams({
+                            code: code,
+                            client_id: clientId,
+                            client_secret: clientSecret,
+                            redirect_uri: redirectUri,
+                            grant_type: 'authorization_code'
+                        })
+                    });
+
+                    if (!tokenRes.ok) {
+                        const error = await tokenRes.text();
+                        console.error('[YouTubeOAuth] Token exchange error:', error);
+                        res.writeHead(400, headers);
+                        res.end(JSON.stringify({ ok: false, error: 'Failed to exchange code for tokens' }));
+                        return;
+                    }
+
+                    const tokenData = await tokenRes.json();
+                    res.writeHead(200, headers);
+                    res.end(JSON.stringify({ ok: true, ...tokenData }));
+                } catch (e) {
+                    console.error('[YouTubeOAuth] Error:', e);
+                    res.writeHead(500, headers);
+                    res.end(JSON.stringify({ ok: false, error: e.message }));
+                }
+            });
+        } catch (e) {
+            res.writeHead(500, headers);
+            res.end(JSON.stringify({ ok: false, error: e.message }));
+        }
+        return;
+    }
+
+    // POST /api/youtube/oauth/refresh - Refrescar access token
+    if (req.method === 'POST' && apiPath === '/api/youtube/oauth/refresh') {
+        try {
+            let body = '';
+            req.on('data', chunk => { body += chunk.toString(); });
+            req.on('end', async () => {
+                try {
+                    const { refreshToken } = JSON.parse(body);
+                    const clientId = process.env.YOUTUBE_OAUTH_CLIENT_ID || '';
+                    const clientSecret = process.env.YOUTUBE_OAUTH_CLIENT_SECRET || '';
+
+                    if (!clientId || !clientSecret) {
+                        res.writeHead(400, headers);
+                        res.end(JSON.stringify({ ok: false, error: 'OAuth credentials not configured' }));
+                        return;
+                    }
+
+                    // Refrescar token
+                    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams({
+                            refresh_token: refreshToken,
+                            client_id: clientId,
+                            client_secret: clientSecret,
+                            grant_type: 'refresh_token'
+                        })
+                    });
+
+                    if (!tokenRes.ok) {
+                        const error = await tokenRes.text();
+                        console.error('[YouTubeOAuth] Refresh error:', error);
+                        res.writeHead(400, headers);
+                        res.end(JSON.stringify({ ok: false, error: 'Failed to refresh token' }));
+                        return;
+                    }
+
+                    const tokenData = await tokenRes.json();
+                    res.writeHead(200, headers);
+                    res.end(JSON.stringify({ ok: true, ...tokenData }));
+                } catch (e) {
+                    console.error('[YouTubeOAuth] Refresh error:', e);
+                    res.writeHead(500, headers);
+                    res.end(JSON.stringify({ ok: false, error: e.message }));
+                }
+            });
+        } catch (e) {
+            res.writeHead(500, headers);
+            res.end(JSON.stringify({ ok: false, error: e.message }));
+        }
+        return;
+    }
+
     // Serve control.html
     if (apiPath === '/control.html' || apiPath === '/') {
         const htmlPath = path.join(__dirname, 'control.html');
         try {
             if (fs.existsSync(htmlPath)) {
                 const html = fs.readFileSync(htmlPath, 'utf8');
-                res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+                // Evitar cache del panel (cambios frecuentes)
+                res.writeHead(200, {
+                    'Content-Type': 'text/html; charset=utf-8',
+                    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                });
                 res.end(html);
             } else {
                 res.writeHead(404, headers);
