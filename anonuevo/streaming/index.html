@@ -1,35 +1,108 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Streaming — Plan 3h</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=JetBrains+Mono:wght@400;700&display=swap"
+    rel="stylesheet">
   <style>
-    html, body { margin:0; padding:0; height:100%; background:#0a0a0f; color:#e8e8f0; font-family:Inter,system-ui; }
-    .wrap { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
-    h1 { margin: 0 0 8px; font-size: 2.2rem; letter-spacing: 1px; }
-    p { margin: 10px 0; color:#a0a0b0; line-height:1.5; }
-    code { font-family: "JetBrains Mono", ui-monospace, monospace; color:#cbd5e1; }
-    .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); border-radius: 14px; padding: 18px; margin-top: 18px; }
-    .btns { display:flex; gap:12px; margin-top: 16px; flex-wrap: wrap; }
-    button { cursor:pointer; border-radius: 10px; border: 1px solid rgba(56,189,248,0.35); background: rgba(56,189,248,0.12); color:#e8e8f0; padding: 12px 14px; font-weight: 700; letter-spacing: 0.5px; }
-    button.secondary { border-color: rgba(148,163,184,0.35); background: rgba(148,163,184,0.10); }
-    button.danger { border-color: rgba(239,68,68,0.45); background: rgba(239,68,68,0.10); }
-    .small { font-size: 0.85rem; color:#94a3b8; }
-    .status { margin-top: 10px; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.85rem; color:#94a3b8; }
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #0a0a0f;
+      color: #e8e8f0;
+      font-family: Inter, system-ui;
+    }
+
+    .wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 2.2rem;
+      letter-spacing: 1px;
+    }
+
+    p {
+      margin: 10px 0;
+      color: #a0a0b0;
+      line-height: 1.5;
+    }
+
+    code {
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      color: #cbd5e1;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 14px;
+      padding: 18px;
+      margin-top: 18px;
+    }
+
+    .btns {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      cursor: pointer;
+      border-radius: 10px;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      background: rgba(56, 189, 248, 0.12);
+      color: #e8e8f0;
+      padding: 12px 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    button.secondary {
+      border-color: rgba(148, 163, 184, 0.35);
+      background: rgba(148, 163, 184, 0.10);
+    }
+
+    button.danger {
+      border-color: rgba(239, 68, 68, 0.45);
+      background: rgba(239, 68, 68, 0.10);
+    }
+
+    .small {
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+
+    .status {
+      margin-top: 10px;
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
   </style>
 </head>
+
 <body>
   <div class="wrap">
     <h1>Streaming — Plan 3 horas</h1>
-    <p>Este punto de entrada activa el plan maestro (navegación + diálogo Ilfass/Acompañante + anti‑silencio) y te manda al circuito.</p>
+    <p>Este punto de entrada activa el plan maestro (navegación + diálogo Ilfass/Acompañante + anti‑silencio) y te manda
+      al circuito.</p>
 
     <div class="card">
       <div class="small">Arranque recomendado</div>
       <p>
-        1) Abrí <code>/streaming/</code> y tocá <b>START</b> (o usá <code>?autostart=1</code>)<br/>
-        2) Abrí el panel: <code>/control.html</code><br/>
+        1) Abrí <code>/streaming/</code> y tocá <b>START</b> (o usá <code>?autostart=1</code>)<br />
+        2) Abrí el panel: <code>/control.html</code><br />
         3) En OBS capturás la pestaña que queda en <code>/vivos/*</code>
       </p>
 
@@ -54,23 +127,23 @@
     }
 
     async function ensureAutoOnAndStopLegacyShow() {
-      try { await fetch('/control-api/event/auto_on', { method: 'POST' }); } catch (e) {}
-      try { await fetch('/control-api/event/show/stop', { method: 'POST' }); } catch (e) {}
+      try { await fetch('/control-api/event/auto_on', { method: 'POST' }); } catch (e) { }
+      try { await fetch('/control-api/event/show/stop', { method: 'POST' }); } catch (e) { }
     }
 
     document.getElementById('btn-start').onclick = async () => {
       await ensureAutoOnAndStopLegacyShow();
       streamingPlanEngine.start({ reset: true });
       setStatus();
-      // Entrar por intro (tu bloque 1)
-      window.location.href = '/vivos/intro/';
+      // Entrar por intro root (Acto Cero)
+      window.location.href = '/';
     };
 
     document.getElementById('btn-reset').onclick = async () => {
       await ensureAutoOnAndStopLegacyShow();
       streamingPlanEngine.start({ reset: true });
       setStatus();
-      window.location.href = '/vivos/intro/';
+      window.location.href = '/';
     };
 
     document.getElementById('btn-stop').onclick = async () => {
@@ -87,5 +160,5 @@
     }
   </script>
 </body>
-</html>
 
+</html>
