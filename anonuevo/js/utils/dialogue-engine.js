@@ -189,25 +189,28 @@ export class DialogueEngine {
     audioManager.speak(item.text, priority, () => {
       setLastSpoke(now());
 
-      // ILUSTRACIÓN VISUAL (30% de probabilidad o si es Ilfass)
-      if (item.role === 'ilfass' && Math.random() > 0.5) {
+      // ILUSTRACIÓN VISUAL (90% de probabilidad o si es Ilfass)
+      if (item.role === 'ilfass' && Math.random() > 0.1) {
         (async () => {
           try {
             const { multimediaOrchestrator } = await import('./multimedia-orchestrator.js');
             const { pexelsClient } = await import('./pexels-client.js');
+            const { sfxEngine } = await import('./sfx-engine.js'); // Importar SFX
+
+            // Sonido de revelación visual
+            sfxEngine.reveal();
 
             // Usar el contexto visual actual o keywords del texto
             const currentMode = currentModeFromPath();
             const query = currentMode === 'mapa' ? (localStorage.getItem('last_country_name') || 'world map') : currentMode;
 
-            // Decidir si video o imagen (30% video)
-            const useVideo = Math.random() > 0.7;
+            // Decidir si video o imagen (40% video)
+            const useVideo = Math.random() > 0.6;
 
             if (useVideo) {
               const videos = await pexelsClient.searchVideos(query, 3);
               if (videos && videos.length > 0) {
                 const vid = videos[0];
-                // Buscar el mejor archivo de video (HD pero no 4k para no saturar)
                 const file = vid.video_files.find(f => f.quality === 'hd' && f.width >= 1280) || vid.video_files[0];
                 if (file) {
                   multimediaOrchestrator.showMediaOverlay({
@@ -222,18 +225,21 @@ export class DialogueEngine {
             }
 
             // Fallback o elección de Imagen
-            const photos = await pexelsClient.searchPhotos(query, 5); // Fetch más para variedad
+            const photos = await pexelsClient.searchPhotos(query, 5);
             if (photos.length > 0) {
               const pic = photos[Math.floor(Math.random() * photos.length)];
               multimediaOrchestrator.showMediaOverlay({
                 type: 'image',
                 url: pic.src.landscape,
                 context: query.toUpperCase(),
-                ttlMs: 6000
+                ttlMs: 8000
               });
             }
           } catch (e) { console.warn("Visual Trigger Error", e); }
         })();
+      } else {
+        // Si no hay imagen, al menos un tick de sonido
+        import('./sfx-engine.js').then(m => m.sfxEngine.tick());
       }
 
       // Calcular "aire" dinámico antes del siguiente
