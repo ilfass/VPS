@@ -16,12 +16,12 @@ export const JOURNEY_SCHEDULE = [
 export class StreamManager {
     constructor() {
         this.currentMode = STREAM_MODES.NARRATIVE;
-        
+
         // Estado del viaje - ahora dinámico, no basado en días calendario
         this.currentCountryId = null;
         this.lastCountryChange = Date.now();
         this.visitedCountries = new Set(); // Para evitar repeticiones inmediatas
-        
+
         // Temas disponibles (ya no forzamos días 1,2,3)
         this.availableThemes = ['HISTORY', 'CULTURE', 'CURIOSITIES'];
         this.currentTheme = 'HISTORY';
@@ -48,27 +48,27 @@ export class StreamManager {
         this.currentCountryId = countryId;
         this.lastCountryChange = Date.now();
         this.visitedCountries.add(countryId);
-        
+
         // Si se especifica un tema, usarlo; si no, elegir aleatorio
         if (theme && this.availableThemes.includes(theme)) {
             this.currentTheme = theme;
         } else {
             this.currentTheme = this.availableThemes[Math.floor(Math.random() * this.availableThemes.length)];
         }
-        
+
         console.log(`Country changed to: ${countryId}, Theme: ${this.currentTheme}`);
     }
 
     // Elegir un país aleatorio de TODOS los países disponibles (no solo el schedule)
     pickRandomCountry() {
         const allCountryIds = Object.keys(COUNTRY_INFO);
-        
+
         // Filtrar el país actual y los recientemente visitados (últimos 10 para más variedad)
         const recentArray = Array.from(this.visitedCountries).slice(-10);
-        const available = allCountryIds.filter(id => 
+        const available = allCountryIds.filter(id =>
             id !== this.currentCountryId && !recentArray.includes(id)
         );
-        
+
         if (available.length === 0) {
             // Si no hay disponibles, resetear visited y elegir cualquiera excepto el actual
             this.visitedCountries.clear();
@@ -98,7 +98,7 @@ export class StreamManager {
         if (!this.currentCountryId) {
             this.pickRandomCountry();
         }
-        
+
         return {
             mode: this.currentMode,
             countryId: this.currentCountryId,
@@ -112,14 +112,14 @@ export class StreamManager {
         switch (this.currentMode) {
             case STREAM_MODES.NARRATIVE:
                 return {
-                    zoomDuration: 15000,
-                    globalViewDuration: 20000,
+                    zoomDuration: 40000,
+                    globalViewDuration: 30000,
                     speakProbability: 1.0
                 };
             case STREAM_MODES.VISUAL_TRAVEL:
                 return {
-                    zoomDuration: 45000, // Lento
-                    globalViewDuration: 30000,
+                    zoomDuration: 60000, // Lento
+                    globalViewDuration: 45000,
                     speakProbability: 0.3 // Habla poco
                 };
             case STREAM_MODES.LOOP:

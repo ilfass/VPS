@@ -926,7 +926,7 @@ export default class MapaMode {
         if (eventManager.canProceedAuto()) {
             console.log('[Mapa] Dream Mode ON: Cambiando automáticamente después de intro...');
             setTimeout(() => {
-                const pages = ['diario', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo'];
+                const pages = ['continente', 'ruta', 'estadisticas', 'galeria', 'globo'];
                 const randomPage = pages[Math.floor(Math.random() * pages.length)];
                 console.log(`[Mapa] 🎲 Navegando a: ${randomPage}`);
                 window.location.href = `/vivos/${randomPage}/`;
@@ -948,7 +948,8 @@ Genera una introducción en primera persona (como ilfass) que:
 5. Tenga entre 150 y 250 palabras
 6. Use primera persona: "Soy ilfass...", "Estoy aquí para...", "Este viaje representa..."
 7. NO repitas la frase "el tiempo pasa" más de una vez, si es que la usas
-8. Varía las expresiones temporales: usa "en este momento", "ahora", "en este instante", "en la actualidad", etc.`;
+8. MENCIONA VISUALMENTE EL MAPA: Explica que la sombra oscura que se mueve es la noche avanzando en tiempo real, y el marcador brillante es el sol.
+9. Varía las expresiones temporales: usa "en este momento", "ahora", "en este instante", "en la actualidad", etc.`;
 
         if (previousPresentations.length > 0) {
             prompt += `\n\nYa has hecho ${previousPresentations.length} presentación(es) anterior(es). Evita repetir exactamente lo mismo. Varía el enfoque, pero mantén la esencia del proyecto.`;

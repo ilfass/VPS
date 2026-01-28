@@ -12,6 +12,7 @@ export class AvatarSubtitlesManager {
         this.isVisible = false;
         this.currentWords = [];
         this.wordIndex = 0;
+        this.currentRole = 'companion';
     }
 
     init(container) {
@@ -46,6 +47,7 @@ export class AvatarSubtitlesManager {
         this.avatarElement.style.backgroundImage = 'url(/assets/images/avatar_sprite.png)';
         this.avatarElement.style.backgroundSize = 'cover';
         this.avatarElement.style.backgroundPosition = 'center';
+        this.currentRole = 'companion'; // Default role
 
         // Contenedor de subtítulos
         const subtitlesWrapper = document.createElement('div');
@@ -238,11 +240,26 @@ export class AvatarSubtitlesManager {
     }
 
     /**
-     * Actualiza la imagen del avatar
+     * Actualiza la imagen del avatar dinámicamente según el rol
      */
-    setAvatarImage(url) {
-        if (this.avatarElement) {
-            this.avatarElement.style.backgroundImage = `url(${url})`;
+    setAvatarImage(urlOrRole) {
+        if (!this.avatarElement) return;
+
+        // Rutas predefinidas
+        const AVATAR_MAP = {
+            'ilfass': '/assets/images/ilfass_avatar.png',   // Necesitamos crear este asset o usar un placeholder
+            'companion': '/assets/images/avatar_sprite.png'
+        };
+
+        // Si es un rol conocido, usar su ruta
+        let finalUrl = AVATAR_MAP[urlOrRole] || urlOrRole;
+
+        // Mantener sprite solo para compa, o si la url es el sprite
+        if (finalUrl.includes('avatar_sprite.png')) {
+            this.avatarElement.style.backgroundImage = `url(${finalUrl})`;
+        } else {
+            // Para Ilfass u otros, imagen estática por ahora
+            this.avatarElement.style.backgroundImage = `url(${finalUrl})`;
         }
     }
 }
