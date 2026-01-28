@@ -116,11 +116,11 @@ export default class MapaMode {
         eventManager.on('scene_change', (scene) => {
             console.log("🎬 Mapa switching to:", scene);
             // Páginas fuera del circuito streaming fueron “sacadas”:
-            // - intro, pais, reflexion, estado-actual, portada, etc.
+            // - intro, pais, reflexion, estado-actual, portada, estadisticas sacadas.
             // Para evitar caer en hojas vacías, redirigimos solo a modos válidos.
             const allowed = new Set([
-                'mapa', 'diario', 'curiosidades', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo',
-                'clima', 'aereo', 'satelites', 'terremotos', 'aire', 'incendios', 'sol', 'ciudad'
+                'mapa', 'diario', 'curiosidades', 'continente', 'ruta', 'galeria', 'globo',
+                'clima', 'aereo', 'satelites', 'terremotos', 'aire', 'incendios', 'sol'
             ]);
 
             if (scene === 'mapa') {
