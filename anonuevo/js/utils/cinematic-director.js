@@ -110,6 +110,32 @@ export class CinematicDirector {
         host.style.transform = 'none';
     }
 
+    _stopDom() {
+        const host = this._domHost;
+        if (!host) return;
+        try {
+            host.style.transform = '';
+            host.style.willChange = '';
+        } catch (e) { }
+        this._domHost = null;
+    }
+
+    _startCesium() {
+        // No-op
+    }
+
+    _scheduleNextCesiumShot(delayMs) {
+        // No-op
+    }
+
+    _startDom() {
+        this._domHost = document.getElementById('stage');
+    }
+
+    _scheduleNextDomShot(delayMs) {
+        // No-op
+    }
+
     _getDomTargets(stageRect) {
         // Si el modo ofrece targets, usarlos (coords en viewport)
         try {
