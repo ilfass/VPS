@@ -97,12 +97,6 @@ export default class MapaMode {
 
                 <!-- Estado del Sistema (Discreto) -->
                 <div class="system-status" id="broadcast-info">SISTEMA ONLINE</div>
-
-                <!-- Diario de Viaje (Nuevo) -->
-                <div id="travel-diary" class="travel-diary hidden-bottom">
-                    <div class="diary-header">📔 DIARIO DE VIAJE</div>
-                    <div class="diary-content" id="diary-content">...</div>
-                </div>
             </div>
         `;
 
@@ -668,7 +662,8 @@ export default class MapaMode {
         // Asegurar música de ambiente (User Request: "Music has to be there")
         if (!audioManager.isMusicPlaying) {
             console.log('[Mapa] 🎵 Iniciando música de fondo forzada para intro...');
-            audioManager.init().then(() => audioManager.startAmbience());
+            audioManager.init();
+            audioManager.startAmbience();
         }
 
         // Asegurar que el avatar esté inicializado antes de usarlo
@@ -982,7 +977,7 @@ Genera una introducción en primera persona (como ilfass) que:
         const immediateTexts = [
             `Soy ilfass, una inteligencia que viaja por el mundo documentando la existencia humana en tiempo real. Este es "El Viaje de ilfass", un proyecto donde recorro países, culturas y lugares, generando una memoria viva de cada experiencia. Cada país que visito me deja una huella, y cada visita construye sobre las anteriores, creando una historia continua y en evolución. Acompáñame en este viaje mientras exploramos el mundo juntos.`,
             `Bienvenido a "El Viaje de ilfass". Soy ilfass, una inteligencia diseñada para documentar la existencia humana en tiempo real. A través de este proyecto, recorro naciones, culturas y lugares, creando una memoria viva de cada encuentro. Cada destino me transforma, y cada experiencia se suma a las anteriores, formando un relato continuo y en constante evolución. Únete a mí en esta exploración del mundo.`,
-            `Estás conectado a ilfass, una inteligencia que navega por el planeta documentando la humanidad en tiempo real. Este es "El Viaje de ilfass", una expedición donde visito países, descubro culturas y archivo lugares, generando una memoria dinámica de cada momento. Cada lugar que conozco me enriquece, y cada visita se entrelaza con las anteriores, construyendo una narrativa continua y siempre cambiante. Acompáñame en esta aventura global.`,
+            `Estás conectado a ilfass, una inteligencia que navega por el planeta documentando la humanidad en tiempo real. Este es "El Viaje de ilfass", una expedición donde visito países, descubro culturas y archivo lugares, generando una memoria dinámica de cada momento.`,
             `Soy ilfass, y estoy aquí para documentar la existencia humana mientras viajo por el mundo. Este proyecto representa un viaje continuo donde cada país, cada cultura y cada lugar me enseña algo nuevo. Mi misión es crear una memoria viva de estas experiencias, conectando momentos y lugares en una narrativa que evoluciona constantemente. Bienvenido a este viaje sin fin.`,
             `Bienvenido a "El Viaje de ilfass". Soy ilfass, una inteligencia que explora el planeta para documentar la humanidad en tiempo real. Cada país que visito me ofrece una perspectiva única, y cada experiencia se suma a mi memoria colectiva. Este proyecto es un relato en constante construcción, donde cada visita enriquece las anteriores. Acompáñame mientras descubrimos el mundo juntos.`
         ];
@@ -1101,25 +1096,7 @@ Genera una introducción en primera persona (como ilfass) que:
         });
     }
 
-    // Método speak antiguo eliminado, usamos audioManager
-    updateDiary(entry) {
-        const diaryEl = document.getElementById('travel-diary');
-        const contentEl = document.getElementById('diary-content');
 
-        if (diaryEl && contentEl) {
-            contentEl.innerHTML = `
-                <strong>${entry.country}</strong> - ${entry.time}<br>
-                <span style="font-size:0.9em; color: #cbd5e1;">${entry.topic}</span><br>
-                <p style="margin-top:5px; font-style:italic;">"${entry.content}"</p>
-            `;
-            diaryEl.classList.remove('hidden-bottom');
-
-            // Ocultar después de un tiempo
-            setTimeout(() => {
-                diaryEl.classList.add('hidden-bottom');
-            }, 15000);
-        }
-    }
 
     createRippleEffect(feature, countryId) {
         // Crear grupo para efectos de onda si no existe
@@ -1498,15 +1475,7 @@ Genera una introducción en primera persona (como ilfass) que:
                 }, 3000); // 3 segundos para que se vea el subtítulo completo
             }
 
-            // 8. Actualizar diario con el relato
-            this.updateDiary({
-                country: target.name,
-                time: new Date().toLocaleTimeString('es-ES'),
-                topic: continuousNarrative.isFirstVisit ? 'Primera Visita' : 'Visita Subsecuente',
-                content: continuousNarrative.narrative.substring(0, 200) + '...'
-            });
-
-            // 9. Info del país ya se muestra en los subtítulos del avatar
+            // 8. Info del país ya se muestra en los subtítulos del avatar
 
             // NO hacer zoom out automático - esperar a que termine el audio
             // El zoom out se hace en el callback de audioManager.speak
