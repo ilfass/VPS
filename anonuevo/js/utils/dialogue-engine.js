@@ -36,8 +36,8 @@ function currentModeFromPath() {
 function mapMovement(mode) {
   const m = String(mode || '').toLowerCase();
   if (['aereo'].includes(m)) return 'AVIONES';
-  if (['clima', 'aire'].includes(m)) return 'CLIMA';
-  if (['satelites', 'sol'].includes(m)) return 'SATELITES';
+  if (['clima', 'aire', 'frecuencia'].includes(m)) return 'CLIMA';
+  if (['satelites', 'sol', 'sistema', 'radar'].includes(m)) return 'SATELITES';
   if (['ruta', 'mapa', 'globo', 'observador'].includes(m)) return 'HUMANIDAD';
   if (['terremotos', 'incendios'].includes(m)) return 'TENSION';
   return 'HUMANIDAD'; // Default
@@ -45,17 +45,17 @@ function mapMovement(mode) {
 
 function mapWorldState(mode) {
   const m = String(mode || '').toLowerCase();
-  if (['terremotos', 'incendios'].includes(m)) return 'INESTABLE';
-  if (['aereo', 'satelites', 'ruta'].includes(m)) return 'ACTIVO';
-  if (['clima', 'aire', 'sol'].includes(m)) return 'CALMO';
+  if (['terremotos', 'incendios', 'radar'].includes(m)) return 'INESTABLE';
+  if (['aereo', 'satelites', 'ruta', 'sistema'].includes(m)) return 'ACTIVO';
+  if (['clima', 'aire', 'sol', 'frecuencia'].includes(m)) return 'CALMO';
   return 'CONTINUO';
 }
 
 function mapEmotional(mode) {
   const m = String(mode || '').toLowerCase();
-  if (['curiosidades', 'intro'].includes(m)) return 'LIGERO';
-  if (['diario', 'galeria', 'terremotos', 'incendios', 'memoria'].includes(m)) return 'PROFUNDO';
-  if (['observador', 'reloj'].includes(m)) return 'NEUTRO';
+  if (['curiosidades', 'intro', 'frecuencia'].includes(m)) return 'LIGERO';
+  if (['diario', 'galeria', 'terremotos', 'incendios', 'memoria', 'radar'].includes(m)) return 'PROFUNDO';
+  if (['observador', 'reloj', 'sistema'].includes(m)) return 'NEUTRO';
   return 'NEUTRO';
 }
 
