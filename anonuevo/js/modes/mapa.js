@@ -656,9 +656,20 @@ export default class MapaMode {
      * Muestra la introducción del mapa con el avatar hablando sobre el proyecto
      * Genera el texto con IA y lo guarda en memoria
      */
+    /**
+     * Muestra la introducción del mapa con el avatar hablando.
+     * LOGICA MEJORADA: Si ya hubo una presentación previa, NO repetimos la intro larga.
+     * En su lugar, hacemos un puente breve ("Continuamos nuestro viaje...").
+     */
     async showMapIntro() {
         // Asegurar que el mapa esté en zoom out (vista global)
         this.resetZoom(false); // No liberar audio aún
+
+        // Asegurar música de ambiente (User Request: "Music has to be there")
+        if (!audioManager.isMusicPlaying) {
+            console.log('[Mapa] 🎵 Iniciando música de fondo forzada para intro...');
+            audioManager.init().then(() => audioManager.startAmbience());
+        }
 
         // Asegurar que el avatar esté inicializado antes de usarlo
         if (!avatarSubtitlesManager.container) {
@@ -668,26 +679,53 @@ export default class MapaMode {
         // Mostrar avatar inmediatamente
         avatarSubtitlesManager.show();
 
-        // TEXTO INICIAL INMEDIATO (50 frases para empezar a hablar de inmediato)
-        const immediateIntroText = this.getImmediateIntroText();
-
-        // Iniciar narración INMEDIATAMENTE con texto inicial
-        pacingEngine.startEvent(CONTENT_TYPES.VOICE);
-        console.log('[Mapa] 🚀 Iniciando narración inmediata con texto inicial');
-
-        // En paralelo, generar el texto completo con IA
-        let introText = immediateIntroText; // Por defecto usar el inicial
-        let useMemory = false;
+        // Verificar memoria para saber si es la primera vez o no
         let previousPresentations = [];
-
         try {
             const memoryRes = await fetch('/control-api/api/map-intro-memory');
             if (memoryRes.ok) {
                 const memoryData = await memoryRes.json();
                 previousPresentations = memoryData.presentations || [];
             }
+        } catch (e) { console.warn('[Mapa] No se pudo cargar memoria de presentaciones:', e); }
+
+        const isFirstTime = (previousPresentations.length === 0);
+
+        // Si NO es la primera vez, saltar intro larga -> Ir directo a "bridge" corto
+        if (!isFirstTime) {
+            console.log('[Mapa] ⏩ Intro ya realizada previamente. Saltando presentación formal.');
+            // Breve frase de continuidad
+            const bridgeText = "Continuamos nuestro viaje global. El sistema está listo para nuevos destinos.";
+            avatarSubtitlesManager.setSubtitles(bridgeText);
+
+            return new Promise((resolve) => {
+                audioManager.speak(bridgeText, 'normal', () => {
+                    this.finishMapIntro(bridgeText, previousPresentations);
+                    resolve();
+                }, (txt) => avatarSubtitlesManager.setSubtitles(txt));
+            });
+        }
+
+        // --- SI ES LA PRIMERA VEZ, HACER LA INTRO COMPLETA ---
+
+        // TEXTO INICIAL INMEDIATO (50 frases para empezar a hablar de inmediato)
+        const immediateIntroText = this.getImmediateIntroText();
+
+        // Iniciar narración INMEDIATAMENTE
+        pacingEngine.startEvent(CONTENT_TYPES.VOICE);
+        console.log('[Mapa] 🚀 Iniciando narración de INTRO (Primera vez)');
+
+
+
+        // En paralelo, generar el texto completo con IA
+        let introText = immediateIntroText; // Por defecto usar el inicial
+        let useMemory = false;
+        // previousPresentations is already declared above
+
+        try {
+            // Already fetched above, but keeping structure clean if needed for re-fetch logic (omitted here)
         } catch (e) {
-            console.warn('[Mapa] No se pudo cargar memoria de presentaciones:', e);
+            // ...
         }
 
         // Generar texto completo en paralelo (no esperar)
