@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DIRECCIÓN EDITORIAL - ILFASS V6</title>
+    <title>DIRECCIÓN EDITORIAL - ILFASS (Control)</title>
     <link
         href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap"
         rel="stylesheet">
@@ -58,6 +58,16 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
+        .build-badge {
+            font-family: 'JetBrains Mono';
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.04);
+            padding: 6px 10px;
+            border-radius: 999px;
+        }
+
         .rec-indicator {
             display: flex;
             align-items: center;
@@ -88,8 +98,17 @@
         }
 
         @keyframes pulseRec {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(1.1); }
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.6;
+                transform: scale(1.1);
+            }
         }
 
         .session-info {
@@ -420,6 +439,7 @@
                 opacity: 0;
                 transform: translateY(-10px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -531,6 +551,7 @@
             <div style="font-family: 'JetBrains Mono'; font-size: 0.75rem; color: var(--text-dim);">
                 <span id="current-scene-display">--</span>
             </div>
+            <div class="build-badge">control: observer-buttons</div>
         </div>
 
         <div class="session-controls">
@@ -567,7 +588,8 @@
                 <div style="display: flex; gap: 8px;">
                     <button onclick="travelNow()" style="flex: 1;">✈️ FLY NOW</button>
                     <button onclick="addToQueue()" class="btn-small" style="width: 60px;">+</button>
-                    <button onclick="clearQueue()" class="btn-small" style="width: 60px;" title="Clear Queue">🗑️</button>
+                    <button onclick="clearQueue()" class="btn-small" style="width: 60px;"
+                        title="Clear Queue">🗑️</button>
                 </div>
             </div>
 
@@ -582,6 +604,31 @@
                         <div class="stat-card-value" id="stat-countries-visited">0</div>
                         <div class="stat-card-label">Countries</div>
                     </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>📺 YouTube Integration</h2>
+                <div style="font-size: 0.7rem; color: var(--text-dim); margin-bottom: 10px;">
+                    Configuración global (se guarda en <code>localStorage</code>) para que cualquier hoja pueda usarla.
+                    Redirect URI: <code id="yt-redirect-uri">--</code>
+                </div>
+                <input type="text" id="youtube-api-key" placeholder="YouTube API Key" style="margin-bottom: 8px;">
+                <input type="text" id="youtube-video-id" placeholder="YouTube Video ID" style="margin-bottom: 8px;">
+                <input type="text" id="youtube-client-id" placeholder="OAuth Client ID" style="margin-bottom: 8px;">
+                <div style="display:flex; gap:8px; align-items:center; margin-bottom: 8px;">
+                    <button onclick="saveYouTubeConfig()" class="btn-small" style="flex:1;">💾 Guardar Config</button>
+                    <button onclick="clearYouTubeAuth()" class="btn-small"
+                        style="width:160px; border-color: var(--warning); color: var(--warning);">🧹 Limpiar
+                        OAuth</button>
+                </div>
+                <div style="border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px;">
+                    <div style="font-size: 0.65rem; color: var(--text-dim); margin-bottom: 6px;">OAuth Status:</div>
+                    <div id="youtube-oauth-status"
+                        style="font-size: 0.75rem; color: var(--warning); margin-bottom: 8px;">No autenticado</div>
+                    <button onclick="authenticateYouTube()" class="btn-small"
+                        style="width: 100%; background: var(--accent); color: white; border: none;">🔐 Autenticar
+                        YouTube</button>
                 </div>
             </div>
 
@@ -600,8 +647,10 @@
                     <span class="stat-label">Last Save:</span>
                     <span id="memory-last-save" class="stat-val" style="font-size: 0.7rem;">--</span>
                 </div>
-                <button onclick="refreshMemories()" style="margin-top: 12px; font-size: 0.7rem; padding: 8px;">🔄 Refresh</button>
-                <div id="memory-list" style="margin-top: 12px; max-height: 200px; overflow-y: auto; font-family: 'JetBrains Mono'; font-size: 0.7rem; color: var(--text-dim);">
+                <button onclick="refreshMemories()" style="margin-top: 12px; font-size: 0.7rem; padding: 8px;">🔄
+                    Refresh</button>
+                <div id="memory-list"
+                    style="margin-top: 12px; max-height: 200px; overflow-y: auto; font-family: 'JetBrains Mono'; font-size: 0.7rem; color: var(--text-dim);">
                     <div style="text-align: center; padding: 20px;">Click Refresh to load</div>
                 </div>
             </div>
@@ -610,53 +659,64 @@
                 <h2>📚 Hojas del Libro</h2>
                 <div style="margin-bottom: 12px;">
                     <div style="font-size: 0.7rem; color: var(--text-dim); margin-bottom: 8px;">
-                        <strong style="color: var(--accent);">Total: <span id="book-total-pages">17</span> hojas</strong>
+                        <strong style="color: var(--accent);">Total: <span id="book-total-pages">17</span>
+                            hojas</strong>
                     </div>
                 </div>
-                
+
                 <div style="margin-bottom: 16px;">
-                    <h3 style="font-size: 0.75rem; color: var(--accent); margin-bottom: 8px; text-transform: uppercase;">📄 Hojas Fijas</h3>
+                    <h3
+                        style="font-size: 0.75rem; color: var(--accent); margin-bottom: 8px; text-transform: uppercase;">
+                        📄 Hojas Fijas</h3>
                     <div style="display: grid; grid-template-columns: 1fr; gap: 6px;">
                         <button onclick="navigateToPage('/vivos/mapa/')" class="book-page-btn" title="Mapa Global">
                             🌍 Mapa Global
                         </button>
-                        <button onclick="navigateToPage('/memoria/indice/')" class="book-page-btn" title="Índice Global">
+                        <button onclick="navigateToPage('/memoria/indice/')" class="book-page-btn"
+                            title="Índice Global">
                             📑 Índice
                         </button>
                     </div>
                 </div>
 
                 <div style="margin-bottom: 16px;">
-                    <h3 style="font-size: 0.75rem; color: var(--accent); margin-bottom: 8px; text-transform: uppercase;">⚡ Hojas Dinámicas</h3>
+                    <h3
+                        style="font-size: 0.75rem; color: var(--accent); margin-bottom: 8px; text-transform: uppercase;">
+                        ⚡ Hojas Dinámicas</h3>
                     <div style="display: grid; grid-template-columns: 1fr; gap: 6px;">
-                        <button onclick="navigateToPage('/vivos/diario/')" class="book-page-btn" title="Diario de Viaje">
+                        <button onclick="navigateToPage('/vivos/diario/')" class="book-page-btn"
+                            title="Diario de Viaje">
                             📔 Diario
                         </button>
-                        <button onclick="navigateToPage('/vivos/curiosidades/')" class="book-page-btn" title="Curiosidades - Momentos Divertidos">
+                        <button onclick="navigateToPage('/vivos/curiosidades/')" class="book-page-btn"
+                            title="Curiosidades - Momentos Divertidos">
                             ✨ Curiosidades
                         </button>
-                        <button onclick="navigateToPage('/vivos/continente/')" class="book-page-btn" title="Vista de Continente">
+                        <button onclick="navigateToPage('/vivos/continente/')" class="book-page-btn"
+                            title="Vista de Continente">
                             🌐 Continente
                         </button>
                         <button onclick="navigateToPage('/vivos/ruta/')" class="book-page-btn" title="Ruta del Viaje">
                             🗺️ Ruta
                         </button>
-                        <button onclick="navigateToPage('/vivos/estadisticas/')" class="book-page-btn" title="Estadísticas Globales">
-                            📊 Estadísticas
-                        </button>
-                        <button onclick="navigateToPage('/vivos/galeria/')" class="book-page-btn" title="Galería Multimedia">
+                        <!-- Estadisticas REMOVED -->
+                        <button onclick="navigateToPage('/vivos/galeria/')" class="book-page-btn"
+                            title="Galería Multimedia">
                             🎬 Galería
                         </button>
-                        <button onclick="navigateToPage('/vivos/globo/')" class="book-page-btn" title="Globo 3D - Recorrido Automático">
+                        <button onclick="navigateToPage('/vivos/globo/')" class="book-page-btn"
+                            title="Globo 3D - Recorrido Automático">
                             🌍 Globo 3D
                         </button>
-                        <button onclick="navigateToPage('/vivos/clima/')" class="book-page-btn" title="Clima en Tiempo Real">
+                        <button onclick="navigateToPage('/vivos/clima/')" class="book-page-btn"
+                            title="Clima en Tiempo Real">
                             🌍 Clima
                         </button>
                         <button onclick="navigateToPage('/vivos/aereo/')" class="book-page-btn" title="Tráfico Aéreo">
                             ✈️ Tráfico Aéreo
                         </button>
-                        <button onclick="navigateToPage('/vivos/satelites/')" class="book-page-btn" title="Satélites (ISS)">
+                        <button onclick="navigateToPage('/vivos/satelites/')" class="book-page-btn"
+                            title="Satélites (ISS)">
                             🛰️ Satélites
                         </button>
                         <button onclick="navigateToPage('/vivos/terremotos/')" class="book-page-btn" title="Terremotos">
@@ -665,24 +725,25 @@
                         <button onclick="navigateToPage('/vivos/aire/')" class="book-page-btn" title="Calidad del Aire">
                             💨 Calidad del Aire
                         </button>
-                        <button onclick="navigateToPage('/vivos/incendios/')" class="book-page-btn" title="Incendios Forestales">
+                        <button onclick="navigateToPage('/vivos/incendios/')" class="book-page-btn"
+                            title="Incendios Forestales">
                             🔥 Incendios
                         </button>
                         <button onclick="navigateToPage('/vivos/sol/')" class="book-page-btn" title="Actividad Solar">
                             ☀️ Actividad Solar
                         </button>
-                        <button onclick="navigateToPage('/vivos/ciudad/')" class="book-page-btn" title="Ciudad en vivo (tráfico + transporte)">
-                            🏙️ Ciudad en vivo
-                        </button>
                     </div>
                 </div>
 
                 <div>
-                    <h3 style="font-size: 0.75rem; color: var(--success); margin-bottom: 8px; text-transform: uppercase;">
+                    <h3
+                        style="font-size: 0.75rem; color: var(--success); margin-bottom: 8px; text-transform: uppercase;">
                         💾 Memorias (<span id="book-memory-count">6</span> visitas)
                     </h3>
-                    <div id="book-memories-list" style="max-height: 200px; overflow-y: auto; font-family: 'JetBrains Mono'; font-size: 0.7rem;">
-                        <div style="text-align: center; padding: 10px; color: var(--text-dim);">Cargando memorias...</div>
+                    <div id="book-memories-list"
+                        style="max-height: 200px; overflow-y: auto; font-family: 'JetBrains Mono'; font-size: 0.7rem;">
+                        <div style="text-align: center; padding: 10px; color: var(--text-dim);">Cargando memorias...
+                        </div>
                     </div>
                 </div>
             </div>
@@ -707,7 +768,8 @@
                     </div>
                     <div class="stat-row">
                         <span class="stat-label">💾 MEMORIA PAÍS:</span>
-                        <span id="country-memory" class="stat-val" style="color: var(--success); font-size: 0.75rem;">--</span>
+                        <span id="country-memory" class="stat-val"
+                            style="color: var(--success); font-size: 0.75rem;">--</span>
                     </div>
                 </div>
             </div>
@@ -715,12 +777,16 @@
             <div class="panel">
                 <h2>📺 TV Controls</h2>
                 <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px;">
-                    <button onclick="recapNow()" style="border-color: var(--accent); color: var(--accent);">🗣️ RECAP NOW</button>
-                    <button onclick="bumperNow()" style="border-color: var(--purple); color: var(--purple);">🎥 BUMPER NOW</button>
+                    <button onclick="recapNow()" style="border-color: var(--accent); color: var(--accent);">🗣️ RECAP
+                        NOW</button>
+                    <button onclick="bumperNow()" style="border-color: var(--purple); color: var(--purple);">🎥 BUMPER
+                        NOW</button>
                 </div>
                 <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px;">
-                    <button onclick="resetAgenda()" style="border-color: var(--warning); color: var(--warning);">🧭 RESET AGENDA</button>
-                    <button onclick="toggleTvSettings()" id="btn-tv-toggles" style="border-color: var(--border-light); color: var(--text-main);">⚙️ TOGGLES</button>
+                    <button onclick="resetAgenda()" style="border-color: var(--warning); color: var(--warning);">🧭
+                        RESET AGENDA</button>
+                    <button onclick="toggleTvSettings()" id="btn-tv-toggles"
+                        style="border-color: var(--border-light); color: var(--text-main);">⚙️ TOGGLES</button>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">Recaps:</span>
@@ -739,27 +805,36 @@
                     <span id="showrunner-status" class="stat-val" style="font-size:0.75rem;">--</span>
                 </div>
                 <div style="margin-top:10px;">
-                    <div style="font-size:0.7rem; color: var(--text-dim); margin-bottom:6px; font-family:'JetBrains Mono';">MISIÓN DEL DÍA</div>
-                    <input id="showrunner-mission" placeholder="Ej: Encontrar una señal que conecte clima + rutas + memoria" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background: rgba(0,0,0,0.18); color: var(--text-main); outline:none; font-family:'Inter';" />
+                    <div
+                        style="font-size:0.7rem; color: var(--text-dim); margin-bottom:6px; font-family:'JetBrains Mono';">
+                        MISIÓN DEL DÍA</div>
+                    <input id="showrunner-mission"
+                        placeholder="Ej: Encontrar una señal que conecte clima + rutas + memoria"
+                        style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background: rgba(0,0,0,0.18); color: var(--text-main); outline:none; font-family:'Inter';" />
                 </div>
                 <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px;">
                     <button onclick="showRunnerStart()" class="btn-primary">▶ START SHOW</button>
                     <button onclick="showRunnerStop()" class="btn-danger">⏹ STOP</button>
                 </div>
                 <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px;">
-                    <button onclick="showRunnerNext()" style="border-color: var(--accent); color: var(--accent);">⏭ NEXT BLOQUE</button>
-                    <button onclick="showRunnerSetMission()" style="border-color: var(--border-light); color: var(--text-main);">💾 GUARDAR MISIÓN</button>
+                    <button onclick="showRunnerNext()" style="border-color: var(--accent); color: var(--accent);">⏭ NEXT
+                        BLOQUE</button>
+                    <button onclick="showRunnerSetMission()"
+                        style="border-color: var(--border-light); color: var(--text-main);">💾 GUARDAR MISIÓN</button>
                 </div>
                 <div style="margin-top:8px; font-size:0.65rem; color: rgba(255,255,255,0.55);">
-                    La rueda ejecuta 5×12min: Apertura → Urbano → Rutas → Espacio → Memoria. Mientras está activa, la agenda/recaps/bumpers automáticos se pausan.
+                    La rueda ejecuta 5×12min: Apertura → Urbano → Rutas → Espacio → Memoria. Mientras está activa, la
+                    agenda/recaps/bumpers automáticos se pausan.
                 </div>
             </div>
 
             <div class="panel" id="ruta-controls-panel" style="display:none;">
                 <h2>🗺️ Ruta Controls</h2>
                 <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px;">
-                    <button onclick="rutaTogglePlay()" id="btn-ruta-play" style="border-color: var(--accent); color: var(--accent);" disabled>⏯ PLAY/PAUSE</button>
-                    <button onclick="rutaToggleFollow()" id="btn-ruta-follow" style="border-color: var(--purple); color: var(--purple);" disabled>🎥 FOLLOW/FREE</button>
+                    <button onclick="rutaTogglePlay()" id="btn-ruta-play"
+                        style="border-color: var(--accent); color: var(--accent);" disabled>⏯ PLAY/PAUSE</button>
+                    <button onclick="rutaToggleFollow()" id="btn-ruta-follow"
+                        style="border-color: var(--purple); color: var(--purple);" disabled>🎥 FOLLOW/FREE</button>
                 </div>
                 <div style="font-size:0.65rem; color: rgba(255,255,255,0.55);">
                     Se habilita automáticamente cuando la escena activa es <code>ruta</code>.
@@ -770,13 +845,16 @@
                 <h2>✂️ Clip Markers</h2>
                 <div style="display:flex; gap:8px; margin-bottom:10px;">
                     <button onclick="refreshClipMarks()" style="flex:1;">🔄 Refresh</button>
-                    <button onclick="clearClipMarks()" style="flex:1; border-color: var(--warning); color: var(--warning);">🧹 Clear</button>
+                    <button onclick="clearClipMarks()"
+                        style="flex:1; border-color: var(--warning); color: var(--warning);">🧹 Clear</button>
                 </div>
-                <div id="clip-marks-list" style="max-height: 260px; overflow-y: auto; font-family: 'JetBrains Mono'; font-size: 0.7rem; color: var(--text-dim);">
+                <div id="clip-marks-list"
+                    style="max-height: 260px; overflow-y: auto; font-family: 'JetBrains Mono'; font-size: 0.7rem; color: var(--text-dim);">
                     <div style="text-align:center; padding:10px; color: var(--text-dim);">Sin marcas aún.</div>
                 </div>
                 <div style="margin-top:8px; font-size:0.65rem; color: rgba(255,255,255,0.55);">
-                    Tip: estas marcas sirven como guía para recortar Shorts/Clips (usa <code>sinceStartSec</code> si hay Día Editorial activo).
+                    Tip: estas marcas sirven como guía para recortar Shorts/Clips (usa <code>sinceStartSec</code> si hay
+                    Día Editorial activo).
                 </div>
             </div>
 
@@ -792,32 +870,36 @@
                     </select>
                     <button onclick="applySelectedArc()" class="btn-small" style="width: 120px;">SET</button>
                 </div>
-                <div id="story-arc-beats" style="margin-top:10px; padding:10px; border:1px solid rgba(255,255,255,0.08); border-radius:10px; background: rgba(255,255,255,0.03); font-family:'JetBrains Mono'; font-size:0.68rem; color: rgba(255,255,255,0.75);">
+                <div id="story-arc-beats"
+                    style="margin-top:10px; padding:10px; border:1px solid rgba(255,255,255,0.08); border-radius:10px; background: rgba(255,255,255,0.03); font-family:'JetBrains Mono'; font-size:0.68rem; color: rgba(255,255,255,0.75);">
                     <div style="color: rgba(255,255,255,0.55);">Beats del arco: —</div>
                 </div>
                 <div style="display:flex; gap:8px; margin-top:10px;">
                     <button onclick="refreshStoryState()" style="flex:1;">🔄 Refresh</button>
-                    <button onclick="resetStoryState()" style="flex:1; border-color: var(--warning); color: var(--warning);">🧹 Reset</button>
+                    <button onclick="resetStoryState()"
+                        style="flex:1; border-color: var(--warning); color: var(--warning);">🧹 Reset</button>
                 </div>
-                <div id="story-lastn" style="margin-top:10px; max-height: 160px; overflow:auto; font-family:'JetBrains Mono'; font-size:0.68rem; color: var(--text-dim);">
+                <div id="story-lastn"
+                    style="margin-top:10px; max-height: 160px; overflow:auto; font-family:'JetBrains Mono'; font-size:0.68rem; color: var(--text-dim);">
                     <div style="text-align:center; padding:10px; color: var(--text-dim);">—</div>
                 </div>
             </div>
 
             <div class="panel" style="flex: 1;">
                 <h2>🎨 Media Repository</h2>
-                
+
                 <!-- Indicador de Media Activo -->
                 <div id="active-media-indicator" style="display: none;">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <span style="color: var(--accent); font-size: 1.2rem;">▶</span>
                         <div style="flex: 1;">
-                            <div style="color: var(--accent); font-weight: bold; margin-bottom: 4px;" id="active-media-name"></div>
+                            <div style="color: var(--accent); font-weight: bold; margin-bottom: 4px;"
+                                id="active-media-name"></div>
                             <div style="font-size: 0.65rem; color: var(--text-dim);" id="active-media-url"></div>
                         </div>
                     </div>
                 </div>
-                
+
                 <div id="media-grid">
                     <div style="grid-column: span 2; text-align: center; padding: 40px; color: var(--text-dim);">
                         Select a country to load media.
@@ -835,15 +917,90 @@
                     <span class="dream-label">DREAM MODE</span>
                     <button id="btn-dream-toggle" onclick="toggleDreamMode()" style="width: 90px;">OFF</button>
                 </div>
-                <div style="font-size: 0.7rem; color: var(--purple); margin-top: 8px; text-align: center; padding: 8px; background: rgba(168, 85, 247, 0.05); border-radius: 6px;">
+                <div
+                    style="font-size: 0.7rem; color: var(--purple); margin-top: 8px; text-align: center; padding: 8px; background: rgba(168, 85, 247, 0.05); border-radius: 6px;">
                     AI controls navigation & media autonomously when ON
                 </div>
 
                 <div class="quick-actions">
-                    <button onclick="triggerForceDream()" style="border-color: var(--purple); color: var(--purple);">✨ Dream</button>
-                    <button onclick="generateNarrative()" style="border-color: var(--accent); color: var(--accent);">📝 Narrate</button>
-                    <button onclick="generateImage()" style="border-color: var(--warning); color: var(--warning);">🎨 Image</button>
+                    <button onclick="triggerForceDream()" style="border-color: var(--purple); color: var(--purple);">✨
+                        Dream</button>
+                    <button onclick="generateNarrative()" style="border-color: var(--accent); color: var(--accent);">📝
+                        Narrate</button>
+                    <button onclick="generateImage()" style="border-color: var(--warning); color: var(--warning);">🎨
+                        Image</button>
                 </div>
+            </div>
+
+            <div class="panel">
+                <h2>🌐 Observador (Pulso)</h2>
+                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.65); margin-bottom: 10px;">
+                    Junta noticias + tendencias + cultura/agenda + ciencia/tech + salud + seguridad, calcula keywords y
+                    genera un <code>commentary</code> narrable.
+                </div>
+
+                <div style="display:flex; gap:8px; flex-wrap: wrap; margin-bottom: 10px;">
+                    <button id="observer-only-all" class="btn-small"
+                        style="width:auto; border-color: var(--accent); color: var(--accent);"
+                        onclick="setObserverOnly('all')">ALL</button>
+                    <button id="observer-only-news" class="btn-small" style="width:auto;"
+                        onclick="setObserverOnly('news')">NEWS</button>
+                    <button id="observer-only-trends" class="btn-small" style="width:auto;"
+                        onclick="setObserverOnly('trends')">TRENDS</button>
+                    <button id="observer-only-culture" class="btn-small" style="width:auto;"
+                        onclick="setObserverOnly('culture')">CULTURE</button>
+                    <button id="observer-only-scitech" class="btn-small" style="width:auto;"
+                        onclick="setObserverOnly('scitech')">SCI/TECH</button>
+                    <button id="observer-only-health" class="btn-small" style="width:auto;"
+                        onclick="setObserverOnly('health')">HEALTH</button>
+                    <button id="observer-only-security" class="btn-small" style="width:auto;"
+                        onclick="setObserverOnly('security')">SECURITY</button>
+                </div>
+
+                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px;">
+                    <div>
+                        <div
+                            style="font-size:0.65rem; color: var(--text-dim); margin-bottom:6px; font-family:'JetBrains Mono';">
+                            LANG</div>
+                        <input id="observer-lang" value="es-419" placeholder="es-419" style="margin:0;" />
+                    </div>
+                    <div>
+                        <div
+                            style="font-size:0.65rem; color: var(--text-dim); margin-bottom:6px; font-family:'JetBrains Mono';">
+                            GEO</div>
+                        <input id="observer-geo" value="US" placeholder="US" style="margin:0;" />
+                    </div>
+                    <div>
+                        <div
+                            style="font-size:0.65rem; color: var(--text-dim); margin-bottom:6px; font-family:'JetBrains Mono';">
+                            HOLIDAY CC</div>
+                        <input id="observer-cc" value="ES" placeholder="ES" style="margin:0;" />
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px;">
+                    <button onclick="observerPreviewPulse()"
+                        style="border-color: var(--accent); color: var(--accent);">🔎 PREVIEW PULSO</button>
+                    <button onclick="observerSendPulseToAir()"
+                        style="border-color: var(--danger); color: var(--danger);">📣 ENVIAR AL AIRE</button>
+                </div>
+
+                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px;">
+                    <button onclick="observerCopyCommentary()" class="btn-small" style="width:100%;">📋 COPY</button>
+                    <button onclick="observerToggleJson()" class="btn-small" style="width:100%;">🧾 JSON</button>
+                    <button onclick="observerClearPreview()" class="btn-small"
+                        style="width:100%; border-color: var(--border-light); color: var(--text-main);">🧹
+                        CLEAR</button>
+                </div>
+
+                <div id="observer-preview"
+                    style="border:1px solid rgba(255,255,255,0.08); border-radius:10px; background: rgba(255,255,255,0.03); padding: 10px; font-size: 0.72rem; color: rgba(255,255,255,0.78);">
+                    <div style="color: rgba(255,255,255,0.55); text-align:center; padding:10px;">
+                        Sin preview aún.
+                    </div>
+                </div>
+                <pre id="observer-json"
+                    style="display:none; margin-top:10px; max-height: 220px; overflow:auto; border:1px solid rgba(255,255,255,0.08); border-radius:10px; background:#0a0a0f; padding:10px; font-family:'JetBrains Mono'; font-size:0.62rem; color: rgba(255,255,255,0.75);"></pre>
             </div>
 
             <div class="panel">
@@ -851,7 +1008,8 @@
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
                     <button onclick="triggerEvent('fact')">💡 FACT</button>
                     <button onclick="triggerEvent('glitch')">⚡ GLITCH</button>
-                    <button onclick="triggerEvent('news')" style="grid-column: span 2; border-color: var(--danger); color: var(--danger);">
+                    <button onclick="triggerEvent('news')"
+                        style="grid-column: span 2; border-color: var(--danger); color: var(--danger);">
                         🚨 BREAKING NEWS
                     </button>
                 </div>
@@ -866,7 +1024,8 @@
                     </div>
                     <div class="stat-row">
                         <span class="stat-label">Status:</span>
-                        <span id="music-status" class="stat-val" style="font-size: 0.75rem; color: var(--text-dim);">--</span>
+                        <span id="music-status" class="stat-val"
+                            style="font-size: 0.75rem; color: var(--text-dim);">--</span>
                     </div>
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
@@ -893,6 +1052,11 @@
 
     </div>
 
+    <script type="module">
+        import { YouTubeOAuth } from '/js/utils/youtube-oauth.js';
+        window.YouTubeOAuth = YouTubeOAuth;
+    </script>
+
     <script>
         // --- CONFIG & STATE ---
         const ALL_COUNTRIES = [
@@ -913,6 +1077,7 @@
 
         // --- INIT ---
         window.onload = () => {
+            updateVideowallQuery(); // Inicializar visibilidad del campo query para videowall
             const sel = document.getElementById('country-select');
             ALL_COUNTRIES.sort((a, b) => a.name.localeCompare(b.name)).forEach(c => {
                 const opt = document.createElement('option');
@@ -955,11 +1120,179 @@
                 if (body) opts.body = JSON.stringify(body);
                 const res = await fetch(`/control-api${path}`, opts);
                 return await res.json();
-            } catch (e) { 
+            } catch (e) {
                 log(`API Error: ${e.message}`, 'error');
-                return null; 
+                return null;
             }
         }
+
+        // --- OBSERVER (PULSE) ---
+        let observerLast = null;
+        let observerJsonVisible = false;
+        let observerOnly = 'all';
+
+        function _val(id) {
+            return (document.getElementById(id)?.value || '').trim();
+        }
+
+        function getObserverParams() {
+            const lang = (_val('observer-lang') || 'es-419').slice(0, 12);
+            const geo = (_val('observer-geo') || 'US').toUpperCase().slice(0, 2);
+            const cc = (_val('observer-cc') || geo || 'ES').toUpperCase().slice(0, 2);
+            return { lang, geo, cc };
+        }
+
+        function setObserverOnly(value) {
+            observerOnly = (value || 'all').toString().toLowerCase().trim();
+            const ids = ['all', 'news', 'trends', 'culture', 'scitech', 'health', 'security'];
+            ids.forEach(k => {
+                const el = document.getElementById(`observer-only-${k}`);
+                if (!el) return;
+                const active = observerOnly === k;
+                if (active) {
+                    el.style.borderColor = 'var(--accent)';
+                    el.style.color = 'var(--accent)';
+                } else {
+                    el.style.borderColor = 'var(--border)';
+                    el.style.color = 'var(--text-main)';
+                }
+            });
+            log(`Observer filter -> ${observerOnly.toUpperCase()}`, 'info');
+        }
+
+        function esc(s) {
+            return String(s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function renderObserverPreview(data) {
+            const box = document.getElementById('observer-preview');
+            const pre = document.getElementById('observer-json');
+            if (!box) return;
+            if (!data || !data.ok) {
+                box.innerHTML = `<div style="color: rgba(255,255,255,0.65); text-align:center; padding:10px;">No se pudo generar el pulso.</div>`;
+                if (pre) pre.textContent = '';
+                return;
+            }
+
+            const kw = Array.isArray(data.keywords) ? data.keywords : [];
+            const blocks = data.blocks || {};
+            const fmtItems = (items, max = 6) => {
+                const arr = Array.isArray(items) ? items.slice(0, max) : [];
+                if (!arr.length) return `<div style="color: rgba(255,255,255,0.45);">—</div>`;
+                return `<div style="display:flex; flex-direction:column; gap:6px;">` + arr.map(it => {
+                    const t = esc(it.title || '');
+                    const src = esc(it.source || '');
+                    return `<div style="border:1px solid rgba(255,255,255,0.06); background: rgba(0,0,0,0.18); padding:8px; border-radius:10px;">
+                        <div style="font-weight:700; color: rgba(255,255,255,0.9);">${t}</div>
+                        <div style="margin-top:3px; color: rgba(255,255,255,0.55); font-size:0.65rem;">${src}</div>
+                    </div>`;
+                }).join('') + `</div>`;
+            };
+
+            const commentary = esc(data.commentary || '');
+            const kws = kw.slice(0, 10).map(k => {
+                const label = esc(k.keyword || '');
+                const c = Number(k.count || 0);
+                return `<span style="display:inline-block; margin: 4px 6px 0 0; padding: 6px 8px; border-radius: 999px; background: rgba(74,158,255,0.10); border: 1px solid rgba(74,158,255,0.18); font-family:'JetBrains Mono'; font-size:0.62rem; color: rgba(255,255,255,0.85);">${label} <span style="opacity:0.7;">${c}</span></span>`;
+            }).join('');
+
+            box.innerHTML = `
+                <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom:8px;">
+                    <div style="font-family:'JetBrains Mono'; color: rgba(255,255,255,0.6);">Generado: ${esc(data.generatedAt || '--')}</div>
+                    <div style="font-family:'JetBrains Mono'; color: rgba(255,255,255,0.6);">Locale: ${esc(data.locale?.hl || '')} / ${esc(data.locale?.gl || '')}</div>
+                </div>
+                <div style="font-weight:800; color: rgba(255,255,255,0.92); margin-bottom:6px;">Commentary (narrable)</div>
+                <div id="observer-commentary" style="white-space:pre-wrap; line-height:1.55; background: rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px;">${commentary || '—'}</div>
+
+                <div style="margin-top:10px;">
+                    <div style="font-weight:800; color: rgba(255,255,255,0.92); margin-bottom:6px;">Keywords / Tendencias</div>
+                    <div>${kws || '<div style="color: rgba(255,255,255,0.45);">—</div>'}</div>
+                </div>
+
+                <div style="margin-top:12px; display:grid; grid-template-columns: 1fr; gap: 10px;">
+                    <div>
+                        <div style="font-weight:800; color: rgba(255,255,255,0.92); margin-bottom:6px;">Noticias</div>
+                        ${fmtItems(blocks.news, 6)}
+                    </div>
+                    <div>
+                        <div style="font-weight:800; color: rgba(255,255,255,0.92); margin-bottom:6px;">Tendencias</div>
+                        ${fmtItems(blocks.trends, 6)}
+                    </div>
+                    <div>
+                        <div style="font-weight:800; color: rgba(255,255,255,0.92); margin-bottom:6px;">Cultura / Agenda</div>
+                        ${fmtItems(blocks.culture, 4)}
+                    </div>
+                    <div>
+                        <div style="font-weight:800; color: rgba(255,255,255,0.92); margin-bottom:6px;">Ciencia / Tech</div>
+                        ${fmtItems(blocks.scitech, 4)}
+                    </div>
+                    <div>
+                        <div style="font-weight:800; color: rgba(255,255,255,0.92); margin-bottom:6px;">Salud</div>
+                        ${fmtItems(blocks.health, 4)}
+                    </div>
+                    <div>
+                        <div style="font-weight:800; color: rgba(255,255,255,0.92); margin-bottom:6px;">Seguridad</div>
+                        ${fmtItems(blocks.security, 4)}
+                    </div>
+                </div>
+            `;
+
+            if (pre) {
+                pre.textContent = JSON.stringify(data, null, 2);
+                pre.style.display = observerJsonVisible ? 'block' : 'none';
+            }
+        }
+
+        async function observerPreviewPulse() {
+            const { lang, geo, cc } = getObserverParams();
+            const only = observerOnly || 'all';
+            log(`Observer pulse: preview (only=${only} lang=${lang} geo=${geo} cc=${cc})`, 'info');
+            const qsOnly = only && only !== 'all' ? `&only=${encodeURIComponent(only)}` : '';
+            const data = await api(`/api/observer/pulse?lang=${encodeURIComponent(lang)}&geo=${encodeURIComponent(geo)}&cc=${encodeURIComponent(cc)}&max=10${qsOnly}`, 'GET');
+            observerLast = data;
+            renderObserverPreview(data);
+            if (data && data.ok) log('Observer: pulso generado', 'success');
+        }
+
+        async function observerSendPulseToAir() {
+            const { lang, geo, cc } = getObserverParams();
+            const only = observerOnly || 'all';
+            // Warm cache + show preview
+            await observerPreviewPulse();
+            log(`Observer: enviar al aire (only=${only})`, 'warning');
+            await api('/event/observer/pulse', 'POST', { lang, geo, cc, only, max: 10 });
+        }
+
+        function observerCopyCommentary() {
+            try {
+                const txt = (observerLast?.commentary || '').toString().trim();
+                if (!txt) {
+                    log('Observer: no hay commentary para copiar (primero PREVIEW)', 'warning');
+                    return;
+                }
+                navigator.clipboard.writeText(txt);
+                log('Observer: commentary copiado', 'success');
+            } catch (e) {
+                log('Observer: no se pudo copiar (clipboard)', 'warning');
+            }
+        }
+
+        function observerToggleJson() {
+            observerJsonVisible = !observerJsonVisible;
+            const pre = document.getElementById('observer-json');
+            if (pre) pre.style.display = observerJsonVisible ? 'block' : 'none';
+        }
+
+        function observerClearPreview() {
+            observerLast = null;
+            const box = document.getElementById('observer-preview');
+            const pre = document.getElementById('observer-json');
+            if (box) box.innerHTML = `<div style="color: rgba(255,255,255,0.55); text-align:center; padding:10px;">Sin preview aún.</div>`;
+            if (pre) pre.textContent = '';
+        }
+
+        // Init default filter UI
+        try { setObserverOnly('all'); } catch (e) { }
 
         // --- TV CONTROLS ---
         function getTvPref(key, fallback = true) {
@@ -995,6 +1328,8 @@
         async function showRunnerStart() {
             const mission = (document.getElementById('showrunner-mission')?.value || '').trim();
             log("Start Show Runner 60'", 'success');
+            // Asegurar AutoMode ON (evita depender de toggle)
+            await api('/event/auto_on', 'POST', {});
             await api('/event/show/start', 'POST', { mission });
         }
         async function showRunnerStop() {
@@ -1056,7 +1391,7 @@
             const s = Number(sec);
             const m = Math.floor(s / 60);
             const r = s % 60;
-            return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`;
+            return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
         }
 
         async function refreshClipMarks() {
@@ -1076,7 +1411,7 @@
                 const next = (m.next || '').toString();
                 const note = (m.note || '').toString().slice(0, 90);
                 const text = `[${t}] ${title}${scene ? ` | scene=${scene}` : ''}${next ? ` | next=${next}` : ''}${note ? ` | ${note}` : ''}`;
-                const safeText = text.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                const safeText = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 const encoded = encodeURIComponent(text);
                 return `
                     <div style="padding:8px; border:1px solid rgba(255,255,255,0.08); border-radius:10px; margin-bottom:8px; background: rgba(255,255,255,0.03);">
@@ -1122,7 +1457,7 @@
             box.innerHTML = lastN.slice().reverse().map(x => {
                 const t = new Date(x.ts || Date.now()).toLocaleTimeString('es-ES');
                 const line = `[${t}] ${x.scene || '—'} ${x.country || '—'} · ${String(x.narrativeHint || '').slice(0, 140)}`;
-                const safe = line.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                const safe = line.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 return `<div style="padding:6px 8px; border-bottom:1px solid rgba(255,255,255,0.06);">${safe}</div>`;
             }).join('');
         }
@@ -1145,7 +1480,7 @@
             sel.innerHTML = `<option value="">(sin arco)</option>` + arcs.map(a => {
                 const id = String(a.id || '');
                 const title = String(a.title || '');
-                const safeTitle = title.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                const safeTitle = title.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 return `<option value="${id}">${id} — ${safeTitle}</option>`;
             }).join('');
 
@@ -1160,7 +1495,7 @@
                 }
                 beatsEl.innerHTML = `
                     <div style="font-weight:700; color: rgba(255,255,255,0.9); margin-bottom:6px;">${arc.id} · ${arc.title}</div>
-                    <div style="color: rgba(255,255,255,0.7);">- ${beats.map(b => String(b).replace(/</g,'&lt;').replace(/>/g,'&gt;')).join('<br>- ')}</div>
+                    <div style="color: rgba(255,255,255,0.7);">- ${beats.map(b => String(b).replace(/</g, '&lt;').replace(/>/g, '&gt;')).join('<br>- ')}</div>
                 `;
             };
             // disparar para pintar beats iniciales
@@ -1259,19 +1594,19 @@
 
         async function pauseNarration() {
             log("Pausing narration...", 'warning');
-            
+
             // Cancelar speech localmente si está activo
             if (window.speechSynthesis && window.speechSynthesis.speaking) {
                 window.speechSynthesis.cancel();
                 log("Speech cancelado localmente", 'info');
             }
-            
+
             // Enviar comando a todas las ventanas abiertas usando BroadcastChannel
             if (window.broadcastChannel) {
                 window.broadcastChannel.postMessage({ type: 'pause_narration' });
                 log("Comando pause enviado vía BroadcastChannel", 'info');
             }
-            
+
             await api('/event/pause', 'POST');
         }
 
@@ -1282,13 +1617,13 @@
 
         async function skipCurrent() {
             log("Skipping current...", 'warning');
-            
+
             // Cancelar speech inmediatamente
             if (window.speechSynthesis && window.speechSynthesis.speaking) {
                 window.speechSynthesis.cancel();
                 log("Speech cancelado para skip", 'warning');
             }
-            
+
             // Intentar cancelar en curiosidades
             try {
                 const curiositiesWindow = window.open('', '_blank');
@@ -1300,7 +1635,7 @@
                     window.broadcastChannel.postMessage({ type: 'skip-speech' });
                 }
             }
-            
+
             await api('/event/skip', 'POST');
         }
 
@@ -1424,7 +1759,7 @@
                 const safeUrl = m.url.replace(/'/g, "\\'");
                 const safeName = m.name.replace(/'/g, "\\'");
                 const safeType = m.type.replace(/'/g, "\\'");
-                
+
                 el.innerHTML = `
                     ${preview}
                     <div style="font-size:0.65rem; margin:8px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-dim);">${m.name}</div>
@@ -1439,18 +1774,18 @@
         async function launchMedia(url, type, name) {
             const narrateEl = document.getElementById('narrate-checkbox');
             const narrate = narrateEl ? narrateEl.checked : false;
-            
+
             const indicator = document.getElementById('active-media-indicator');
             const mediaName = document.getElementById('active-media-name');
             const mediaUrl = document.getElementById('active-media-url');
-            
+
             const buttons = document.querySelectorAll(`button[data-media-url="${url}"]`);
-            
+
             if (indicator && mediaName && mediaUrl) {
                 indicator.style.display = 'block';
                 mediaName.textContent = name;
                 mediaUrl.textContent = url;
-                
+
                 buttons.forEach(btn => {
                     btn.style.background = 'var(--accent)';
                     btn.style.color = '#000';
@@ -1458,9 +1793,9 @@
                     btn.disabled = true;
                 });
             }
-            
+
             log(`🚀 Launching Media: ${name} (${type}) - Narrate: ${narrate}`, 'info');
-            
+
             const restoreButtons = () => {
                 buttons.forEach(btn => {
                     btn.style.background = '#27272a';
@@ -1469,16 +1804,16 @@
                     btn.disabled = false;
                 });
             };
-            
+
             try {
                 const result = await api('/event/media', 'POST', { url, type, name, narrate });
-                
+
                 if (result && result.success) {
                     log(`✅ Media launched successfully`, 'success');
                     if (result.narrative) {
                         log(`📝 Narrative: "${result.narrative}"`, 'info');
                     }
-                    
+
                     setTimeout(() => {
                         if (indicator) indicator.style.display = 'none';
                         restoreButtons();
@@ -1533,7 +1868,7 @@
                 'estadisticas': '📊 Estadísticas Globales',
                 'galeria': '🎬 Galería Multimedia'
             };
-            
+
             return sceneMap[scene] || `📄 ${scene || 'Desconocida'}`;
         }
 
@@ -1622,7 +1957,7 @@
             if (srMissionInput && typeof sr.mission === 'string') {
                 if (!srMissionInput.value) srMissionInput.value = sr.mission;
             }
-            
+
             // 5. Hoja del Libro
             const bookPageEl = document.getElementById('book-page');
             if (bookPageEl) {
@@ -1630,10 +1965,10 @@
                 const bookPage = getBookPageFromScene(effectiveScene, telemetry);
                 bookPageEl.textContent = bookPage;
             }
-            
+
             // 6. Memoria del País
             const countryMemoryEl = document.getElementById('country-memory');
-            if (countryMemoryEl && data.clientTelemetry && data.clientTelemetry.country && 
+            if (countryMemoryEl && data.clientTelemetry && data.clientTelemetry.country &&
                 data.clientTelemetry.country !== 'GLOBAL' && data.clientTelemetry.country !== 'UNKNOWN') {
                 fetch(`/control-api/api/country-memory/${data.clientTelemetry.country}`)
                     .then(res => res.json())
@@ -1673,16 +2008,16 @@
                 const musicStatusEl = document.getElementById('music-status');
                 const musicTrackEl = document.getElementById('music-track-info');
                 const musicToggleBtn = document.getElementById('btn-music-toggle');
-                
+
                 if (musicStatusEl) {
                     musicStatusEl.textContent = data.music.isPlaying ? '▶ Playing' : '⏸ Paused';
                     musicStatusEl.style.color = data.music.isPlaying ? 'var(--success)' : 'var(--text-dim)';
                 }
-                
+
                 if (musicTrackEl) {
                     musicTrackEl.textContent = `${data.music.currentTrack + 1}/${2}`;
                 }
-                
+
                 if (musicToggleBtn) {
                     musicToggleBtn.textContent = data.music.isPlaying ? '⏸️ PAUSE' : '▶️ PLAY';
                 }
@@ -1696,10 +2031,10 @@
                 const data = await api('/api/country-memory');
                 if (data && data.memories) {
                     document.getElementById('memory-total').textContent = data.total || 0;
-                    
+
                     // Encontrar la última modificación
                     if (data.memories.length > 0) {
-                        const sorted = data.memories.sort((a, b) => 
+                        const sorted = data.memories.sort((a, b) =>
                             new Date(b.lastModified) - new Date(a.lastModified)
                         );
                         const last = sorted[0];
@@ -1708,7 +2043,7 @@
                         const diffMs = now - lastDate;
                         const diffMins = Math.floor(diffMs / 60000);
                         const diffSecs = Math.floor((diffMs % 60000) / 1000);
-                        
+
                         let timeAgo = '';
                         if (diffMins < 1) {
                             timeAgo = `${diffSecs}s ago`;
@@ -1718,13 +2053,13 @@
                             const diffHours = Math.floor(diffMins / 60);
                             timeAgo = `${diffHours}h ago`;
                         }
-                        
+
                         document.getElementById('memory-last-save').textContent = timeAgo;
                         document.getElementById('memory-last-save').title = lastDate.toLocaleString('es-ES');
                     } else {
                         document.getElementById('memory-last-save').textContent = 'Never';
                     }
-                    
+
                     // Mostrar lista de memorias
                     const memoryListEl = document.getElementById('memory-list');
                     if (data.memories.length === 0) {
@@ -1749,7 +2084,7 @@
                                 `;
                             }).join('');
                     }
-                    
+
                     lastMemoryRefresh = Date.now();
 
                     // Actualizar lista de memorias en la sección de Hojas del Libro
@@ -1766,13 +2101,13 @@
             try {
                 const res = await fetch('/control-api/api/country-memory');
                 if (!res.ok) return;
-                
+
                 const data = await res.json();
                 const memories = data.memories || [];
-                
+
                 // Calcular total de visitas
                 const totalVisits = memories.reduce((sum, m) => sum + (m.totalVisits || 0), 0);
-                
+
                 // Actualizar total de hojas del libro
                 const fixedPages = 4; // Portada, Intro, Mapa, Índice
                 const dynamicPages = 4; // Diario, Estado Actual, Reflexión, País
@@ -1788,7 +2123,7 @@
         function updateBookMemoriesList(memories) {
             const memoriesListEl = document.getElementById('book-memories-list');
             const memoryCountEl = document.getElementById('book-memory-count');
-            
+
             if (!memories || memories.length === 0) {
                 if (memoriesListEl) {
                     memoriesListEl.innerHTML = '<div style="text-align: center; padding: 10px; color: var(--text-dim);">No hay memorias guardadas</div>';
@@ -1854,10 +2189,10 @@
         // Navegar a una página del libro
         // Canal de comunicación con la página del streaming (para páginas que usan main.js)
         const streamChannel = new BroadcastChannel('stream-navigation');
-        
+
         function navigateToPage(path) {
             log(`Navegando a: ${path}`, 'info');
-            
+
             // Método 1: Enviar mensaje via BroadcastChannel (para páginas que usan main.js)
             // Esto solo funciona si la página de streaming está abierta
             try {
@@ -1865,15 +2200,15 @@
             } catch (e) {
                 console.warn('Error enviando mensaje BroadcastChannel:', e);
             }
-            
+
             // Método 2: También enviar evento al servidor (para páginas que usan eventManager)
             const pathMatch = path.match(/\/vivos\/([^\/]+)/);
             if (pathMatch) {
                 const pageName = pathMatch[1];
                 // Enviar evento de navegación al servidor
-                api(`/event/navigate/${pageName}`, 'POST', { path: path }).catch(() => {});
+                api(`/event/navigate/${pageName}`, 'POST', { path: path }).catch(() => { });
             }
-            
+
             // Método 3: Abrir directamente en nueva pestaña si el usuario hace clic con Ctrl/Cmd
             // O mostrar las URLs para referencia
             console.log(`URL completa: ${window.location.origin}${path}`);
@@ -1883,6 +2218,154 @@
         setInterval(poll, 1000);
         poll(); // Initial call
         refreshMemories(); // Initial memory load
+
+        // ---------------------------
+        // YouTube Integration (global)
+        // ---------------------------
+        function getYouTubeConfig() {
+            try {
+                return {
+                    apiKey: localStorage.getItem('youtube_api_key') || '',
+                    videoId: localStorage.getItem('youtube_video_id') || '',
+                    clientId: localStorage.getItem('youtube_client_id') || ''
+                };
+            } catch (e) {
+                return { apiKey: '', videoId: '', clientId: '' };
+            }
+        }
+
+        function setYouTubeConfig({ apiKey, videoId, clientId }) {
+            try {
+                if (typeof apiKey === 'string') localStorage.setItem('youtube_api_key', apiKey.trim());
+                if (typeof videoId === 'string') localStorage.setItem('youtube_video_id', videoId.trim());
+                if (typeof clientId === 'string') localStorage.setItem('youtube_client_id', clientId.trim());
+            } catch (e) { }
+        }
+
+        function updateOAuthStatus() {
+            const statusEl = document.getElementById('youtube-oauth-status');
+            if (!statusEl) return;
+
+            let token = '';
+            let refresh = '';
+            let expiry = '';
+            try {
+                token = localStorage.getItem('youtube_oauth_token') || '';
+                refresh = localStorage.getItem('youtube_refresh_token') || '';
+                expiry = localStorage.getItem('youtube_token_expiry') || '';
+            } catch (e) { }
+
+            if (token && expiry) {
+                const expiryTime = parseInt(expiry, 10);
+                const now = Date.now();
+                const margin = 5 * 60 * 1000;
+
+                if (Number.isFinite(expiryTime) && now < expiryTime - margin) {
+                    statusEl.textContent = '✓ Autenticado';
+                    statusEl.style.color = 'var(--success)';
+                } else if (refresh) {
+                    statusEl.textContent = '⚠ Token expirado (se refrescará automáticamente)';
+                    statusEl.style.color = 'var(--warning)';
+                } else {
+                    statusEl.textContent = '✗ Token expirado (requiere re-autenticación)';
+                    statusEl.style.color = 'var(--danger)';
+                }
+            } else {
+                statusEl.textContent = 'No autenticado';
+                statusEl.style.color = 'var(--warning)';
+            }
+        }
+
+        async function maybeRefreshYouTubeToken() {
+            try {
+                const expiry = parseInt(localStorage.getItem('youtube_token_expiry') || '0', 10);
+                const refreshToken = localStorage.getItem('youtube_refresh_token') || '';
+                const accessToken = localStorage.getItem('youtube_oauth_token') || '';
+                const margin = 5 * 60 * 1000;
+                if (!accessToken || !expiry || !refreshToken) return;
+                if (Date.now() < (expiry - margin)) return;
+
+                const res = await fetch('/control-api/api/youtube/oauth/refresh', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refreshToken })
+                });
+                const data = await res.json();
+                if (res.ok && data && data.access_token && data.expires_in) {
+                    localStorage.setItem('youtube_oauth_token', data.access_token);
+                    localStorage.setItem('youtube_token_expiry', String(Date.now() + Number(data.expires_in) * 1000));
+                }
+            } catch (e) { }
+        }
+
+        window.saveYouTubeConfig = function saveYouTubeConfig() {
+            const apiKey = document.getElementById('youtube-api-key')?.value?.trim() || '';
+            const videoId = document.getElementById('youtube-video-id')?.value?.trim() || '';
+            const clientId = document.getElementById('youtube-client-id')?.value?.trim() || '';
+            setYouTubeConfig({ apiKey, videoId, clientId });
+            log('YouTube config guardada', 'success');
+            updateOAuthStatus();
+        };
+
+        window.clearYouTubeAuth = function clearYouTubeAuth() {
+            if (!confirm('Borrar tokens OAuth de YouTube (localStorage)?')) return;
+            try {
+                localStorage.removeItem('youtube_oauth_token');
+                localStorage.removeItem('youtube_refresh_token');
+                localStorage.removeItem('youtube_token_expiry');
+            } catch (e) { }
+            updateOAuthStatus();
+            log('YouTube OAuth limpiado', 'warning');
+        };
+
+        window.authenticateYouTube = async function authenticateYouTube() {
+            const { clientId } = getYouTubeConfig();
+            const cid = (document.getElementById('youtube-client-id')?.value?.trim() || clientId || '').trim();
+            if (!cid) {
+                alert('Configura primero el OAuth Client ID (y guardalo).');
+                return;
+            }
+
+            try {
+                const redirectUri = `${window.location.origin}/vivos/youtube/oauth-callback.html`;
+                const el = document.getElementById('yt-redirect-uri');
+                if (el) el.textContent = redirectUri;
+
+                const OAuth = window.YouTubeOAuth;
+                if (!OAuth) throw new Error('YouTubeOAuth no cargado');
+
+                const oauth = new OAuth({ clientId: cid, redirectUri });
+                log('Iniciando OAuth…', 'info');
+                await oauth.authorize();
+                updateOAuthStatus();
+                alert('✓ Autenticación exitosa.');
+            } catch (e) {
+                updateOAuthStatus();
+                alert('✗ Error en autenticación: ' + (e?.message || String(e)));
+            }
+        };
+
+        // Init YouTube fields/status
+        (function initYouTubeIntegration() {
+            try {
+                const redirectUri = `${window.location.origin}/vivos/youtube/oauth-callback.html`;
+                const el = document.getElementById('yt-redirect-uri');
+                if (el) el.textContent = redirectUri;
+
+                const cfg = getYouTubeConfig();
+                const apiKeyEl = document.getElementById('youtube-api-key');
+                const videoIdEl = document.getElementById('youtube-video-id');
+                const clientIdEl = document.getElementById('youtube-client-id');
+                if (apiKeyEl) apiKeyEl.value = cfg.apiKey || '';
+                if (videoIdEl) videoIdEl.value = cfg.videoId || '';
+                if (clientIdEl) clientIdEl.value = cfg.clientId || '';
+
+                updateOAuthStatus();
+                setInterval(() => {
+                    maybeRefreshYouTubeToken().finally(updateOAuthStatus);
+                }, 30 * 1000);
+            } catch (e) { }
+        })();
     </script>
 </body>
 
