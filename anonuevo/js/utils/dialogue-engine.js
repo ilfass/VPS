@@ -185,6 +185,32 @@ export class DialogueEngine {
     audioManager.speak(item.text, priority, () => {
       setLastSpoke(now());
 
+      // ILUSTRACIÓN VISUAL (30% de probabilidad o si es Ilfass)
+      if (item.role === 'ilfass' && Math.random() > 0.5) {
+        (async () => {
+          try {
+            const { multimediaOrchestrator } = await import('./multimedia-orchestrator.js');
+            const { pexelsClient } = await import('./pexels-client.js');
+
+            // Usar el contexto visual actual o keywords del texto
+            const currentMode = currentModeFromPath();
+            // Limpiar palabras comunes para busqueda simple
+            const query = currentMode === 'mapa' ? (localStorage.getItem('last_country_name') || 'world map') : currentMode;
+
+            // Buscar y mostrar
+            const photos = await pexelsClient.searchPhotos(query, 1);
+            if (photos.length > 0) {
+              multimediaOrchestrator.showMediaOverlay({
+                type: 'image',
+                url: photos[0].src.landscape,
+                context: query.toUpperCase(),
+                ttlMs: 5000 // Mostrar por 5s
+              });
+            }
+          } catch (e) { console.warn("Visual Trigger Error", e); }
+        })();
+      }
+
       // Calcular "aire" dinámico antes del siguiente
       // Si cambia de hablante, el gap es corto (0.5 - 1.5s) para sensación de charla.
       // Si es el mismo, es una pausa de énfasis (2 - 3s).
