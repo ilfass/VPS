@@ -39,9 +39,33 @@
 </head>
 
 <body>
-    <div id="canvas-container"></div>
-    <div class="overlay">
-        <div class="freq-title">AUDIO_CORE</div>
+    <div class="tv-scene-root">
+        <div id="canvas-container" style="position: absolute; inset: 0; z-index: 0;"></div>
+
+        <!-- TV Header -->
+        <div class="tv-topbar">
+            <div class="tv-title">
+                <div class="badge">LIVE</div>
+                <div class="t1">FRECUENCIA</div>
+                <div class="t2">VISUALIZADOR DE AUDIO</div>
+            </div>
+            <div class="tv-meta">
+                <div class="pill">AUDIO_CORE_ACTIVE</div>
+                <div class="pill">AUTO_SEQ</div>
+            </div>
+        </div>
+
+        <!-- Central Overlay -->
+        <div class="overlay" style="z-index: 1;">
+            <div class="freq-title">AUDIO_CORE</div>
+        </div>
+
+        <!-- TV Ticker -->
+        <div class="tv-ticker">
+            <div class="label">STATUS</div>
+            <div class="msg">MONITOREANDO SEÑALES DE AUDIO GLOBAL • SINCRONIZACIÓN NEURONAL ACTIVA • PROCESANDO FLUJO DE
+                DATOS</div>
+        </div>
     </div>
     <script type="module">
         // Simulación de Visualizador de Audio (Estilo Tunnel/Waves)

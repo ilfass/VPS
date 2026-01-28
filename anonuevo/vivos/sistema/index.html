@@ -116,46 +116,73 @@
 </head>
 
 <body>
-    <div id="terminal-grid">
-        <!-- Main Log -->
-        <div class="term-panel" style="grid-row: span 2;">
-            <div class="term-header">
-                <span>>> SYSTEM_KERNEL_V10.4</span>
-                <span id="uptime">UPTIME: 00:00:00</span>
-            </div>
-            <div class="log-stream" id="main-log"></div>
+    <div class="tv-scene-root">
+        <div class="tv-bg">
+            <div class="tv-bg-grid"></div>
         </div>
 
-        <!-- Metric Block -->
-        <div class="term-panel">
-            <div class="term-header">>> NEURAL_PROCESSOR</div>
-            <div id="hex-view">
-                INITIALIZING HEURISTIC CORE...
-                LOADING NARRATIVE MODULES...
-                -----------------------------
-                CPU0: [||||||||||||....] 72%
-                CPU1: [||||||||........] 45%
-                MEM: [||||||||||||||..] 88%
-                NET: [||||||||||......] 560mbps
+        <!-- TV Header -->
+        <div class="tv-topbar">
+            <div class="tv-title">
+                <div class="badge">LIVE</div>
+                <div class="t1">SISTEMA</div>
+                <div class="t2">TERMINAL DE CONTROL</div>
             </div>
-            <div style="margin-top: 20px;">
-                <div style="font-size: 0.7rem;">ANALYSIS_PROGRESS</div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="p-bar-1"></div>
+            <div class="tv-meta">
+                <div class="pill">KERNEL_V10.4</div>
+                <div class="pill">UPTIME_MONITOR</div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div id="terminal-grid" style="position: relative; z-index: 5; margin-top: 60px; height: calc(100vh - 140px);">
+            <!-- Main Log -->
+            <div class="term-panel" style="grid-row: span 2;">
+                <div class="term-header">
+                    <span>>> SYSTEM_KERNEL_V10.4</span>
+                    <span id="uptime">UPTIME: 00:00:00</span>
+                </div>
+                <div class="log-stream" id="main-log"></div>
+            </div>
+
+            <!-- Metric Block -->
+            <div class="term-panel">
+                <div class="term-header">>> NEURAL_PROCESSOR</div>
+                <div id="hex-view">
+                    INITIALIZING HEURISTIC CORE...
+                    LOADING NARRATIVE MODULES...
+                    -----------------------------
+                    CPU0: [||||||||||||....] 72%
+                    CPU1: [||||||||........] 45%
+                    MEM: [||||||||||||||..] 88%
+                    NET: [||||||||||......] 560mbps
+                </div>
+                <div style="margin-top: 20px;">
+                    <div style="font-size: 0.7rem;">ANALYSIS_PROGRESS</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="p-bar-1"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Block -->
+            <div class="term-panel">
+                <div class="term-header">>> ACTIVE_NODES</div>
+                <div class="log-stream" id="node-log" style="color: #ccccff;">
+                    > CONNECT_YT_API..... OK
+                    > CONNECT_TOMTOM..... OK
+                    > CONNECT_OPENAI..... STANDBY
+                    > AUDIO_ENGINE....... ACTIVE
+                    > TTS_SERVICE........ READY
                 </div>
             </div>
         </div>
 
-        <!-- Status Block -->
-        <div class="term-panel">
-            <div class="term-header">>> ACTIVE_NODES</div>
-            <div class="log-stream" id="node-log" style="color: #ccccff;">
-                > CONNECT_YT_API..... OK
-                > CONNECT_TOMTOM..... OK
-                > CONNECT_OPENAI..... STANDBY
-                > AUDIO_ENGINE....... ACTIVE
-                > TTS_SERVICE........ READY
-            </div>
+        <!-- TV Ticker -->
+        <div class="tv-ticker">
+            <div class="label">LOGS</div>
+            <div class="msg">SISTEMA OPERATIVO CENTRAL • EJECUTANDO DIAGNÓSTICO PROFUNDO • VALIDANDO INTEGRIDAD DE
+                MEMORIA</div>
         </div>
     </div>
 

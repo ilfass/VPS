@@ -133,19 +133,48 @@
 </head>
 
 <body>
-    <div class="overlay-text">
-        <div>GLOBAL_SCANNER_V3</div>
-        <div id="coords">LAT: 00.00 | LON: 00.00</div>
-        <div>TARGETS: <span id="target-count">0</span></div>
-    </div>
+    <div class="tv-scene-root">
+        <div class="tv-bg">
+            <div class="tv-bg-grid"></div>
+        </div>
 
-    <div class="radar-container" id="radar">
-        <div class="ring r1"></div>
-        <div class="ring r2"></div>
-        <div class="ring r3"></div>
-        <div class="cross v-line"></div>
-        <div class="cross h-line"></div>
-        <div class="sweep"></div>
+        <!-- TV Header -->
+        <div class="tv-topbar">
+            <div class="tv-title">
+                <div class="badge">LIVE</div>
+                <div class="t1">RADAR</div>
+                <div class="t2">ESCÁNER GLOBAL</div>
+            </div>
+            <div class="tv-meta">
+                <div class="pill">SEARCH_MODE</div>
+                <div class="pill">TARGET_LOCK</div>
+            </div>
+        </div>
+
+        <div class="overlay-text" style="top: 80px; left: 30px; z-index: 10;">
+            <div>GLOBAL_SCANNER_V3</div>
+            <div id="coords">LAT: 00.00 | LON: 00.00</div>
+            <div>TARGETS: <span id="target-count">0</span></div>
+        </div>
+
+        <div
+            style="display:flex; justify-content:center; align-items:center; height:100%; position:relative; z-index:5;">
+            <div class="radar-container" id="radar">
+                <div class="ring r1"></div>
+                <div class="ring r2"></div>
+                <div class="ring r3"></div>
+                <div class="cross v-line"></div>
+                <div class="cross h-line"></div>
+                <div class="sweep"></div>
+            </div>
+        </div>
+
+        <!-- TV Ticker -->
+        <div class="tv-ticker">
+            <div class="label">SCAN</div>
+            <div class="msg">BUSCANDO SEÑALES ACTIVAS • ANÁLISIS DE TERRENO EN PROGRESO • DATOS DE SATÉLITE RECIBIDOS
+            </div>
+        </div>
     </div>
 
     <script>
