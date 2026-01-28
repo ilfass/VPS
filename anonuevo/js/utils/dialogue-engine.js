@@ -109,7 +109,7 @@ function getVoicePriority(role) {
 export class DialogueEngine {
   constructor() {
     this.timer = null;
-    this.cycleMs = 4 * 60 * 1000; // Ciclos de generación (~4 min)
+    this.cycleMs = 75 * 1000; // Ciclos muy frecuentes (1m 15s) para evitar silencios
     this.queue = [];
     this.isSpeaking = false;
     this.lastCycleAt = 0;
@@ -190,7 +190,8 @@ export class DialogueEngine {
       // Si es el mismo, es una pausa de énfasis (2 - 3s).
       const nextRole = this.queue[0]?.role;
       const isConversation = nextRole && nextRole !== item.role;
-      const gap = isConversation ? (500 + Math.random() * 1000) : (2000 + Math.random() * 1500);
+      // Gap agresivamente corto para evitar "aire" muerto
+      const gap = isConversation ? (200 + Math.random() * 500) : (800 + Math.random() * 1000);
 
       console.log(`⏱️ Gap para siguiente: ${Math.round(gap)}ms`);
 
@@ -200,7 +201,9 @@ export class DialogueEngine {
         if (this.queue.length) {
           this.playNext();
         } else {
-          console.log("✅ Ráfaga de diálogo finalizada.");
+          console.log("✅ Ráfaga finalizada. Forzando nuevo ciclo inmediato...");
+          this.lastCycleAt = 0; // Reset timer para forzar generación en el próximo tick
+          setTimeout(() => this.tick(), 100);
         }
       }, gap);
     });
