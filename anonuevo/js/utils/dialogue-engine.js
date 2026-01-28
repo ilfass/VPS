@@ -6,7 +6,11 @@ const KEY_COMPANION_NAME = 'streaming_companion_name_v1';
 function now() { return Date.now(); }
 
 function isActive() {
-  try { return localStorage.getItem(KEY_ACTIVE) === '1'; } catch (e) { return false; }
+  // Activo por defecto para permitir diálogos (User Request)
+  try {
+    const val = localStorage.getItem(KEY_ACTIVE);
+    return val !== '0'; // Activo salvo que se apague explícitamente
+  } catch (e) { return true; }
 }
 
 function setLastSpoke(ts) {

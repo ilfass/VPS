@@ -15,6 +15,7 @@ import { continuousNarrativeEngine } from '../utils/continuous-narrative-engine.
 import { multimediaOrchestrator } from '../utils/multimedia-orchestrator.js';
 import { countryMemoryManager } from '../utils/country-memory-manager.js';
 import { avatarSubtitlesManager } from '../utils/avatar-subtitles.js';
+import { dialogueEngine } from '../utils/dialogue-engine.js';
 
 // TEMPLATES eliminados, ahora gestionados por narrativeEngine
 
@@ -45,7 +46,7 @@ export default class MapaMode {
         const enableAudioOnInteraction = () => {
             // Intentar iniciar audio después de interacción
             audioManager.tryStartAfterInteraction();
-            
+
             // Desbloquear SpeechSynthesis con un "warm-up" explícito
             if ('speechSynthesis' in window) {
                 try {
@@ -67,14 +68,14 @@ export default class MapaMode {
                     console.warn('[Mapa] ⚠️ Error desbloqueando SpeechSynthesis:', e);
                 }
             }
-            
+
             // Remover listeners después de la primera interacción
             document.removeEventListener('keydown', enableAudioOnInteraction);
         };
-        
+
         // Broadcast-only: no dependemos de mouse/touch. Un keydown inicial desbloquea audio si hace falta.
         document.addEventListener('keydown', enableAudioOnInteraction, { once: true });
-        
+
         // 1. Estructura Base (Capas)
         this.container.innerHTML = `
             <div class="broadcast-scene fade-in">
@@ -218,6 +219,9 @@ export default class MapaMode {
             // 11. Inicializar Avatar y Subtítulos
             avatarSubtitlesManager.init(this.container);
 
+            // 12. Inicializar Motor de Diálogo (Compañero)
+            dialogueEngine.init();
+
             // Registrar manejadores
             eventManager.on('news', () => this.triggerNewsEvent(true)); // true = forzado
             eventManager.on('mode_change', (mode) => {
@@ -230,19 +234,19 @@ export default class MapaMode {
             // Variable para evitar procesar el mismo comando múltiples veces
             let lastMusicCommand = null;
             let lastMusicCommandTime = 0;
-            
+
             eventManager.on('music_command', (musicState) => {
                 const now = Date.now();
-                
+
                 // Evitar procesar el mismo comando múltiples veces en menos de 500ms
                 if (lastMusicCommand === musicState.command && (now - lastMusicCommandTime) < 500) {
                     console.log("[Mapa] ⚠️ Comando de música duplicado ignorado:", musicState.command);
                     return;
                 }
-                
+
                 lastMusicCommand = musicState.command;
                 lastMusicCommandTime = now;
-                
+
                 console.log("[Mapa] 🎵 Comando de música recibido:", musicState.command);
                 if (musicState.command === 'toggle') {
                     audioManager.toggleMusic();
@@ -265,7 +269,7 @@ export default class MapaMode {
                 if (COUNTRY_INFO[code]) {
                     // Actualizar StreamManager con el nuevo país
                     streamManager.setCountry(code);
-                    
+
                     // Cancelar cualquier viaje actual
                     if (this.travelTimeout) clearTimeout(this.travelTimeout);
                     this.resetZoom();
@@ -433,14 +437,14 @@ export default class MapaMode {
         } else {
             console.log('[Mapa] Música de fondo ya está reproduciéndose');
         }
-        
+
         // Mostrar avatar y hablar sobre el proyecto AL CARGAR (siempre)
         // Esperar un momento para que todo esté inicializado
         setTimeout(async () => {
             // Esperar a que termine completamente la intro ANTES de hacer zoom
             // showMapIntro() retorna una promesa que se resuelve cuando termina TODO el relato
             await this.showMapIntro();
-            
+
             // Después de que termine completamente la intro (incluyendo texto completo si se generó),
             // esperar un momento adicional antes de iniciar el ciclo de zoom
             // Esto asegura que el mapa permanezca en zoom out durante toda la intro general
@@ -474,7 +478,7 @@ export default class MapaMode {
             setTimeout(() => this.cycleZoomIn(), 5000);
             return;
         }
-        
+
         // Asegurar que el avatar esté visible antes de hacer zoom
         if (!avatarSubtitlesManager.isVisible) {
             avatarSubtitlesManager.show();
@@ -493,7 +497,7 @@ export default class MapaMode {
             // Evitar repetir el último país visitado
             const recentVisits = streamManager.visitedCountries;
             const available = allCountryIds.filter(id => !recentVisits.has(id) || recentVisits.size >= allCountryIds.length - 1);
-            
+
             if (available.length === 0) {
                 // Si todos fueron visitados, resetear y elegir cualquiera
                 streamManager.visitedCountries.clear();
@@ -587,7 +591,7 @@ export default class MapaMode {
         if (feature) {
             const countryPath = this.gCountries.select(`#country-${target.id}`);
             countryPath.classed("active-country", true);
-            
+
             // Crear efecto de onda expansiva en las fronteras
             this.createRippleEffect(feature, target.id);
         } else {
@@ -655,27 +659,27 @@ export default class MapaMode {
     async showMapIntro() {
         // Asegurar que el mapa esté en zoom out (vista global)
         this.resetZoom(false); // No liberar audio aún
-        
+
         // Asegurar que el avatar esté inicializado antes de usarlo
         if (!avatarSubtitlesManager.container) {
             avatarSubtitlesManager.init(this.container);
         }
-        
+
         // Mostrar avatar inmediatamente
         avatarSubtitlesManager.show();
-        
+
         // TEXTO INICIAL INMEDIATO (50 frases para empezar a hablar de inmediato)
         const immediateIntroText = this.getImmediateIntroText();
-        
+
         // Iniciar narración INMEDIATAMENTE con texto inicial
         pacingEngine.startEvent(CONTENT_TYPES.VOICE);
         console.log('[Mapa] 🚀 Iniciando narración inmediata con texto inicial');
-        
+
         // En paralelo, generar el texto completo con IA
         let introText = immediateIntroText; // Por defecto usar el inicial
         let useMemory = false;
         let previousPresentations = [];
-        
+
         try {
             const memoryRes = await fetch('/control-api/api/map-intro-memory');
             if (memoryRes.ok) {
@@ -685,13 +689,13 @@ export default class MapaMode {
         } catch (e) {
             console.warn('[Mapa] No se pudo cargar memoria de presentaciones:', e);
         }
-        
+
         // Generar texto completo en paralelo (no esperar)
         const generateFullIntroPromise = (async () => {
             const hasMemory = previousPresentations.length > 0;
             const randomChoice = Math.random();
             let fullText = null;
-            
+
             if (hasMemory && randomChoice < 0.5) {
                 // 50%: Usar memoria mezclada/variada
                 useMemory = true;
@@ -702,7 +706,7 @@ export default class MapaMode {
                     console.log('[Mapa] 🎲 Texto completo desde memoria');
                 }
             }
-            
+
             // Si no hay memoria o falló, generar con IA
             if (!fullText) {
                 try {
@@ -712,7 +716,7 @@ export default class MapaMode {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ prompt })
                     });
-                    
+
                     if (response.ok) {
                         const data = await response.json();
                         fullText = data.narrative || null;
@@ -722,91 +726,91 @@ export default class MapaMode {
                     console.warn('[Mapa] Error generando intro con IA:', e);
                 }
             }
-            
+
             // Si todo falla, usar fallback
             if (!fullText) {
                 fullText = this.getFallbackIntro();
                 console.log('[Mapa] Usando fallback para texto completo');
             }
-            
+
             return fullText;
         })();
-        
+
         // Empezar a hablar INMEDIATAMENTE con el texto inicial (no esperar)
         console.log('[Mapa] 🔊 Hablando texto inicial inmediatamente');
-        
+
         // Mostrar subtítulos INMEDIATAMENTE antes de empezar a hablar
         avatarSubtitlesManager.setSubtitles(immediateIntroText);
-        
+
         // Marcar que estamos narrando para prevenir interrupciones
         this.isNarrating = true;
-        
+
         // Cancelar cualquier timeout que pueda interrumpir la narración
         if (this.travelTimeout) {
             clearTimeout(this.travelTimeout);
             this.travelTimeout = null;
         }
-        
+
         // Usar audioManager.speak() que usa Edge TTS con fallback a Web Speech API
         // Callback para actualizar subtítulos sincronizadamente
         const updateSubtitles = (text) => {
             avatarSubtitlesManager.setSubtitles(text);
         };
-        
+
         // Crear una promesa que se resuelve cuando termine completamente toda la narración
         return new Promise((resolve) => {
             // Cuando termine el texto inicial, continuar con el completo si está listo
             audioManager.speak(immediateIntroText, 'normal', async () => {
-            console.log('[Mapa] ✅ Texto inicial terminado, esperando texto completo...');
-            
-            // Esperar a que el texto completo esté listo (con timeout más largo)
-            let fullIntroText = null;
-            try {
-                fullIntroText = await Promise.race([
-                    generateFullIntroPromise,
-                    new Promise(resolve => setTimeout(() => resolve(null), 10000)) // Timeout de 10 segundos
-                ]);
-            } catch (e) {
-                console.warn('[Mapa] Error esperando texto completo:', e);
-            }
-            
-            // Si aún no está listo, esperar un poco más y verificar de nuevo
-            if (!fullIntroText) {
-                console.log('[Mapa] ⏳ Texto completo aún no listo, esperando 3 segundos más...');
-                await new Promise(resolve => setTimeout(resolve, 3000));
-                // Verificar si ya está resuelto
+                console.log('[Mapa] ✅ Texto inicial terminado, esperando texto completo...');
+
+                // Esperar a que el texto completo esté listo (con timeout más largo)
+                let fullIntroText = null;
                 try {
                     fullIntroText = await Promise.race([
                         generateFullIntroPromise,
-                        new Promise(resolve => setTimeout(() => resolve(null), 100)) // Timeout corto solo para verificar
+                        new Promise(resolve => setTimeout(() => resolve(null), 10000)) // Timeout de 10 segundos
                     ]);
                 } catch (e) {
-                    // Ignorar errores
+                    console.warn('[Mapa] Error esperando texto completo:', e);
                 }
-            }
-            
-            // Si hay texto completo y es diferente, continuar hablando con él
-            if (fullIntroText && fullIntroText !== immediateIntroText && fullIntroText.length > immediateIntroText.length) {
-                console.log('[Mapa] 🔊 Continuando con texto completo generado');
-                
-                // Continuar hablando con el texto completo usando Edge TTS
-                // IMPORTANTE: Esperar a que termine completamente antes de llamar finishMapIntro
-                audioManager.speak(fullIntroText, 'normal', async () => {
-                    console.log('[Mapa] ✅ Texto completo terminado completamente');
+
+                // Si aún no está listo, esperar un poco más y verificar de nuevo
+                if (!fullIntroText) {
+                    console.log('[Mapa] ⏳ Texto completo aún no listo, esperando 3 segundos más...');
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    // Verificar si ya está resuelto
+                    try {
+                        fullIntroText = await Promise.race([
+                            generateFullIntroPromise,
+                            new Promise(resolve => setTimeout(() => resolve(null), 100)) // Timeout corto solo para verificar
+                        ]);
+                    } catch (e) {
+                        // Ignorar errores
+                    }
+                }
+
+                // Si hay texto completo y es diferente, continuar hablando con él
+                if (fullIntroText && fullIntroText !== immediateIntroText && fullIntroText.length > immediateIntroText.length) {
+                    console.log('[Mapa] 🔊 Continuando con texto completo generado');
+
+                    // Continuar hablando con el texto completo usando Edge TTS
+                    // IMPORTANTE: Esperar a que termine completamente antes de llamar finishMapIntro
+                    audioManager.speak(fullIntroText, 'normal', async () => {
+                        console.log('[Mapa] ✅ Texto completo terminado completamente');
+                        this.isNarrating = false;
+                        await this.finishMapIntro(fullIntroText, previousPresentations);
+                        resolve(); // Resolver la promesa cuando termine completamente
+                    }, updateSubtitles);
+                } else {
+                    // Si no hay texto completo, terminar con el inicial
+                    console.log('[Mapa] ✅ Terminando con texto inicial (no se generó completo)');
                     this.isNarrating = false;
-                    await this.finishMapIntro(fullIntroText, previousPresentations);
+                    await this.finishMapIntro(immediateIntroText, previousPresentations);
                     resolve(); // Resolver la promesa cuando termine completamente
-                }, updateSubtitles);
-            } else {
-                // Si no hay texto completo, terminar con el inicial
-                console.log('[Mapa] ✅ Terminando con texto inicial (no se generó completo)');
-                this.isNarrating = false;
-                await this.finishMapIntro(immediateIntroText, previousPresentations);
-                resolve(); // Resolver la promesa cuando termine completamente
-            }
-        }, updateSubtitles);
+                }
+            }, updateSubtitles);
         });
-        
+
         // Retornar una promesa que se resuelve cuando termine completamente la intro
         // Esto permite que startAutoTravel() espere correctamente
         return new Promise((resolve) => {
@@ -818,19 +822,19 @@ export default class MapaMode {
                 resolve(); // Resolver la promesa cuando termine completamente
             };
         });
-        
+
         // Mostrar contenido multimedia global (imagen del mundo, viaje, etc.)
         try {
             const mediaRes = await fetch('/control-api/api/media-list');
             if (mediaRes.ok) {
                 const mediaList = await mediaRes.json();
                 // Buscar media global o de cualquier país para mostrar en la intro
-                const globalMedia = mediaList.filter(m => 
-                    m.folder && (m.folder.toLowerCase().includes('global') || 
-                                m.folder.toLowerCase().includes('world') ||
-                                m.folder.toLowerCase().includes('viaje'))
+                const globalMedia = mediaList.filter(m =>
+                    m.folder && (m.folder.toLowerCase().includes('global') ||
+                        m.folder.toLowerCase().includes('world') ||
+                        m.folder.toLowerCase().includes('viaje'))
                 );
-                
+
                 if (globalMedia.length === 0 && mediaList.length > 0) {
                     // Si no hay media global, usar cualquier imagen disponible
                     const randomMedia = mediaList[Math.floor(Math.random() * mediaList.length)];
@@ -856,14 +860,14 @@ export default class MapaMode {
             console.warn('[Mapa] Error cargando media para intro:', e);
         }
     }
-    
+
     /**
      * Finaliza la intro del mapa (guardar memoria, ocultar multimedia, navegar si Dream Mode)
      */
     async finishMapIntro(introText, previousPresentations) {
         pacingEngine.endCurrentEvent();
         pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
-        
+
         // Guardar presentación en memoria
         try {
             await fetch('/control-api/api/map-intro-memory', {
@@ -879,12 +883,12 @@ export default class MapaMode {
         } catch (e) {
             console.warn('[Mapa] Error guardando presentación:', e);
         }
-        
+
         // Ocultar multimedia después de la intro
         setTimeout(() => {
             multimediaOrchestrator.hideAllOverlays();
         }, 2000);
-        
+
         // Si Dream Mode está ON, cambiar automáticamente a otra página después de la intro
         if (eventManager.canProceedAuto()) {
             console.log('[Mapa] Dream Mode ON: Cambiando automáticamente después de intro...');
@@ -896,7 +900,7 @@ export default class MapaMode {
             }, 3000);
         }
     }
-    
+
     /**
      * Construye el prompt para generar la introducción con IA
      */
@@ -915,7 +919,7 @@ Genera una introducción en primera persona (como ilfass) que:
 
         if (previousPresentations.length > 0) {
             prompt += `\n\nYa has hecho ${previousPresentations.length} presentación(es) anterior(es). Evita repetir exactamente lo mismo. Varía el enfoque, pero mantén la esencia del proyecto.`;
-            
+
             // Incluir las últimas 2 presentaciones como contexto
             const recentPresentations = previousPresentations.slice(-2);
             if (recentPresentations.length > 0) {
@@ -928,7 +932,7 @@ Genera una introducción en primera persona (como ilfass) que:
 
         return prompt;
     }
-    
+
     /**
      * Texto de fallback si la IA falla
      */
@@ -963,7 +967,7 @@ Genera una introducción en primera persona (como ilfass) que:
 
         // Ocultar todos los recuadros multimedia
         multimediaOrchestrator.hideAllOverlays();
-        
+
         // Ocultar avatar y subtítulos
         avatarSubtitlesManager.hide();
 
@@ -1084,14 +1088,14 @@ Genera una introducción en primera persona (como ilfass) que:
         if (!this.rippleGroup) {
             this.rippleGroup = this.gMap.append("g").attr("class", "ripple-effects");
         }
-        
+
         // Limpiar ondas anteriores
         this.rippleGroup.selectAll(".country-ripple").remove();
-        
+
         // Crear múltiples ondas expansivas
         const numRipples = 3;
         const rippleDuration = 2000;
-        
+
         for (let i = 0; i < numRipples; i++) {
             const ripple = this.rippleGroup.append("path")
                 .datum(feature)
@@ -1102,25 +1106,25 @@ Genera una introducción en primera persona (como ilfass) que:
                 .style("stroke-width", "2px")
                 .style("opacity", 0.9)
                 .style("filter", "drop-shadow(0 0 8px rgba(56, 189, 248, 0.8))");
-            
+
             // Animar la onda expansiva usando stroke-width y opacity
             const startWidth = 2;
             const endWidth = 12;
             const startOpacity = 0.9;
             const endOpacity = 0;
-            
+
             ripple
                 .transition()
                 .delay(i * (rippleDuration / numRipples))
                 .duration(rippleDuration)
-                .styleTween("stroke-width", function() {
+                .styleTween("stroke-width", function () {
                     return d3.interpolateNumber(startWidth, endWidth);
                 })
-                .styleTween("opacity", function() {
+                .styleTween("opacity", function () {
                     return d3.interpolateNumber(startOpacity, endOpacity);
                 })
                 .ease(d3.easeLinear)
-                .on("end", function() {
+                .on("end", function () {
                     d3.select(this).remove();
                 });
         }
@@ -1148,29 +1152,29 @@ Genera una introducción en primera persona (como ilfass) que:
 
     async startContinuousNarrative(target, context, timing) {
         const visitStartTime = Date.now();
-        
+
         try {
             console.log(`[Mapa] Iniciando relato continuo para ${target.name}...`);
-            
+
             // TEXTO INICIAL INMEDIATO para empezar a hablar de inmediato
             const immediateCountryText = this.getImmediateCountryText(target);
-            
+
             // Asegurar que el avatar esté inicializado antes de usarlo
             if (!avatarSubtitlesManager.container) {
                 avatarSubtitlesManager.init(this.container);
             }
-            
+
             // Mostrar avatar y empezar a hablar INMEDIATAMENTE
             avatarSubtitlesManager.show();
             avatarSubtitlesManager.setSubtitles(immediateCountryText);
-            
+
             // Iniciar narración INMEDIATAMENTE
             pacingEngine.startEvent(CONTENT_TYPES.VOICE);
             console.log(`[Mapa] 🚀 Iniciando narración inmediata para ${target.name}`);
-            
+
             // Empezar a hablar inmediatamente con el texto inicial
             audioManager.speak(immediateCountryText, 'normal', null);
-            
+
             // Obtener dayId del estado editorial
             let dayId = 'Unknown';
             try {
@@ -1184,13 +1188,13 @@ Genera una introducción en primera persona (como ilfass) que:
             } catch (e) {
                 console.warn('[Mapa] No se pudo obtener dayId:', e);
             }
-            
+
             // Agregar dayId al contexto
             const enrichedContext = { ...context, dayId };
-            
+
             // Generar relato completo con IA EN PARALELO (no esperar)
             const generateFullNarrativePromise = continuousNarrativeEngine.generateContinuousNarrative(target, enrichedContext);
-            
+
             // Esperar a que el texto completo esté listo (o usar el inicial si tarda mucho)
             const continuousNarrative = await Promise.race([
                 generateFullNarrativePromise,
@@ -1208,37 +1212,37 @@ Genera una introducción en primera persona (como ilfass) que:
                     }, 5000);
                 })
             ]);
-            
+
             console.log(`[Mapa] Relato completo listo (${continuousNarrative.narrative.length} caracteres)`);
             console.log(`[Mapa] Multimedia planificado: ${continuousNarrative.multimedia.length} items`);
-            
+
             // Si el texto completo está listo y es diferente, actualizar subtítulos y continuar hablando
             // Cancelar el texto inicial si aún está hablando y usar el completo
             let finalNarrative = immediateCountryText;
             if (continuousNarrative.narrative && continuousNarrative.narrative !== immediateCountryText && continuousNarrative.narrative.length > immediateCountryText.length) {
                 console.log(`[Mapa] Actualizando con texto completo generado para ${target.name}`);
                 finalNarrative = continuousNarrative.narrative;
-                
+
                 // Cancelar el texto inicial si aún está hablando
                 audioManager.cancel();
-                
+
                 // Actualizar subtítulos con el texto completo
                 avatarSubtitlesManager.setSubtitles(finalNarrative);
-                
+
                 // Continuar hablando con el texto completo
                 audioManager.speak(finalNarrative, 'normal', null);
             }
-            
+
             // Usar el texto final (completo o inicial) para el resto del proceso
             continuousNarrative.narrative = finalNarrative;
-            
+
             // 2. Preparar multimedia
             const multimediaItems = [];
-            
+
             for (const mediaPlan of continuousNarrative.multimedia) {
                 // Generar o buscar media según el plan
                 let mediaUrl = null;
-                
+
                 if (mediaPlan.prompt) {
                     // Generar con IA
                     try {
@@ -1247,7 +1251,7 @@ Genera una introducción en primera persona (como ilfass) que:
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ prompt: mediaPlan.prompt })
                         });
-                        
+
                         if (imageRes.ok) {
                             const imageData = await imageRes.json();
                             // El servidor devuelve { url: "...", filename: "..." } o { error: "..." }
@@ -1262,7 +1266,7 @@ Genera una introducción en primera persona (como ilfass) que:
                         console.warn(`[Mapa] Error generando imagen: ${e}`);
                     }
                 }
-                
+
                 // Si no se generó, buscar media curado
                 if (!mediaUrl) {
                     try {
@@ -1274,7 +1278,7 @@ Genera una introducción en primera persona (como ilfass) que:
                                 const countryName = target.name.toLowerCase();
                                 return folder.includes(countryName) || countryName.includes(folder);
                             });
-                            
+
                             if (countryMedia.length > 0) {
                                 const randomMedia = countryMedia[Math.floor(Math.random() * countryMedia.length)];
                                 mediaUrl = randomMedia.url;
@@ -1284,7 +1288,7 @@ Genera una introducción en primera persona (como ilfass) que:
                         console.warn(`[Mapa] Error cargando media curado: ${e}`);
                     }
                 }
-                
+
                 if (mediaUrl) {
                     multimediaItems.push({
                         type: mediaPlan.type || 'image',
@@ -1297,53 +1301,53 @@ Genera una introducción en primera persona (como ilfass) que:
                     console.log(`[Mapa] No se pudo generar imagen, usando media curado como fallback`);
                 }
             }
-            
+
             // 3. Determinar timing de multimedia basado en el relato
             const narrativeWords = continuousNarrative.narrative.split(' ');
             const totalWords = narrativeWords.length;
             const wordsPerSecond = 2.5; // Velocidad de narración
             const totalDuration = (totalWords / wordsPerSecond) * 1000;
-            
+
             // 4. Mostrar multimedia según triggers
             multimediaItems.forEach((item, index) => {
                 let delay = 0;
                 if (item.trigger === 'start') delay = 1000;
                 else if (item.trigger === 'mid') delay = totalDuration / 2;
                 else if (item.trigger === 'reflection') delay = totalDuration * 0.7;
-                
+
                 multimediaOrchestrator.showMediaOverlay(item, delay);
             });
-            
+
             // 5. Avatar y subtítulos ya están mostrados desde el inicio
             // 6. La narración ya comenzó con el texto inicial, ahora continuamos con el texto completo si está listo
-            
+
             // Cancelar cualquier timeout de zoom out que pueda estar pendiente
             if (this.travelTimeout) {
                 clearTimeout(this.travelTimeout);
                 this.travelTimeout = null;
             }
-            
+
             // Marcar que estamos narrando para prevenir zoom out
             this.isNarrating = true;
-            
+
             // Preparar subtítulos por FRASES completas (no palabra por palabra) usando el texto final
             const cleanNarrative = continuousNarrative.narrative.replace(/[^\w\s.,;:!?áéíóúñüÁÉÍÓÚÑÜ]/g, '');
-            
+
             // Dividir en frases (por puntos, comas, o pausas naturales)
             const sentences = cleanNarrative
                 .split(/([.!?]+\s+|,\s+)/)
                 .filter(s => s.trim().length > 0)
                 .map(s => s.trim());
-            
+
             // Agrupar frases en bloques de ~2 líneas (máximo 16-18 palabras por bloque)
             const phraseBlocks = [];
             let currentBlock = [];
             let currentWordCount = 0;
             const maxWordsPerBlock = 16; // Aproximadamente 2 líneas
-            
+
             for (const sentence of sentences) {
                 const wordCount = sentence.split(/\s+/).filter(w => w.trim().length > 0).length;
-                
+
                 if (currentWordCount + wordCount <= maxWordsPerBlock && currentBlock.length > 0) {
                     // Agregar a bloque actual
                     currentBlock.push(sentence);
@@ -1360,7 +1364,7 @@ Genera una introducción en primera persona (como ilfass) que:
                     currentWordCount = wordCount;
                 }
             }
-            
+
             // Agregar último bloque
             if (currentBlock.length > 0) {
                 phraseBlocks.push({
@@ -1368,56 +1372,56 @@ Genera una introducción en primera persona (como ilfass) que:
                     wordCount: currentWordCount
                 });
             }
-            
+
             let currentPhraseIndex = 0;
             let wordsSpoken = 0;
-            
+
             // Limpiar subtítulos inicialmente
             avatarSubtitlesManager.clearSubtitles();
-            
+
             // Usar audioManager.speak() con Edge TTS
             // Callback para actualizar subtítulos (audioManager ya maneja sincronización palabra por palabra)
             const updateSubtitles = (text) => {
                 avatarSubtitlesManager.setSubtitles(text);
             };
-            
+
             // Mostrar primera frase inmediatamente
             if (phraseBlocks.length > 0) {
                 avatarSubtitlesManager.setSubtitles(phraseBlocks[0].text);
             }
-            
+
             // Bajar música antes de hablar (ducking) - audioManager ya lo hace, pero por si acaso
             if (audioManager.isMusicPlaying) {
                 audioManager.fadeAudio(audioManager.musicLayer, audioManager.musicLayer.volume, 0.05, 500);
             }
-            
+
             // Hablar usando Edge TTS a través de audioManager
             audioManager.speak(cleanNarrative, 'normal', () => {
                 // Mostrar última frase si no se mostró completa
                 if (phraseBlocks.length > 0) {
                     avatarSubtitlesManager.setSubtitles(phraseBlocks[phraseBlocks.length - 1].text);
                 }
-                
+
                 // Mantener última frase visible por 2 segundos, luego limpiar
                 setTimeout(() => {
                     avatarSubtitlesManager.clearSubtitles();
                 }, 2000);
-                
+
                 // Restaurar música después de hablar
                 if (audioManager.isMusicPlaying) {
                     audioManager.fadeAudio(audioManager.musicLayer, audioManager.musicLayer.volume, 0.3, 1000);
                 }
-                
+
                 // Marcar que terminó la narración
                 this.isNarrating = false;
-                
+
                 pacingEngine.endCurrentEvent();
                 pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
-                
+
                 // Dream Mode: Cambiar automáticamente después de la narración del país
                 this.scheduleNextPageAfterNarration();
             }, updateSubtitles);
-            
+
             // 7. Guardar visita en memoria
             const visitData = {
                 visitId: `visit_${Date.now()}`,
@@ -1435,10 +1439,10 @@ Genera una introducción en primera persona (como ilfass) que:
                 emotionalNotes: continuousNarrative.emotionalNotes,
                 isFirstVisit: continuousNarrative.isFirstVisit
             };
-            
+
             await countryMemoryManager.saveVisit(target.id, visitData);
             console.log(`[Mapa] ✅ Visita guardada en memoria para ${target.name}`);
-            
+
             // 8. Esperar un momento antes de ocultar y hacer zoom out
             // En Dream Mode, no hacer zoom out, cambiar de página directamente
             if (eventManager.canProceedAuto()) {
@@ -1455,7 +1459,7 @@ Genera una introducción en primera persona (como ilfass) que:
                     }
                 }, 3000); // 3 segundos para que se vea el subtítulo completo
             }
-            
+
             // 8. Actualizar diario con el relato
             this.updateDiary({
                 country: target.name,
@@ -1463,16 +1467,16 @@ Genera una introducción en primera persona (como ilfass) que:
                 topic: continuousNarrative.isFirstVisit ? 'Primera Visita' : 'Visita Subsecuente',
                 content: continuousNarrative.narrative.substring(0, 200) + '...'
             });
-            
+
             // 9. Info del país ya se muestra en los subtítulos del avatar
-            
+
             // NO hacer zoom out automático - esperar a que termine el audio
             // El zoom out se hace en el callback de audioManager.speak
             if (this.travelTimeout) {
                 clearTimeout(this.travelTimeout);
                 this.travelTimeout = null;
             }
-            
+
         } catch (e) {
             console.error(`[Mapa] Error en relato continuo:`, e);
             this.isNarrating = false;
@@ -1491,28 +1495,28 @@ Genera una introducción en primera persona (como ilfass) que:
     async generateMultimediaContent(country, narrative, context) {
         try {
             console.log(`[Mapa] Generando contenido multimedia para ${country.name}...`);
-            
+
             // Generar imagen con IA basada en el país y la narrativa
             const imagePrompt = `Paisaje representativo de ${country.name}, estilo cinematográfico, alta calidad, sin texto`;
-            
+
             const imageRes = await fetch('/control-api/api/generate-image', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ prompt: imagePrompt })
             });
-            
+
             if (imageRes.ok) {
                 const imageData = await imageRes.json();
                 if (imageData.url) {
                     console.log(`[Mapa] Imagen generada: ${imageData.url}`);
-                    
+
                     // Mostrar la imagen después de un breve delay (durante la narración)
                     setTimeout(() => {
                         this.showMediaOverlay(imageData.url, 'image');
                     }, 2000);
                 }
             }
-            
+
             // También buscar media curado del país si existe
             try {
                 const mediaRes = await fetch('/control-api/api/media-list');
@@ -1523,12 +1527,12 @@ Genera una introducción en primera persona (como ilfass) que:
                         const countryName = country.name.toLowerCase();
                         return folder.includes(countryName) || countryName.includes(folder);
                     });
-                    
+
                     if (countryMedia.length > 0) {
                         // Seleccionar un media aleatorio del país
                         const randomMedia = countryMedia[Math.floor(Math.random() * countryMedia.length)];
                         console.log(`[Mapa] Mostrando media curado: ${randomMedia.name}`);
-                        
+
                         // Mostrar después de la imagen generada
                         setTimeout(() => {
                             this.showMediaOverlay(randomMedia.url, randomMedia.type || 'image');
@@ -1538,7 +1542,7 @@ Genera una introducción en primera persona (como ilfass) que:
             } catch (e) {
                 console.warn("[Mapa] Error cargando media curado:", e);
             }
-            
+
         } catch (e) {
             console.error("[Mapa] Error generando contenido multimedia:", e);
         }
