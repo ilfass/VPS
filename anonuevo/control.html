@@ -581,6 +581,14 @@
                     <button onclick="changeScene('curiosidades')">✨ Curiosidades</button>
                 </div>
 
+                <h2 style="margin-top: 20px;">🖼️ Configuración API</h2>
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; gap: 5px;">
+                        <input type="password" id="pexels-key" placeholder="Pexels API Key" style="font-size: 0.7rem;">
+                        <button onclick="savePexelsKey()" class="btn-small">💾</button>
+                    </div>
+                </div>
+
                 <h2 style="margin-top: 20px;">✈️ Flight Control</h2>
                 <select id="country-select" onchange="loadCountryMedia()">
                     <option value="" disabled selected>Select Destination...</option>

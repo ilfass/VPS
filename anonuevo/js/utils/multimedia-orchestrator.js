@@ -74,8 +74,23 @@ export class MultimediaOrchestrator {
             content.style.width = '100%';
             content.style.height = 'auto';
             content.style.transform = 'none';
-            content.onerror = () => {
-                console.warn(`[MultimediaOrchestrator] Error cargando imagen: ${mediaItem.url}. Sugerencia: Buscar en https://www.pexels.com/es-es/buscar/${encodeURIComponent(mediaItem.context || 'paisaje')}/`);
+            content.onerror = async () => {
+                console.warn(`[MultimediaOrchestrator] Error cargando imagen: ${mediaItem.url}. Intentando Pexels fallback...`);
+
+                // Intentar recuperar con Pexels
+                try {
+                    const { pexelsClient } = await import('./pexels-client.js');
+                    const query = mediaItem.context || 'landscape';
+                    const photos = await pexelsClient.searchPhotos(query, 1);
+                    if (photos && photos.length > 0 && photos[0].src) {
+                        console.log(`[MultimediaOrchestrator] ✅ Imagen recuperada de Pexels: ${query}`);
+                        content.src = photos[0].src.landscape;
+                        return; // Éxito, no ocultar
+                    }
+                } catch (e) {
+                    console.warn("Pexels fallback failed", e);
+                }
+
                 overlay.style.display = 'none';
             };
         }
