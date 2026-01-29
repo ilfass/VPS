@@ -165,6 +165,7 @@ export class DialogueEngine {
     audioManager.speak(item.text, priority, () => {
       setLastSpoke(now());
 
+
       // ILUSTRACIÓN VISUAL (AGRESIVA - 100% INTENTO)
       const isIlfass = item.role === 'ilfass';
       const isCompanion = item.role === 'companion';
@@ -291,7 +292,7 @@ export class DialogueEngine {
           setTimeout(() => this.tick(), 50); // Tick casi inmediato
         }
       }, gap);
-    });
+    }, (txt) => avatarSubtitlesManager.setSubtitles(txt));
   }
 
   // --- Generation Logic (Similar to previous, kept for context) ---

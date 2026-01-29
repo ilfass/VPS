@@ -3,6 +3,7 @@ import { audioManager } from './audio-manager.js';
 import { TvOverlays } from './tv-overlays.js';
 import { markClip } from './clip-markers.js';
 import { getModeLabel } from './stream-rotation.js';
+import { avatarSubtitlesManager } from './avatar-subtitles.js';
 
 const SHOW_ACTIVE_KEY = 'show_runner_active_v1';
 const SHOW_STATE_KEY = 'show_runner_state_v1';
@@ -144,7 +145,7 @@ export class ShowRunnerEngine {
         const txt = mission
             ? `Bienvenido. Soy ilfass. Misión del día: ${mission}. Abrimos el mapa y buscamos una señal para seguir el hilo.`
             : `Bienvenido. Soy ilfass. Abrimos el mapa y buscamos una señal para seguir el hilo.`;
-        try { await audioManager.speak(txt, 'normal', () => { }); } catch (e) { }
+        try { await audioManager.speak(txt, 'normal', () => { }, (t) => avatarSubtitlesManager.setSubtitles(t)); } catch (e) { }
         try { markClip({ type: 'show_open', title: 'Apertura (Show Runner)', scene: this.modeName || 'UNKNOWN', note: mission || null }); } catch (e) { }
     }
 

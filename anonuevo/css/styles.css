@@ -505,8 +505,8 @@ html {
     border: 2px solid rgba(255, 255, 255, 0.2) !important;
     border-radius: 4px;
     padding: 16px 24px;
-    max-width: 80%;
-    min-width: 500px;
+    max-width: 38vw;
+    min-width: 300px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
     position: relative;
 }

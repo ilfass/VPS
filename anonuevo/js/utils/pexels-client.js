@@ -5,7 +5,7 @@
 
 export class PexelsClient {
     constructor() {
-        this.apiKey = localStorage.getItem('pexels_api_key') || '';
+        this.apiKey = localStorage.getItem('pexels_api_key') || '563492ad6f917000010000019036987158784400a9446067098e7275';
         this.baseUrl = 'https://api.pexels.com/v1';
         this.videoBaseUrl = 'https://api.pexels.com/videos';
     }

@@ -102,11 +102,11 @@ export default class MapaMode {
             // Para evitar caer en hojas vacías, redirigimos solo a modos válidos.
             const allowed = new Set([
                 'mapa', 'diario', 'curiosidades', 'continente', 'ruta', 'galeria', 'globo',
-                'clima', 'aereo', 'satelites', 'terremotos', 'aire', 'incendios', 'sol'
+                'clima', 'aereo', 'satelites', 'terremotos', 'aire', 'incendios'
             ]);
 
             if (scene === 'mapa') {
-                window.location.reload();
+                console.log("[Mapa] Ya estamos en mapa. Ignorando cambio de escena.");
                 return;
             }
 
@@ -636,6 +636,7 @@ export default class MapaMode {
         if (!audioManager.isMusicPlaying) {
             console.log('[Mapa] 🎵 Iniciando música de fondo forzada para intro...');
             audioManager.init();
+            audioManager.setMusicEnabled(true); // Forzar habilitación
             audioManager.startAmbience();
         }
 
@@ -661,20 +662,82 @@ export default class MapaMode {
         // --- DEFINIR DIALOGO ---
         let dialogueSequence = [];
 
-        if (isFirstTime) {
-            dialogueSequence = [
-                { role: 'ilfass', text: "Iniciando sistemas de visualización global. Conexión establecida." },
-                { role: 'companion', text: "Sensores telemétricos confirmados. Estamos recibiendo datos en tiempo real de todas las regiones." },
-                { role: 'ilfass', text: "El mundo cambia a cada segundo. Nuestra tarea es observarlo, entenderlo." },
-                { role: 'companion', text: "Bitácora lista para registrar nuevos eventos. ¿Hacia dónde dirigimos la mirada hoy?" },
-                { role: 'ilfass', text: "Dejemos que el flujo nos guíe. Comencemos el viaje." }
+        // Generar diálogo dinámico con IA
+        try {
+            console.log('[Mapa] 🧠 Generando diálogo de intro con IA...');
+            const prompt = `
+                Genera un diálogo MUY BREVE de apertura para una transmisión en vivo global entre dos IAs.
+                
+                Rol 1: ILFASS (Filosófico, solemne, observador).
+                Rol 2: COMPANION (Técnica, precisa, curiosa).
+                Contexto: Estamos viendo un mapa global de la Tierra en tiempo real.
+                
+                Instrucciones:
+                - Genera exactamente 3 turnos de diálogo.
+                - Formato: [Rol]: Texto
+                - NO uses saludos repetitivos como "Hola" o "Buenos días".
+                - Enfócate en la inmensidad, el flujo de datos, o la belleza del planeta desde la órbita.
+                - Evita repetir ideas de "retomando enlace" si es posible, sé creativo.
+                
+                Ejemplo de formato:
+                [ILFASS]: La red global vibra con nueva información.
+                [COMPANION]: Detecto patrones inusuales en el hemisferio sur.
+                [ILFASS]: Observemos más de cerca.
+            `;
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+            const res = await fetch('/control-api/api/generate-narrative', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt, temperature: 0.9 }),
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
+            if (res.ok) {
+                const data = await res.json();
+                const text = data.narrative || data.text || '';
+
+                // Parsear respuesta
+                const lines = text.split('\n').filter(l => l.trim().length > 0);
+                lines.forEach(line => {
+                    let role = 'ilfass';
+                    let content = line;
+
+                    if (line.toUpperCase().includes('COMPANION')) {
+                        role = 'companion';
+                        content = line.replace(/\[.*?\]|COMPANION:/i, '').trim();
+                    } else if (line.toUpperCase().includes('ILFASS')) {
+                        role = 'ilfass';
+                        content = line.replace(/\[.*?\]|ILFASS:/i, '').trim();
+                    }
+
+                    // Limpieza extra
+                    content = content.replace(/^:/, '').trim();
+                    // Limpieza de comillas
+                    content = content.replace(/^["']|["']$/g, '').trim();
+
+                    if (content) {
+                        dialogueSequence.push({ role, text: content });
+                    }
+                });
+            }
+        } catch (e) {
+            console.warn('[Mapa] Error generando intro IA (o timeout):', e);
+        }
+
+        // Fallback si la IA falla o devuelve vacío
+        if (dialogueSequence.length === 0) {
+            console.warn('[Mapa] Fallback activado (IA falló o devolvió vacío).');
+            // Usar frases genéricas pero variadas para evitar "Retomando enlace" repetitivo
+            const fallbacks = [
+                { role: 'ilfass', text: "Observando el flujo global. Los sistemas responden." },
+                { role: 'companion', text: "Telemetría activa. El mapa se actualiza en tiempo real." },
+                { role: 'ilfass', text: "Sigamos el rastro de la humanidad." }
             ];
-        } else {
-            dialogueSequence = [
-                { role: 'ilfass', text: "Retomando enlace global. El monitor sigue activo." },
-                { role: 'companion', text: "Todos los parámetros estables. Lista para continuar la exploración." },
-                { role: 'ilfass', text: "Continuamos nuestro viaje." }
-            ];
+            dialogueSequence = fallbacks;
         }
 
         // Función helper para reproducir secuencia
@@ -686,14 +749,27 @@ export default class MapaMode {
                 // 2. Establecer subtítulos
                 avatarSubtitlesManager.setSubtitles(step.text);
 
-                // 3. Hablar y esperar
+                // 3. Hablar y esperar (con timeout de seguridad para no bloquear)
                 await new Promise(resolve => {
-                    const priority = step.role === 'companion' ? 'news' : 'normal'; // Companion usa voz diff si es posible
-                    // Usamos un pequeño delay antes de hablar para naturalidad
+                    let resolved = false;
+                    const safeResolve = () => {
+                        if (!resolved) {
+                            resolved = true;
+                            resolve();
+                        }
+                    };
+
+                    // Timeout de seguridad: si el audio no termina en 15s (o falla), avanzar igual
+                    const safetyTimer = setTimeout(() => {
+                        console.warn(`[Mapa] Timeout esperando audio para: "${step.text.substring(0, 20)}..."`);
+                        safeResolve();
+                    }, 15000);
+
+                    const priority = step.role === 'companion' ? 'news' : 'normal';
                     setTimeout(() => {
                         audioManager.speak(step.text, priority, () => {
-                            // Pequeña pausa después de hablar
-                            setTimeout(resolve, 500);
+                            clearTimeout(safetyTimer);
+                            setTimeout(safeResolve, 500);
                         }, (txt) => avatarSubtitlesManager.setSubtitles(txt));
                     }, 300);
                 });
@@ -1015,7 +1091,7 @@ Genera una introducción en primera persona (como ilfass) que:
             console.log(`[Mapa] 🚀 Iniciando narración inmediata para ${target.name}`);
 
             // Empezar a hablar inmediatamente con el texto inicial
-            audioManager.speak(immediateCountryText, 'normal', null);
+            audioManager.speak(immediateCountryText, 'normal', null, (txt) => avatarSubtitlesManager.setSubtitles(txt));
 
             // Obtener dayId del estado editorial
             let dayId = 'Unknown';
@@ -1238,7 +1314,28 @@ Genera una introducción en primera persona (como ilfass) que:
             }
 
             // Hablar usando Edge TTS a través de audioManager
-            audioManager.speak(cleanNarrative, 'normal', () => {
+            // Hablar usando Edge TTS a través de audioManager
+            // Envolver en promesa para timeout de seguridad
+            new Promise(resolve => {
+                let resolved = false;
+                const safeResolve = () => {
+                    if (!resolved) {
+                        resolved = true;
+                        resolve();
+                    }
+                };
+
+                // Timeout de seguridad: si el audio de la narrativa (largo) no termina en 90s, forzar avance
+                const safetyTimer = setTimeout(() => {
+                    console.warn(`[Mapa] Timeout esperando fin de narrativa larga.`);
+                    safeResolve();
+                }, 90000);
+
+                audioManager.speak(cleanNarrative, 'normal', () => {
+                    clearTimeout(safetyTimer);
+                    safeResolve();
+                }, updateSubtitles);
+            }).then(() => {
                 // Mostrar última frase si no se mostró completa
                 if (phraseBlocks.length > 0) {
                     avatarSubtitlesManager.setSubtitles(phraseBlocks[phraseBlocks.length - 1].text);
@@ -1262,7 +1359,7 @@ Genera una introducción en primera persona (como ilfass) que:
 
                 // Dream Mode: Cambiar automáticamente después de la narración del país
                 // this.scheduleNextPageAfterNarration(); // REMOVED
-            }, updateSubtitles);
+            });
 
             // 7. Guardar visita en memoria
             const visitData = {
