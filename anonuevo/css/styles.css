@@ -427,16 +427,19 @@ html {
     /* Frame 1: Boca cerrada */
 }
 
-/* Animación cuando el avatar está hablando (Sprite Toggling) */
+/* Animación de pulso general cuando habla */
 .avatar-image.speaking {
-    /* Alternar entre frame 1 y 2 rápidamente para simular hablar */
-    animation:
-        avatarTalkSprite 0.2s steps(1) infinite,
-        /* Boca: cambiar frames */
-        avatarPulseSpeaking 0.5s ease-in-out infinite alternate;
+    animation: avatarPulseSpeaking 0.5s ease-in-out infinite alternate;
     /* Glow: pulsar intensidad */
     box-shadow: 0 0 45px rgba(56, 189, 248, 0.7);
     border-color: rgba(96, 165, 250, 0.9);
+}
+
+/* Animación de boca (Sprite Toggling) SOLO si es sprite */
+.avatar-image.speaking.is-sprite {
+    animation:
+        avatarTalkSprite 0.2s steps(1) infinite,
+        avatarPulseSpeaking 0.5s ease-in-out infinite alternate;
 }
 
 /* Keyframes para Sprite (0% = Cerrado, 50% = Abierto) */
@@ -1102,7 +1105,7 @@ html {
 
     /* .info-capsule removed */
 }
-}
+
 
 /* Estilos del SVG Mapa (D3) - High Contrast */
 .country {

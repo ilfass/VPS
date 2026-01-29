@@ -8,6 +8,20 @@ import { autoNavigator } from './utils/auto-navigator.js';
 import { bumperEngine } from './utils/bumper-engine.js';
 import { agendaEngine } from './utils/agenda-engine.js';
 import { showRunnerEngine } from './utils/show-runner-engine.js';
+import { streamingPlanEngine } from './utils/streaming-plan-engine.js';
+import { dialogueEngine } from './utils/dialogue-engine.js';
+
+// Por defecto desactivamos movimientos “cinemáticos” (zoom/pan/scale) porque perjudican legibilidad.
+// Si alguna vez querés reactivarlo temporalmente: agregá `?cinema=1` a la URL.
+function isCinemaEnabled() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const v = (params.get('cinema') || '').toLowerCase();
+        return v === '1' || v === 'true' || v === 'on';
+    } catch (e) {
+        return false;
+    }
+}
 
 // Mapa de modos disponibles y sus rutas de importación
 const MODES = {
@@ -27,7 +41,18 @@ const MODES = {
     'aire': './modes/aire.js',
     'incendios': './modes/incendios.js',
     'sol': './modes/sol.js',
-    'ciudad': './modes/ciudad.js'
+    // Nuevos modos “no mapa” (Studio-friendly)
+    'observador': './modes/observador.js',
+    'creacion': './modes/creacion.js',
+    'videowall': './modes/videowall.js',
+    // Alias temporal: /vivos/studio/ apunta a un modo estable (sin “Studio” legacy)
+    'studio': './modes/observador.js',
+    // Modos con fondos animados
+    'particulas': './modes/particulas.js',
+    'ondas': './modes/ondas.js',
+    'red': './modes/red.js',
+    'estrellas': './modes/estrellas.js',
+    'flujo': './modes/flujo.js'
 };
 
 const DEFAULT_MODE = 'reloj';
@@ -74,6 +99,7 @@ class App {
         this.modeIndicator = document.getElementById('mode-indicator');
         this.fpsCounter = document.getElementById('fps-counter');
         this.cinematicDirector = cinematicDirector;
+        this.cinemaEnabled = isCinemaEnabled();
         this.recapEngine = recapEngine;
         this.autoNavigator = autoNavigator;
         this.bumperEngine = bumperEngine;
@@ -140,7 +166,7 @@ class App {
         if (this.currentModeInstance && typeof this.currentModeInstance.unmount === 'function') {
             this.currentModeInstance.unmount();
         }
-        // Detener cámara “cinemática” del modo anterior
+        // Detener cámara “cinemática” del modo anterior (si estaba activa)
         this.cinematicDirector?.detach?.();
         // Detener recap del modo anterior
         this.recapEngine?.detach?.();
@@ -157,7 +183,7 @@ class App {
             // Importación dinámica del módulo con Cache Busting
             // Usamos un timestamp para forzar la recarga en cada visita nueva
             // En producción idealmente usaríamos un hash de build, pero esto funciona para este setup simple.
-            const cacheBuster = '?v=11';
+            const cacheBuster = '?v=12';
             const module = await import(MODES[modeName] + cacheBuster);
             const ModeClass = module.default;
 
@@ -165,9 +191,13 @@ class App {
             this.currentModeInstance = new ModeClass(this.stage);
             this.currentModeInstance.mount();
 
-            // Activar “tomas” automáticas si el modo expone Leaflet map o Cesium viewer.
-            // El director hace polling hasta que el mapa/cámara exista.
-            this.cinematicDirector?.attach?.(this.currentModeInstance);
+            // Activar “tomas” automáticas (zoom/pan) SOLO si se habilita explícitamente.
+            // Default: OFF por legibilidad.
+            if (this.cinemaEnabled) {
+                this.cinematicDirector?.attach?.(this.currentModeInstance);
+            } else {
+                this.cinematicDirector?.detach?.();
+            }
             // Recaps TV globales (solo en circuito /vivos/)
             this.recapEngine?.attach?.(this.currentModeInstance, modeName, this.stage);
             // Agenda editorial y bumpers
@@ -232,6 +262,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Global: recaps (si está en /vivos/)
     try {
         if (window.location.pathname.includes('/vivos/')) {
+            // Plan 3h: navegación determinista (si está activo)
+            streamingPlanEngine.init();
+            // Diálogo: Ilfass + Acompañante + anti-silencio (si plan activo)
+            dialogueEngine.init();
+
             recapEngine.init();
             autoNavigator.init(document.getElementById('stage'));
             bumperEngine.init(document.getElementById('stage'));
@@ -244,6 +279,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // TV control events desde panel
             eventManager.on('recap_now', () => recapEngine.forceNow?.());
             eventManager.on('bumper_now', () => bumperEngine.forceNow?.());
+            // Anti-silencio (dialogue-engine): forzar recap desde cualquier hoja
+            window.addEventListener('stream_force_recap', () => {
+                try { recapEngine.forceNow?.(); } catch (e) { }
+            });
             eventManager.on('agenda_reset', () => {
                 try { agendaEngine.reset?.(); } catch (e) { }
                 try { autoNavigator.schedule(window.app?.currentModeInstance ? (new URLSearchParams(window.location.search).get('mode') || window.location.pathname.split('/').filter(Boolean).pop()) : null); } catch (e) { }
@@ -272,6 +311,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             eventManager.on('show_mission', (payload) => {
                 try { showRunnerEngine.setMission(payload?.mission || ''); } catch (e) { }
+            });
+
+            // Observador (Pulso): narrar texto directo sin depender del ciclo "news"
+            eventManager.on('observer_speak', (payload) => {
+                try {
+                    const txt = (payload?.commentary || payload?.text || '').toString().trim();
+                    if (!txt) return;
+                    // Prioridad “news” para voz y ducking
+                    audioManager.speak(txt, 'news', () => { });
+                } catch (e) { }
             });
         }
     } catch (e) { }

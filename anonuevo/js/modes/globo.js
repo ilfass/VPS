@@ -41,11 +41,11 @@ export default class GloboMode {
         cesiumContainer.style.cssText = 'width: 100%; height: 100%; position: absolute; top: 0; left: 0;';
         this.container.appendChild(cesiumContainer);
         
-        // Inicializar avatar
-        avatarSubtitlesManager.init(this.container);
-        setTimeout(() => {
-            avatarSubtitlesManager.show();
-        }, 100);
+        // Inicializar avatar (solo si no existe uno ya, para evitar duplicados entre hojas)
+        if (!document.getElementById('avatar-subtitles-container')) {
+            avatarSubtitlesManager.init(this.container);
+        }
+        // Nota: la visibilidad la controla cada modo/flujo.
         
         // Inicializar audio
         if (!audioManager.musicLayer) {
@@ -150,7 +150,7 @@ export default class GloboMode {
             this.viewer.scene.globe.showWaterEffect = true;
             this.viewer.scene.globe.showGroundAtmosphere = true;
             
-            // Configurar cámara inicial
+            // Configurar cámara inicial (vista completa del globo)
             this.viewer.camera.setView({
                 destination: Cesium.Cartesian3.fromDegrees(0, 0, 15000000),
                 orientation: {
@@ -160,7 +160,17 @@ export default class GloboMode {
                 }
             });
             
-            console.log('[Globo] ✅ Cesium inicializado');
+            // Asegurar rotación continua del globo (cover mode)
+            // El clock de Cesium con shouldAnimate: true ya hace esto, pero lo reforzamos
+            if (this.viewer.clock) {
+                this.viewer.clock.shouldAnimate = true;
+                this.viewer.clock.multiplier = 1.0; // Velocidad normal
+            }
+            
+            // Nota: en Cesium moderno `globe.ellipsoid` es solo-lectura (getter).
+            // WGS84 ya es el default, no hace falta setearlo.
+            
+            console.log('[Globo] ✅ Cesium inicializado con rotación automática');
         } catch (e) {
             console.error('[Globo] Error inicializando Cesium:', e);
             // Fallback: mostrar mensaje de error

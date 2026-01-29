@@ -12,6 +12,10 @@ export default class DiarioMode {
         this.refreshTimer = null;
         this.focusTimer = null;
         this.focusIndex = 0;
+        this.canvas = null;
+        this.ctx = null;
+        this.particles = [];
+        this.animationId = null;
     }
 
     async mount() {
@@ -54,6 +58,22 @@ export default class DiarioMode {
             font-family: Inter, system-ui, sans-serif;
             overflow: hidden;
         `;
+
+        // Canvas animado de fondo (ondas suaves)
+        this.canvas = document.createElement('canvas');
+        this.canvas.style.cssText = `
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.3;
+        `;
+        root.appendChild(this.canvas);
+        this.ctx = this.canvas.getContext('2d');
+        this.resizeCanvas();
+        this.initParticles();
+        this.animate();
+        window.addEventListener('resize', () => this.resizeCanvas());
 
         // Header LIVE
         const header = document.createElement('div');
@@ -508,6 +528,70 @@ NO repitas literalmente las entradas del diario. Habla sobre el diario como conc
         return null;
     }
 
+    resizeCanvas() {
+        if (!this.canvas) return;
+        const rect = this.canvas.parentElement?.getBoundingClientRect();
+        if (!rect) return;
+        this.canvas.width = rect.width;
+        this.canvas.height = rect.height;
+        this.canvas.style.width = rect.width + 'px';
+        this.canvas.style.height = rect.height + 'px';
+    }
+
+    initParticles() {
+        if (!this.canvas) return;
+        const count = 40;
+        this.particles = [];
+        for (let i = 0; i < count; i++) {
+            this.particles.push({
+                x: Math.random() * this.canvas.width,
+                y: Math.random() * this.canvas.height,
+                vx: (Math.random() - 0.5) * 0.3,
+                vy: (Math.random() - 0.5) * 0.3,
+                radius: Math.random() * 1.5 + 0.5,
+                opacity: Math.random() * 0.4 + 0.1
+            });
+        }
+    }
+
+    animate() {
+        if (!this.ctx || !this.canvas) return;
+        
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        this.particles.forEach(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+            
+            if (p.x < 0 || p.x > this.canvas.width) p.vx *= -1;
+            if (p.y < 0 || p.y > this.canvas.height) p.vy *= -1;
+            
+            this.ctx.beginPath();
+            this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            this.ctx.fillStyle = `rgba(167, 139, 250, ${p.opacity})`;
+            this.ctx.fill();
+        });
+        
+        // Conectar partículas cercanas con líneas suaves
+        for (let i = 0; i < this.particles.length; i++) {
+            for (let j = i + 1; j < this.particles.length; j++) {
+                const dx = this.particles[i].x - this.particles[j].x;
+                const dy = this.particles[i].y - this.particles[j].y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 120) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.particles[i].x, this.particles[i].y);
+                    this.ctx.lineTo(this.particles[j].x, this.particles[j].y);
+                    this.ctx.strokeStyle = `rgba(167, 139, 250, ${0.15 * (1 - dist / 120)})`;
+                    this.ctx.lineWidth = 1;
+                    this.ctx.stroke();
+                }
+            }
+        }
+        
+        this.animationId = requestAnimationFrame(() => this.animate());
+    }
+
     scheduleNextPage() {
         // Si Dream Mode está ON, cambiar automáticamente a otra página
         if (!eventManager.canProceedAuto()) return;
@@ -517,6 +601,8 @@ NO repitas literalmente las entradas del diario. Habla sobre el diario como conc
     unmount() {
         if (this.refreshTimer) clearInterval(this.refreshTimer);
         if (this.focusTimer) clearInterval(this.focusTimer);
+        if (this.animationId) cancelAnimationFrame(this.animationId);
+        window.removeEventListener('resize', () => this.resizeCanvas());
         if (this.container) {
             this.container.innerHTML = '';
         }

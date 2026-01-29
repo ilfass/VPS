@@ -102,6 +102,9 @@ services:
       - TOMTOM_API_KEY=${TOMTOM_API_KEY}
       - TFL_APP_ID=${TFL_APP_ID}
       - TFL_APP_KEY=${TFL_APP_KEY}
+      - PEXELS_API_KEY=${PEXELS_API_KEY}
+      - YOUTUBE_OAUTH_CLIENT_ID=${YOUTUBE_OAUTH_CLIENT_ID}
+      - YOUTUBE_OAUTH_CLIENT_SECRET=${YOUTUBE_OAUTH_CLIENT_SECRET}
     command: sh -c "node control-server.js"
     restart: always
 

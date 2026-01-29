@@ -14,7 +14,7 @@ export class AgendaEngine {
     constructor() {
         this.stateKey = 'stream_agenda_state_v1';
         this.blocks = [
-            { id: 'urbano', label: 'Ciudades', modes: ['ciudad', 'clima'], minMin: 10, maxMin: 15 },
+            { id: 'clima', label: 'Clima', modes: ['clima', 'mapa'], minMin: 10, maxMin: 15 },
             { id: 'tierra', label: 'Planeta', modes: ['mapa', 'terremotos', 'aire', 'incendios', 'sol'], minMin: 10, maxMin: 15 },
             { id: 'rutas', label: 'Rutas', modes: ['aereo', 'mapa'], minMin: 10, maxMin: 15 },
             { id: 'espacio', label: 'Espacio', modes: ['satelites', 'globo'], minMin: 10, maxMin: 15 },

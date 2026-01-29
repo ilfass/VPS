@@ -1,0 +1,262 @@
+/**
+ * Branding System
+ * Sistema de identidad visual consistente para ILFASS Studio
+ */
+
+:root {
+    /* Colores de marca ILFASS */
+    --ilfass-primary: #38bdf8;
+    --ilfass-secondary: #0ea5e9;
+    --ilfass-accent: #06b6d4;
+    --ilfass-dark: #020617;
+    --ilfass-darker: #0f172a;
+    --ilfass-light: #cbd5e1;
+    
+    /* Gradientes de marca */
+    --ilfass-gradient: linear-gradient(135deg, #38bdf8 0%, #06b6d4 100%);
+    --ilfass-gradient-dark: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    --ilfass-gradient-subtle: linear-gradient(135deg, rgba(56, 189, 248, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
+}
+
+/* Logo animado en corner */
+.ilfass-logo-corner {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    opacity: 0.6;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.ilfass-logo-corner:hover {
+    opacity: 1;
+}
+
+.ilfass-logo-corner .logo-text {
+    font-family: 'Outfit', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--ilfass-primary);
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+    animation: logoPulse 3s ease-in-out infinite;
+}
+
+.ilfass-logo-corner .logo-text::before {
+    content: '🌍';
+    margin-right: 8px;
+    display: inline-block;
+    animation: logoRotate 10s linear infinite;
+}
+
+@keyframes logoPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+@keyframes logoRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Watermark sutil */
+.ilfass-watermark {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 999;
+    opacity: 0.3;
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    color: var(--ilfass-light);
+    letter-spacing: 1px;
+    pointer-events: none;
+}
+
+/* Bumper de marca (aparece cada hora) */
+.ilfass-bumper {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: var(--ilfass-gradient-dark);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    animation: bumperShow 3s ease-in-out;
+    pointer-events: none;
+}
+
+.ilfass-bumper .bumper-logo {
+    font-size: 72px;
+    margin-bottom: 20px;
+    animation: bumperLogoFloat 2s ease-in-out infinite;
+}
+
+.ilfass-bumper .bumper-text {
+    font-family: 'Outfit', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: white;
+    text-align: center;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+}
+
+.ilfass-bumper .bumper-subtitle {
+    font-family: 'Outfit', sans-serif;
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 10px;
+    letter-spacing: 2px;
+}
+
+@keyframes bumperShow {
+    0% { opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+@keyframes bumperLogoFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* Lower thirds con estilo de marca */
+.ilfass-lower-third {
+    position: fixed;
+    bottom: 100px;
+    left: 0;
+    right: 0;
+    z-index: 1500;
+    padding: 20px 40px;
+    background: var(--ilfass-gradient-subtle);
+    backdrop-filter: blur(10px);
+    border-top: 2px solid var(--ilfass-primary);
+    transform: translateY(100%);
+    animation: lowerThirdSlideUp 0.5s ease-out forwards;
+}
+
+.ilfass-lower-third.show {
+    animation: lowerThirdSlideUp 0.5s ease-out forwards;
+}
+
+.ilfass-lower-third.hide {
+    animation: lowerThirdSlideDown 0.5s ease-out forwards;
+}
+
+.ilfass-lower-third .title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--ilfass-primary);
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+    margin-bottom: 8px;
+}
+
+.ilfass-lower-third .subtitle {
+    font-family: 'Outfit', sans-serif;
+    font-size: 18px;
+    color: var(--ilfass-light);
+    opacity: 0.9;
+}
+
+@keyframes lowerThirdSlideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+@keyframes lowerThirdSlideDown {
+    from { transform: translateY(0); }
+    to { transform: translateY(100%); }
+}
+
+/* Transiciones de marca entre bloques */
+.ilfass-transition {
+    position: fixed;
+    inset: 0;
+    z-index: 1800;
+    background: var(--ilfass-dark);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.ilfass-transition.active {
+    animation: transitionFade 0.8s ease-in-out;
+}
+
+@keyframes transitionFade {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* Badge de marca para elementos especiales */
+.ilfass-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: var(--ilfass-gradient);
+    border-radius: 20px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+}
+
+/* Overlay de marca para modos visuales */
+.ilfass-overlay-brand {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 100;
+    opacity: 0.4;
+    transition: opacity 0.3s ease;
+}
+
+.ilfass-overlay-brand:hover {
+    opacity: 0.8;
+}
+
+/* Efectos de marca en hover */
+.ilfass-glow {
+    transition: all 0.3s ease;
+}
+
+.ilfass-glow:hover {
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
+    transform: scale(1.02);
+}
+
+/* Tipografía de marca */
+.ilfass-font-primary {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.ilfass-font-secondary {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 400;
+}
+
+/* Animación de carga de marca */
+.ilfass-loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(56, 189, 248, 0.3);
+    border-top-color: var(--ilfass-primary);
+    border-radius: 50%;
+    animation: ilfassSpin 1s linear infinite;
+}
+
+@keyframes ilfassSpin {
+    to { transform: rotate(360deg); }
+}

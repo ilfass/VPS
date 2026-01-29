@@ -1,267 +1,242 @@
 /**
  * Avatar Subtitles Manager
  * Gestiona el avatar y los subtítulos durante la narración
+ * Soporta dos avatares simultáneos: Ilfass (Izquierda) y Companion (Derecha)
  */
 
 export class AvatarSubtitlesManager {
     constructor() {
         this.container = null;
-        this.avatarElement = null;
-        this.subtitlesElement = null;
-        this.avatarContainerEl = null;
+
+        // Elementos para Ilfass
+        this.ilfass = {
+            container: null,
+            avatar: null,
+            subtitles: null,
+            words: [],
+            wordIndex: 0,
+            interval: null
+        };
+
+        // Elementos para Companion
+        this.companion = {
+            container: null,
+            avatar: null,
+            subtitles: null,
+            words: [],
+            wordIndex: 0,
+            interval: null
+        };
+
+        this.currentRole = 'ilfass'; // Rol activo que está hablando
         this.isVisible = false;
-        this.currentWords = [];
-        this.wordIndex = 0;
-        this.currentRole = 'companion';
     }
 
     init(container) {
-        // Si ya está inicializado y tiene contenedor, no crear otro avatar
-        if (this.container && document.getElementById('avatar-subtitles-container')) {
-            // Solo actualizar el contenedor si es diferente
-            if (this.container !== container) {
-                // Mover el avatar existente al nuevo contenedor si es necesario
-                const existingAvatar = document.getElementById('avatar-subtitles-container');
-                if (existingAvatar && existingAvatar.parentNode !== container) {
-                    container.appendChild(existingAvatar);
-                }
-            }
-            this.container = container;
-            return; // No crear otro avatar
-        }
         this.container = container;
+
+        // LIMPIEZA: Si existe el contenedor antiguo (single), borrarlo
+        const legacy = document.getElementById('avatar-subtitles-container');
+        if (legacy) legacy.remove();
+
+        // Si ya existen los nuevos, no recrear
+        if (document.getElementById('avatar-ilfass-container') && document.getElementById('avatar-companion-container')) {
+            return;
+        }
+
         this.createAvatarUI();
     }
 
     createAvatarUI() {
-        // Contenedor del avatar y subtítulos
-        const avatarContainer = document.createElement('div');
-        avatarContainer.id = 'avatar-subtitles-container';
-        avatarContainer.className = 'avatar-subtitles-container';
-        avatarContainer.dataset.anchor = 'bl';
-        this.avatarContainerEl = avatarContainer;
+        if (!this.container) return;
 
-        // Avatar (imagen)
-        this.avatarElement = document.createElement('div');
-        this.avatarElement.className = 'avatar-image';
-        this.avatarElement.style.backgroundImage = 'url(/assets/images/avatar_sprite.png)';
-        this.avatarElement.style.backgroundSize = 'cover';
-        this.avatarElement.style.backgroundPosition = 'center';
-        this.currentRole = 'companion'; // Default role
+        // --- ILFASS (Izquierda) ---
+        // Imagen fija, sin sprite
+        this.ilfass.container = this.buildAvatarStructure('ilfass', 'bl', '/assets/images/ilfass_avatar.png');
+        this.ilfass.avatar = this.ilfass.container.querySelector('.avatar-image');
+        this.ilfass.subtitles = this.ilfass.container.querySelector('.subtitles-text');
+        this.container.appendChild(this.ilfass.container);
 
-        // Contenedor de subtítulos
-        const subtitlesWrapper = document.createElement('div');
-        subtitlesWrapper.className = 'subtitles-wrapper';
+        // --- COMPANION (Derecha) ---
+        // Usamos sprite para Companion
+        this.companion.container = this.buildAvatarStructure('companion', 'br', '/assets/images/avatar_sprite.png');
+        this.companion.container.classList.add('right-sided'); // Invertir orden flex
+        this.companion.avatar = this.companion.container.querySelector('.avatar-image');
+        this.companion.avatar.classList.add('is-sprite'); // Habilitar animación sprite
+        this.companion.subtitles = this.companion.container.querySelector('.subtitles-text');
+        this.container.appendChild(this.companion.container);
 
-        this.subtitlesElement = document.createElement('div');
-        this.subtitlesElement.className = 'subtitles-text';
-        this.subtitlesElement.textContent = '';
+        // Inicializar estado visual
+        this.activateRole('ilfass');
+    }
 
-        subtitlesWrapper.appendChild(this.subtitlesElement);
+    buildAvatarStructure(id, anchor, imageUrl) {
+        const container = document.createElement('div');
+        container.id = `avatar-${id}-container`;
+        container.className = 'avatar-subtitles-container';
+        container.dataset.anchor = anchor;
+        container.dataset.role = id;
 
-        avatarContainer.appendChild(this.avatarElement);
-        avatarContainer.appendChild(subtitlesWrapper);
+        // Avatar
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar-image';
+        avatar.style.backgroundImage = `url(${imageUrl})`;
 
-        this.container.appendChild(avatarContainer);
+        // Estilos base para sprite vs imagen normal
+        if (imageUrl.includes('sprite')) {
+            avatar.style.backgroundSize = '200% 100%';
+        } else {
+            avatar.style.backgroundSize = 'cover';
+        }
+        avatar.style.backgroundPosition = '0 0';
+
+        // Subtítulos wrapper
+        const subWrapper = document.createElement('div');
+        subWrapper.className = 'subtitles-wrapper';
+
+        const subText = document.createElement('div');
+        subText.className = 'subtitles-text';
+        subWrapper.appendChild(subText);
+
+        container.appendChild(avatar);
+        container.appendChild(subWrapper);
+
+        return container;
+    }
+
+    getActor(role) {
+        return role === 'companion' ? this.companion : this.ilfass;
     }
 
     /**
-     * Mueve el narrador a un ancla:
-     * - bl (bottom-left), br, tl, tr
+     * Activa visualmente al rol que va a hablar
      */
-    moveTo(anchor = 'bl') {
-        const a = String(anchor || 'bl').toLowerCase();
-        const el = document.getElementById('avatar-subtitles-container') || this.avatarContainerEl;
-        if (!el) return;
+    activateRole(role) {
+        this.currentRole = role;
 
-        el.dataset.anchor = a;
+        const active = this.getActor(role);
+        const inactive = this.getActor(role === 'ilfass' ? 'companion' : 'ilfass');
 
-        // Ajustar “lado” visual cuando está a la derecha
-        if (a === 'br' || a === 'tr') {
-            el.classList.add('right-sided');
-        } else {
-            el.classList.remove('right-sided');
+        // Resaltar activo
+        if (active.container) {
+            active.container.classList.remove('dimmed');
+            active.container.style.opacity = '1';
+            active.container.classList.add('visible');
+        }
+
+        // Atenuar inactivo (opcional, para dar foco)
+        if (inactive.container) {
+            inactive.container.classList.add('dimmed');
+            // Mantenemos visible pero un poco transparente
+            inactive.container.style.opacity = '0.6';
+            inactive.container.classList.add('visible');
         }
     }
 
     /**
-     * Muestra el avatar y subtítulos
+     * Muestra ambos avatares
      */
     show() {
-        // Si el avatar aún no está creado, crearlo primero
-        if (!this.avatarElement || !this.subtitlesElement) {
-            if (this.container) {
-                this.createAvatarUI();
-            } else {
-                console.warn('[AvatarSubtitles] Container no inicializado');
-                return;
-            }
+        if (!this.ilfass.container || !this.companion.container) {
+            this.createAvatarUI();
         }
 
-        const container = document.getElementById('avatar-subtitles-container');
-        if (container) {
-            container.classList.add('visible');
+        // Mostrar ambos
+        requestAnimationFrame(() => {
+            if (this.ilfass.container) this.ilfass.container.classList.add('visible');
+            if (this.companion.container) this.companion.container.classList.add('visible');
             this.isVisible = true;
-        }
+            this.activateRole(this.currentRole || 'ilfass');
+        });
     }
 
-    /**
-     * Oculta el avatar y subtítulos
-     */
     hide() {
-        const container = document.getElementById('avatar-subtitles-container');
-        if (container) {
-            container.classList.remove('visible');
-            this.isVisible = false;
-        }
+        if (this.ilfass.container) this.ilfass.container.classList.remove('visible');
+        if (this.companion.container) this.companion.container.classList.remove('visible');
+        this.isVisible = false;
         this.clearSubtitles();
     }
 
     /**
-     * Actualiza los subtítulos palabra por palabra (máximo 2 líneas, no acumulativo)
-     * @param {string} text - Texto completo a mostrar
-     * @param {number} wordsPerSecond - Velocidad de palabras por segundo
+     * Muestra animación de "hablando" solo en el rol activo
      */
-    updateSubtitles(text, wordsPerSecond = 2.5) {
-        if (!this.subtitlesElement) return;
+    setSpeaking(isSpeaking) {
+        const actor = this.getActor(this.currentRole);
+        if (!actor || !actor.avatar) return;
 
-        // Limpiar texto antes de procesar
-        text = this.cleanText(text);
-
-        this.currentWords = text.split(' ').filter(w => w.trim().length > 0);
-        this.wordIndex = 0;
-        this.displayedWords = []; // Palabras actualmente mostradas (máximo para 2 líneas)
-
-        // Limpiar intervalo anterior si existe
-        if (this.subtitlesInterval) {
-            clearInterval(this.subtitlesInterval);
+        if (isSpeaking) {
+            actor.avatar.classList.add('speaking');
+        } else {
+            actor.avatar.classList.remove('speaking');
         }
 
-        const interval = 1000 / wordsPerSecond; // ms entre palabras
-        const maxWordsPerLine = 8; // Aproximadamente 8 palabras por línea
-        const maxTotalWords = maxWordsPerLine * 2; // Máximo 2 líneas
+        // Asegurar que el otro no se mueva
+        const other = this.getActor(this.currentRole === 'ilfass' ? 'companion' : 'ilfass');
+        if (other && other.avatar) {
+            other.avatar.classList.remove('speaking');
+        }
+    }
 
-        this.subtitlesInterval = setInterval(() => {
-            if (this.wordIndex < this.currentWords.length) {
-                // Agregar nueva palabra
-                this.displayedWords.push(this.currentWords[this.wordIndex]);
+    // --- Subtitles Logic (Duplicated/Delegated for current role) ---
 
-                // Si excede el máximo, eliminar la primera palabra
-                if (this.displayedWords.length > maxTotalWords) {
-                    this.displayedWords.shift();
-                }
+    updateSubtitles(text, wordsPerSecond = 2.5) {
+        const actor = this.getActor(this.currentRole);
+        if (!actor.subtitles) return;
 
-                // Mostrar solo las palabras actuales (no acumulativo)
-                const wordsToShow = this.displayedWords.join(' ');
-                this.subtitlesElement.textContent = wordsToShow;
-                this.wordIndex++;
+        text = this.cleanText(text);
+        actor.words = text.split(' ').filter(w => w.trim().length > 0);
+        actor.wordIndex = 0;
+
+        let displayedWords = [];
+
+        if (actor.interval) clearInterval(actor.interval);
+
+        const intervalMs = 1000 / wordsPerSecond;
+        const maxWords = 16; // 8x2 lines
+
+        actor.interval = setInterval(() => {
+            if (actor.wordIndex < actor.words.length) {
+                displayedWords.push(actor.words[actor.wordIndex]);
+                if (displayedWords.length > maxWords) displayedWords.shift();
+
+                actor.subtitles.textContent = displayedWords.join(' ');
+                actor.wordIndex++;
             } else {
-                clearInterval(this.subtitlesInterval);
-                // Mantener las últimas palabras visibles por un momento antes de limpiar
+                clearInterval(actor.interval);
                 setTimeout(() => {
-                    if (this.wordIndex >= this.currentWords.length) {
-                        this.clearSubtitles();
+                    if (actor.wordIndex >= actor.words.length) {
+                        // Opcional: limpiar texto al terminar
+                        // actor.subtitles.textContent = '';
                     }
                 }, 2000);
             }
-        }, interval);
+        }, intervalMs);
     }
 
-    /**
-     * Limpia el texto eliminando caracteres de escape y debugging
-     */
     cleanText(text) {
-        if (!text || typeof text !== 'string') return '';
-
-        // Eliminar caracteres de escape
-        text = text.replace(/\\n/g, ' ').replace(/\\"/g, '"').replace(/\\'/g, "'");
-
-        // Eliminar texto de debugging
-        text = text.replace(/Let's count words:.*?words\./gi, '');
-        text = text.replace(/Words:.*?words\./gi, '');
-        text = text.replace(/\d+ words?\./gi, '');
-        text = text.replace(/Good\. Meets \d+-\d+\./gi, '');
-        text = text.replace(/We included.*?Should be fine\./gi, '');
-        text = text.replace(/Meets \d+-\d+\./gi, '');
-        text = text.replace(/Good\./gi, '');
-        text = text.replace(/Use purely Spanish\./gi, '');
-        text = text.replace(/Should be fine\./gi, '');
-        text = text.replace(/\[.*?\]/g, '');
-        text = text.replace(/\{.*?\}/g, '');
-
-        // Limpiar espacios múltiples
-        text = text.replace(/\s+/g, ' ').trim();
-
-        // Filtrar líneas de debugging
-        const lines = text.split('.');
-        text = lines.filter(line => {
-            const lower = line.toLowerCase().trim();
-            return !lower.includes('tool_calls') &&
-                !lower.includes('json') &&
-                !lower.startsWith('illones') &&
-                !lower.includes('count words') &&
-                !lower.includes('meets') &&
-                lower.length > 5;
-        }).join('. ').trim();
-
-        return text;
+        if (!text) return '';
+        let clean = text.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+        clean = clean.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '');
+        return clean;
     }
 
-    /**
-     * Actualiza subtítulos con texto completo (sin animación palabra por palabra)
-     */
     setSubtitles(text) {
-        if (this.subtitlesElement) {
-            // Limpiar texto antes de mostrar
-            const cleanedText = this.cleanText(text);
-            // Limitar a 2 líneas
-            const words = cleanedText.split(' ').filter(w => w.trim().length > 0);
-            const maxWords = 16; // Aproximadamente 2 líneas
-            const displayText = words.length > maxWords
-                ? words.slice(-maxWords).join(' ')
-                : cleanedText;
-            this.subtitlesElement.textContent = displayText;
-        }
+        const actor = this.getActor(this.currentRole);
+        if (actor.subtitles) actor.subtitles.textContent = text;
     }
 
-    /**
-     * Limpia los subtítulos
-     */
     clearSubtitles() {
-        if (this.subtitlesElement) {
-            this.subtitlesElement.textContent = '';
-        }
-        if (this.subtitlesInterval) {
-            clearInterval(this.subtitlesInterval);
-            this.subtitlesInterval = null;
-        }
-        this.currentWords = [];
-        this.wordIndex = 0;
+        // Limpiar ambos para evitar textos colgados
+        [this.ilfass, this.companion].forEach(a => {
+            if (a.subtitles) a.subtitles.textContent = '';
+            if (a.interval) clearInterval(a.interval);
+            a.words = [];
+        });
     }
 
-    /**
-     * Actualiza la imagen del avatar dinámicamente según el rol
-     */
-    setAvatarImage(urlOrRole) {
-        if (!this.avatarElement) return;
-
-        // Rutas predefinidas
-        const AVATAR_MAP = {
-            'ilfass': '/assets/images/ilfass_avatar.png',   // Necesitamos crear este asset o usar un placeholder
-            'companion': '/assets/images/avatar_sprite.png'
-        };
-
-        // Si es un rol conocido, usar su ruta
-        let finalUrl = AVATAR_MAP[urlOrRole] || urlOrRole;
-
-        // Mantener sprite solo para compa, o si la url es el sprite
-        if (finalUrl.includes('avatar_sprite.png')) {
-            this.avatarElement.style.backgroundImage = `url(${finalUrl})`;
-        } else {
-            // Para Ilfass u otros, imagen estática por ahora
-            this.avatarElement.style.backgroundImage = `url(${finalUrl})`;
-        }
-    }
+    // Métodos legacy/compatibilidad para evitar crash si alguien llama lo viejo
+    setAvatarImage() { }
+    moveTo() { }
 }
 
 export const avatarSubtitlesManager = new AvatarSubtitlesManager();

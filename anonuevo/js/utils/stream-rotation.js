@@ -10,6 +10,7 @@ export const STREAM_ROTATION = [
     'estadisticas',
     'galeria',
     'globo',
+    'observador',
     'clima',
     'aereo',
     'satelites',
@@ -17,7 +18,13 @@ export const STREAM_ROTATION = [
     'aire',
     'incendios',
     'sol',
-    'ciudad'
+    'creacion',
+    'videowall',
+    'particulas',
+    'ondas',
+    'red',
+    'estrellas',
+    'flujo'
 ];
 
 export function getModeLabel(mode) {
@@ -30,6 +37,7 @@ export function getModeLabel(mode) {
         estadisticas: 'Estadísticas',
         galeria: 'Galería',
         globo: 'Globo 3D',
+        observador: 'Observador (Pulso)',
         clima: 'Clima',
         aereo: 'Tráfico Aéreo',
         satelites: 'Satélites',
@@ -37,7 +45,13 @@ export function getModeLabel(mode) {
         aire: 'Calidad del Aire',
         incendios: 'Incendios',
         sol: 'Actividad Solar',
-        ciudad: 'Ciudad en vivo'
+        creacion: 'Taller (Creación)',
+        videowall: 'Videowall (Pexels)',
+        particulas: 'Partículas',
+        ondas: 'Ondas',
+        red: 'Red de Conexiones',
+        estrellas: 'Campo Estelar',
+        flujo: 'Flujo de Datos'
     };
     return labels[mode] || mode;
 }

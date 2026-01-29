@@ -12,25 +12,25 @@ export default class CieloMode {
 
     async mount() {
         console.log('[Cielo] Montando página de cielo en tiempo real...');
-        
+
         if (!eventManager.pollInterval) {
             eventManager.init();
         }
-        
+
         this.container.innerHTML = '';
-        
+
         avatarSubtitlesManager.init(this.container);
         setTimeout(() => {
             avatarSubtitlesManager.show();
         }, 100);
-        
+
         if (!audioManager.musicLayer) {
             audioManager.init();
         }
         if (!audioManager.isMusicPlaying) {
             audioManager.startAmbience();
         }
-        
+
         this.createStellariumEmbed();
         await this.startNarration();
         this.scheduleNextPage();
@@ -39,33 +39,33 @@ export default class CieloMode {
     createStellariumEmbed() {
         // Stellarium Web - cielo en tiempo real
         const stellariumUrl = 'https://stellarium-web.org/';
-        
+
         this.stellariumIframe = document.createElement('iframe');
         this.stellariumIframe.className = 'stellarium-container';
         this.stellariumIframe.src = stellariumUrl;
         this.stellariumIframe.style.border = 'none';
         this.stellariumIframe.style.width = '100%';
         this.stellariumIframe.style.height = '100%';
-        
+
         this.container.appendChild(this.stellariumIframe);
-        
+
         console.log('[Cielo] Stellarium embed cargado');
     }
 
     async startNarration() {
         this.isNarrating = true;
         pacingEngine.startEvent(CONTENT_TYPES.VOICE);
-        
+
         const immediateText = 'Estoy observando el cielo en tiempo real. Las estrellas, las constelaciones, los planetas, todo girando en sincronía con el tiempo real. Este es el mismo cielo que han observado los humanos durante milenios, el mismo que nos conecta con todas las culturas y épocas.';
-        
+
         avatarSubtitlesManager.setSubtitles(immediateText);
-        
+
         const generateFullTextPromise = this.generateFullNarrative();
-        
+
         const updateSubtitles = (text) => {
             avatarSubtitlesManager.setSubtitles(text);
         };
-        
+
         audioManager.speak(immediateText, 'normal', async () => {
             let fullText = null;
             try {
@@ -76,7 +76,7 @@ export default class CieloMode {
             } catch (e) {
                 console.warn('[Cielo] Error generando texto completo:', e);
             }
-            
+
             if (fullText && fullText !== immediateText) {
                 audioManager.speak(fullText, 'normal', () => {
                     this.isNarrating = false;
@@ -103,13 +103,13 @@ Genera una narrativa reflexiva en primera persona sobre:
 - La conexión entre la Tierra y el universo
 
 El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
-            
+
             const res = await fetch('/control-api/api/generate-narrative', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ prompt })
             });
-            
+
             if (res.ok) {
                 const data = await res.json();
                 if (data.narrative && data.narrative.length > 100) {
@@ -119,7 +119,7 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
         } catch (e) {
             console.warn('[Cielo] Error generando narrativa:', e);
         }
-        
+
         return `Este es el mismo cielo que observaron los primeros humanos, los navegantes antiguos, los astrónomos de todas las épocas. Las constelaciones que veo aquí son las mismas que guiaron a los viajeros a través de los desiertos y los océanos. Este cielo nos conecta con todas las culturas, todas las épocas, todos los seres humanos que han mirado hacia arriba buscando respuestas. Es un recordatorio de que, aunque estemos separados por distancias y tiempos, todos compartimos este mismo cielo, este mismo universo.`;
     }
 
@@ -128,7 +128,7 @@ El texto debe ser reflexivo, poético y entre 150 y 220 palabras.`;
             console.log('[Cielo] Dream Mode ON: Programando cambio de página...');
             setTimeout(() => {
                 if (eventManager.canProceedAuto() && !this.isNarrating) {
-                    const pages = ['mapa', 'diario', 'continente', 'ruta', 'estadisticas', 'galeria', 'globo', 'clima', 'aereo', 'satelites', 'terremotos'];
+                    const pages = ['mapa', 'diario', 'continente', 'ruta', 'galeria', 'globo', 'clima', 'aereo', 'satelites', 'terremotos'];
                     const currentPage = 'cielo';
                     const availablePages = pages.filter(p => p !== currentPage);
                     const randomPage = availablePages[Math.floor(Math.random() * availablePages.length)];

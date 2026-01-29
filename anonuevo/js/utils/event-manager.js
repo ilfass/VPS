@@ -176,6 +176,10 @@ class EventManager {
                 case 'show_mission':
                     if (this.handlers['show_mission']) this.handlers['show_mission'](event.payload || {});
                     break;
+                case 'observer_speak':
+                    // Texto generado por el Observador (Pulso). Payload: { commentary, title, only, ... }
+                    if (this.handlers['observer_speak']) this.handlers['observer_speak'](event.payload || {});
+                    break;
             }
         } catch (e) {
             console.error("Error processing event:", e);

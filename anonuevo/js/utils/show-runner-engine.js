@@ -84,7 +84,8 @@ export class ShowRunnerEngine {
             lastSegmentIdx: -1,
             lastRecapSegmentIdx: -1,
             lastBumperSegmentIdx: -1,
-            lastNavSegmentIdx: -1
+            lastNavSegmentIdx: -1,
+            lastPulseSegmentIdx: -1
         };
         writeJson(SHOW_STATE_KEY, fresh);
         return fresh;
@@ -99,6 +100,7 @@ export class ShowRunnerEngine {
         state.lastRecapSegmentIdx = -1;
         state.lastBumperSegmentIdx = -1;
         state.lastNavSegmentIdx = -1;
+        state.lastPulseSegmentIdx = -1;
         writeJson(SHOW_STATE_KEY, state);
 
         audioManager.playSfx?.('stinger');
@@ -151,6 +153,38 @@ export class ShowRunnerEngine {
         // Preferencia fija por bloque; fallback a “cualquier” /vivos/ actual
         if (seg?.preferred) return seg.preferred;
         return 'mapa';
+    }
+
+    pulseOnlyForSegment(segIdx) {
+        const seg = this.segments[segIdx] || this.segments[0] || {};
+        switch (seg.id) {
+            case 'open': return 'all';
+            case 'urbano': return 'news,trends,culture';
+            case 'rutas': return 'security';
+            case 'espacio': return 'scitech';
+            case 'memoria': return 'culture,news';
+            default: return 'all';
+        }
+    }
+
+    async triggerPulse(segIdx) {
+        // Evitar duplicados si hay más de una pestaña /vivos/ abierta
+        const lockKey = 'show_runner_pulse_lock_v1';
+        const now = Date.now();
+        try {
+            const last = Number(localStorage.getItem(lockKey) || '0');
+            if (Number.isFinite(last) && (now - last) < 90_000) return;
+            localStorage.setItem(lockKey, String(now));
+        } catch (e) { }
+
+        const only = this.pulseOnlyForSegment(segIdx);
+        try {
+            await fetch('/control-api/event/observer/pulse', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lang: 'es-419', only, max: 8 })
+            });
+        } catch (e) { }
     }
 
     tick(force = false) {
@@ -207,6 +241,16 @@ export class ShowRunnerEngine {
                 writeJson(SHOW_STATE_KEY, state);
                 // Se dispara por evento para reutilizar handler global
                 try { eventManager.emit('recap_now'); } catch (e) { }
+            }
+        }
+
+        // Pulso del mundo dentro del bloque (~min 6) para evitar “silencios”
+        if (segElapsed > 6 * 60 * 1000 && state.lastPulseSegmentIdx !== segIdx) {
+            const busy = !!(this.modeInstance?.isNarrating || audioManager.isSpeaking || document.getElementById('media-overlay-container'));
+            if (!busy) {
+                state.lastPulseSegmentIdx = segIdx;
+                writeJson(SHOW_STATE_KEY, state);
+                this.triggerPulse(segIdx);
             }
         }
 

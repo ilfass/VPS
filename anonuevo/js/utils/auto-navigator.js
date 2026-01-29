@@ -50,6 +50,10 @@ export class AutoNavigator {
 
     schedule(currentMode) {
         if (!eventManager.canProceedAuto()) return;
+        // Si está activo el Plan 3h, la navegación la controla el plan (no rotación random).
+        try {
+            if (localStorage.getItem('streaming_plan_active_v1') === '1') return;
+        } catch (e) { }
         // Si hay “Show Runner” activo, el cambio de escenas lo decide la rueda.
         try {
             if (localStorage.getItem('show_runner_active_v1') === '1') return;

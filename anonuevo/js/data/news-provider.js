@@ -1,18 +1,6 @@
-// Proveedor de Noticias Internacionales
-// Obtiene feeds RSS a través de un proxy CORS y normaliza los datos.
-
-const RSS_FEEDS = [
-    // Ciencia y Tecnología (El País)
-    'https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/ciencia/portada',
-    // Tecnología (BBC Mundo)
-    'https://www.bbc.com/mundo/temas/tecnologia/index.xml',
-    // Ciencia (BBC Mundo)
-    'https://www.bbc.com/mundo/temas/ciencia/index.xml',
-    // National Geographic España (Ciencia)
-    'https://www.nationalgeographic.com.es/feeds/rss/ciencia',
-    // Muy Interesante (Curiosidades/Ciencia)
-    'https://www.muyinteresante.com.mx/feed'
-];
+// Proveedor de Noticias Internacionales (Real-time Observer)
+// Obtiene titulares desde el servidor (/control-api), que agrega múltiples fuentes (RSS/JSON)
+// sin depender de proxies CORS en el navegador.
 
 const NEWS_INTRO_TEMPLATES = [
     "Una noticia que está recorriendo el mundo...",
@@ -45,41 +33,44 @@ export class NewsProvider {
 
         console.log("📡 Buscando nuevas noticias internacionales...");
         const allNews = [];
+        try {
+            // Pedir “pulso” (server-side aggregator). Incluye WORLD/SCIENCE/TECH y más.
+            const res = await fetch('/control-api/api/observer/pulse?lang=es-419&geo=US&cc=ES&max=10');
+            if (res.ok) {
+                const data = await res.json();
+                const blocks = data?.blocks || {};
+                const commentary = (data?.commentary || '').trim();
 
-        // Seleccionar 2 feeds al azar para no sobrecargar
-        const feedsToFetch = RSS_FEEDS.sort(() => 0.5 - Math.random()).slice(0, 2);
-
-        for (const url of feedsToFetch) {
-            try {
-                // Usar allorigins como proxy CORS
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-                const response = await fetch(proxyUrl);
-                const data = await response.json();
-
-                if (data.contents) {
-                    const parser = new DOMParser();
-                    const xmlDoc = parser.parseFromString(data.contents, "text/xml");
-                    const items = xmlDoc.querySelectorAll("item");
-
-                    items.forEach(item => {
-                        const title = item.querySelector("title")?.textContent || "";
-                        const description = item.querySelector("description")?.textContent || "";
-
-                        // Limpieza básica de HTML en descripción
-                        const cleanDesc = description.replace(/<[^>]*>?/gm, '').substring(0, 200);
-
-                        if (this.isValidNews(title, cleanDesc)) {
-                            allNews.push({
-                                title: title,
-                                summary: cleanDesc,
-                                source: "Actualidad Internacional"
-                            });
-                        }
+                // 1) Si el servidor generó comentario (tendencias + contexto), lo priorizamos como “pieza” de noticias.
+                if (commentary && this.isValidNews('Pulso del mundo', commentary)) {
+                    allNews.push({
+                        title: 'Pulso del mundo',
+                        summary: commentary,
+                        source: 'Observador en tiempo real',
+                        url: null
                     });
                 }
-            } catch (e) {
-                console.warn(`Error fetching feed ${url}:`, e);
+
+                const merged = []
+                    .concat(blocks.news || [])
+                    .concat(blocks.scitech || [])
+                    .concat(blocks.health || []);
+
+                for (const it of merged) {
+                    const title = it?.title || '';
+                    const summary = it?.summary || '';
+                    if (this.isValidNews(title, summary)) {
+                        allNews.push({
+                            title,
+                            summary: summary || title,
+                            source: it?.source || 'Actualidad Internacional',
+                            url: it?.url || null
+                        });
+                    }
+                }
             }
+        } catch (e) {
+            console.warn(`Error fetching observer pulse:`, e);
         }
 
         // Mezclar y guardar en caché
