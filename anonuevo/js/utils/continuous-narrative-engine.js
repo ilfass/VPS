@@ -106,7 +106,7 @@ El diálogo debe sentirse como dos entidades descubriendo el lugar juntas en tie
             const response = await fetch('/control-api/api/generate-narrative', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt, temperature: 0.8 }), // Temp alta para creatividad
+                body: JSON.stringify({ prompt, temperature: 0.9 }), // Temp alta para creatividad
                 signal: controller.signal
             });
 
@@ -114,10 +114,16 @@ El diálogo debe sentirse como dos entidades descubriendo el lugar juntas en tie
 
             if (response.ok) {
                 const data = await response.json();
-                if (data.narrative && data.narrative.length > 50) {
-                    return data.narrative;
+                const narrative = data.narrative || '';
+
+                // VALIDACIÓN CRÍTICA: ¿Es un diálogo?
+                // Si la IA nos devuelve un monólogo aburrido ("Estoy observando..."), lo descartamos.
+                const isDialogue = narrative.includes('[ILFASS]') || narrative.includes('[COMPANION]');
+
+                if (narrative.length > 50 && isDialogue) {
+                    return narrative;
                 } else {
-                    console.warn('[ContinuousNarrative] Relato muy corto, usando fallback');
+                    console.warn('[ContinuousNarrative] Relato IA descartado: No es diálogo o muy corto. Usando Fallback.');
                 }
             } else {
                 console.warn(`[ContinuousNarrative] Error en respuesta: ${response.status}`);
@@ -130,8 +136,9 @@ El diálogo debe sentirse como dos entidades descubriendo el lugar juntas en tie
             }
         }
 
-        // Fallback: relato básico mejorado
-        return this.generateFallbackNarrative(prompt);
+        // Fallback: extraer SOLO el texto narrativo del objeto fallback
+        const fallbackObj = this.generateFallbackNarrative(prompt);
+        return fallbackObj.narrative;
     }
 
     generateFallbackNarrative(prompt) {

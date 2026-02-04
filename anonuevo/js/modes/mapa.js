@@ -1403,28 +1403,26 @@ Genera una introducción en primera persona (como ilfass) que:
             });
 
 
-            // --- EJECUTAR NARRATIVA / DIÁLOGO ---
+            // Determinar qué texto se reprodujo finalmente para guardarlo en memoria
+            let narrativeText = immediateCountryText;
 
-            const narrativeText = continuousNarrative.narrative || immediateCountryText;
-            console.log(`[Mapa] Texto a reproducir (${narrativeText.length} chars)`);
+            // Si el texto completo es diferente, procesarlo (Diálogo o Narración)
+            if (continuousNarrative.narrative && continuousNarrative.narrative !== immediateCountryText) {
+                const newText = continuousNarrative.narrative;
+                const isDialogue = newText.includes('[ILFASS]') || newText.includes('[COMPANION]');
 
-            // Cancelar audio inicial si sigue sonando
-            audioManager.cancel();
-
-            if (narrativeText.includes('[ILFASS]') || narrativeText.includes('[COMPANION]')) {
-                // MODO DIÁLOGO
-                await this.playDialogueSequence(narrativeText);
+                if (isDialogue) {
+                    console.log(`[Mapa] 📜 Nuevos scripts de diálogo recibidos. Transicionando...`);
+                    // Solo interrumpir si es material nuevo y válido tipo diálogo
+                    audioManager.cancel();
+                    await this.playDialogueSequence(newText);
+                    narrativeText = newText;
+                } else {
+                    console.warn(`[Mapa] ⚠️ Texto generado NO es diálogo. Manteniendo intro actual o ignorando.`);
+                    // Mantenemos narrativeText = immediateCountryText
+                }
             } else {
-                // MODO MONÓLOGO (Legacy / Fallback)
-                avatarSubtitlesManager.activateRole('ilfass');
-                avatarSubtitlesManager.setSubtitles(narrativeText);
-
-                await new Promise(resolve => {
-                    audioManager.speak(narrativeText, 'normal', () => resolve(), (txt) => avatarSubtitlesManager.setSubtitles(txt));
-                });
-
-                // Esperar un poco después de hablar
-                await new Promise(r => setTimeout(r, 2000));
+                // Si no hay texto nuevo, seguir con el inmediato (ya está corriendo)
             }
 
             // --- FINALIZAR VISITA ---
