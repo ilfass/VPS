@@ -2410,6 +2410,11 @@ const server = http.createServer(async (req, res) => {
                     narrative = `[ILFASS]: ${narrative}`;
                 }
 
+                // Ensure protocol format for Router (Critical Fix)
+                if (narrative && !narrative.includes('[ILFASS]')) {
+                    narrative = `[ILFASS]: ${narrative}`;
+                }
+
                 console.log(`[GenerateNarrative] Relato FINAL generado: ${narrative.length} caracteres`);
 
                 // Persistir “hilo” (resumen corto para evitar repetición y para auditoría)
