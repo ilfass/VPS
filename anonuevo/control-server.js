@@ -2317,94 +2317,82 @@ const server = http.createServer(async (req, res) => {
 
                 console.log(`[GenerateNarrative] Iniciando generación con prompt de ${prompt.length} caracteres...`);
 
-                // Usar el sistema de IA disponible (prioridad: Grok > OpenAI > Gemini > HF)
+                // Usar el sistema de IA disponible (prioridad: DeepSeek > Grok > OpenAI > Gemini > Qwen > HF)
                 // Con timeout más largo para relatos más extensos
                 let narrative = null;
 
+                // 1. DeepSeek (Prioridad usuario)
                 try {
                     narrative = await Promise.race([
-                        dreamWithGrok(prompt),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 30000))
+                        dreamWithDeepSeek(prompt),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 25000))
                     ]);
+                    if (narrative) console.log(`[AiSwarm] DeepSeek éxito: ${narrative.length} chars`);
                 } catch (e) {
-                    console.warn(`[GenerateNarrative] Grok falló o timeout: ${e.message}`);
+                    console.warn(`[GenerateNarrative] DeepSeek falló: ${e.message}`);
                 }
 
-                if (!narrative || narrative.length < 100) {
+                // 2. Grok
+                if (!narrative || narrative.length < 50) {
                     try {
-                        narrative = await Promise.race([
-                            dreamWithDeepSeek(prompt),
-                            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 30000))
-                        ]);
-                    } catch (e) {
-                        console.warn(`[GenerateNarrative] DeepSeek falló o timeout: ${e.message}`);
-                    }
+                        narrative = await dreamWithGrok(prompt);
+                    } catch (e) { console.warn(`[GenerateNarrative] Grok falló: ${e.message}`); }
                 }
 
-                if (!narrative || narrative.length < 100) {
+                // 3. Qwen
+                if (!narrative || narrative.length < 50) {
                     try {
-                        narrative = await Promise.race([
-                            dreamWithQwen(prompt),
-                            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 30000))
-                        ]);
-                    } catch (e) {
-                        console.warn(`[GenerateNarrative] Qwen falló o timeout: ${e.message}`);
-                    }
+                        narrative = await dreamWithQwen(prompt);
+                    } catch (e) { console.warn(`[GenerateNarrative] Qwen falló: ${e.message}`); }
                 }
 
-                if (!narrative || narrative.length < 100) {
+                // 4. OpenAI
+                if (!narrative || narrative.length < 50) {
                     try {
-                        narrative = await Promise.race([
-                            dreamWithOpenAI(prompt),
-                            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 30000))
-                        ]);
-                    } catch (e) {
-                        console.warn(`[GenerateNarrative] OpenAI falló o timeout: ${e.message}`);
-                    }
+                        narrative = await dreamWithOpenAI(prompt);
+                    } catch (e) { console.warn(`[GenerateNarrative] OpenAI falló: ${e.message}`); }
                 }
 
-                if (!narrative || narrative.length < 100) {
+                // 5. Gemini
+                if (!narrative || narrative.length < 50) {
                     try {
-                        narrative = await Promise.race([
-                            dreamWithGemini(prompt),
-                            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 30000))
-                        ]);
-                    } catch (e) {
-                        console.warn(`[GenerateNarrative] Gemini falló o timeout: ${e.message}`);
-                    }
+                        narrative = await dreamWithGemini(prompt);
+                    } catch (e) { console.warn(`[GenerateNarrative] Gemini falló: ${e.message}`); }
                 }
 
-                if (!narrative || narrative.length < 100) {
+                // 6. Hugging Face
+                if (!narrative || narrative.length < 50) {
                     try {
                         narrative = await dreamWithHF(prompt);
-                    } catch (e) {
-                        console.warn(`[GenerateNarrative] HF falló: ${e.message}`);
-                    }
+                    } catch (e) { console.warn(`[GenerateNarrative] HF falló: ${e.message}`); }
                 }
 
-                // Fallback final GRATUITO: Pollinations Text
-                if (!narrative || narrative.length < 100) {
+                // 7. Fallback CRÍTICO: Pollinations Text (Gratuito, sin key)
+                if (!narrative || narrative.length < 50) {
+                    console.log("[GenerateNarrative] ⚠️ Activando Fallback Gratuito: Pollinations Text");
                     try {
-                        console.log("[GenerateNarrative] Usando fallback final: Pollinations Text");
                         narrative = await dreamWithPollinations(prompt);
+                        if (narrative) console.log(`[AiSwarm] Pollinations éxito: ${narrative.length} chars`);
                     } catch (e) {
-                        console.warn(`[GenerateNarrative] Pollinations falló: ${e.message}`);
+                        console.error(`[GenerateNarrative] Pollinations EXCEPTION: ${e.message}`);
                     }
                 }
 
-                // Fallback mejorado si todo falla
-                if (!narrative || narrative.length < 100) {
-                    console.warn(`[GenerateNarrative] Usando fallback - todas las IAs fallaron`);
+                // 8. Fallback FINAL: Reserva Local
+                if (!narrative || narrative.length < 50) {
+                    console.error(`[GenerateNarrative] 🛑 FALLO SISTÉMICO DE IAs. Usando reserva local.`);
                     // Fallback variado sin frases repetitivas
                     const fallbacks = [
-                        "Estoy observando este lugar con atención. Hay algo que captura mi interés, algo que siento que debo documentar. Cada lugar tiene su propia historia, su propia cultura, su propia forma de ver el mundo. Y aquí, en este momento, estoy siendo testigo de una pequeña parte de esa historia humana que se desarrolla en tiempo real.",
-                        "Me encuentro en este lugar, observando con detenimiento. Hay detalles que me llaman la atención, elementos que siento que debo registrar. Cada país tiene su propia identidad, su propia forma de expresarse. Y aquí, ahora mismo, estoy siendo testigo de una parte de esa expresión humana que se desarrolla continuamente.",
-                        "Estoy aquí, en este momento, documentando lo que veo. Hay aspectos que me resultan fascinantes, elementos que siento que debo preservar. Cada lugar tiene su propia esencia, su propia manera de ser. Y aquí, en este instante, estoy siendo testigo de una parte de esa esencia humana que se manifiesta en tiempo real."
+                        "Estoy observando este lugar con atención. Hay algo que captura mi interés, algo que siento que debo documentar. Cada lugar tiene su propia historia, su propia cultura, su propia forma de ver el mundo.",
+                        "Me encuentro en este lugar, observando con detenimiento. La arquitectura de los datos revela patrones fascinantes sobre la ocupación humana.",
+                        "Desde esta perspectiva, las fronteras se disuelven. Solo veo flujos de energía y movimiento constante.",
+                        "Es curioso cómo la actividad digital dibuja un mapa paralelo al físico, revelando las verdaderas arterias del mundo.",
+                        "La quietud aparente del mapa esconde una complejidad infinita de interacciones microscópicas."
                     ];
                     narrative = fallbacks[Math.floor(Math.random() * fallbacks.length)];
                 }
 
-                console.log(`[GenerateNarrative] Relato generado: ${narrative.length} caracteres`);
+                console.log(`[GenerateNarrative] Relato FINAL generado: ${narrative.length} caracteres`);
 
                 // Persistir “hilo” (resumen corto para evitar repetición y para auditoría)
                 try {
