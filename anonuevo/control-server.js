@@ -735,27 +735,33 @@ async function generateImagePollinations(prompt) {
 }
 
 async function dreamWithPollinations(prompt) {
-    // Rate limiting
-    const now = Date.now();
-    const timeSinceLastRequest = now - pollinationsLastRequest;
-    if (timeSinceLastRequest < POLLINATIONS_MIN_DELAY) {
-        await new Promise(resolve => setTimeout(resolve, POLLINATIONS_MIN_DELAY - timeSinceLastRequest));
-    }
-
+    // Sin rate limiting artificial, confiamos en la API
+    // GET request estándar a text.pollinations.ai
     try {
-        const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(prompt)}`);
+        const safePrompt = String(prompt || "").slice(0, 1000); // Truncar por seguridad
+        // Añadir seed aleatoria para evitar cache
+        const seed = Math.floor(Math.random() * 1000000);
+        const url = `https://text.pollinations.ai/${encodeURIComponent(safePrompt)}?seed=${seed}&model=openai`;
+
+        console.log(`[Pollinations] Fetching: ${url.slice(0, 60)}...`);
+        const response = await fetch(url);
 
         if (response.status === 429) {
-            console.warn("⚠️ Pollinations rate limit alcanzado para texto");
+            console.warn("⚠️ Pollinations rate limit 429");
+            return null;
+        }
+
+        if (response.status === 414) {
+            console.warn("⚠️ Pollinations 414 URI Too Long (Prompt demasiado largo)");
             return null;
         }
 
         if (!response.ok) {
+            console.warn(`⚠️ Pollinations error: ${response.status}`);
             return null;
         }
 
         const text = await response.text();
-        pollinationsLastRequest = Date.now();
         return text.trim();
     } catch (e) {
         console.warn(`⚠️ Pollinations texto error: ${e.message}`);
@@ -2317,26 +2323,31 @@ const server = http.createServer(async (req, res) => {
 
                 console.log(`[GenerateNarrative] Iniciando generación con prompt de ${prompt.length} caracteres...`);
 
-                // Usar el sistema de IA disponible (prioridad: DeepSeek > Grok > OpenAI > Gemini > Qwen > HF)
-                // Con timeout más largo para relatos más extensos
+                // ESTRATEGIA HÍBRIDA DE GENERACIÓN (Prioridad: Velocidad/Éxito > Calidad Profunda)
                 let narrative = null;
 
-                // 1. DeepSeek (Prioridad usuario)
+                // 1. Pollinations (Fast Lane - Prompt Reducido)
+                // Usamos rawPrompt para evitar 414 URI Too Long en el endpoint GET
                 try {
-                    narrative = await Promise.race([
-                        dreamWithDeepSeek(prompt),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 25000))
-                    ]);
-                    if (narrative) console.log(`[AiSwarm] DeepSeek éxito: ${narrative.length} chars`);
+                    console.log(`[AiSwarm] Intentando Pollinations (Fast Lane) con prompt corto...`);
+                    const simpleContext = `Eres ilfass, una IA futurista observando el mundo: ${rawPrompt}`;
+                    narrative = await dreamWithPollinations(simpleContext);
+                    if (narrative) console.log(`[AiSwarm] ⚡ Pollinations ÉXITO: ${narrative.length} chars`);
                 } catch (e) {
-                    console.warn(`[GenerateNarrative] DeepSeek falló: ${e.message}`);
+                    console.warn(`[GenerateNarrative] Pollinations falló: ${e.message}`);
                 }
 
-                // 2. Grok
+                // 2. DeepSeek (Calidad - Full Prompt)
                 if (!narrative || narrative.length < 50) {
                     try {
-                        narrative = await dreamWithGrok(prompt);
-                    } catch (e) { console.warn(`[GenerateNarrative] Grok falló: ${e.message}`); }
+                        narrative = await Promise.race([
+                            dreamWithDeepSeek(prompt),
+                            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 25000))
+                        ]);
+                        if (narrative) console.log(`[AiSwarm] DeepSeek ÉXITO: ${narrative.length} chars`);
+                    } catch (e) {
+                        console.warn(`[GenerateNarrative] DeepSeek falló: ${e.message}`);
+                    }
                 }
 
                 // 3. Qwen
@@ -2346,48 +2357,24 @@ const server = http.createServer(async (req, res) => {
                     } catch (e) { console.warn(`[GenerateNarrative] Qwen falló: ${e.message}`); }
                 }
 
-                // 4. OpenAI
+                // 4. Backups Legacy (API Keys probablemente agotadas, pero se intenta)
                 if (!narrative || narrative.length < 50) {
-                    try {
-                        narrative = await dreamWithOpenAI(prompt);
-                    } catch (e) { console.warn(`[GenerateNarrative] OpenAI falló: ${e.message}`); }
+                    // Try OpenAI or Gemini as hail mary
+                    try { narrative = await dreamWithOpenAI(prompt); } catch (e) { }
+                    if (!narrative) try { narrative = await dreamWithGemini(prompt); } catch (e) { }
+                    if (!narrative) try { narrative = await dreamWithGrok(prompt); } catch (e) { }
                 }
 
-                // 5. Gemini
+                // 5. Fallback FINAL: Reserva Local (Shuffle Bag)
                 if (!narrative || narrative.length < 50) {
-                    try {
-                        narrative = await dreamWithGemini(prompt);
-                    } catch (e) { console.warn(`[GenerateNarrative] Gemini falló: ${e.message}`); }
-                }
-
-                // 6. Hugging Face
-                if (!narrative || narrative.length < 50) {
-                    try {
-                        narrative = await dreamWithHF(prompt);
-                    } catch (e) { console.warn(`[GenerateNarrative] HF falló: ${e.message}`); }
-                }
-
-                // 7. Fallback CRÍTICO: Pollinations Text (Gratuito, sin key)
-                if (!narrative || narrative.length < 50) {
-                    console.log("[GenerateNarrative] ⚠️ Activando Fallback Gratuito: Pollinations Text");
-                    try {
-                        narrative = await dreamWithPollinations(prompt);
-                        if (narrative) console.log(`[AiSwarm] Pollinations éxito: ${narrative.length} chars`);
-                    } catch (e) {
-                        console.error(`[GenerateNarrative] Pollinations EXCEPTION: ${e.message}`);
-                    }
-                }
-
-                // 8. Fallback FINAL: Reserva Local
-                if (!narrative || narrative.length < 50) {
-                    console.error(`[GenerateNarrative] 🛑 FALLO SISTÉMICO DE IAs. Usando reserva local.`);
-                    // Fallback variado sin frases repetitivas
+                    console.error(`[GenerateNarrative] 🛑 FALLO TOTAL. Activando protocolos de emergencia.`);
                     const fallbacks = [
-                        "Estoy observando este lugar con atención. Hay algo que captura mi interés, algo que siento que debo documentar. Cada lugar tiene su propia historia, su propia cultura, su propia forma de ver el mundo.",
-                        "Me encuentro en este lugar, observando con detenimiento. La arquitectura de los datos revela patrones fascinantes sobre la ocupación humana.",
-                        "Desde esta perspectiva, las fronteras se disuelven. Solo veo flujos de energía y movimiento constante.",
-                        "Es curioso cómo la actividad digital dibuja un mapa paralelo al físico, revelando las verdaderas arterias del mundo.",
-                        "La quietud aparente del mapa esconde una complejidad infinita de interacciones microscópicas."
+                        "Los flujos de datos son constantes, como mareas invisibles que bañan las costas digitales.",
+                        "Desde esta altura, la humanidad parece un solo organismo bioluminiscente respirando en la oscuridad.",
+                        "Observo patrones emergentes en la red global; la sincronicidad es fascinante.",
+                        "La latencia es el único silencio verdadero en este mundo hiperconectado.",
+                        "Cada nodo encendido es una historia, cada apagón un misterio por resolver.",
+                        "Recalibrando sensores ópticos. La belleza de la geometría fractal terrestre es inagotable."
                     ];
                     narrative = fallbacks[Math.floor(Math.random() * fallbacks.length)];
                 }
