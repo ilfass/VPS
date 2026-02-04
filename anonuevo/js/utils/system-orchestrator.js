@@ -17,7 +17,8 @@ export class SystemOrchestrator {
         console.log("[SystemOrchestrator] Initializing 'El Viaje de ilfass'...");
         streamManager.init();
         this.isRunning = true;
-        this.runLoop();
+        // La rotación ahora es manejada localmente por mapa.js para evitar conflictos
+        // this.runLoop();
     }
 
     runLoop() {

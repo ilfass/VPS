@@ -1388,7 +1388,8 @@ Genera una introducción en primera persona (como ilfass) que:
             this.visitedCount++;
             console.log(`[Mapa] Visitas en esta sesión: ${this.visitedCount} / 5`);
 
-            // Check for session end (5 countries)
+            // Check for session end (5 countries) - DESHABILITADO para stream infinito
+            /*
             if (eventManager.canProceedAuto() && this.visitedCount >= 5) {
                 console.log("[Mapa] 🏁 Sesión de 5 países completada. Preparando navegación...");
 
@@ -1404,6 +1405,7 @@ Genera una introducción en primera persona (como ilfass) que:
                 }, 5000); // 5 segundos delay despues de terminar
                 return; // Detener ciclo
             }
+            */
 
             // Continuar ciclo si no hemos llegado a 5
             if (eventManager.canProceedAuto()) {

@@ -78,10 +78,19 @@ export class ShowRunnerEngine {
     }
 
     ensureState() {
-        const s = readJson(SHOW_STATE_KEY, null);
+        let s = readJson(SHOW_STATE_KEY, null);
+        const now = Date.now();
+        // Resetear si es muy viejo (> 2 horas)
+        if (s && typeof s.startTs === 'number') {
+            if (now - s.startTs > 2 * 60 * 60 * 1000) {
+                console.log("[ShowRunner] Sesión expirada, reiniciando cronograma.");
+                s = null;
+            }
+        }
+
         if (s && typeof s.startTs === 'number') return s;
         const fresh = {
-            startTs: Date.now(),
+            startTs: now,
             lastSegmentIdx: -1,
             lastRecapSegmentIdx: -1,
             lastBumperSegmentIdx: -1,
@@ -222,6 +231,7 @@ export class ShowRunnerEngine {
             } catch (e) { }
 
             // Si el bloque sugiere otra escena, saltar suave (solo si no coincide)
+            /*
             const preferred = this.pickNextModeForSegment(segIdx);
             if (preferred && this.modeName && preferred !== this.modeName) {
                 // Evitar cortar si está “ocupado” (narración/overlay)
@@ -232,6 +242,7 @@ export class ShowRunnerEngine {
                     }, 900);
                 }
             }
+            */
         }
 
         // Recap dentro del bloque (~min 3)
