@@ -136,7 +136,7 @@ El diálogo debe sentirse como dos entidades descubriendo el lugar juntas en tie
 
     generateFallbackNarrative(prompt) {
         // Fallback DIÁLOGO si la IA falla
-        const countryMatch = prompt.match(/visitando\s+([^\.\n]+)|estás\s+en\s+([^\.\n]+)/i);
+        const countryMatch = prompt.match(/visitando\s+([^.\n]+)|estás\s+en\s+([^.\n]+)/i);
         const countryName = countryMatch ? (countryMatch[1] || countryMatch[2]).trim() : "este lugar";
 
         const fallbacks = [
@@ -153,7 +153,14 @@ El diálogo debe sentirse como dos entidades descubriendo el lugar juntas en tie
 [ILFASS]: Exacto. Y aun así, su esencia permanece. Sigamos observando.`
         ];
 
-        return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+        return {
+            narrative: fallbacks[Math.floor(Math.random() * fallbacks.length)],
+            multimedia: [],
+            reflections: ["La historia persiste.", "La adaptación es clave."],
+            dataPoints: ["Ubicación confirmada", "Análisis cultural iniciado"],
+            emotionalNotes: ["Curiosidad", "Respeto"],
+            isFirstVisit: true
+        };
     }
 
     planMultimedia(narrative, country) {
