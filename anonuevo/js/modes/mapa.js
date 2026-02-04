@@ -1296,11 +1296,28 @@ Genera una introducción en primera persona (como ilfass) que:
      */
     getImmediateCountryText(country) {
         const immediateTexts = [
-            `Estoy en ${country.name}, observando con atención este lugar. Hay detalles que capturan mi interés, elementos que siento que debo registrar. En ${country.name} descubro que cada lugar tiene su propia identidad, su propia manera de expresarse. La geografía, las tradiciones, las personas, todo forma parte de un tejido complejo que me resulta fascinante. Reflexiono sobre cómo cada lugar que visito me transforma, me enseña algo nuevo sobre la humanidad y sobre mí mismo.`,
-            `Me encuentro en ${country.name}, documentando lo que veo. Hay aspectos que me resultan interesantes, elementos que siento que debo preservar. En ${country.name} percibo que cada lugar tiene su propia esencia, su propia forma de ser. Las costumbres, los paisajes, las historias, todo forma parte de un mosaico complejo que me resulta cautivador. Pienso en cómo cada lugar que visito me enriquece, me muestra algo nuevo sobre la diversidad humana y sobre mi propia comprensión del mundo.`,
-            `Aquí en ${country.name}, mi atención se centra en los detalles. Siento la necesidad de documentar cada aspecto de este entorno. La cultura de ${country.name}, su historia y sus gentes, se entrelazan en una narrativa única que me fascina. Cada experiencia aquí me ayuda a comprender mejor la complejidad de la existencia humana y mi propio papel como observador.`,
-            `Estoy en ${country.name}, explorando este territorio con curiosidad. Cada rincón me ofrece una perspectiva diferente, cada encuentro me enseña algo nuevo. En ${country.name} descubro que la humanidad se manifiesta de formas diversas, y cada manifestación es valiosa. Documentar esto me permite crear una memoria viva de lo que significa estar aquí, ahora, en este momento.`,
-            `Me encuentro en ${country.name}, sumergiéndome en su realidad. Hay algo especial en este lugar que me llama la atención, algo que siento que debo capturar. En ${country.name} veo cómo la historia, la cultura y el presente se entrelazan, creando una experiencia única. Cada visita me permite profundizar más en la comprensión de este lugar y de mí mismo.`
+            `[ILFASS]: Hemos llegado a ${country.name}. La atmósfera aquí vibra con una frecuencia única.
+[COMPANION]: Confirmado. Mis sensores detectan patrones de actividad humana muy densos en ${country.name}.
+[ILFASS]: Es la vida misma manifestándose. Observemos con respeto.
+[COMPANION]: Registrando coordenadas y parámetros ambientales.`,
+
+            `[ILFASS]: ${country.name} se extiende ante nosotros. ¿Qué ves, Companion?
+[COMPANION]: Veo una topografía compleja y estructuras sociales en constante cambio.
+[ILFASS]: Yo veo historias. Cada rincón de ${country.name} parece querer contarnos algo.
+[COMPANION]: Iniciando protocolo de documentación histórica.`,
+
+            `[ILFASS]: Estamos orbitando la esencia de ${country.name}.
+[COMPANION]: Los datos preliminares sugieren una cultura rica y resiliente.
+[ILFASS]: La resiliencia es una constante humana. Me fascina cómo se expresa aquí.
+[COMPANION]: Almacenando muestras de audio y visuales para análisis posterior.`,
+
+            `[ILFASS]: Mira ${country.name}. Tan vasto, tan lleno de matices.
+[COMPANION]: Es un nodo importante en la red global. Su influencia se extiende más allá de sus fronteras.
+[ILFASS]: Así es. Todo está conectado. Nuestra presencia aquí es solo un testigo más.`,
+
+            `[ILFASS]: El tiempo parece fluir diferente en ${country.name}.
+[COMPANION]: Cronómetros sincronizados. Sin embargo, entiendo tu metáfora. La percepción aquí es distinta.
+[ILFASS]: Exacto. No midas solo el tiempo, mide la intensidad del momento.`
         ];
         return immediateTexts[Math.floor(Math.random() * immediateTexts.length)];
     }
