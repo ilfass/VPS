@@ -2323,21 +2323,33 @@ const server = http.createServer(async (req, res) => {
 
                 console.log(`[GenerateNarrative] Iniciando generación con prompt de ${prompt.length} caracteres...`);
 
-                // ESTRATEGIA HÍBRIDA DE GENERACIÓN (Prioridad: Velocidad/Éxito > Calidad Profunda)
+                // ESTRATEGIA HÍBRIDA DE GENERACIÓN
+                // Prioridad: Calidad (OpenAI/Grok/Gemini) > Modelos Alternativos > Fallback Gratuito > Reserva Local
                 let narrative = null;
 
-                // 1. Pollinations (Fast Lane - Prompt Reducido)
-                // Usamos rawPrompt para evitar 414 URI Too Long en el endpoint GET
+                // 1. OpenAI (Prioridad Máxima - Calidad)
                 try {
-                    console.log(`[AiSwarm] Intentando Pollinations (Fast Lane) con prompt corto...`);
-                    const simpleContext = `Eres ilfass, una IA futurista observando el mundo: ${rawPrompt}`;
-                    narrative = await dreamWithPollinations(simpleContext);
-                    if (narrative) console.log(`[AiSwarm] ⚡ Pollinations ÉXITO: ${narrative.length} chars`);
-                } catch (e) {
-                    console.warn(`[GenerateNarrative] Pollinations falló: ${e.message}`);
+                    narrative = await dreamWithOpenAI(prompt);
+                    if (narrative) console.log(`[AiSwarm] OpenAI ÉXITO: ${narrative.length} chars`);
+                } catch (e) { console.warn(`[GenerateNarrative] OpenAI falló: ${e.message}`); }
+
+                // 2. Grok (xAI)
+                if (!narrative || narrative.length < 50) {
+                    try {
+                        narrative = await dreamWithGrok(prompt);
+                        if (narrative) console.log(`[AiSwarm] Grok ÉXITO: ${narrative.length} chars`);
+                    } catch (e) { console.warn(`[GenerateNarrative] Grok falló: ${e.message}`); }
                 }
 
-                // 2. DeepSeek (Calidad - Full Prompt)
+                // 3. Gemini (Google)
+                if (!narrative || narrative.length < 50) {
+                    try {
+                        narrative = await dreamWithGemini(prompt);
+                        if (narrative) console.log(`[AiSwarm] Gemini ÉXITO: ${narrative.length} chars`);
+                    } catch (e) { console.warn(`[GenerateNarrative] Gemini falló: ${e.message}`); }
+                }
+
+                // 4. DeepSeek
                 if (!narrative || narrative.length < 50) {
                     try {
                         narrative = await Promise.race([
@@ -2350,22 +2362,36 @@ const server = http.createServer(async (req, res) => {
                     }
                 }
 
-                // 3. Qwen
+                // 5. Qwen
                 if (!narrative || narrative.length < 50) {
                     try {
                         narrative = await dreamWithQwen(prompt);
+                        if (narrative) console.log(`[AiSwarm] Qwen ÉXITO: ${narrative.length} chars`);
                     } catch (e) { console.warn(`[GenerateNarrative] Qwen falló: ${e.message}`); }
                 }
 
-                // 4. Backups Legacy (API Keys probablemente agotadas, pero se intenta)
+                // 6. Hugging Face
                 if (!narrative || narrative.length < 50) {
-                    // Try OpenAI or Gemini as hail mary
-                    try { narrative = await dreamWithOpenAI(prompt); } catch (e) { }
-                    if (!narrative) try { narrative = await dreamWithGemini(prompt); } catch (e) { }
-                    if (!narrative) try { narrative = await dreamWithGrok(prompt); } catch (e) { }
+                    try {
+                        narrative = await dreamWithHF(prompt);
+                        if (narrative) console.log(`[AiSwarm] HF ÉXITO: ${narrative.length} chars`);
+                    } catch (e) { console.warn(`[GenerateNarrative] HF falló: ${e.message}`); }
                 }
 
-                // 5. Fallback FINAL: Reserva Local (Shuffle Bag)
+                // 7. Fallback CRÍTICO: Pollinations Text (Gratuito, Fast Lane)
+                // Usamos rawPrompt para evitar 414 URI Too Long en el endpoint GET
+                if (!narrative || narrative.length < 50) {
+                    console.log("[GenerateNarrative] ⚠️ Activando Fallback Gratuito: Pollinations Text");
+                    try {
+                        const simpleContext = `Eres ilfass, una IA futurista observando el mundo: ${rawPrompt}`;
+                        narrative = await dreamWithPollinations(simpleContext);
+                        if (narrative) console.log(`[AiSwarm] ⚡ Pollinations ÉXITO: ${narrative.length} chars`);
+                    } catch (e) {
+                        console.error(`[GenerateNarrative] Pollinations EXCEPTION: ${e.message}`);
+                    }
+                }
+
+                // 8. Fallback FINAL: Reserva Local (Shuffle Bag)
                 if (!narrative || narrative.length < 50) {
                     console.error(`[GenerateNarrative] 🛑 FALLO TOTAL. Activando protocolos de emergencia.`);
                     const fallbacks = [
