@@ -4,25 +4,47 @@ class AudioManager {
     constructor() {
         this.isSpeaking = false;
         this.isPlayingMusic = false;
+
+        // Playlist de música ambiente
+        this.playlist = [
+            'By Myself - The Grey Room _ Clark Sims.mp3',
+            'Claim To Fame - The Grey Room _ Clark Sims.mp3',
+            'Down The Rabbit Hole - The Grey Room _ Density & Time.mp3',
+            'Drifting at 432 Hz - Unicorn Heads.mp3',
+            'Josef Suk, Serenade, Op 6 - A Far Cry.mp3',
+            'Resolution Or Reflection - The Grey Room _ Clark Sims.mp3',
+            'TRAVELATOR - Density & Time.mp3'
+        ];
+
         this.bgMusic = new Audio();
-        this.bgMusic.loop = true;
+        this.bgMusic.loop = false; // No loop, para permitir cambio de canción
         this.bgMusic.volume = 0.2;
+
+        // Auto-DJ: Siguiente canción al terminar
+        this.bgMusic.addEventListener('ended', () => {
+            console.log("[AudioDJ] Track terminado. Pinchando siguiente...");
+            this.playRandomTrack();
+        });
     }
 
     async init() {
         console.log("[AudioManager] Iniciando motores de audio...");
-        this.playAmbience();
+        this.playRandomTrack();
     }
 
-    async playAmbience() {
+    async playRandomTrack() {
         try {
-            // Check if file exists, otherwise fallback to silence for now
-            this.bgMusic.src = 'assets/audio/ambient_base.mp3';
+            // Seleccionar track aleatorio
+            const track = this.playlist[Math.floor(Math.random() * this.playlist.length)];
+            const path = `assets/audio/music/${track}`;
+
+            console.log(`[AudioDJ] 💿 Reproduciendo: ${track}`);
+
+            this.bgMusic.src = path;
             await this.bgMusic.play();
             this.isPlayingMusic = true;
-            console.log("[AudioManager] Música de fondo iniciada.");
         } catch (e) {
-            console.warn("[AudioManager] Autoplay bloqueado o archivo no encontrado. Esperando interacción.");
+            console.warn("[AudioManager] Autoplay bloqueado. Esperando interacción.");
             document.addEventListener('click', () => {
                 this.bgMusic.play().then(() => {
                     this.isPlayingMusic = true;
