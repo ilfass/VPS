@@ -38,14 +38,20 @@ class UIManager {
         subText.textContent = text;
 
         // Highlight active avatar
+        // Highlight active avatar
+        ilfass.classList.remove('talking');
+        companion.classList.remove('talking');
+        ilfass.style.opacity = '0.5';
+        companion.style.opacity = '0.5';
+
         if (role === 'ILFASS') {
+            ilfass.classList.add('talking');
             ilfass.style.opacity = '1';
-            companion.style.opacity = '0.3';
-            subText.style.color = '#fff'; // White for Ilfass
+            subText.style.color = '#e0f7fa';
         } else if (role === 'COMPANION') {
-            ilfass.style.opacity = '0.3';
+            companion.classList.add('talking');
             companion.style.opacity = '1';
-            subText.style.color = '#0ff'; // Cyan for Companion
+            subText.style.color = '#fce4ec';
         }
     }
 }

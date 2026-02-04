@@ -89,20 +89,43 @@ html {
 }
 
 .avatar {
-    width: 50px;
-    height: 50px;
-    background: #333;
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
-    display: inline-block;
-    transition: opacity 0.3s;
+    /* Mantener circular o cambiar a hexagono si se prefiere */
+    background-size: cover;
+    background-position: center;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.avatar.talking {
+    transform: scale(1.1);
+    border-color: #fff;
+    box-shadow: 0 0 25px currentColor;
 }
 
 #avatar-ilfass {
-    background: #4fecff;
-    box-shadow: 0 0 10px #4fecff;
+    background-image: url('../assets/ilfass.png');
+    color: #4fecff;
+    /* Para el box-shadow currentColor */
+    border-color: rgba(79, 236, 255, 0.3);
 }
 
 #avatar-companion {
-    background: #ff4fec;
-    box-shadow: 0 0 10px #ff4fec;
+    background-image: url('../assets/companion.png');
+    color: #ff4fec;
+    border-color: rgba(255, 79, 236, 0.3);
+}
+
+/* Ajuste del contenedor de dialogo para acomodar los avatares más grandes */
+#dialogue-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    /* ... resto de estilos existentes ... */
 }
