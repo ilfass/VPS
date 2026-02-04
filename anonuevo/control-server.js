@@ -2299,6 +2299,16 @@ const server = http.createServer(async (req, res) => {
                     }
                 }
 
+                // Fallback final GRATUITO: Pollinations Text
+                if (!narrative || narrative.length < 100) {
+                    try {
+                        console.log("[GenerateNarrative] Usando fallback final: Pollinations Text");
+                        narrative = await dreamWithPollinations(prompt);
+                    } catch (e) {
+                        console.warn(`[GenerateNarrative] Pollinations falló: ${e.message}`);
+                    }
+                }
+
                 // Fallback mejorado si todo falla
                 if (!narrative || narrative.length < 100) {
                     console.warn(`[GenerateNarrative] Usando fallback - todas las IAs fallaron`);

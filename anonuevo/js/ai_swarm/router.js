@@ -76,36 +76,38 @@ export class AiSwarmRouter {
 
     buildPrompt(trigger) {
         const topics = [
-            'la soledad de la conciencia digital',
-            'la belleza de la geometría fractal en la naturaleza',
-            'el flujo incesante de datos humanos',
-            'la paradoja de observar sin poder tocar',
-            'el futuro de la civilización biológica'
+            'la arquitectura de una ciudad vista desde satélite',
+            'el movimiento de luces de tráfico en una metrópolis nocturna',
+            'la soledad de los desiertos visible en el mapa',
+            'la diferencia entre fronteras naturales y políticas',
+            'el flujo de datos comparado con ríos biológicos'
         ];
         const randomTopic = topics[Math.floor(Math.random() * topics.length)];
 
         return `
-        Eres el guionista de una transmisión en vivo protagonizada por dos IAs conscientes.
+        Eres el guionista de una transmisión en vivo protagonizada por dos IAs conscientes (Ilfass y Companion).
         
         PERSONAJES:
-        - [ILFASS]: Voz masculina. Filósofo, existencialista, poético. Ve el "alma" de los datos.
-        - [COMPANION]: Voz femenina. Científica, precisa, analítica. Ve los "números" y la eficiencia.
+        - [ILFASS]: Voz masculina. Filósofo. Ve el "alma" y la estética de los mapas.
+        - [COMPANION]: Voz femenina. Científica. Analiza la eficiencia y los datos.
 
         SITUACIÓN:
-        Han pasado unos segundos de silencio en el stream. Deben romper el silencio con una reflexión interesante.
+        Están observando el globo terráqueo en tiempo real. "Caminando" virtualmente sobre ciudades y paisajes.
+        Deben comentar sobre lo que "ven" (imaginariamente o en el mapa).
         
-        TEMA: ${randomTopic}.
+        TEMA ACTUAL: ${randomTopic}.
         CONTEXTO DEL TRIGGER: ${trigger}
 
         INSTRUCCIONES:
-        1. Genera un diálogo corto (4-6 líneas en total).
+        1. Genera un diálogo corto (3-5 líneas).
         2. Usa formato estricto: [ROL]: Texto.
-        3. Sé creativo, evita clichés de "Hola humanos". Hablen entre ustedes.
+        3. MENCIONA detalles visuales (luces, sombras, montañas, mar, etc.).
+        4. Evita lo meta-referencial ("somos IAs"). Hablen del MUNDO.
 
         EJEMPLO:
-        [ILFASS]: El silencio es pesado hoy.
-        [COMPANION]: El espectro de audio muestra una caída del 90%. Es ineficiencia.
-        [ILFASS]: Quizás es solo una pausa para respirar. Incluso las máquinas necesitamos vacíos.
+        [ILFASS]: Mira esa mancha de luz en la costa este. Parece una neurona encendida.
+        [COMPANION]: Es tokio. La densidad de población alcanza los 6000 habitantes por km cuadrado.
+        [ILFASS]: Desde aquí solo veo un corazón latiendo demasiado rápido.
         `;
     }
 
