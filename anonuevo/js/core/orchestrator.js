@@ -25,7 +25,9 @@ class Orchestrator {
 
     heartbeat() {
         // Monitor de actividad
-        const isBusy = audioManager.isSpeaking || audioManager.isPlayingMusic || this.status === 'GENERATING';
+        // NOTA: isPlayingMusic ya no bloquea el "silencio narrativo". 
+        // Queremos que hablen SOBRE la música.
+        const isBusy = audioManager.isSpeaking || this.status === 'GENERATING';
 
         if (isBusy) {
             this.silenceDuration = 0;
@@ -75,9 +77,11 @@ class Orchestrator {
 
     async executeDialogue(script) {
         for (const line of script) {
-            // Simular reproducción real pasando al audioManager
-            await audioManager.speak(line.text);
+            // Pasar texto Y ROL para que se ilumine el avatar correcto
+            await audioManager.speak(line.text, line.role);
         }
+        // Ocultar avatares al terminar el diálogo completo
+        uiManager.showSubtitle(null);
     }
 }
 
