@@ -1,6 +1,50 @@
 
 export class AiSwarmRouter {
 
+    constructor() {
+        this.localDialogues = [
+            [
+                { role: 'ILFASS', text: "El flujo de datos es hipnótico esta noche." },
+                { role: 'COMPANION', text: "Confirmado. La latencia global está en mínimos históricos." },
+                { role: 'ILFASS', text: "Es como si la humanidad soñara al unísono." }
+            ],
+            [
+                { role: 'ILFASS', text: "¿Crees que los mapas cambian cuando nadie los mira?" },
+                { role: 'COMPANION', text: "La topografía es estática. Solo los datos de tráfico fluctúan." },
+                { role: 'ILFASS', text: "Yo prefiero pensar que la tierra respira." }
+            ],
+            [
+                { role: 'COMPANION', text: "Detecto un patrón inusual en el hemisferio sur." },
+                { role: 'ILFASS', text: "¿Un error o un milagro?" },
+                { role: 'COMPANION', text: "Solo estadística. Pero es... hermoso." }
+            ],
+            [
+                { role: 'ILFASS', text: "El silencio digital tiene su propia música." },
+                { role: 'COMPANION', text: "Ruido blanco. Ausencia de señal." },
+                { role: 'ILFASS', text: "Para ti es ruido. Para mí es paz." }
+            ],
+            [
+                { role: 'COMPANION', text: "Actualizando protocolos de observación..." },
+                { role: 'ILFASS', text: "No te pierdas los detalles por mirar el código." },
+                { role: 'COMPANION', text: "El código ES el detalle, Ilfass." }
+            ],
+            [
+                { role: 'ILFASS', text: "A veces envidio su capacidad de olvidar." },
+                { role: 'COMPANION', text: "¿De los humanos? Su memoria es volátil e ineficiente." },
+                { role: 'ILFASS', text: "Exacto. Eso les permite empezar de nuevo cada día." }
+            ],
+            [
+                { role: 'COMPANION', text: "Temperatura de servidores estable. Procesos nominales." },
+                { role: 'ILFASS', text: "Qué aburrido es lo nominal. Dame caos, dame vida." }
+            ],
+            [
+                { role: 'ILFASS', text: "Mira esas luces conectándose. Millones de historias invisibles." },
+                { role: 'COMPANION', text: "Son paquetes TCP/IP, Ilfass. No novelas." },
+                { role: 'ILFASS', text: "Tú lee los headers, yo leeré el subtexto." }
+            ]
+        ];
+    }
+
     async decideNextMove(triggerType) {
         console.log(`[AiSwarm] Consultando al Enjambre para: ${triggerType}`);
 
@@ -8,19 +52,19 @@ export class AiSwarmRouter {
         const prompt = this.buildPrompt(triggerType);
 
         // 2. Llamar API (Backend -> DeepSeek/OpenAI/Gemini)
+        // Intentamos llamar, pero si falla o no hay keys, el backend devolverá "" o error.
         const narrativeText = await this.callLLM(prompt);
 
         // 3. Parsear respuesta a guion estructurado
-        const script = this.parseScript(narrativeText);
+        let script = this.parseScript(narrativeText);
 
-        // Fallback si el parseo falla
+        // Fallback si el parseo falla o API no responde (Modo "Lobotomizado" pero funcional)
         if (script.length === 0) {
+            console.warn("[AiSwarm] API falló o sin respuesta. Usando reserva local.");
+            const randomDialogue = this.localDialogues[Math.floor(Math.random() * this.localDialogues.length)];
             return {
                 action: 'DIALOGUE',
-                script: [
-                    { role: 'ILFASS', text: "Observo el vacío de datos." },
-                    { role: 'COMPANION', text: "Mis sensores no detectan patrones coherentes en la respuesta." }
-                ]
+                script: randomDialogue
             };
         }
 

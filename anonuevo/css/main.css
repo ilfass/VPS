@@ -79,7 +79,22 @@ html {
 }
 
 #dialogue-container.hidden {
+    opacity: 1;
+    /* Mantener contenedor visible para los avatares */
+    background: transparent;
+    pointer-events: none;
+}
+
+#dialogue-container.hidden #subtitle-text {
     opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.5s;
+}
+
+#dialogue-container.hidden .avatar {
+    opacity: 0.2;
+    transform: scale(0.8);
+    filter: grayscale(100%);
 }
 
 #subtitle-text {
