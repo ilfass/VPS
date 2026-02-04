@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONTROL | DIRECTOR V5</title>
+    <link rel="stylesheet" href="css/control.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- TOP BAR -->
+    <div id="top-bar">
+        <div id="session-info">
+            <span class="rec-dot"></span>
+            <span id="session-status">IDLE</span>
+            <span id="session-timer">00:00:00</span>
+        </div>
+
+        <div style="display:flex; gap:10px; align-items:center;">
+            <label style="font-size:0.8rem; color:#aaa;">
+                <input type="checkbox" id="chk-test-mode"> TEST MODE
+            </label>
+            <input type="text" id="day-id-input" placeholder="ID Día (ej: Dia 1)" value="Dia 1">
+            <button id="btn-start" class="primary" onclick="toggleSession(true)">▶ START DAY</button>
+            <button id="btn-end" class="danger" onclick="toggleSession(false)" style="display:none;">⏹ END
+                SESSION</button>
+        </div>
+    </div>
+
+    <!-- MAIN GRID -->
+    <div id="main-grid">
+
+        <!-- COLUMN 1: NAVIGATION & PLAYLIST -->
+        <div class="col col-nav">
+            <div class="panel">
+                <h3>Scene Navigation</h3>
+                <div class="grid-buttons">
+                    <button class="scene-btn" onclick="changeScene('intro')">🏠 INTRO</button>
+                    <button class="scene-btn" onclick="changeScene('mapa')">🌍 MAPA</button>
+                    <button class="scene-btn" onclick="changeScene('libro')">📖 LIBRO</button>
+                    <button class="scene-btn" onclick="changeScene('pais')">🏳️ PAÍS</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>Flight Control</h3>
+                <div style="display:flex; gap:5px; margin-bottom:10px;">
+                    <select id="country-select" style="flex:1;">
+                        <option value="032">Argentina</option>
+                        <option value="076">Brazil</option>
+                        <option value="840">USA</option>
+                        <option value="156">China</option>
+                        <option value="392">Japan</option>
+                        <option value="250">France</option>
+                        <option value="276">Germany</option>
+                        <option value="380">Italy</option>
+                        <option value="724">Spain</option>
+                        <option value="826">UK</option>
+                        <option value="036">Australia</option>
+                        <option value="124">Chile</option>
+                        <option value="484">Mexico</option>
+                        <option value="710">South Africa</option>
+                    </select>
+                    <button class="primary" onclick="travelNow()">✈️ GO</button>
+                    <button onclick="addToQueue()">+</button>
+                </div>
+
+                <h3>Travel Queue</h3>
+                <ul id="queue-list">
+                    <li style="color:#666;">(Queue empty)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- COLUMN 2: LIVE CONTENT -->
+        <div class="col col-live">
+            <div class="panel" style="background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2);">
+                <h3>Live Context</h3>
+                <div style="font-size: 2rem; font-weight: bold; margin-bottom: 5px;" id="live-visit-display">TRANSIT /
+                    INTRO</div>
+                <div style="font-family:'JetBrains Mono'; color:var(--success);" id="visit-timer">--:--</div>
+                <div style="margin-top:10px; font-size:0.9rem; color:#aaa;">
+                    Narrativa activa: <span id="active-narrative">Esperando...</span>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>Media Repository (Mock)</h3>
+                <div class="media-grid" id="media-grid">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>Clip Markers</h3>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="clip-note" placeholder="Nota para el editor..." style="flex:1;">
+                    <button onclick="markClip()">📍 MARK CLIP</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMN 3: NEURAL CORE -->
+        <div class="col col-core">
+            <div class="panel">
+                <h3>Neural Core</h3>
+                <button id="btn-dream-mode" onclick="toggleDreamMode()"
+                    style="width:100%; height:50px; margin-bottom:10px;">
+                    DREAM MODE (AUTO) [OFF]
+                </button>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
+                    <button onclick="triggerForceDream()">Force Dream</button>
+                    <button onclick="api('/event/skip_speech', 'POST')">Skip Speech</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>Interventions</h3>
+                <div class="grid-buttons">
+                    <button onclick="triggerEvent('fact')">💡 FACT</button>
+                    <button onclick="triggerEvent('glitch')">⚡ GLITCH</button>
+                    <button onclick="triggerEvent('breaking')"
+                        style="grid-column: span 2; border-color:var(--danger); color:var(--danger);">🚨 BREAKING
+                        NEWS</button>
+                </div>
+            </div>
+
+            <div class="panel" style="flex:1; display:flex; flex-direction:column;">
+                <h3>System Console</h3>
+                <div id="console-log"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API HELPER
+        async function api(path, method = 'GET', body = null) {
+            try {
+                const opts = { method, headers: { 'Content-Type': 'application/json' } };
+                if (body) opts.body = JSON.stringify(body);
+                const res = await fetch(`/control-api${path}`, opts);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return await res.json();
+            } catch (e) {
+                log(`ERROR: ${e.message}`);
+                console.error(e);
+                return null;
+            }
+        }
+
+        function log(msg) {
+            const c = document.getElementById('console-log');
+            const d = document.createElement('div');
+            d.className = 'log-entry';
+            d.innerText = `> ${msg}`;
+            c.prepend(d);
+        }
+
+        // ACTIONS
+        async function toggleSession(start) {
+            const dayId = document.getElementById('day-id-input').value;
+            const isTest = document.getElementById('chk-test-mode').checked;
+
+            if (start) {
+                log(`Starting session ${dayId} (Test: ${isTest})...`);
+                await api('/editorial/start', 'POST', { dayId, isTest });
+            } else {
+                log("Ending session...");
+                await api('/editorial/end', 'POST');
+            }
+            poll(); // Update UI immediately
+        }
+
+        async function changeScene(scene) {
+            log(`Scene -> ${scene}`);
+            await api(`/event/scene/${scene}`, 'POST');
+        }
+
+        async function travelNow() {
+            const code = document.getElementById('country-select').value;
+            const name = document.getElementById('country-select').options[document.getElementById('country-select').selectedIndex].text;
+            log(`Flying to [${code}] ${name}...`);
+            await api(`/event/travel/${code}`, 'POST');
+        }
+
+        async function addToQueue() {
+            const code = document.getElementById('country-select').value;
+            const name = document.getElementById('country-select').options[document.getElementById('country-select').selectedIndex].text;
+            log(`Queued: ${name}`);
+            await api('/event/queue/add', 'POST', { code });
+        }
+
+        async function toggleDreamMode() {
+            log("Toggling Dream Mode...");
+            await api('/event/auto_toggle', 'POST');
+        }
+
+        async function triggerForceDream() {
+            log("Forcing Dream Generation...");
+            await api('/api/dream', 'POST');
+        }
+
+        async function triggerEvent(type) {
+            log(`Trigger: ${type}`);
+            await api(`/event/${type}`, 'POST');
+        }
+
+        async function markClip() {
+            const note = document.getElementById('clip-note').value;
+            log(`Marking clip: ${note}`);
+            await api('/editorial/mark_clip', 'POST', { note });
+            document.getElementById('clip-note').value = '';
+        }
+
+        async function launchMedia(url) {
+            log(`Launching media: ${url}`);
+            await api('/event/media', 'POST', { url, type: 'image' });
+        }
+
+        // POLLING & UI UPDATE
+        async function poll() {
+            const data = await api('/status');
+            if (!data) return;
+
+            // 1. Session Status
+            const ed = data.editorial || {};
+            const isLive = (ed.status === 'LIVE');
+            const sessionInfo = document.getElementById('session-info');
+
+            if (isLive) {
+                sessionInfo.className = 'rec-live';
+                document.getElementById('session-status').innerText = `LIVE: ${ed.dayId}`;
+                document.getElementById('btn-start').style.display = 'none';
+                document.getElementById('btn-end').style.display = 'inline-block';
+                document.getElementById('day-id-input').style.display = 'none';
+                document.getElementById('chk-test-mode').disabled = true;
+
+                // Calculate timer
+                if (ed.startTime) {
+                    const diff = Math.floor((Date.now() - ed.startTime) / 1000);
+                    const hh = Math.floor(diff / 3600).toString().padStart(2, '0');
+                    const mm = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+                    const ss = (diff % 60).toString().padStart(2, '0');
+                    document.getElementById('session-timer').innerText = `${hh}:${mm}:${ss}`;
+                }
+            } else {
+                sessionInfo.className = '';
+                document.getElementById('session-status').innerText = 'IDLE';
+                document.getElementById('session-timer').innerText = '00:00:00';
+                document.getElementById('btn-start').style.display = 'inline-block';
+                document.getElementById('btn-end').style.display = 'none';
+                document.getElementById('day-id-input').style.display = 'inline-block';
+                document.getElementById('chk-test-mode').disabled = false;
+            }
+
+            // 2. Dream Mode Button
+            const btnDream = document.getElementById('btn-dream-mode');
+            if (data.autoMode) {
+                btnDream.className = 'active-red';
+                btnDream.innerText = 'DREAM MODE (AUTO) [ON]';
+            } else {
+                btnDream.className = '';
+                btnDream.innerText = 'DREAM MODE (AUTO) [OFF]';
+            }
+
+            // 3. Queue
+            const qList = document.getElementById('queue-list');
+            if (data.travelQueue && data.travelQueue.length) {
+                qList.innerHTML = data.travelQueue.map(item => `<li>✈️ ${item.countryCode}</li>`).join('');
+            } else {
+                qList.innerHTML = '<li style="color:var(--border);">(empty)</li>';
+            }
+
+            // 4. Live Context
+            const t = data.clientTelemetry || {};
+            document.getElementById('live-visit-display').innerText = t.country === 'UNKNOWN' ? 'TRANSIT / INTRO' : t.country;
+            document.getElementById('active-narrative').innerText = t.scene;
+
+            // 5. Populate Media Mock (Only once to avoid flicker, or simple check)
+            // For now, just a static mock
+            const mediaGrid = document.getElementById('media-grid');
+            if (mediaGrid.children.length === 0) {
+                const mocks = [
+                    { t: 'Obelisco', u: 'https://images.pexels.com/photos/1057850/pexels-photo-1057850.jpeg?auto=compress&cs=tinysrgb&w=600' },
+                    { t: 'Tokyo', u: 'https://images.pexels.com/photos/2506923/pexels-photo-2506923.jpeg?auto=compress&cs=tinysrgb&w=600' },
+                    { t: 'Paris', u: 'https://images.pexels.com/photos/161815/paris-sunset-france-monument-161815.jpeg?auto=compress&cs=tinysrgb&w=600' }
+                ];
+                mediaGrid.innerHTML = mocks.map(m => `
+                    <div class="media-item" onclick="launchMedia('${m.u}')">
+                        <div class="media-thumb" style="background-image:url('${m.u}')"></div>
+                    </div>
+                 `).join('');
+            }
+        }
+
+        setInterval(poll, 1000);
+        poll(); // Init
+
+        log("Console initialized. Connected to Control Server.");
+    </script>
+</body>
+
+</html>
