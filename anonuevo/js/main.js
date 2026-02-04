@@ -183,7 +183,7 @@ class App {
             // Importación dinámica del módulo con Cache Busting
             // Usamos un timestamp para forzar la recarga en cada visita nueva
             // En producción idealmente usaríamos un hash de build, pero esto funciona para este setup simple.
-            const cacheBuster = '?v=12';
+            const cacheBuster = '?v=20';
             const module = await import(MODES[modeName] + cacheBuster);
             const ModeClass = module.default;
 
@@ -349,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         // Si no hay overlay, iniciar automáticamente (para streaming)
         console.log('🚀 Iniciando aplicación automáticamente (sin overlay)...');
-        
+
         // Intentar desbloquear audio automáticamente
         if ('speechSynthesis' in window) {
             try {
@@ -364,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.warn('No se pudo desbloquear audio automáticamente:', e);
             }
         }
-        
+
         // Iniciar App inmediatamente
         window.app = new App();
     }
