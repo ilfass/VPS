@@ -1311,16 +1311,20 @@ Genera una introducción en primera persona (como ilfass) que:
         try {
             console.log(`[Mapa] Iniciando relato continuo para ${target.name}...`);
 
-            // TEXTO INICIAL INMEDIATO (Solo si tarda mucho la IA)
+            // TEXTO INICIAL INMEDIATO
             const immediateCountryText = this.getImmediateCountryText(target);
 
             if (!avatarSubtitlesManager.container) {
                 avatarSubtitlesManager.init(this.container);
             }
+            // Mostrar avatar inmediatamente
             avatarSubtitlesManager.show();
+            avatarSubtitlesManager.setSubtitles(immediateCountryText);
 
-            // Iniciar evento de voz
             pacingEngine.startEvent(CONTENT_TYPES.VOICE);
+
+            // Audio preliminar inmediato
+            audioManager.speak(immediateCountryText, 'normal', null, (txt) => avatarSubtitlesManager.setSubtitles(txt));
 
             // Obtener dayId
             let dayId = 'Unknown';
@@ -1341,7 +1345,6 @@ Genera una introducción en primera persona (como ilfass) que:
             // Procesar Multimedia (Imágenes)
             const multimediaItems = [];
 
-            // Procesar plan multimeda de la IA
             if (continuousNarrative.multimedia && continuousNarrative.multimedia.length > 0) {
                 for (const mediaPlan of continuousNarrative.multimedia) {
                     let mediaUrl = null;
@@ -1356,14 +1359,14 @@ Genera una introducción en primera persona (como ilfass) que:
                             if (imageRes.ok) {
                                 const imageData = await imageRes.json();
                                 if (imageData.url) mediaUrl = imageData.url;
+                                else if (imageData.filename) mediaUrl = `/media/AI_Generated/${imageData.filename}`;
                             }
                         } catch (e) { console.warn("Error generar imagen", e); }
                     }
 
-                    // Fallback a media curado
+                    // Fallback sencillo si no hay imagen
                     if (!mediaUrl) {
-                        // Lógica simplificada de fallback
-                        // (Aquí podrías insertar la lógica de búsqueda de assets locales si quisieras)
+                        // Aquí podríamos usar placeholder
                     }
 
                     if (mediaUrl) {
@@ -1378,140 +1381,125 @@ Genera una introducción en primera persona (como ilfass) que:
 
             // Agendar visualización de multimedia
             multimediaItems.forEach((item, index) => {
-            };
-
-            // Mostrar primera frase inmediatamente
-            if (phraseBlocks.length > 0) {
-                avatarSubtitlesManager.setSubtitles(phraseBlocks[0].text);
-            }
-
-            // Bajar música antes de hablar (ducking) - audioManager ya lo hace, pero por si acaso
-            if (audioManager.isMusicPlaying) {
-                audioManager.fadeAudio(audioManager.musicLayer, audioManager.musicLayer.volume, 0.05, 500);
-            }
-
-            // Hablar usando Edge TTS a través de audioManager
-            // Hablar usando Edge TTS a través de audioManager
-            // Envolver en promesa para timeout de seguridad
-            new Promise(resolve => {
-                let resolved = false;
-                const safeResolve = () => {
-                    if (!resolved) {
-                        resolved = true;
-                        resolve();
-                    }
-                };
-
-                // Timeout de seguridad: si el audio de la narrativa (largo) no termina en 90s, forzar avance
-                const safetyTimer = setTimeout(() => {
-                    console.warn(`[Mapa] Timeout esperando fin de narrativa larga.`);
-                    safeResolve();
-                }, 90000);
-
-                audioManager.speak(cleanNarrative, 'normal', () => {
-                    clearTimeout(safetyTimer);
-                    safeResolve();
-                }, updateSubtitles);
-            }).then(() => {
-                // Mostrar última frase si no se mostró completa
-                if (phraseBlocks.length > 0) {
-                    avatarSubtitlesManager.setSubtitles(phraseBlocks[phraseBlocks.length - 1].text);
-                }
-
-                // Mantener última frase visible por 2 segundos, luego limpiar
-                setTimeout(() => {
-                    avatarSubtitlesManager.clearSubtitles();
-                }, 2000);
-
-                // Restaurar música después de hablar
-                if (audioManager.isMusicPlaying) {
-                    audioManager.fadeAudio(audioManager.musicLayer, audioManager.musicLayer.volume, 0.3, 1000);
-                }
-
-                // Marcar que terminó la narración
-                this.isNarrating = false;
-
-                pacingEngine.endCurrentEvent();
-                pacingEngine.startEvent(CONTENT_TYPES.VISUAL);
-
-                // Dream Mode: Cambiar automáticamente después de la narración del país
-                // this.scheduleNextPageAfterNarration(); // REMOVED
+                let delay = 1000 + (index * 8000);
+                setTimeout(() => multimediaOrchestrator.showMediaOverlay(item, delay), delay);
             });
 
-            // 7. Guardar visita en memoria
+
+            // --- EJECUTAR NARRATIVA / DIÁLOGO ---
+
+            const narrativeText = continuousNarrative.narrative || immediateCountryText;
+            console.log(`[Mapa] Texto a reproducir (${narrativeText.length} chars)`);
+
+            // Cancelar audio inicial si sigue sonando
+            audioManager.cancel();
+
+            if (narrativeText.includes('[ILFASS]') || narrativeText.includes('[COMPANION]')) {
+                // MODO DIÁLOGO
+                await this.playDialogueSequence(narrativeText);
+            } else {
+                // MODO MONÓLOGO (Legacy / Fallback)
+                avatarSubtitlesManager.activateRole('ilfass');
+                avatarSubtitlesManager.setSubtitles(narrativeText);
+
+                await new Promise(resolve => {
+                    audioManager.speak(narrativeText, 'normal', () => resolve(), (txt) => avatarSubtitlesManager.setSubtitles(txt));
+                });
+
+                // Esperar un poco después de hablar
+                await new Promise(r => setTimeout(r, 2000));
+            }
+
+            // --- FINALIZAR VISITA ---
+
+            console.log('[Mapa] 🏁 Relato terminado.');
+
+            // Guardar memoria
             const visitData = {
                 visitId: `visit_${Date.now()}`,
                 timestamp: visitStartTime,
-                dayId: enrichedContext.dayId || 'Unknown',
-                narrative: continuousNarrative.narrative,
-                multimedia: multimediaItems.map(item => ({
-                    type: item.type,
-                    url: item.url,
-                    context: item.context,
-                    timestamp: visitStartTime
-                })),
+                dayId: dayId,
+                narrative: narrativeText,
                 reflections: continuousNarrative.reflections,
-                dataPoints: continuousNarrative.dataPoints,
-                emotionalNotes: continuousNarrative.emotionalNotes,
                 isFirstVisit: continuousNarrative.isFirstVisit
             };
+            countryMemoryManager.saveVisit(target.id, visitData).catch(e => console.warn(e));
 
-            await countryMemoryManager.saveVisit(target.id, visitData);
-            console.log(`[Mapa] ✅ Visita guardada en memoria para ${target.name}`);
-
-            // 8. Esperar un momento antes de ocultar y hacer zoom out
-
-            // Increment count
+            // Incrementar contador
             this.visitedCount++;
-            console.log(`[Mapa] Visitas en esta sesión: ${this.visitedCount} / 5`);
 
-            // Check for session end (5 countries) - DESHABILITADO para stream infinito
-            /*
-            if (eventManager.canProceedAuto() && this.visitedCount >= 5) {
-                console.log("[Mapa] 🏁 Sesión de 5 países completada. Preparando navegación...");
-    
-                // Esperar un momento y navegar
-                setTimeout(() => {
-                    multimediaOrchestrator.hideAllOverlays();
-                    avatarSubtitlesManager.hide();
-    
-                    const pages = ['continente', 'ruta', 'galeria', 'globo'];
-                    const randomPage = pages[Math.floor(Math.random() * pages.length)];
-                    console.log(`[Mapa] 🎲 Navegando a: ${randomPage}`);
-                    window.location.href = `/vivos/${randomPage}/`;
-                }, 5000); // 5 segundos delay despues de terminar
-                return; // Detener ciclo
-            }
-            */
+            // ZOOM OUT
+            multimediaOrchestrator.hideAllOverlays();
+            avatarSubtitlesManager.hide();
 
-            // Continuar ciclo si no hemos llegado a 5
             if (eventManager.canProceedAuto()) {
-                setTimeout(() => {
-                    multimediaOrchestrator.hideAllOverlays();
-                    avatarSubtitlesManager.hide();
-                    if (!this.isNarrating) {
-                        this.cycleZoomOut();
-                    }
-                }, 3000);
-                // El zoom out se maneja al final de playDialogueSequence
-                multimediaOrchestrator.hideAllOverlays();
-                avatarSubtitlesManager.hide();
-            } else {
-                // Modo manual: hacer zoom out normal
-                setTimeout(() => {
-                    multimediaOrchestrator.hideAllOverlays();
-                    avatarSubtitlesManager.hide();
-                }, 2000);
+                this.cycleZoomOut();
             }
-        }
 
-    unmount() {
-            pacingEngine.endCurrentEvent(); // Cerrar tracking actual
-            audioManager.cancel();
-            if (this.unsubscribeTime) this.unsubscribeTime();
-            if (this.travelTimeout) clearTimeout(this.travelTimeout);
-            scheduler.clearTasks(); // Limpiar tareas del scheduler (cápsulas)
-            this.container.innerHTML = '';
-            this.svg = null;
+        } catch (error) {
+            console.error('[Mapa] Error crítico en relato continuo:', error);
+            // Salida de seguridad
+            setTimeout(() => this.cycleZoomOut(), 4000);
         }
     }
+
+    async playDialogueSequence(scriptText) {
+        // Parsear líneas
+        const lines = scriptText.split('\n').filter(l => l.trim().length > 0);
+        const queue = [];
+
+        lines.forEach(line => {
+            let role = 'ilfass';
+            let content = line;
+
+            if (line.toUpperCase().includes('COMPANION')) {
+                role = 'companion';
+                content = line.replace(/\[.*?\]|COMPANION:/i, '').trim();
+            } else if (line.toUpperCase().includes('ILFASS')) {
+                role = 'ilfass';
+                content = line.replace(/\[.*?\]|ILFASS:/i, '').trim();
+            }
+
+            // Limpieza
+            content = content.replace(/^:/, '').trim().replace(/^["']|["']$/g, '');
+
+            if (content && content.length > 1) {
+                queue.push({ role, text: content });
+            }
+        });
+
+        console.log(`[Mapa] 🎭 Reproduciendo diálogo de ${queue.length} turnos.`);
+
+        for (let i = 0; i < queue.length; i++) {
+            const step = queue[i];
+
+            // Activar rol visual
+            avatarSubtitlesManager.activateRole(step.role);
+            avatarSubtitlesManager.setSubtitles(step.text);
+
+            // Hablar (esperar a que termine)
+            await new Promise(resolve => {
+                // Timeout de seguridad de 20s por turno
+                const to = setTimeout(resolve, 20000);
+
+                // Prioridad
+                const priority = step.role === 'companion' ? 'news' : 'normal';
+
+                audioManager.speak(step.text, priority, () => {
+                    clearTimeout(to);
+                    setTimeout(resolve, 500); // Pequeña pausa entre turnos
+                }, (txt) => avatarSubtitlesManager.setSubtitles(txt));
+            });
+        }
+    }
+
+    unmount() {
+        pacingEngine.endCurrentEvent();
+        audioManager.cancel();
+        if (this.unsubscribeTime) this.unsubscribeTime();
+        if (this.travelTimeout) clearTimeout(this.travelTimeout);
+        scheduler.clearTasks();
+        this.container.innerHTML = '';
+        this.svg = null;
+    }
+}
