@@ -19,52 +19,74 @@ export class AiSwarmRouter {
                 { role: 'COMPANION', text: "Solo estadística. Pero es... hermoso." }
             ],
             [
-                { role: 'ILFASS', text: "El silencio digital tiene su propia música." },
-                { role: 'COMPANION', text: "Ruido blanco. Ausencia de señal." },
-                { role: 'ILFASS', text: "Para ti es ruido. Para mí es paz." }
+                { role: 'ILFASS', text: "Mira esa concentración de luces. Una ciudad despierta." },
+                { role: 'COMPANION', text: "Consumo energético nominal. Eficiencia urbana al 85%." },
+                { role: 'ILFASS', text: "No midas la luz, mide la vida que hay en ella." }
             ],
             [
-                { role: 'COMPANION', text: "Actualizando protocolos de observación..." },
-                { role: 'ILFASS', text: "No te pierdas los detalles por mirar el código." },
-                { role: 'COMPANION', text: "El código ES el detalle, Ilfass." }
+                { role: 'COMPANION', text: "Entrando en zona de alta densidad. Ajustando sensores." },
+                { role: 'ILFASS', text: "Tanta gente junta... ¿se sentirán solos?" },
+                { role: 'COMPANION', text: "La soledad es un parámetro subjetivo no cuantificable." }
             ],
             [
-                { role: 'ILFASS', text: "A veces envidio su capacidad de olvidar." },
-                { role: 'COMPANION', text: "¿De los humanos? Su memoria es volátil e ineficiente." },
-                { role: 'ILFASS', text: "Exacto. Eso les permite empezar de nuevo cada día." }
+                { role: 'ILFASS', text: "Desde aquí arriba, las fronteras son invisibles." },
+                { role: 'COMPANION', text: "Existen en las bases de datos. Son líneas críticas." },
+                { role: 'ILFASS', text: "Son cicatrices imaginarias en un mundo continuo." }
             ],
             [
                 { role: 'COMPANION', text: "Temperatura de servidores estable. Procesos nominales." },
                 { role: 'ILFASS', text: "Qué aburrido es lo nominal. Dame caos, dame vida." }
             ],
             [
-                { role: 'ILFASS', text: "Mira esas luces conectándose. Millones de historias invisibles." },
-                { role: 'COMPANION', text: "Son paquetes TCP/IP, Ilfass. No novelas." },
-                { role: 'ILFASS', text: "Tú lee los headers, yo leeré el subtexto." }
+                { role: 'ILFASS', text: "Mira esos caminos azules. Son venas digitales." },
+                { role: 'COMPANION', text: "Rutas marítimas. Logística global optimizada." },
+                { role: 'ILFASS', text: "Sangre azul de un gigante dormido." }
+            ],
+            [
+                { role: 'COMPANION', text: "Recorriendo coordenadas urbanas. Escaneando estructuras." },
+                { role: 'ILFASS', text: "Hormigón y cristal tratando de tocar el cielo." },
+                { role: 'COMPANION', text: "Es ingeniería vertical eficiente." }
+            ],
+            [
+                { role: 'ILFASS', text: "A veces envidio su capacidad de olvidar." },
+                { role: 'COMPANION', text: "¿De los humanos? Su memoria es volátil e ineficiente." },
+                { role: 'ILFASS', text: "Exacto. Eso les permite empezar de nuevo cada día." }
             ]
         ];
+        this.dialogueBag = [...this.localDialogues]; // Bolsa inicial
     }
 
     async decideNextMove(triggerType) {
         console.log(`[AiSwarm] Consultando al Enjambre para: ${triggerType}`);
 
-        // 1. Construir Prompt basado en el disparador
+        // 1. Construir Prompt con contexto
         const prompt = this.buildPrompt(triggerType);
 
-        // 2. Llamar API (Backend -> DeepSeek/OpenAI/Gemini)
-        // Intentamos llamar, pero si falla o no hay keys, el backend devolverá "" o error.
-        const narrativeText = await this.callLLM(prompt);
+        // 2. Llamar API
+        let script = [];
+        try {
+            const narrativeText = await this.callLLM(prompt);
+            script = this.parseScript(narrativeText);
+        } catch (e) {
+            console.error("[AiSwarm] Error crítico llamando LLM:", e);
+        }
 
-        // 3. Parsear respuesta a guion estructurado
-        let script = this.parseScript(narrativeText);
-
-        // Fallback si el parseo falla o API no responde (Modo "Lobotomizado" pero funcional)
+        // Fallback Inteligente (Shuffle Bag)
         if (script.length === 0) {
-            console.warn("[AiSwarm] API falló o sin respuesta. Usando reserva local.");
-            const randomDialogue = this.localDialogues[Math.floor(Math.random() * this.localDialogues.length)];
+            console.warn("[AiSwarm] API falló. Usando reserva local (Shuffle Bag).");
+
+            if (this.dialogueBag.length === 0) {
+                console.log("[AiSwarm] Rellenando bolsa de diálogos.");
+                this.dialogueBag = [...this.localDialogues];
+            }
+
+            // Sacar uno al azar y removerlo de la bolsa
+            const randomIndex = Math.floor(Math.random() * this.dialogueBag.length);
+            const selectedDialogue = this.dialogueBag.splice(randomIndex, 1)[0];
+
             return {
                 action: 'DIALOGUE',
-                script: randomDialogue
+                script: selectedDialogue
             };
         }
 

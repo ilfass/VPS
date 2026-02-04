@@ -11,15 +11,14 @@ html {
 }
 
 #ui-layer {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 1000;
-    /* Asegurar que esté sobre el globo */
+    z-index: 99999;
+    /* Z-INDEX NUCLEAR */
     pointer-events: none;
-    /* Dejar pasar clicks al mapa si se necesita */
 }
 
 #dynamic-island {
@@ -92,9 +91,9 @@ html {
 }
 
 #dialogue-container.hidden .avatar {
-    opacity: 0.2;
-    transform: scale(0.8);
-    filter: grayscale(100%);
+    opacity: 0.6;
+    transform: scale(0.9);
+    filter: none;
 }
 
 #subtitle-text {
