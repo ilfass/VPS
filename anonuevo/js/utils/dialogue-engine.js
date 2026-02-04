@@ -127,6 +127,9 @@ export class DialogueEngine {
 
     // Si no hay cola, verificar si toca generar nuevo ciclo
     if (this.queue.length === 0 && !isBusy()) {
+      // EXCLUSIÓN MAPA: El modo mapa gestiona su propia narrativa.
+      if (currentModeFromPath() === 'mapa') return;
+
       const elapsed = now() - this.lastCycleAt;
       const lastSpokeAgo = now() - getLastSpoke();
 
