@@ -4,6 +4,7 @@
  */
 
 import { countryMemoryManager } from './country-memory-manager.js';
+import { COUNTRY_INFO } from '../data/country-info.js';
 
 export class ContinuousNarrativeEngine {
     constructor() {
@@ -156,26 +157,66 @@ El diálogo debe ser dinámico y fluido.`;
     }
 
     generateFallbackNarrative(prompt) {
-        // Fallback DIÁLOGO si la IA falla
-        const countryMatch = prompt.match(/visitando\s+([^.\n]+)|estás\s+en\s+([^.\n]+)/i);
-        const countryName = countryMatch ? (countryMatch[1] || countryMatch[2]).trim() : "este lugar";
+        // Extraer nombre del país del prompt (heurística mejorada)
+        const countryMatch = prompt.match(/visitando\s+(.+?)(\.|,|$)/i);
+        let countryName = countryMatch ? countryMatch[1].trim() : "este lugar";
 
-        const fallbacks = [
-            `[ILFASS]: Llegamos a ${countryName}. La atmósfera aquí vibra diferente.
+        // Buscar datos reales en COUNTRY_INFO
+        let countryData = null;
+        for (const code in COUNTRY_INFO) {
+            // Comparación laxa por nombre
+            if (COUNTRY_INFO[code].name.toLowerCase() === countryName.toLowerCase()) {
+                countryData = COUNTRY_INFO[code];
+                break;
+            }
+        }
+
+        let dialogue = "";
+
+        if (countryData && countryData.facts && countryData.facts.length > 0) {
+            // USAR DATOS REALES
+            const fact1 = countryData.facts[0]; // Primer dato
+            const factRandom = countryData.facts[Math.floor(Math.random() * countryData.facts.length)];
+            const fact2 = countryData.facts.length > 1 ? countryData.facts[1] : "Es un lugar clave en la historia.";
+
+
+            // Templates que inyectan los datos
+            const templates = [
+                `[ILFASS]: ${countryName}. ${factRandom.split('.')[0] || "Una tierra de contrastes"}.
+[COMPANION]: Confirmado. Mis archivos indican que ${fact1.toLowerCase().replace(/^\w/, c => c.toUpperCase())}.
+[ILFASS]: La historia se manifiesta en detalles como ese.
+[COMPANION]: También registro que ${fact2.toLowerCase()}.
+[ILFASS]: Fascinante. Sigamos observando estas particularidades.`,
+
+                `[ILFASS]: Estamos sobre ${countryName}. Siento la vibración de su historia.
+[COMPANION]: Es lógico. Saber que ${factRandom.toLowerCase()} cambia la perspectiva.
+[ILFASS]: Un dato que define su identidad profunda.
+[COMPANION]: Exacto. Y no olvidemos que ${fact2.toLowerCase()}.
+[ILFASS]: La complejidad humana es infinita.`
+            ];
+
+            dialogue = templates[Math.floor(Math.random() * templates.length)];
+
+        } else {
+            // FALLBACK GENÉRICO (Si no hay datos en COUNTRY_INFO para este país)
+            const fallbacks = [
+                `[ILFASS]: Llegamos a ${countryName}. La atmósfera aquí vibra diferente.
 [COMPANION]: Detecto patrones culturales complejos y una geografía fascinante en ${countryName}.
 [ILFASS]: Es la huella de la historia. Cada rincón parece contar un relato antiguo.
-[COMPANION]: Mis sensores indican una alta densidad de actividad humana. ¿Qué observas tú?
-[ILFASS]: Veo la resiliencia en sus habitantes. ${countryName} es un testimonio vivo de adaptación.`,
+[COMPANION]: Mis sensores indican una alta densidad de actividad humana.
+[ILFASS]: Veo la resiliencia en sus habitantes. ${countryName} es un testimonio vivo.`,
 
-            `[ILFASS]: ${countryName} se despliega ante nosotros.
+                `[ILFASS]: ${countryName} se despliega ante nosotros.
 [COMPANION]: Confirmo ubicación. Los datos sugieren una rica biodiversidad y tradiciones arraigadas.
 [ILFASS]: Más allá de los datos, siento la memoria del lugar.
 [COMPANION]: ¿Te refieres a su historia? ${countryName} ha pasado por múltiples transformaciones.
-[ILFASS]: Exacto. Y aun así, su esencia permanece. Sigamos observando.`
-        ];
+[ILFASS]: Exacto. Y aun así, su esencia permanece.`
+            ];
+            dialogue = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+        }
 
         return {
-            narrative: fallbacks[Math.floor(Math.random() * fallbacks.length)],
+            narrative: dialogue,
             multimedia: [],
             reflections: ["La historia persiste.", "La adaptación es clave."],
             dataPoints: ["Ubicación confirmada", "Análisis cultural iniciado"],
