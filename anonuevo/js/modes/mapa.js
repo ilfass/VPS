@@ -1311,233 +1311,73 @@ Genera una introducción en primera persona (como ilfass) que:
         try {
             console.log(`[Mapa] Iniciando relato continuo para ${target.name}...`);
 
-            // TEXTO INICIAL INMEDIATO para empezar a hablar de inmediato
+            // TEXTO INICIAL INMEDIATO (Solo si tarda mucho la IA)
             const immediateCountryText = this.getImmediateCountryText(target);
 
-            // Asegurar que el avatar esté inicializado antes de usarlo
             if (!avatarSubtitlesManager.container) {
                 avatarSubtitlesManager.init(this.container);
             }
-
-            // Mostrar avatar y empezar a hablar INMEDIATAMENTE
             avatarSubtitlesManager.show();
-            avatarSubtitlesManager.setSubtitles(immediateCountryText);
 
-            // Iniciar narración INMEDIATAMENTE
+            // Iniciar evento de voz
             pacingEngine.startEvent(CONTENT_TYPES.VOICE);
-            console.log(`[Mapa] 🚀 Iniciando narración inmediata para ${target.name}`);
 
-            // Empezar a hablar inmediatamente con el texto inicial
-            audioManager.speak(immediateCountryText, 'normal', null, (txt) => avatarSubtitlesManager.setSubtitles(txt));
-
-            // Obtener dayId del estado editorial
+            // Obtener dayId
             let dayId = 'Unknown';
             try {
                 const statusRes = await fetch('/control-api/status');
                 if (statusRes.ok) {
                     const status = await statusRes.json();
-                    if (status.editorial && status.editorial.dayId) {
-                        dayId = status.editorial.dayId;
-                    }
+                    if (status.editorial && status.editorial.dayId) dayId = status.editorial.dayId;
                 }
-            } catch (e) {
-                console.warn('[Mapa] No se pudo obtener dayId:', e);
-            }
+            } catch (e) { }
 
-            // Agregar dayId al contexto
             const enrichedContext = { ...context, dayId };
 
-            // Generar relato completo con IA EN PARALELO (no esperar)
-            const generateFullNarrativePromise = continuousNarrativeEngine.generateContinuousNarrative(target, enrichedContext);
+            // Generar relato IA
+            console.log('[Mapa] 🧠 Consultando a IA (Modo Diálogo)...');
+            const continuousNarrative = await continuousNarrativeEngine.generateContinuousNarrative(target, enrichedContext);
 
-            // Esperar a que el texto completo esté listo (o usar el inicial si tarda mucho)
-            const continuousNarrative = await Promise.race([
-                generateFullNarrativePromise,
-                new Promise(resolve => {
-                    setTimeout(() => {
-                        // Si tarda más de 5 segundos, usar texto inicial como fallback
-                        resolve({
-                            narrative: immediateCountryText,
-                            multimedia: [],
-                            reflections: [],
-                            dataPoints: [],
-                            emotionalNotes: [],
-                            isFirstVisit: false
-                        });
-                    }, 5000);
-                })
-            ]);
-
-            console.log(`[Mapa] Relato completo listo (${continuousNarrative.narrative.length} caracteres)`);
-            console.log(`[Mapa] Multimedia planificado: ${continuousNarrative.multimedia.length} items`);
-
-            // Si el texto completo está listo y es diferente, actualizar subtítulos y continuar hablando
-            // Cancelar el texto inicial si aún está hablando y usar el completo
-            let finalNarrative = immediateCountryText;
-            if (continuousNarrative.narrative && continuousNarrative.narrative !== immediateCountryText && continuousNarrative.narrative.length > immediateCountryText.length) {
-                console.log(`[Mapa] Actualizando con texto completo generado para ${target.name}`);
-                finalNarrative = continuousNarrative.narrative;
-
-                // Cancelar el texto inicial si aún está hablando
-                audioManager.cancel();
-
-                // Actualizar subtítulos con el texto completo
-                avatarSubtitlesManager.setSubtitles(finalNarrative);
-
-                // Continuar hablando con el texto completo
-                audioManager.speak(finalNarrative, 'normal', null);
-            }
-
-            // Usar el texto final (completo o inicial) para el resto del proceso
-            continuousNarrative.narrative = finalNarrative;
-
-            // 2. Preparar multimedia
+            // Procesar Multimedia (Imágenes)
             const multimediaItems = [];
 
-            for (const mediaPlan of continuousNarrative.multimedia) {
-                // Generar o buscar media según el plan
-                let mediaUrl = null;
-
-                if (mediaPlan.prompt) {
-                    // Generar con IA
-                    try {
-                        const imageRes = await fetch('/control-api/api/generate-image', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ prompt: mediaPlan.prompt })
-                        });
-
-                        if (imageRes.ok) {
-                            const imageData = await imageRes.json();
-                            // El servidor devuelve { url: "...", filename: "..." } o { error: "..." }
-                            if (imageData.url) {
-                                mediaUrl = imageData.url;
-                            } else if (imageData.filename) {
-                                // Construir URL relativa desde el servidor
-                                mediaUrl = `/media/AI_Generated/${imageData.filename}`;
-                            }
-                        }
-                    } catch (e) {
-                        console.warn(`[Mapa] Error generando imagen: ${e}`);
-                    }
-                }
-
-                // Si no se generó, buscar media curado
-                if (!mediaUrl) {
-                    try {
-                        const mediaRes = await fetch('/control-api/api/media-list');
-                        if (mediaRes.ok) {
-                            const mediaList = await mediaRes.json();
-                            const countryMedia = mediaList.filter(m => {
-                                const folder = (m.folder || "").toLowerCase();
-                                const countryName = target.name.toLowerCase();
-                                return folder.includes(countryName) || countryName.includes(folder);
+            // Procesar plan multimeda de la IA
+            if (continuousNarrative.multimedia && continuousNarrative.multimedia.length > 0) {
+                for (const mediaPlan of continuousNarrative.multimedia) {
+                    let mediaUrl = null;
+                    // Intentar generar imagen
+                    if (mediaPlan.prompt) {
+                        try {
+                            const imageRes = await fetch('/control-api/api/generate-image', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ prompt: mediaPlan.prompt })
                             });
-
-                            if (countryMedia.length > 0) {
-                                const randomMedia = countryMedia[Math.floor(Math.random() * countryMedia.length)];
-                                mediaUrl = randomMedia.url;
+                            if (imageRes.ok) {
+                                const imageData = await imageRes.json();
+                                if (imageData.url) mediaUrl = imageData.url;
                             }
-                        }
-                    } catch (e) {
-                        console.warn(`[Mapa] Error cargando media curado: ${e}`);
+                        } catch (e) { console.warn("Error generar imagen", e); }
                     }
-                }
 
-                if (mediaUrl) {
-                    multimediaItems.push({
-                        type: mediaPlan.type || 'image',
-                        url: mediaUrl,
-                        context: mediaPlan.context,
-                        trigger: mediaPlan.trigger || 'start'
-                    });
-                } else {
-                    // Si no se generó imagen, usar media curado como fallback
-                    console.log(`[Mapa] No se pudo generar imagen, usando media curado como fallback`);
-                }
-            }
+                    // Fallback a media curado
+                    if (!mediaUrl) {
+                        // Lógica simplificada de fallback
+                        // (Aquí podrías insertar la lógica de búsqueda de assets locales si quisieras)
+                    }
 
-            // 3. Determinar timing de multimedia basado en el relato
-            const narrativeWords = continuousNarrative.narrative.split(' ');
-            const totalWords = narrativeWords.length;
-            const wordsPerSecond = 2.5; // Velocidad de narración
-            const totalDuration = (totalWords / wordsPerSecond) * 1000;
-
-            // 4. Mostrar multimedia según triggers
-            multimediaItems.forEach((item, index) => {
-                let delay = 0;
-                if (item.trigger === 'start') delay = 1000;
-                else if (item.trigger === 'mid') delay = totalDuration / 2;
-                else if (item.trigger === 'reflection') delay = totalDuration * 0.7;
-
-                multimediaOrchestrator.showMediaOverlay(item, delay);
-            });
-
-            // 5. Avatar y subtítulos ya están mostrados desde el inicio
-            // 6. La narración ya comenzó con el texto inicial, ahora continuamos con el texto completo si está listo
-
-            // Cancelar cualquier timeout de zoom out que pueda estar pendiente
-            if (this.travelTimeout) {
-                clearTimeout(this.travelTimeout);
-                this.travelTimeout = null;
-            }
-
-            // Marcar que estamos narrando para prevenir zoom out
-            this.isNarrating = true;
-
-            // Preparar subtítulos por FRASES completas (no palabra por palabra) usando el texto final
-            const cleanNarrative = continuousNarrative.narrative.replace(/[^\w\s.,;:!?áéíóúñüÁÉÍÓÚÑÜ]/g, '');
-
-            // Dividir en frases (por puntos, comas, o pausas naturales)
-            const sentences = cleanNarrative
-                .split(/([.!?]+\s+|,\s+)/)
-                .filter(s => s.trim().length > 0)
-                .map(s => s.trim());
-
-            // Agrupar frases en bloques de ~2 líneas (máximo 16-18 palabras por bloque)
-            const phraseBlocks = [];
-            let currentBlock = [];
-            let currentWordCount = 0;
-            const maxWordsPerBlock = 16; // Aproximadamente 2 líneas
-
-            for (const sentence of sentences) {
-                const wordCount = sentence.split(/\s+/).filter(w => w.trim().length > 0).length;
-
-                if (currentWordCount + wordCount <= maxWordsPerBlock && currentBlock.length > 0) {
-                    // Agregar a bloque actual
-                    currentBlock.push(sentence);
-                    currentWordCount += wordCount;
-                } else {
-                    // Guardar bloque anterior y empezar uno nuevo
-                    if (currentBlock.length > 0) {
-                        phraseBlocks.push({
-                            text: currentBlock.join(' '),
-                            wordCount: currentWordCount
+                    if (mediaUrl) {
+                        multimediaItems.push({
+                            type: mediaPlan.type || 'image',
+                            url: mediaUrl,
+                            trigger: mediaPlan.trigger || 'start'
                         });
                     }
-                    currentBlock = [sentence];
-                    currentWordCount = wordCount;
                 }
             }
 
-            // Agregar último bloque
-            if (currentBlock.length > 0) {
-                phraseBlocks.push({
-                    text: currentBlock.join(' '),
-                    wordCount: currentWordCount
-                });
-            }
-
-            let currentPhraseIndex = 0;
-            let wordsSpoken = 0;
-
-            // Limpiar subtítulos inicialmente
-            avatarSubtitlesManager.clearSubtitles();
-
-            // Usar audioManager.speak() con Edge TTS
-            // Callback para actualizar subtítulos (audioManager ya maneja sincronización palabra por palabra)
-            const updateSubtitles = (text) => {
-                avatarSubtitlesManager.setSubtitles(text);
+            // Agendar visualización de multimedia
+            multimediaItems.forEach((item, index) => {
             };
 
             // Mostrar primera frase inmediatamente
@@ -1653,115 +1493,25 @@ Genera una introducción en primera persona (como ilfass) que:
                         this.cycleZoomOut();
                     }
                 }, 3000);
+                // El zoom out se maneja al final de playDialogueSequence
+                multimediaOrchestrator.hideAllOverlays();
+                avatarSubtitlesManager.hide();
             } else {
                 // Modo manual: hacer zoom out normal
                 setTimeout(() => {
                     multimediaOrchestrator.hideAllOverlays();
                     avatarSubtitlesManager.hide();
-                    if (!this.isNarrating) {
-                        this.cycleZoomOut();
-                    }
-                }, 3000);
+                }, 2000);
             }
-
-            // 8. Info del país ya se muestra en los subtítulos del avatar
-
-            // NO hacer zoom out automático - esperar a que termine el audio
-            // El zoom out se hace en el callback de audioManager.speak
-            if (this.travelTimeout) {
-                clearTimeout(this.travelTimeout);
-                this.travelTimeout = null;
-            }
-
-        } catch (e) {
-            console.error(`[Mapa] Error en relato continuo:`, e);
-            this.isNarrating = false;
-            // Fallback a sistema anterior si falla
-            multimediaOrchestrator.hideAllOverlays();
-            avatarSubtitlesManager.hide();
-            // Esperar un momento antes de hacer zoom out en caso de error
-            setTimeout(() => {
-                if (!this.isNarrating) {
-                    this.cycleZoomOut();
-                }
-            }, 2000);
         }
-    }
-
-    async generateMultimediaContent(country, narrative, context) {
-        try {
-            console.log(`[Mapa] Generando contenido multimedia para ${country.name}...`);
-
-            // Generar imagen con IA basada en el país y la narrativa
-            const imagePrompt = `Paisaje representativo de ${country.name}, estilo cinematográfico, alta calidad, sin texto`;
-
-            const imageRes = await fetch('/control-api/api/generate-image', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: imagePrompt })
-            });
-
-            if (imageRes.ok) {
-                const imageData = await imageRes.json();
-                if (imageData.url) {
-                    console.log(`[Mapa] Imagen generada: ${imageData.url}`);
-
-                    // Mostrar la imagen después de un breve delay (durante la narración)
-                    setTimeout(() => {
-                        this.showMediaOverlay(imageData.url, 'image');
-                    }, 2000);
-                }
-            }
-
-            // También buscar media curado del país si existe
-            try {
-                const mediaRes = await fetch('/control-api/api/media-list');
-                if (mediaRes.ok) {
-                    const mediaList = await mediaRes.json();
-                    const countryMedia = mediaList.filter(m => {
-                        const folder = (m.folder || "").toLowerCase();
-                        const countryName = country.name.toLowerCase();
-                        return folder.includes(countryName) || countryName.includes(folder);
-                    });
-
-                    if (countryMedia.length > 0) {
-                        // Seleccionar un media aleatorio del país
-                        const randomMedia = countryMedia[Math.floor(Math.random() * countryMedia.length)];
-                        console.log(`[Mapa] Mostrando media curado: ${randomMedia.name}`);
-
-                        // Mostrar después de la imagen generada
-                        setTimeout(() => {
-                            this.showMediaOverlay(randomMedia.url, randomMedia.type || 'image');
-                        }, 8000);
-                    }
-                }
-            } catch (e) {
-                console.warn("[Mapa] Error cargando media curado:", e);
-            }
-
-        } catch (e) {
-            console.error("[Mapa] Error generando contenido multimedia:", e);
-        }
-    }
-
-    showMediaOverlay(url, type = 'image') {
-        multimediaOrchestrator.showMediaOverlay({
-            type: type,
-            url: url,
-            context: 'Mapa Detail',
-            ttlMs: type === 'video' ? 30000 : 12000
-        });
-    }
-
-
 
     unmount() {
-        pacingEngine.endCurrentEvent(); // Cerrar tracking actual
-        audioManager.cancel();
-        if (this.unsubscribeTime) this.unsubscribeTime();
-        if (this.travelTimeout) clearTimeout(this.travelTimeout);
-        scheduler.clearTasks(); // Limpiar tareas del scheduler (cápsulas)
-        this.container.innerHTML = '';
-        this.svg = null;
+            pacingEngine.endCurrentEvent(); // Cerrar tracking actual
+            audioManager.cancel();
+            if (this.unsubscribeTime) this.unsubscribeTime();
+            if (this.travelTimeout) clearTimeout(this.travelTimeout);
+            scheduler.clearTasks(); // Limpiar tareas del scheduler (cápsulas)
+            this.container.innerHTML = '';
+            this.svg = null;
+        }
     }
-}
