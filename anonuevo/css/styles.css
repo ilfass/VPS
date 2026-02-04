@@ -1529,3 +1529,46 @@ html {
         opacity: 0;
     }
 }
+/* --- MAPA ROUTES & ENTITIES (Added by Antigravity) --- */
+.travel-route {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.8);
+    stroke-width: 1.5px;
+    stroke-linecap: round;
+    /* Efecto neon */
+    filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px #3b82f6);
+    pointer-events: none;
+    transition: all 1s;
+}
+
+.map-entity {
+    filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.8));
+    animation: floatEntity 3s ease-in-out infinite;
+    cursor: pointer;
+    transition: transform 0.3s;
+}
+
+.map-entity:hover {
+    transform: scale(1.5);
+    filter: drop-shadow(0 0 10px rgba(255, 215, 0, 1));
+}
+
+@keyframes floatEntity {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); }
+}
+
+.entity-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 4px; /* Muy pequeño porque escala con el mapa */
+    fill: #ffd700;
+    text-shadow: 0 0.5px 1px black;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+}
+
+/* Cuando el grupo de la entidad (g) tiene la clase hovered */
+.entity-group:hover .entity-label {
+    opacity: 1;
+}

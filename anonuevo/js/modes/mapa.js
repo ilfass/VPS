@@ -39,6 +39,11 @@ export default class MapaMode {
         this.currentCountryId = null; // Track current country
         this.isNarrating = false; // Flag para prevenir zoom out durante narración
         this.visitedCount = 0; // Track number of visited countries in this session
+
+        // --- VISUAL LAYERS STATE ---
+        this.lastCentroid = null; // [lon, lat] of previous country
+        this.activeEntities = []; // Track active narrative entities
+
     }
 
     async mount() {
@@ -269,6 +274,24 @@ export default class MapaMode {
             .style("width", "100%")
             .style("height", "100%");
 
+        // Definiciones para patrones (Banderas) y filtros
+        this.defs = this.svg.append("defs");
+
+        // Filtro de Glow para fronteras
+        const filter = this.defs.append("filter")
+            .attr("id", "glow")
+            .attr("x", "-50%")
+            .attr("y", "-50%")
+            .attr("width", "200%")
+            .attr("height", "200%");
+        filter.append("feGaussianBlur")
+            .attr("stdDeviation", "2.5")
+            .attr("result", "coloredBlur");
+        const feMerge = filter.append("feMerge");
+        feMerge.append("feMergeNode").attr("in", "coloredBlur");
+        feMerge.append("feMergeNode").attr("in", "SourceGraphic");
+
+
         // Proyección inicial
         this.projection = d3.geoEquirectangular()
             .scale(300)
@@ -290,6 +313,13 @@ export default class MapaMode {
 
         // Nombres de Países (Labels)
         this.gLabels = this.gMap.append("g").attr("class", "country-labels");
+
+        // --- NUEVA CAPA: RUTAS DE VIAJE (Debajo de entidades, sobre países) ---
+        this.gTrails = this.gMap.append("g").attr("class", "travel-trails");
+
+        // --- NUEVA CAPA: ENTIDADES NARRATIVAS (Barcos, marcadores, etc) ---
+        this.gEntities = this.gMap.append("g").attr("class", "narrative-entities");
+
 
         // Noche
         this.nightPath = this.gMap.append("path")
@@ -504,6 +534,23 @@ export default class MapaMode {
             }
             this.cycleZoomIn();
         }, timing.globalViewDuration);
+
+        // Limpiar texturas de banderas al salir
+        this.clearFlagTextures();
+    }
+
+    clearFlagTextures() {
+        // Restaurar estilos globales
+        this.gCountries.selectAll("path")
+            .transition().duration(1000)
+            .style("fill", d => {
+                const info = COUNTRY_INFO[d.id];
+                return info ? REGION_COLORS[info.region] : "#cbd5e1";
+            })
+            .style("opacity", 1)
+            .style("filter", "none");
+
+        this.gCountries.selectAll(".active-country").classed("active-country", false);
     }
 
     zoomToCountry(target) {
@@ -554,6 +601,17 @@ export default class MapaMode {
         if (feature) {
             const countryPath = this.gCountries.select(`#country-${target.id}`);
             countryPath.classed("active-country", true);
+
+
+            // APLICAR TEXTURA DE BANDERA
+            this.applyFlagTexture(feature, target);
+
+            // OSCURECER EL resto (Dimming Effect)
+            this.gCountries.selectAll("path")
+                .filter(d => d.id !== target.id)
+                .transition().duration(2000)
+                .style("opacity", 0.3) // Apagar el resto
+                .style("fill", "#1e293b"); // Color base oscuro unificado
 
             // Crear efecto de onda expansiva en las fronteras
             this.createRippleEffect(feature, target.id);
@@ -613,6 +671,185 @@ export default class MapaMode {
             });
 
         this.sunGroup.selectAll("circle").transition().duration(3000).attr("r", 15 / scale);
+
+    }
+
+    applyFlagTexture(feature, target) {
+        // ID único para el patrón
+        const patternId = `flag-${target.id}`;
+
+        // Obtener límites para escalar la imagen correctamente
+        const bounds = this.pathGenerator.bounds(feature);
+        const width = bounds[1][0] - bounds[0][0];
+        const height = bounds[1][1] - bounds[0][1];
+        const x = bounds[0][0];
+        const y = bounds[0][1];
+        const maxSize = Math.max(width, height);
+
+        // Crear patrón si no existe
+        // Usamos iso2 code lower case para flagcdn (ej: 'ar', 'es')
+        // Mapeo simple de ISO numérico a ISO 2 (necesitaremos una librería o mapa, 
+        // por ahora usaremos un hack o asumiremos que tenemos el iso2 en COUNTRY_INFO si lo agregamos,
+        // o buscaremos una API que acepte iso numérico. FlagCDN usa ISO 2 chars.
+        // HACK: Por ahora intentaré inferir o usar un color brillante si no tengo el iso2, 
+        // PERO vamos a asumir que el usuario prefiere visual impact.
+        // Usaremos una imagen de textura genérica futurista si no podemos resolver la bandera exacta ya mismo,
+        // O mejor: Agregaré un mapa manual rápido para los principales o trataré de buscarlo.
+
+        // MEJORA: Asumir que COUNTRY_INFO tiene 'iso2' o agregarlo. 
+        // Si no, usar un color gradiente de alta tecnología como fallback "premium".
+
+        const iso2 = this.getIso2FromId(target.id);
+
+        if (iso2) {
+            const flagUrl = `https://flagcdn.com/w2560/${iso2.toLowerCase()}.png`;
+
+            // Limpiar patrones viejos para ahorrar memoria
+            this.defs.selectAll(".flag-pattern").remove();
+
+            const pattern = this.defs.append("pattern")
+                .attr("id", patternId)
+                .attr("class", "flag-pattern")
+                .attr("patternUnits", "userSpaceOnUse")
+                .attr("width", width)
+                .attr("height", height)
+                .attr("x", x)
+                .attr("y", y); // Ajustar al bounding box del país
+
+            pattern.append("image")
+                .attr("href", flagUrl)
+                .attr("width", width)
+                .attr("height", height)
+                .attr("preserveAspectRatio", "none") // Estirar para llenar (o xMidYMid slice)
+                // "none" distorsiona, "xMidYMid slice" recorta. Para mapa, slice es mejor visualmente.
+                .attr("preserveAspectRatio", "xMidYMid slice");
+
+            // Aplicar al path
+            this.gCountries.select(`#country-${target.id}`)
+                .transition().duration(1500)
+                .style("fill", `url(#${patternId})`)
+                .style("filter", "url(#glow)") // Brillo de neón
+                .style("opacity", 1);
+        } else {
+            // Fallback: Color neón sólido
+            this.gCountries.select(`#country-${target.id}`)
+                .transition().duration(1500)
+                .style("fill", "#fbbf24") // Amber brillante
+                .style("filter", "url(#glow)");
+        }
+    }
+
+    getIso2FromId(numericId) {
+        // Pequeño mapa de conversión para países comunes de demo
+        // Se podría expandir en country-info.js
+        const map = {
+            "032": "AR", "076": "BR", "152": "CL", "840": "US", "724": "ES",
+            "250": "FR", "380": "IT", "276": "DE", "392": "JP", "156": "CN",
+            "643": "RU", "826": "GB", "036": "AU", "124": "CA", "484": "MX"
+        };
+        return map[numericId] || null;
+
+
+        // --- FEATURE: TRAZADO DE RUTA (Instagram Style) ---
+        // Calcular centroide real (long, lat)
+        const currentCentroid = d3.geoCentroid(feature);
+
+        if (this.lastCentroid) {
+            this.drawTravelPath(this.lastCentroid, currentCentroid);
+        }
+        // Actualizar último punto conocido
+        this.lastCentroid = currentCentroid;
+
+        // --- FEATURE: ENTIDADES NARRATIVAS (Malvinas / Barcos) ---
+        // Limpiar entidades anteriores
+        this.gEntities.selectAll("*").remove();
+
+        // Verificar si el país tiene entidades especiales (Hardcoded por ahora o desde data)
+        this.checkAndSpawnEntities(target.id);
+    }
+
+    drawTravelPath(startCoords, endCoords) {
+        if (!startCoords || !endCoords) return;
+
+        // Crear curvas geodésicas (LineString)
+        const route = {
+            type: "LineString",
+            coordinates: [startCoords, endCoords]
+        };
+
+        const path = this.gTrails.append("path")
+            .datum(route)
+            .attr("class", "travel-route")
+            .attr("d", this.pathGenerator)
+            .style("stroke-dasharray", function () { return this.getTotalLength(); })
+            .style("stroke-dashoffset", function () { return this.getTotalLength(); })
+            .style("opacity", 0.8);
+
+        // Animar el trazo
+        path.transition()
+            .duration(2500)
+            .ease(d3.easeSinInOut)
+            .style("stroke-dashoffset", 0)
+            .on("end", () => {
+                // Hacer que desvanezca un poco después de dibujarse para no saturar
+                path.transition().duration(1000).style("opacity", 0.3);
+            });
+    }
+
+    checkAndSpawnEntities(countryId) {
+        // DEMO: Si es Argentina (032), mostrar barcos hacia Malvinas
+        if (countryId === "032") {
+            console.log("[Mapa] 🚢 Spawning Malvinas Entities...");
+
+            // Coordenadas Aprox Malvinas: [-59, -51.7]
+            const malvinasCoords = [-59.5, -51.7];
+
+            // Flota acercándose
+            const ships = [
+                { id: 'ship1', coords: [-55, -50], label: 'Flota 1982' },
+                { id: 'ship2', coords: [-56, -52], label: 'Destructor' },
+                { id: 'ship3', coords: [-54, -48], label: 'Apoyo' }
+            ];
+
+            ships.forEach((ship, i) => {
+                const group = this.gEntities.append("g")
+                    .attr("class", "entity-group")
+                    .attr("transform", `translate(${this.projection(ship.coords)})`);
+
+                // Icono Barco (Triángulo simple)
+                group.append("path")
+                    .attr("d", "M -1.5 1 L 1.5 1 L 0 -2 Z") // Triángulo apuntando arriba
+                    .attr("class", "map-entity entity-ship")
+                    .attr("fill", "#cbd5e1")
+                    .attr("stroke", "white")
+                    .attr("stroke-width", 0.2)
+                    .attr("transform", "scale(1.5)"); // Ajustar escala según zoom (se ajusta auto por el gMap)
+
+                // Etiqueta
+                group.append("text")
+                    .attr("class", "entity-label")
+                    .attr("y", -3)
+                    .attr("text-anchor", "middle")
+                    .text(ship.label)
+                    .style("font-size", "1px"); // Muy pequeño en coords mundo
+
+                // Animación de 'navegación' hacia Malvinas
+                // Simulación simple interpolando posición en proyección
+                const targetPos = this.projection(malvinasCoords);
+                const currentPos = this.projection(ship.coords);
+
+                // Mover grupo (interpolación básica lineal en pantalla, no geodésica perfecta, pero sirve para distancias cortas)
+                // Usaremos d3 transition en el atributo transform
+
+                // Nota: Al hacer zoom, el transform del padre cambia, pero este transform es relativo a coordenadas de mapa.
+                // Si queremos moverlos "geográficamente", deberíamos interpolar las coordenadas y reproyectar en cada frame,
+                // pero d3 transition normal no hace eso facilmente con geo. 
+                // Para efecto visual simple, lo dejaremos estático o con animación CSS 'float'.
+
+                // Opción avanzada: Animar a lo largo de un path invisible.
+            });
+        }
+
     }
 
     /**
@@ -1392,12 +1629,12 @@ Genera una introducción en primera persona (como ilfass) que:
             /*
             if (eventManager.canProceedAuto() && this.visitedCount >= 5) {
                 console.log("[Mapa] 🏁 Sesión de 5 países completada. Preparando navegación...");
-
+    
                 // Esperar un momento y navegar
                 setTimeout(() => {
                     multimediaOrchestrator.hideAllOverlays();
                     avatarSubtitlesManager.hide();
-
+    
                     const pages = ['continente', 'ruta', 'galeria', 'globo'];
                     const randomPage = pages[Math.floor(Math.random() * pages.length)];
                     console.log(`[Mapa] 🎲 Navegando a: ${randomPage}`);
