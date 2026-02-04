@@ -1,0 +1,2389 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIRECCIÓN EDITORIAL - ILFASS (Control)</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --panel-bg: #1a1a24;
+            --panel-hover: #252530;
+            --border: #2a2a3a;
+            --border-light: #3a3a4a;
+            --text-main: #e8e8f0;
+            --text-dim: #a0a0b0;
+            --accent: #4a9eff;
+            --accent-hover: #6bb0ff;
+            --danger: #ff4444;
+            --danger-hover: #ff6666;
+            --success: #22c55e;
+            --success-hover: #4ade80;
+            --warning: #f59e0b;
+            --purple: #a855f7;
+            --purple-hover: #c084fc;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f1a 100%);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 16px;
+            font-size: 14px;
+            height: 100vh;
+            overflow: hidden;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: 16px;
+        }
+
+        /* TOP BAR: EDITORIAL CONTROL */
+        .editorial-bar {
+            background: linear-gradient(135deg, #000 0%, #1a1a24 100%);
+            border: 1px solid var(--border);
+            padding: 16px 24px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .build-badge {
+            font-family: 'JetBrains Mono';
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.04);
+            padding: 6px 10px;
+            border-radius: 999px;
+        }
+
+        .rec-indicator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: 'JetBrains Mono';
+            font-weight: 700;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+
+        .rec-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #333;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .rec-live .rec-dot {
+            background: var(--danger);
+            box-shadow: 0 0 12px rgba(255, 68, 68, 0.6);
+            animation: pulseRec 1.5s infinite;
+        }
+
+        .rec-live span {
+            color: var(--danger);
+            text-shadow: 0 0 8px rgba(255, 68, 68, 0.4);
+        }
+
+        @keyframes pulseRec {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.6;
+                transform: scale(1.1);
+            }
+        }
+
+        .session-info {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .session-timer {
+            font-family: 'JetBrains Mono';
+            color: var(--accent);
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-shadow: 0 0 8px rgba(74, 158, 255, 0.3);
+        }
+
+        .session-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        /* MAIN GRID */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 380px 1fr 380px;
+            gap: 16px;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .col {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .col::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .col::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+
+        .col::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        .col::-webkit-scrollbar-thumb:hover {
+            background: var(--border-light);
+        }
+
+        /* PANELS */
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .panel:hover {
+            border-color: var(--border-light);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        h2 {
+            font-family: 'JetBrains Mono';
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 10px;
+            margin: 0 0 18px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        h2::before {
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+
+        /* CONTROLS */
+        button {
+            font-family: 'JetBrains Mono';
+            background: linear-gradient(135deg, #27272a 0%, #1f1f2a 100%);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 12px 16px;
+            cursor: pointer;
+            border-radius: 8px;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        button:hover:not(:disabled)::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        button:hover:not(:disabled) {
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(74, 158, 255, 0.2);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--success) 0%, #16a34a 100%);
+            color: white;
+            border: none;
+            font-weight: 700;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: linear-gradient(135deg, var(--success-hover) 0%, var(--success) 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(34, 197, 94, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+            color: white;
+            border: none;
+            font-weight: 700;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: linear-gradient(135deg, var(--danger-hover) 0%, var(--danger) 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(255, 68, 68, 0.4);
+        }
+
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 0.65rem;
+            width: auto;
+        }
+
+        input,
+        select {
+            background: #0a0a0f;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 10px 12px;
+            width: 100%;
+            font-family: 'JetBrains Mono';
+            margin-bottom: 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.1);
+        }
+
+        /* STATUS */
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 0.85rem;
+            padding: 8px 0;
+        }
+
+        .stat-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .stat-label {
+            color: var(--text-dim);
+            font-weight: 500;
+        }
+
+        .stat-val {
+            font-family: 'JetBrains Mono';
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .stat-section {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        /* DREAM MODE SWITCH */
+        .dream-switch {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
+            padding: 14px 16px;
+            border: 2px solid var(--purple);
+            border-radius: 8px;
+            margin-top: 12px;
+            transition: all 0.3s;
+        }
+
+        .dream-switch:hover {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.25) 0%, rgba(139, 92, 246, 0.15) 100%);
+            box-shadow: 0 0 16px rgba(168, 85, 247, 0.3);
+        }
+
+        .dream-label {
+            color: var(--purple);
+            font-weight: 700;
+            font-family: 'JetBrains Mono';
+            font-size: 0.8rem;
+        }
+
+        .active-red {
+            background: linear-gradient(135deg, rgba(220, 38, 38, 0.3) 0%, rgba(239, 68, 68, 0.2) 100%) !important;
+            border-color: var(--danger) !important;
+            color: var(--danger) !important;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+            animation: pulseRec 2s infinite;
+        }
+
+        /* MEDIA GRID */
+        #media-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            overflow-y: auto;
+            max-height: 500px;
+            padding: 4px;
+        }
+
+        .media-item {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px;
+            background: #0f0f1a;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .media-item:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(74, 158, 255, 0.2);
+        }
+
+        /* CONSOLE */
+        #console {
+            font-family: 'JetBrains Mono';
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            overflow-y: auto;
+            max-height: 400px;
+            line-height: 1.6;
+            padding: 8px;
+            background: #0a0a0f;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        #console div {
+            margin-bottom: 4px;
+            padding: 4px 8px;
+            border-left: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        #console div:hover {
+            background: rgba(74, 158, 255, 0.05);
+            border-left-color: var(--accent);
+        }
+
+        /* ACTIVE MEDIA INDICATOR */
+        #active-media-indicator {
+            background: linear-gradient(135deg, rgba(74, 158, 255, 0.15) 0%, rgba(74, 158, 255, 0.05) 100%);
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            font-family: 'JetBrains Mono';
+            font-size: 0.75rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* PLAYLIST */
+        #playlist-container {
+            font-family: 'JetBrains Mono';
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            line-height: 2;
+            padding: 8px;
+            background: #0a0a0f;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            min-height: 100px;
+        }
+
+        #playlist-container div {
+            padding: 6px 8px;
+            margin-bottom: 4px;
+            background: rgba(74, 158, 255, 0.05);
+            border-left: 3px solid var(--accent);
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        #playlist-container div:hover {
+            background: rgba(74, 158, 255, 0.1);
+            transform: translateX(4px);
+        }
+
+        /* STATS PANEL */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(74, 158, 255, 0.1) 0%, rgba(74, 158, 255, 0.05) 100%);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-card-value {
+            font-family: 'JetBrains Mono';
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .stat-card-label {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        /* QUICK ACTIONS */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .quick-action-btn {
+            padding: 10px;
+            font-size: 0.65rem;
+        }
+
+        /* FILTERS */
+        .media-filters {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .filter-btn {
+            flex: 1;
+            padding: 6px 10px;
+            font-size: 0.65rem;
+            background: #0a0a0f;
+        }
+
+        .filter-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- TOP BAR: SESSION CONTROL -->
+    <div class="editorial-bar">
+        <div class="session-info">
+            <div id="rec-status" class="rec-indicator">
+                <div class="rec-dot"></div>
+                <span>SESSION IDLE</span>
+            </div>
+            <div id="session-timer" class="session-timer">00:00:00</div>
+            <div style="font-family: 'JetBrains Mono'; font-size: 0.75rem; color: var(--text-dim);">
+                <span id="current-scene-display">--</span>
+            </div>
+            <div class="build-badge">control: observer-buttons</div>
+        </div>
+
+        <div class="session-controls">
+            <div style="display: flex; align-items: center; gap: 8px; color: var(--text-dim); font-size: 0.7rem;">
+                <input type="checkbox" id="sim-mode" style="width: auto; margin: 0;">
+                <label for="sim-mode">TEST MODE</label>
+            </div>
+            <input type="text" id="day-id-input" placeholder="Día Editorial ID" style="width: 180px; margin: 0;">
+            <button onclick="startDay()" id="btn-start-day" class="btn-primary btn-small">
+                ▶ START DAY
+            </button>
+            <button onclick="endDay()" id="btn-end-day" class="btn-danger btn-small" style="display: none;">
+                ⏹ END SESSION
+            </button>
+        </div>
+    </div>
+
+    <div class="main-grid">
+
+        <!-- COL 1: NAVIGATION & CONTROL -->
+        <div class="col">
+            <div class="panel">
+                <h2>🎬 Navigation</h2>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px;">
+                    <button onclick="changeScene('mapa')">🌍 Map</button>
+                    <button onclick="changeScene('diario')">📔 Diary</button>
+                    <button onclick="changeScene('curiosidades')">✨ Curiosidades</button>
+                </div>
+
+                <h2 style="margin-top: 20px;">🖼️ Configuración API</h2>
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; gap: 5px;">
+                        <input type="password" id="pexels-key" placeholder="Pexels API Key" style="font-size: 0.7rem;">
+                        <button onclick="savePexelsKey()" class="btn-small">💾</button>
+                    </div>
+                </div>
+
+                <h2 style="margin-top: 20px;">✈️ Flight Control</h2>
+                <select id="country-select" onchange="loadCountryMedia()">
+                    <option value="" disabled selected>Select Destination...</option>
+                </select>
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="travelNow()" style="flex: 1;">✈️ FLY NOW</button>
+                    <button onclick="addToQueue()" class="btn-small" style="width: 60px;">+</button>
+                    <button onclick="clearQueue()" class="btn-small" style="width: 60px;"
+                        title="Clear Queue">🗑️</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>📊 Statistics</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-card-value" id="stat-total-visits">0</div>
+                        <div class="stat-card-label">Total Visits</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-value" id="stat-countries-visited">0</div>
+                        <div class="stat-card-label">Countries</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>📺 YouTube Integration</h2>
+                <div style="font-size: 0.7rem; color: var(--text-dim); margin-bottom: 10px;">
+                    Configuración global (se guarda en <code>localStorage</code>) para que cualquier hoja pueda usarla.
+                    Redirect URI: <code id="yt-redirect-uri">--</code>
+                </div>
+                <input type="text" id="youtube-api-key" placeholder="YouTube API Key" style="margin-bottom: 8px;">
+                <input type="text" id="youtube-video-id" placeholder="YouTube Video ID" style="margin-bottom: 8px;">
+                <input type="text" id="youtube-client-id" placeholder="OAuth Client ID" style="margin-bottom: 8px;">
+                <div style="display:flex; gap:8px; align-items:center; margin-bottom: 8px;">
+                    <button onclick="saveYouTubeConfig()" class="btn-small" style="flex:1;">💾 Guardar Config</button>
+                    <button onclick="clearYouTubeAuth()" class="btn-small"
+                        style="width:160px; border-color: var(--warning); color: var(--warning);">🧹 Limpiar
+                        OAuth</button>
+                </div>
+                <div style="border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px;">
+                    <div style="font-size: 0.65rem; color: var(--text-dim); margin-bottom: 6px;">OAuth Status:</div>
+                    <div id="youtube-oauth-status"
+                        style="font-size: 0.75rem; color: var(--warning); margin-bottom: 8px;">No autenticado</div>
+                    <button onclick="authenticateYouTube()" class="btn-small"
+                        style="width: 100%; background: var(--accent); color: white; border: none;">🔐 Autenticar
+                        YouTube</button>
+                </div>
+            </div>
+
+            <div class="panel" style="flex: 1;">
+                <h2>🎵 Travel Playlist</h2>
+                <div id="playlist-container">(Empty Queue)</div>
+            </div>
+
+            <div class="panel">
+                <h2>💾 Memory Status</h2>
+                <div class="stat-row">
+                    <span class="stat-label">Total Memories:</span>
+                    <span id="memory-total" class="stat-val" style="color: var(--success);">--</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Last Save:</span>
+                    <span id="memory-last-save" class="stat-val" style="font-size: 0.7rem;">--</span>
+                </div>
+                <button onclick="refreshMemories()" style="margin-top: 12px; font-size: 0.7rem; padding: 8px;">🔄
+                    Refresh</button>
+                <div id="memory-list"
+                    style="margin-top: 12px; max-height: 200px; overflow-y: auto; font-family: 'JetBrains Mono'; font-size: 0.7rem; color: var(--text-dim);">
+                    <div style="text-align: center; padding: 20px;">Click Refresh to load</div>
+                </div>
+            </div>
+
+            <div class="panel" style="flex: 1;">
+                <h2>📚 Hojas del Libro</h2>
+                <div style="margin-bottom: 12px;">
+                    <div style="font-size: 0.7rem; color: var(--text-dim); margin-bottom: 8px;">
+                        <strong style="color: var(--accent);">Total: <span id="book-total-pages">17</span>
+                            hojas</strong>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <h3
+                        style="font-size: 0.75rem; color: var(--accent); margin-bottom: 8px; text-transform: uppercase;">
+                        📄 Hojas Fijas</h3>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 6px;">
+                        <button onclick="navigateToPage('/vivos/mapa/')" class="book-page-btn" title="Mapa Global">
+                            🌍 Mapa Global
+                        </button>
+                        <button onclick="navigateToPage('/memoria/indice/')" class="book-page-btn"
+                            title="Índice Global">
+                            📑 Índice
+                        </button>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <h3
+                        style="font-size: 0.75rem; color: var(--accent); margin-bottom: 8px; text-transform: uppercase;">
+                        ⚡ Hojas Dinámicas</h3>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 6px;">
+                        <button onclick="navigateToPage('/vivos/diario/')" class="book-page-btn"
+                            title="Diario de Viaje">
+                            📔 Diario
+                        </button>
+                        <button onclick="navigateToPage('/vivos/curiosidades/')" class="book-page-btn"
+                            title="Curiosidades - Momentos Divertidos">
+                            ✨ Curiosidades
+                        </button>
+                        <button onclick="navigateToPage('/vivos/continente/')" class="book-page-btn"
+                            title="Vista de Continente">
+                            🌐 Continente
+                        </button>
+                        <button onclick="navigateToPage('/vivos/ruta/')" class="book-page-btn" title="Ruta del Viaje">
+                            🗺️ Ruta
+                        </button>
+                        <!-- Estadisticas REMOVED -->
+                        <button onclick="navigateToPage('/vivos/galeria/')" class="book-page-btn"
+                            title="Galería Multimedia">
+                            🎬 Galería
+                        </button>
+                        <button onclick="navigateToPage('/vivos/globo/')" class="book-page-btn"
+                            title="Globo 3D - Recorrido Automático">
+                            🌍 Globo 3D
+                        </button>
+                        <button onclick="navigateToPage('/vivos/clima/')" class="book-page-btn"
+                            title="Clima en Tiempo Real">
+                            🌍 Clima
+                        </button>
+                        <button onclick="navigateToPage('/vivos/aereo/')" class="book-page-btn" title="Tráfico Aéreo">
+                            ✈️ Tráfico Aéreo
+                        </button>
+                        <button onclick="navigateToPage('/vivos/satelites/')" class="book-page-btn"
+                            title="Satélites (ISS)">
+                            🛰️ Satélites
+                        </button>
+                        <button onclick="navigateToPage('/vivos/terremotos/')" class="book-page-btn" title="Terremotos">
+                            🌐 Terremotos
+                        </button>
+                        <!-- Aire REMOVED -->
+                        <button onclick="navigateToPage('/vivos/incendios/')" class="book-page-btn"
+                            title="Incendios Forestales">
+                            🔥 Incendios
+                        </button>
+                        <button onclick="navigateToPage('/vivos/sol/')" class="book-page-btn" title="Actividad Solar">
+                            ☀️ Actividad Solar
+                        </button>
+                        <button onclick="navigateToPage('/vivos/frecuencia/')" class="book-page-btn"
+                            title="Visualizador de Audio">
+                            🌊 Frecuencia
+                        </button>
+                        <button onclick="navigateToPage('/vivos/sistema/')" class="book-page-btn"
+                            title="Estado del Sistema">
+                            🧠 Sistema
+                        </button>
+                        <button onclick="navigateToPage('/vivos/radar/')" class="book-page-btn" title="Radar Scanner">
+                            📡 Radar
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <h3
+                        style="font-size: 0.75rem; color: var(--success); margin-bottom: 8px; text-transform: uppercase;">
+                        💾 Memorias (<span id="book-memory-count">6</span> visitas)
+                    </h3>
+                    <div id="book-memories-list"
+                        style="max-height: 200px; overflow-y: auto; font-family: 'JetBrains Mono'; font-size: 0.7rem;">
+                        <div style="text-align: center; padding: 10px; color: var(--text-dim);">Cargando memorias...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COL 2: LIVE CONTENT & MEDIA -->
+        <div class="col">
+            <div class="panel">
+                <h2>📡 Live Context</h2>
+                <div class="stat-row">
+                    <span class="stat-label">ACTIVE VISIT:</span>
+                    <span id="live-visit" class="stat-val">NONE</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">DURATION:</span>
+                    <span id="visit-timer" class="stat-val">--:--</span>
+                </div>
+                <div class="stat-section">
+                    <div class="stat-row">
+                        <span class="stat-label">📖 HOJA DEL LIBRO:</span>
+                        <span id="book-page" class="stat-val" style="color: var(--purple);">--</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">💾 MEMORIA PAÍS:</span>
+                        <span id="country-memory" class="stat-val"
+                            style="color: var(--success); font-size: 0.75rem;">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>📺 TV Controls</h2>
+                <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px;">
+                    <button onclick="recapNow()" style="border-color: var(--accent); color: var(--accent);">🗣️ RECAP
+                        NOW</button>
+                    <button onclick="bumperNow()" style="border-color: var(--purple); color: var(--purple);">🎥 BUMPER
+                        NOW</button>
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px;">
+                    <button onclick="resetAgenda()" style="border-color: var(--warning); color: var(--warning);">🧭
+                        RESET AGENDA</button>
+                    <button onclick="toggleTvSettings()" id="btn-tv-toggles"
+                        style="border-color: var(--border-light); color: var(--text-main);">⚙️ TOGGLES</button>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Recaps:</span>
+                    <span id="tv-recaps-status" class="stat-val" style="font-size:0.75rem;">--</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Bumpers:</span>
+                    <span id="tv-bumpers-status" class="stat-val" style="font-size:0.75rem;">--</span>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>🎛️ Show Runner (60’)</h2>
+                <div class="stat-row">
+                    <span class="stat-label">Estado:</span>
+                    <span id="showrunner-status" class="stat-val" style="font-size:0.75rem;">--</span>
+                </div>
+                <div style="margin-top:10px;">
+                    <div
+                        style="font-size:0.7rem; color: var(--text-dim); margin-bottom:6px; font-family:'JetBrains Mono';">
+                        MISIÓN DEL DÍA</div>
+                    <input id="showrunner-mission"
+                        placeholder="Ej: Encontrar una señal que conecte clima + rutas + memoria"
+                        style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background: rgba(0,0,0,0.18); color: var(--text-main); outline:none; font-family:'Inter';" />
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px;">
+                    <button onclick="showRunnerStart()" class="btn-primary">▶ START SHOW</button>
+                    <button onclick="showRunnerStop()" class="btn-danger">⏹ STOP</button>
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px;">
+                    <button onclick="showRunnerNext()" style="border-color: var(--accent); color: var(--accent);">⏭ NEXT
+                        BLOQUE</button>
+                    <button onclick="showRunnerSetMission()"
+                        style="border-color: var(--border-light); color: var(--text-main);">💾 GUARDAR MISIÓN</button>
+                </div>
+                <div style="margin-top:8px; font-size:0.65rem; color: rgba(255,255,255,0.55);">
+                    La rueda ejecuta 5×12min: Apertura → Urbano → Rutas → Espacio → Memoria. Mientras está activa, la
+                    agenda/recaps/bumpers automáticos se pausan.
+                </div>
+            </div>
+
+            <div class="panel" id="ruta-controls-panel" style="display:none;">
+                <h2>🗺️ Ruta Controls</h2>
+                <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px;">
+                    <button onclick="rutaTogglePlay()" id="btn-ruta-play"
+                        style="border-color: var(--accent); color: var(--accent);" disabled>⏯ PLAY/PAUSE</button>
+                    <button onclick="rutaToggleFollow()" id="btn-ruta-follow"
+                        style="border-color: var(--purple); color: var(--purple);" disabled>🎥 FOLLOW/FREE</button>
+                </div>
+                <div style="font-size:0.65rem; color: rgba(255,255,255,0.55);">
+                    Se habilita automáticamente cuando la escena activa es <code>ruta</code>.
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>✂️ Clip Markers</h2>
+                <div style="display:flex; gap:8px; margin-bottom:10px;">
+                    <button onclick="refreshClipMarks()" style="flex:1;">🔄 Refresh</button>
+                    <button onclick="clearClipMarks()"
+                        style="flex:1; border-color: var(--warning); color: var(--warning);">🧹 Clear</button>
+                </div>
+                <div id="clip-marks-list"
+                    style="max-height: 260px; overflow-y: auto; font-family: 'JetBrains Mono'; font-size: 0.7rem; color: var(--text-dim);">
+                    <div style="text-align:center; padding:10px; color: var(--text-dim);">Sin marcas aún.</div>
+                </div>
+                <div style="margin-top:8px; font-size:0.65rem; color: rgba(255,255,255,0.55);">
+                    Tip: estas marcas sirven como guía para recortar Shorts/Clips (usa <code>sinceStartSec</code> si hay
+                    Día Editorial activo).
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>🧭 Guion / Arco</h2>
+                <div class="stat-row">
+                    <span class="stat-label">Arco activo:</span>
+                    <span id="story-arc-active" class="stat-val" style="font-size:0.75rem;">--</span>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:10px;">
+                    <select id="story-arc-select" style="margin:0; flex:1;">
+                        <option value="">(cargando arcos...)</option>
+                    </select>
+                    <button onclick="applySelectedArc()" class="btn-small" style="width: 120px;">SET</button>
+                </div>
+                <div id="story-arc-beats"
+                    style="margin-top:10px; padding:10px; border:1px solid rgba(255,255,255,0.08); border-radius:10px; background: rgba(255,255,255,0.03); font-family:'JetBrains Mono'; font-size:0.68rem; color: rgba(255,255,255,0.75);">
+                    <div style="color: rgba(255,255,255,0.55);">Beats del arco: —</div>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:10px;">
+                    <button onclick="refreshStoryState()" style="flex:1;">🔄 Refresh</button>
+                    <button onclick="resetStoryState()"
+                        style="flex:1; border-color: var(--warning); color: var(--warning);">🧹 Reset</button>
+                </div>
+                <div id="story-lastn"
+                    style="margin-top:10px; max-height: 160px; overflow:auto; font-family:'JetBrains Mono'; font-size:0.68rem; color: var(--text-dim);">
+                    <div style="text-align:center; padding:10px; color: var(--text-dim);">—</div>
+                </div>
+            </div>
+
+            <div class="panel" style="flex: 1;">
+                <h2>🎨 Media Repository</h2>
+
+                <!-- Indicador de Media Activo -->
+                <div id="active-media-indicator" style="display: none;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="color: var(--accent); font-size: 1.2rem;">▶</span>
+                        <div style="flex: 1;">
+                            <div style="color: var(--accent); font-weight: bold; margin-bottom: 4px;"
+                                id="active-media-name"></div>
+                            <div style="font-size: 0.65rem; color: var(--text-dim);" id="active-media-url"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="media-grid">
+                    <div style="grid-column: span 2; text-align: center; padding: 40px; color: var(--text-dim);">
+                        Select a country to load media.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COL 3: AI & INTERVENTIONS -->
+        <div class="col">
+            <div class="panel">
+                <h2>🧠 Neural Core</h2>
+
+                <div class="dream-switch">
+                    <span class="dream-label">DREAM MODE</span>
+                    <button id="btn-dream-toggle" onclick="toggleDreamMode()" style="width: 90px;">OFF</button>
+                </div>
+                <div
+                    style="font-size: 0.7rem; color: var(--purple); margin-top: 8px; text-align: center; padding: 8px; background: rgba(168, 85, 247, 0.05); border-radius: 6px;">
+                    AI controls navigation & media autonomously when ON
+                </div>
+
+                <div class="quick-actions">
+                    <button onclick="triggerForceDream()" style="border-color: var(--purple); color: var(--purple);">✨
+                        Dream</button>
+                    <button onclick="generateNarrative()" style="border-color: var(--accent); color: var(--accent);">📝
+                        Narrate</button>
+                    <button onclick="generateImage()" style="border-color: var(--warning); color: var(--warning);">🎨
+                        Image</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>🌐 Observador (Pulso)</h2>
+                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.65); margin-bottom: 10px;">
+                    Junta noticias + tendencias + cultura/agenda + ciencia/tech + salud + seguridad, calcula keywords y
+                    genera un <code>commentary</code> narrable.
+                </div>
+
+                <div style="display:flex; gap:8px; flex-wrap: wrap; margin-bottom: 10px;">
+                    <button id="observer-only-all" class="btn-small"
+                        style="width:auto; border-color: var(--accent); color: var(--accent);"
+                        onclick="setObserverOnly('all')">ALL</button>
+                    <button id="observer-only-news" class="btn-small" style="width:auto;"
+                        onclick="setObserverOnly('news')">NEWS</button>
+                    <button id="observer-only-trends" class="btn-small" style="width:auto;"
+                        onclick="setObserverOnly('trends')">TRENDS</button>
+                    <button id="observer-only-culture" class="btn-small" style="width:auto;"
+                        onclick="setObserverOnly('culture')">CULTURE</button>
+                    <button id="observer-only-scitech" class="btn-small" style="width:auto;"
+                        onclick="setObserverOnly('scitech')">SCI/TECH</button>
+                    <button id="observer-only-health" class="btn-small" style="width:auto;"
+                        onclick="setObserverOnly('health')">HEALTH</button>
+                    <button id="observer-only-security" class="btn-small" style="width:auto;"
+                        onclick="setObserverOnly('security')">SECURITY</button>
+                </div>
+
+                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px;">
+                    <div>
+                        <div
+                            style="font-size:0.65rem; color: var(--text-dim); margin-bottom:6px; font-family:'JetBrains Mono';">
+                            LANG</div>
+                        <input id="observer-lang" value="es-419" placeholder="es-419" style="margin:0;" />
+                    </div>
+                    <div>
+                        <div
+                            style="font-size:0.65rem; color: var(--text-dim); margin-bottom:6px; font-family:'JetBrains Mono';">
+                            GEO</div>
+                        <input id="observer-geo" value="US" placeholder="US" style="margin:0;" />
+                    </div>
+                    <div>
+                        <div
+                            style="font-size:0.65rem; color: var(--text-dim); margin-bottom:6px; font-family:'JetBrains Mono';">
+                            HOLIDAY CC</div>
+                        <input id="observer-cc" value="ES" placeholder="ES" style="margin:0;" />
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px;">
+                    <button onclick="observerPreviewPulse()"
+                        style="border-color: var(--accent); color: var(--accent);">🔎 PREVIEW PULSO</button>
+                    <button onclick="observerSendPulseToAir()"
+                        style="border-color: var(--danger); color: var(--danger);">📣 ENVIAR AL AIRE</button>
+                </div>
+
+                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px;">
+                    <button onclick="observerCopyCommentary()" class="btn-small" style="width:100%;">📋 COPY</button>
+                    <button onclick="observerToggleJson()" class="btn-small" style="width:100%;">🧾 JSON</button>
+                    <button onclick="observerClearPreview()" class="btn-small"
+                        style="width:100%; border-color: var(--border-light); color: var(--text-main);">🧹
+                        CLEAR</button>
+                </div>
+
+                <div id="observer-preview"
+                    style="border:1px solid rgba(255,255,255,0.08); border-radius:10px; background: rgba(255,255,255,0.03); padding: 10px; font-size: 0.72rem; color: rgba(255,255,255,0.78);">
+                    <div style="color: rgba(255,255,255,0.55); text-align:center; padding:10px;">
+                        Sin preview aún.
+                    </div>
+                </div>
+                <pre id="observer-json"
+                    style="display:none; margin-top:10px; max-height: 220px; overflow:auto; border:1px solid rgba(255,255,255,0.08); border-radius:10px; background:#0a0a0f; padding:10px; font-family:'JetBrains Mono'; font-size:0.62rem; color: rgba(255,255,255,0.75);"></pre>
+            </div>
+
+            <div class="panel">
+                <h2>⚡ Direct Interventions</h2>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                    <button onclick="triggerEvent('fact')">💡 FACT</button>
+                    <button onclick="triggerEvent('glitch')">⚡ GLITCH</button>
+                    <button onclick="triggerEvent('news')"
+                        style="grid-column: span 2; border-color: var(--danger); color: var(--danger);">
+                        🚨 BREAKING NEWS
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>🎵 Music Control</h2>
+                <div style="margin-bottom: 12px;">
+                    <div class="stat-row">
+                        <span class="stat-label">Track:</span>
+                        <span id="music-track-info" class="stat-val" style="font-size: 0.75rem;">--</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Status:</span>
+                        <span id="music-status" class="stat-val"
+                            style="font-size: 0.75rem; color: var(--text-dim);">--</span>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                    <button onclick="toggleMusic()" id="btn-music-toggle">⏸️ PAUSE</button>
+                    <button onclick="nextMusicTrack()">⏭️ NEXT</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>🎛️ Advanced Controls</h2>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                    <button onclick="pauseNarration()">⏸️ PAUSE</button>
+                    <button onclick="resumeNarration()">▶️ RESUME</button>
+                    <button onclick="skipCurrent()">⏭️ SKIP</button>
+                    <button onclick="reloadScene()">🔄 RELOAD</button>
+                </div>
+            </div>
+
+            <div class="panel" style="flex: 1; min-height: 200px;">
+                <h2>📋 Console Log</h2>
+                <div id="console"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { YouTubeOAuth } from '/js/utils/youtube-oauth.js';
+        window.YouTubeOAuth = YouTubeOAuth;
+    </script>
+
+    <script>
+        // --- CONFIG & STATE ---
+        const ALL_COUNTRIES = [
+            { code: '032', name: 'Argentina' }, { code: '076', name: 'Brazil' },
+            { code: '840', name: 'USA' }, { code: '156', name: 'China' },
+            { code: '392', name: 'Japan' }, { code: '250', name: 'France' },
+            { code: '276', name: 'Germany' }, { code: '380', name: 'Italy' },
+            { code: '724', name: 'Spain' }, { code: '826', name: 'UK' },
+            { code: '643', name: 'Russia' }, { code: '356', name: 'India' },
+            { code: '036', name: 'Australia' }, { code: '124', name: 'Canada' },
+            { code: '484', name: 'Mexico' }, { code: '710', name: 'South Africa' }
+        ];
+
+        let sessionActive = false;
+        let dreamMode = false;
+        let globalMediaCache = [];
+        let currentTypeFilter = 'ALL';
+
+        // --- INIT ---
+        window.onload = () => {
+            updateVideowallQuery(); // Inicializar visibilidad del campo query para videowall
+            const sel = document.getElementById('country-select');
+            ALL_COUNTRIES.sort((a, b) => a.name.localeCompare(b.name)).forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.code; opt.text = c.name;
+                sel.add(opt);
+            });
+
+            setInterval(poll, 1000);
+            poll(); // Initial
+
+            // Clips
+            refreshClipMarks();
+            setInterval(refreshClipMarks, 15000);
+
+            // TV + Story
+            refreshTvStatusUi();
+            setInterval(refreshTvStatusUi, 5000);
+            refreshStoryState();
+            setInterval(refreshStoryState, 15000);
+            refreshStoryBible();
+            setInterval(refreshStoryBible, 60000);
+        };
+
+        // --- API & LOG ---
+        function log(msg, type = 'info') {
+            const c = document.getElementById('console');
+            const d = document.createElement('div');
+            const timestamp = new Date().toLocaleTimeString('es-ES');
+            const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '>';
+            d.innerText = `[${timestamp}] ${icon} ${msg}`;
+            d.style.color = type === 'error' ? '#ff6666' : type === 'success' ? '#4ade80' : type === 'warning' ? '#fbbf24' : 'var(--text-dim)';
+            c.prepend(d);
+            if (c.children.length > 100) c.removeChild(c.lastChild);
+        }
+
+        async function api(path, method = 'GET', body = {}) {
+            if (method === 'GET') body = null;
+            try {
+                const opts = { method, headers: { 'Content-Type': 'application/json' } };
+                if (body) opts.body = JSON.stringify(body);
+                const res = await fetch(`/control-api${path}`, opts);
+                return await res.json();
+            } catch (e) {
+                log(`API Error: ${e.message}`, 'error');
+                return null;
+            }
+        }
+
+        // --- OBSERVER (PULSE) ---
+        let observerLast = null;
+        let observerJsonVisible = false;
+        let observerOnly = 'all';
+
+        function _val(id) {
+            return (document.getElementById(id)?.value || '').trim();
+        }
+
+        function getObserverParams() {
+            const lang = (_val('observer-lang') || 'es-419').slice(0, 12);
+            const geo = (_val('observer-geo') || 'US').toUpperCase().slice(0, 2);
+            const cc = (_val('observer-cc') || geo || 'ES').toUpperCase().slice(0, 2);
+            return { lang, geo, cc };
+        }
+
+        function setObserverOnly(value) {
+            observerOnly = (value || 'all').toString().toLowerCase().trim();
+            const ids = ['all', 'news', 'trends', 'culture', 'scitech', 'health', 'security'];
+            ids.forEach(k => {
+                const el = document.getElementById(`observer-only-${k}`);
+                if (!el) return;
+                const active = observerOnly === k;
+                if (active) {
+                    el.style.borderColor = 'var(--accent)';
+                    el.style.color = 'var(--accent)';
+                } else {
+                    el.style.borderColor = 'var(--border)';
+                    el.style.color = 'var(--text-main)';
+                }
+            });
+            log(`Observer filter -> ${observerOnly.toUpperCase()}`, 'info');
+        }
+
+        function esc(s) {
+            return String(s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function renderObserverPreview(data) {
+            const box = document.getElementById('observer-preview');
+            const pre = document.getElementById('observer-json');
+            if (!box) return;
+            if (!data || !data.ok) {
+                box.innerHTML = `<div style="color: rgba(255,255,255,0.65); text-align:center; padding:10px;">No se pudo generar el pulso.</div>`;
+                if (pre) pre.textContent = '';
+                return;
+            }
+
+            const kw = Array.isArray(data.keywords) ? data.keywords : [];
+            const blocks = data.blocks || {};
+            const fmtItems = (items, max = 6) => {
+                const arr = Array.isArray(items) ? items.slice(0, max) : [];
+                if (!arr.length) return `<div style="color: rgba(255,255,255,0.45);">—</div>`;
+                return `<div style="display:flex; flex-direction:column; gap:6px;">` + arr.map(it => {
+                    const t = esc(it.title || '');
+                    const src = esc(it.source || '');
+                    return `<div style="border:1px solid rgba(255,255,255,0.06); background: rgba(0,0,0,0.18); padding:8px; border-radius:10px;">
+                        <div style="font-weight:700; color: rgba(255,255,255,0.9);">${t}</div>
+                        <div style="margin-top:3px; color: rgba(255,255,255,0.55); font-size:0.65rem;">${src}</div>
+                    </div>`;
+                }).join('') + `</div>`;
+            };
+
+            const commentary = esc(data.commentary || '');
+            const kws = kw.slice(0, 10).map(k => {
+                const label = esc(k.keyword || '');
+                const c = Number(k.count || 0);
+                return `<span style="display:inline-block; margin: 4px 6px 0 0; padding: 6px 8px; border-radius: 999px; background: rgba(74,158,255,0.10); border: 1px solid rgba(74,158,255,0.18); font-family:'JetBrains Mono'; font-size:0.62rem; color: rgba(255,255,255,0.85);">${label} <span style="opacity:0.7;">${c}</span></span>`;
+            }).join('');
+
+            box.innerHTML = `
+                <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom:8px;">
+                    <div style="font-family:'JetBrains Mono'; color: rgba(255,255,255,0.6);">Generado: ${esc(data.generatedAt || '--')}</div>
+                    <div style="font-family:'JetBrains Mono'; color: rgba(255,255,255,0.6);">Locale: ${esc(data.locale?.hl || '')} / ${esc(data.locale?.gl || '')}</div>
+                </div>
+                <div style="font-weight:800; color: rgba(255,255,255,0.92); margin-bottom:6px;">Commentary (narrable)</div>
+                <div id="observer-commentary" style="white-space:pre-wrap; line-height:1.55; background: rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px;">${commentary || '—'}</div>
+
+                <div style="margin-top:10px;">
+                    <div style="font-weight:800; color: rgba(255,255,255,0.92); margin-bottom:6px;">Keywords / Tendencias</div>
+                    <div>${kws || '<div style="color: rgba(255,255,255,0.45);">—</div>'}</div>
+                </div>
+
+                <div style="margin-top:12px; display:grid; grid-template-columns: 1fr; gap: 10px;">
+                    <div>
+                        <div style="font-weight:800; color: rgba(255,255,255,0.92); margin-bottom:6px;">Noticias</div>
+                        ${fmtItems(blocks.news, 6)}
+                    </div>
+                    <div>
+                        <div style="font-weight:800; color: rgba(255,255,255,0.92); margin-bottom:6px;">Tendencias</div>
+                        ${fmtItems(blocks.trends, 6)}
+                    </div>
+                    <div>
+                        <div style="font-weight:800; color: rgba(255,255,255,0.92); margin-bottom:6px;">Cultura / Agenda</div>
+                        ${fmtItems(blocks.culture, 4)}
+                    </div>
+                    <div>
+                        <div style="font-weight:800; color: rgba(255,255,255,0.92); margin-bottom:6px;">Ciencia / Tech</div>
+                        ${fmtItems(blocks.scitech, 4)}
+                    </div>
+                    <div>
+                        <div style="font-weight:800; color: rgba(255,255,255,0.92); margin-bottom:6px;">Salud</div>
+                        ${fmtItems(blocks.health, 4)}
+                    </div>
+                    <div>
+                        <div style="font-weight:800; color: rgba(255,255,255,0.92); margin-bottom:6px;">Seguridad</div>
+                        ${fmtItems(blocks.security, 4)}
+                    </div>
+                </div>
+            `;
+
+            if (pre) {
+                pre.textContent = JSON.stringify(data, null, 2);
+                pre.style.display = observerJsonVisible ? 'block' : 'none';
+            }
+        }
+
+        async function observerPreviewPulse() {
+            const { lang, geo, cc } = getObserverParams();
+            const only = observerOnly || 'all';
+            log(`Observer pulse: preview (only=${only} lang=${lang} geo=${geo} cc=${cc})`, 'info');
+            const qsOnly = only && only !== 'all' ? `&only=${encodeURIComponent(only)}` : '';
+            const data = await api(`/api/observer/pulse?lang=${encodeURIComponent(lang)}&geo=${encodeURIComponent(geo)}&cc=${encodeURIComponent(cc)}&max=10${qsOnly}`, 'GET');
+            observerLast = data;
+            renderObserverPreview(data);
+            if (data && data.ok) log('Observer: pulso generado', 'success');
+        }
+
+        async function observerSendPulseToAir() {
+            const { lang, geo, cc } = getObserverParams();
+            const only = observerOnly || 'all';
+            // Warm cache + show preview
+            await observerPreviewPulse();
+            log(`Observer: enviar al aire (only=${only})`, 'warning');
+            await api('/event/observer/pulse', 'POST', { lang, geo, cc, only, max: 10 });
+        }
+
+        function observerCopyCommentary() {
+            try {
+                const txt = (observerLast?.commentary || '').toString().trim();
+                if (!txt) {
+                    log('Observer: no hay commentary para copiar (primero PREVIEW)', 'warning');
+                    return;
+                }
+                navigator.clipboard.writeText(txt);
+                log('Observer: commentary copiado', 'success');
+            } catch (e) {
+                log('Observer: no se pudo copiar (clipboard)', 'warning');
+            }
+        }
+
+        function observerToggleJson() {
+            observerJsonVisible = !observerJsonVisible;
+            const pre = document.getElementById('observer-json');
+            if (pre) pre.style.display = observerJsonVisible ? 'block' : 'none';
+        }
+
+        function observerClearPreview() {
+            observerLast = null;
+            const box = document.getElementById('observer-preview');
+            const pre = document.getElementById('observer-json');
+            if (box) box.innerHTML = `<div style="color: rgba(255,255,255,0.55); text-align:center; padding:10px;">Sin preview aún.</div>`;
+            if (pre) pre.textContent = '';
+        }
+
+        // Init default filter UI
+        try { setObserverOnly('all'); } catch (e) { }
+
+        // --- TV CONTROLS ---
+        function getTvPref(key, fallback = true) {
+            try {
+                const v = localStorage.getItem(key);
+                if (v === null) return fallback;
+                return v !== '0';
+            } catch (e) {
+                return fallback;
+            }
+        }
+        function setTvPref(key, enabled) {
+            try { localStorage.setItem(key, enabled ? '1' : '0'); } catch (e) { }
+        }
+        function refreshTvStatusUi() {
+            const rec = document.getElementById('tv-recaps-status');
+            const bum = document.getElementById('tv-bumpers-status');
+            if (rec) rec.textContent = getTvPref('tv_recaps_enabled', true) ? 'ON' : 'OFF';
+            if (bum) bum.textContent = getTvPref('tv_bumpers_enabled', true) ? 'ON' : 'OFF';
+        }
+        async function recapNow() {
+            log('Recap NOW', 'info');
+            await api('/event/recap/now', 'POST', {});
+        }
+        async function bumperNow() {
+            log('Bumper NOW', 'info');
+            await api('/event/bumper/now', 'POST', {});
+        }
+        async function resetAgenda() {
+            log('Reset Agenda', 'warning');
+            await api('/event/agenda/reset', 'POST', {});
+        }
+        async function showRunnerStart() {
+            const mission = (document.getElementById('showrunner-mission')?.value || '').trim();
+            log("Start Show Runner 60'", 'success');
+            // Asegurar AutoMode ON (evita depender de toggle)
+            await api('/event/auto_on', 'POST', {});
+            await api('/event/show/start', 'POST', { mission });
+        }
+        async function showRunnerStop() {
+            log('Stop Show Runner', 'warning');
+            await api('/event/show/stop', 'POST', {});
+        }
+        async function showRunnerNext() {
+            log('Show Runner: Next Bloque', 'info');
+            await api('/event/show/next', 'POST', {});
+        }
+        async function showRunnerSetMission() {
+            const mission = (document.getElementById('showrunner-mission')?.value || '').trim();
+            log('Guardar misión del día', 'info');
+            await api('/event/show/mission', 'POST', { mission });
+        }
+        function safePrompt(message, defaultValue = '') {
+            try {
+                return window.prompt(message, defaultValue);
+            } catch (e) {
+                // Algunos entornos (p.ej. tests automatizados) no soportan prompt().
+                return null;
+            }
+        }
+        async function toggleTvSettings() {
+            const rec = getTvPref('tv_recaps_enabled', true);
+            const bum = getTvPref('tv_bumpers_enabled', true);
+            let newRec = rec;
+            let newBum = bum;
+            const choice = safePrompt('TV Toggles (ej: "recaps off" o "bumpers on")', 'recaps on');
+            if (choice) {
+                const c = choice.toLowerCase();
+                if (c.includes('recaps')) newRec = c.includes('off') ? false : true;
+                if (c.includes('bumpers')) newBum = c.includes('off') ? false : true;
+            } else {
+                // Fallback sin prompt(): dos confirms independientes.
+                newRec = window.confirm(`Recaps actualmente: ${rec ? 'ON' : 'OFF'}\nOK = ON | Cancel = OFF`);
+                newBum = window.confirm(`Bumpers actualmente: ${bum ? 'ON' : 'OFF'}\nOK = ON | Cancel = OFF`);
+            }
+            setTvPref('tv_recaps_enabled', newRec);
+            setTvPref('tv_bumpers_enabled', newBum);
+            refreshTvStatusUi();
+            await api('/event/tv/toggles', 'POST', { recapsEnabled: newRec, bumpersEnabled: newBum });
+            log(`TV toggles -> recaps=${newRec ? 'ON' : 'OFF'} bumpers=${newBum ? 'ON' : 'OFF'}`, 'success');
+        }
+
+        // --- RUTA CONTROLS (Panel) ---
+        async function rutaTogglePlay() {
+            log('Ruta: Toggle Play/Pause', 'info');
+            await api('/event/ruta/play_toggle', 'POST', {});
+        }
+        async function rutaToggleFollow() {
+            log('Ruta: Toggle Follow/Free', 'info');
+            await api('/event/ruta/follow_toggle', 'POST', {});
+        }
+
+        // --- CLIP MARKERS ---
+        function formatSinceStart(sec) {
+            if (sec === null || sec === undefined) return '--:--';
+            const s = Number(sec);
+            const m = Math.floor(s / 60);
+            const r = s % 60;
+            return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+        }
+
+        async function refreshClipMarks() {
+            const box = document.getElementById('clip-marks-list');
+            if (!box) return;
+            const data = await api('/api/clip/marks', 'GET');
+            const marks = data?.marks || [];
+            if (!Array.isArray(marks) || marks.length === 0) {
+                box.innerHTML = `<div style="text-align:center; padding:10px; color: var(--text-dim);">Sin marcas aún.</div>`;
+                return;
+            }
+
+            const items = marks.slice().reverse().slice(0, 30).map(m => {
+                const t = formatSinceStart(m.sinceStartSec);
+                const title = (m.title || m.type || 'clip').toString().slice(0, 120);
+                const scene = (m.scene || '').toString();
+                const next = (m.next || '').toString();
+                const note = (m.note || '').toString().slice(0, 90);
+                const text = `[${t}] ${title}${scene ? ` | scene=${scene}` : ''}${next ? ` | next=${next}` : ''}${note ? ` | ${note}` : ''}`;
+                const safeText = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const encoded = encodeURIComponent(text);
+                return `
+                    <div style="padding:8px; border:1px solid rgba(255,255,255,0.08); border-radius:10px; margin-bottom:8px; background: rgba(255,255,255,0.03);">
+                        <div style="display:flex; justify-content:space-between; gap:10px;">
+                            <div style="color: rgba(255,255,255,0.85); font-family: 'JetBrains Mono';">${safeText}</div>
+                            <button style="font-size:0.65rem; padding:6px 8px;" onclick="copyClipText('${encoded}')">COPY</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            box.innerHTML = items;
+        }
+
+        async function clearClipMarks() {
+            if (!confirm('Clear all clip markers?')) return;
+            await api('/api/clip/clear', 'POST', {});
+            await refreshClipMarks();
+        }
+
+        function copyClipText(encodedText) {
+            try {
+                const decoded = decodeURIComponent(encodedText || '');
+                navigator.clipboard.writeText(decoded);
+                log('Clip marker copiado al portapapeles', 'success');
+            } catch (e) {
+                log('No se pudo copiar (clipboard)', 'warning');
+            }
+        }
+
+        // --- STORY / ARC ---
+        async function refreshStoryState() {
+            const arcEl = document.getElementById('story-arc-active');
+            const box = document.getElementById('story-lastn');
+            const data = await api('/api/story/state', 'GET');
+            if (!data || !data.ok) return;
+            if (arcEl) arcEl.textContent = data.activeArcId || '--';
+            const lastN = data.lastN || [];
+            if (!box) return;
+            if (!Array.isArray(lastN) || lastN.length === 0) {
+                box.innerHTML = `<div style="text-align:center; padding:10px; color: var(--text-dim);">Sin historial.</div>`;
+                return;
+            }
+            box.innerHTML = lastN.slice().reverse().map(x => {
+                const t = new Date(x.ts || Date.now()).toLocaleTimeString('es-ES');
+                const line = `[${t}] ${x.scene || '—'} ${x.country || '—'} · ${String(x.narrativeHint || '').slice(0, 140)}`;
+                const safe = line.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return `<div style="padding:6px 8px; border-bottom:1px solid rgba(255,255,255,0.06);">${safe}</div>`;
+            }).join('');
+        }
+        let storyBibleCache = null;
+        async function refreshStoryBible() {
+            const sel = document.getElementById('story-arc-select');
+            const beatsEl = document.getElementById('story-arc-beats');
+            if (!sel) return;
+            const data = await api('/api/story/bible', 'GET');
+            if (!data || !data.ok) {
+                sel.innerHTML = `<option value="">(no se pudo cargar)</option>`;
+                return;
+            }
+            storyBibleCache = data;
+            const arcs = Array.isArray(data.arcs) ? data.arcs : [];
+            if (arcs.length === 0) {
+                sel.innerHTML = `<option value="">(sin arcos)</option>`;
+                return;
+            }
+            sel.innerHTML = `<option value="">(sin arco)</option>` + arcs.map(a => {
+                const id = String(a.id || '');
+                const title = String(a.title || '');
+                const safeTitle = title.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return `<option value="${id}">${id} — ${safeTitle}</option>`;
+            }).join('');
+
+            sel.onchange = () => {
+                const id = sel.value;
+                const arc = arcs.find(x => x.id === id);
+                const beats = arc?.beats || [];
+                if (!beatsEl) return;
+                if (!id) {
+                    beatsEl.innerHTML = `<div style="color: rgba(255,255,255,0.55);">Beats del arco: —</div>`;
+                    return;
+                }
+                beatsEl.innerHTML = `
+                    <div style="font-weight:700; color: rgba(255,255,255,0.9); margin-bottom:6px;">${arc.id} · ${arc.title}</div>
+                    <div style="color: rgba(255,255,255,0.7);">- ${beats.map(b => String(b).replace(/</g, '&lt;').replace(/>/g, '&gt;')).join('<br>- ')}</div>
+                `;
+            };
+            // disparar para pintar beats iniciales
+            sel.onchange();
+        }
+
+        async function applySelectedArc() {
+            const sel = document.getElementById('story-arc-select');
+            const arcId = (sel?.value || '').trim();
+            if (!arcId) {
+                log('Arco: (sin arco) — no se cambia (usa RESET si querés limpiar historial)', 'warning');
+                return;
+            }
+            const res = await api('/api/story/arc', 'POST', { arcId });
+            if (res && res.ok) log(`Arco activo -> ${arcId}`, 'success');
+            else log(`No se pudo setear arco.`, 'warning');
+            refreshStoryState();
+        }
+        async function resetStoryState() {
+            if (!confirm('Reset story history?')) return;
+            await api('/api/story/reset', 'POST', {});
+            refreshStoryState();
+        }
+
+        // --- EDITORIAL ACTIONS ---
+        async function startDay() {
+            const id = document.getElementById('day-id-input').value;
+            const isTest = document.getElementById('sim-mode').checked;
+            if (!id) {
+                alert("Enter Day ID");
+                return;
+            }
+            log(`Starting Editorial Day: ${id} (Test: ${isTest})`, 'info');
+            const result = await api('/event/day/start', 'POST', { id, isTest });
+            if (result) log(`Day started successfully`, 'success');
+        }
+
+        async function endDay() {
+            if (!confirm("End Session and Archive?")) return;
+            log("Ending Session...", 'warning');
+            const result = await api('/event/day/end', 'POST');
+            if (result) log(`Session ended successfully`, 'success');
+        }
+
+        async function changeScene(name) {
+            log(`Scene -> ${name}`, 'info');
+            await api(`/event/scene/${name}`);
+        }
+
+        async function travelNow() {
+            const code = document.getElementById('country-select').value;
+            if (!code) return;
+            log(`Flying to: ${code}`, 'info');
+            await api(`/event/travel/${code}`);
+        }
+
+        async function addToQueue() {
+            const code = document.getElementById('country-select').value;
+            if (!code) return;
+            log(`+ Queue: ${code}`, 'info');
+            await api('/event/queue/add', 'POST', { code });
+        }
+
+        async function clearQueue() {
+            if (!confirm("Clear entire queue?")) return;
+            log("Clearing queue...", 'warning');
+            await api('/event/queue/clear', 'POST');
+        }
+
+        async function toggleDreamMode() {
+            log("Toggling Dream/Auto Mode...", 'info');
+            await api('/event/auto_toggle', 'POST');
+        }
+
+        async function generateNarrative() {
+            const code = document.getElementById('country-select').value;
+            if (!code) {
+                alert("Select a country first");
+                return;
+            }
+            log("Generating narrative...", 'info');
+            await api('/api/generate-narrative', 'POST', { countryCode: code });
+        }
+
+        async function generateImage() {
+            const code = document.getElementById('country-select').value;
+            if (!code) {
+                alert("Select a country first");
+                return;
+            }
+            const prompt = safePrompt("Image prompt:", "");
+            if (!prompt) return;
+            log("Generating image...", 'info');
+            await api('/api/generate-image', 'POST', { prompt });
+        }
+
+        async function pauseNarration() {
+            log("Pausing narration...", 'warning');
+
+            // Cancelar speech localmente si está activo
+            if (window.speechSynthesis && window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+                log("Speech cancelado localmente", 'info');
+            }
+
+            // Enviar comando a todas las ventanas abiertas usando BroadcastChannel
+            if (window.broadcastChannel) {
+                window.broadcastChannel.postMessage({ type: 'pause_narration' });
+                log("Comando pause enviado vía BroadcastChannel", 'info');
+            }
+
+            await api('/event/pause', 'POST');
+        }
+
+        async function resumeNarration() {
+            log("Resuming narration...", 'info');
+            await api('/event/resume', 'POST');
+        }
+
+        async function skipCurrent() {
+            log("Skipping current...", 'warning');
+
+            // Cancelar speech inmediatamente
+            if (window.speechSynthesis && window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+                log("Speech cancelado para skip", 'warning');
+            }
+
+            // Intentar cancelar en curiosidades
+            try {
+                const curiositiesWindow = window.open('', '_blank');
+                if (curiositiesWindow && curiositiesWindow.cancelCuriositiesSpeech) {
+                    curiositiesWindow.cancelCuriositiesSpeech();
+                }
+            } catch (e) {
+                if (window.broadcastChannel) {
+                    window.broadcastChannel.postMessage({ type: 'skip-speech' });
+                }
+            }
+
+            await api('/event/skip', 'POST');
+        }
+
+        async function reloadScene() {
+            log("Reloading scene...", 'warning');
+            window.location.reload();
+        }
+
+        async function loadCountryMedia() {
+            const gridContainer = document.getElementById('media-grid').parentNode;
+            if (!document.getElementById('media-filters')) {
+                const filterDiv = document.createElement('div');
+                filterDiv.id = 'media-filters';
+                filterDiv.className = 'media-filters';
+                filterDiv.innerHTML = `
+                    <button class="filter-btn active" onclick="setMediaFilter('ALL')">ALL</button>
+                    <button class="filter-btn" onclick="setMediaFilter('image')">IMG</button>
+                    <button class="filter-btn" onclick="setMediaFilter('video')">VID</button>
+                    <button class="filter-btn" onclick="setMediaFilter('AI')" style="color:cyan; border-color:cyan;">AI</button>
+                `;
+                gridContainer.insertBefore(filterDiv, document.getElementById('media-grid'));
+            }
+
+            const grid = document.getElementById('media-grid');
+            grid.innerHTML = '<div style="grid-column:span 2; text-align:center; padding:20px; color:var(--text-dim);">Loading Server Media...</div>';
+
+            try {
+                const mediaFiles = await api('/api/media-list');
+                globalMediaCache = mediaFiles || [];
+                renderMediaGrid();
+            } catch (e) {
+                console.error(e);
+                grid.innerHTML = '<div style="grid-column:span 2; text-align:center; padding:20px; color:var(--danger);">Error loading media.</div>';
+            }
+        }
+
+        function setMediaFilter(type) {
+            currentTypeFilter = type;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderMediaGrid();
+        }
+
+        function renderMediaGrid() {
+            const grid = document.getElementById('media-grid');
+            grid.innerHTML = "";
+            const selectEl = document.getElementById('country-select');
+            const rawText = selectEl.options[selectEl.selectedIndex]?.text || '';
+            const countryName = rawText.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '').trim();
+
+            const controlsDiv = document.getElementById('media-filters');
+
+            // Botón Generate AI
+            let genBtn = document.getElementById('ai-gen-btn');
+            if (currentTypeFilter === 'AI') {
+                if (!genBtn) {
+                    genBtn = document.createElement('button');
+                    genBtn.id = 'ai-gen-btn';
+                    genBtn.innerText = "✨ CREATE NEW DREAM";
+                    genBtn.style.width = "100%";
+                    genBtn.style.marginBottom = "8px";
+                    genBtn.style.background = "linear-gradient(45deg, #a855f7, #ec4899)";
+                    genBtn.style.color = "white";
+                    genBtn.style.border = "none";
+                    genBtn.onclick = async () => {
+                        const userPrompt = safePrompt("Descripción del sueño (Imagen):", `Paisaje onírico de ${countryName}`);
+                        if (userPrompt) {
+                            genBtn.innerText = "Dreaming... ⏳";
+                            try {
+                                await api('/api/generate-image', 'POST', { prompt: userPrompt });
+                                log("Dream created!", 'success');
+                                loadCountryMedia();
+                            } catch (e) {
+                                log(`Error dreaming: ${e}`, 'error');
+                            } finally {
+                                genBtn.innerText = "✨ CREATE NEW DREAM";
+                            }
+                        }
+                    };
+                    controlsDiv.after(genBtn);
+                }
+                genBtn.style.display = 'block';
+            } else {
+                if (genBtn) genBtn.style.display = 'none';
+            }
+
+            // Checkbox Narración
+            if (!document.getElementById('narrate-toggle-div')) {
+                const narrateDiv = document.createElement('div');
+                narrateDiv.id = 'narrate-toggle-div';
+                narrateDiv.innerHTML = `<label style="font-size:0.7rem; color:var(--text-dim); display:flex; align-items:center; gap:8px; margin-bottom:8px; padding:8px; background:rgba(74,158,255,0.05); border-radius:6px;"><input type="checkbox" id="narrate-checkbox" checked> 🗣️ Narrate with AI</label>`;
+                controlsDiv.after(narrateDiv);
+            }
+
+            const filtered = globalMediaCache.filter(m => {
+                const folder = (m.folder || "").toLowerCase();
+                const target = countryName.toLowerCase();
+                const folderMatch = folder.includes(target) || target.includes(folder) || folder === 'global';
+
+                let typeMatch = true;
+                if (currentTypeFilter === 'AI') typeMatch = m.name.includes('AI_');
+                else if (currentTypeFilter !== 'ALL') typeMatch = (m.type === currentTypeFilter);
+
+                return folderMatch && typeMatch;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div style="grid-column:span 2; text-align:center; padding:20px; color:var(--text-dim);">No media for ${countryName}.<br><small>Upload to /media/${countryName}/</small></div>`;
+                return;
+            }
+
+            filtered.forEach(m => {
+                const el = document.createElement('div');
+                el.className = 'media-item';
+
+                let preview = '';
+                if (m.type === 'video') preview = `<div style="height:100px; background:#000; color:#fff; display:flex; align-items:center; justify-content:center; border-radius:6px;">🎥</div>`;
+                else if (m.type === 'audio') preview = `<div style="height:100px; background:#222; color:#fff; display:flex; align-items:center; justify-content:center; border-radius:6px;">🎵</div>`;
+                else preview = `<div style="height:100px; background:url('${m.url}') center/cover; border-radius:6px;"></div>`;
+
+                const safeUrl = m.url.replace(/'/g, "\\'");
+                const safeName = m.name.replace(/'/g, "\\'");
+                const safeType = m.type.replace(/'/g, "\\'");
+
+                el.innerHTML = `
+                    ${preview}
+                    <div style="font-size:0.65rem; margin:8px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-dim);">${m.name}</div>
+                    <button onclick="launchMedia('${safeUrl}', '${safeType}', '${safeName}')" style="font-size:0.65rem; background:#27272a; width:100%;" data-media-name="${safeName}" data-media-url="${safeUrl}">LAUNCH</button>
+                `;
+                grid.appendChild(el);
+            });
+        }
+
+        document.getElementById('country-select').addEventListener('change', () => renderMediaGrid());
+
+        async function launchMedia(url, type, name) {
+            const narrateEl = document.getElementById('narrate-checkbox');
+            const narrate = narrateEl ? narrateEl.checked : false;
+
+            const indicator = document.getElementById('active-media-indicator');
+            const mediaName = document.getElementById('active-media-name');
+            const mediaUrl = document.getElementById('active-media-url');
+
+            const buttons = document.querySelectorAll(`button[data-media-url="${url}"]`);
+
+            if (indicator && mediaName && mediaUrl) {
+                indicator.style.display = 'block';
+                mediaName.textContent = name;
+                mediaUrl.textContent = url;
+
+                buttons.forEach(btn => {
+                    btn.style.background = 'var(--accent)';
+                    btn.style.color = '#000';
+                    btn.textContent = '▶ Lanzando...';
+                    btn.disabled = true;
+                });
+            }
+
+            log(`🚀 Launching Media: ${name} (${type}) - Narrate: ${narrate}`, 'info');
+
+            const restoreButtons = () => {
+                buttons.forEach(btn => {
+                    btn.style.background = '#27272a';
+                    btn.style.color = 'white';
+                    btn.textContent = 'LAUNCH';
+                    btn.disabled = false;
+                });
+            };
+
+            try {
+                const result = await api('/event/media', 'POST', { url, type, name, narrate });
+
+                if (result && result.success) {
+                    log(`✅ Media launched successfully`, 'success');
+                    if (result.narrative) {
+                        log(`📝 Narrative: "${result.narrative}"`, 'info');
+                    }
+
+                    setTimeout(() => {
+                        if (indicator) indicator.style.display = 'none';
+                        restoreButtons();
+                    }, 5000);
+                } else {
+                    throw new Error('Launch failed');
+                }
+            } catch (e) {
+                log(`❌ Error launching media: ${e.message}`, 'error');
+                if (indicator) indicator.style.display = 'none';
+                restoreButtons();
+            }
+        }
+
+        async function triggerEvent(type) {
+            log(`Triggering Event: ${type}`, 'warning');
+            await api(`/event/${type}`);
+        }
+
+        async function triggerForceDream() {
+            log("Forcing Dream Generation...", 'info');
+            await api('/api/dream', 'POST');
+        }
+
+        async function toggleMusic() {
+            log("Toggling music...", 'info');
+            const result = await api('/event/music/toggle', 'POST');
+            if (result) {
+                log(`Music ${result.isPlaying ? 'resumed' : 'paused'}`, result.isPlaying ? 'success' : 'warning');
+            }
+        }
+
+        async function nextMusicTrack() {
+            log("Changing to next track...", 'info');
+            const result = await api('/event/music/next', 'POST');
+            if (result) {
+                log(`Changed to track ${result.currentTrack + 1}`, 'success');
+            }
+        }
+
+        function getBookPageFromScene(scene, telemetry) {
+            const sceneMap = {
+                'intro': '📖 Portada del Viaje',
+                'mapa': '🌍 Mapa Global (Ubicación)',
+                'pais': telemetry?.country ? `🏳️ País: ${telemetry.country}` : '🏳️ Detalle de País',
+                'reflexion': '💭 Reflexión',
+                'portada': '📖 Portada del Viaje',
+                'diario': '📔 Diario de Viaje',
+                'estado-actual': '⚡ Estado Actual',
+                'continente': '🌐 Vista de Continente',
+                'ruta': '🗺️ Ruta del Viaje',
+                'estadisticas': '📊 Estadísticas Globales',
+                'galeria': '🎬 Galería Multimedia'
+            };
+
+            return sceneMap[scene] || `📄 ${scene || 'Desconocida'}`;
+        }
+
+        // --- POLLING ---
+        async function poll() {
+            const data = await api('/status');
+            if (!data) return;
+
+            // 1. Session Status
+            const ed = data.editorial || {};
+            sessionActive = (ed.status === 'LIVE');
+            const recStatus = document.getElementById('rec-status');
+            const btnStart = document.getElementById('btn-start-day');
+            const btnEnd = document.getElementById('btn-end-day');
+
+            if (sessionActive) {
+                recStatus.className = "rec-indicator rec-live";
+                recStatus.querySelector('span').innerText = `LIVE: ${ed.dayId}`;
+                btnStart.style.display = 'none';
+                btnEnd.style.display = 'block';
+                document.getElementById('day-id-input').style.display = 'none';
+
+                const diff = Math.floor((Date.now() - ed.startTime) / 1000);
+                const h = Math.floor(diff / 3600).toString().padStart(2, '0');
+                const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+                const s = (diff % 60).toString().padStart(2, '0');
+                document.getElementById('session-timer').innerText = `${h}:${m}:${s}`;
+
+                if (ed.currentVisit) {
+                    document.getElementById('live-visit').innerText = ed.currentVisit.country;
+                } else {
+                    document.getElementById('live-visit').innerText = "TRANSIT / INTRO";
+                }
+
+            } else {
+                recStatus.className = "rec-indicator";
+                recStatus.querySelector('span').innerText = "SESSION IDLE";
+                btnStart.style.display = 'block';
+                btnEnd.style.display = 'none';
+                document.getElementById('day-id-input').style.display = 'block';
+                document.getElementById('session-timer').innerText = "00:00:00";
+            }
+
+            // 2. Current Scene (preferir telemetría del cliente si existe)
+            const serverScene = (data.currentScene || 'intro').toString().toLowerCase();
+            const telSceneRaw = (data.clientTelemetry && data.clientTelemetry.scene) ? String(data.clientTelemetry.scene) : '';
+            const telScene = telSceneRaw ? telSceneRaw.toLowerCase() : '';
+            const effectiveScene = telScene || serverScene;
+            document.getElementById('current-scene-display').textContent = `Scene: ${effectiveScene.toUpperCase()}`;
+
+            // Ruta controls: solo visibles/habilitados cuando la escena efectiva es ruta
+            const rutaPanel = document.getElementById('ruta-controls-panel');
+            const btnRutaPlay = document.getElementById('btn-ruta-play');
+            const btnRutaFollow = document.getElementById('btn-ruta-follow');
+            const isRuta = effectiveScene === 'ruta';
+            if (rutaPanel) rutaPanel.style.display = isRuta ? 'block' : 'none';
+            if (btnRutaPlay) btnRutaPlay.disabled = !isRuta;
+            if (btnRutaFollow) btnRutaFollow.disabled = !isRuta;
+
+            // 3. Playlist
+            const pl = document.getElementById('playlist-container');
+            if (data.queue && data.queue.length) {
+                pl.innerHTML = data.queue.map((c, i) => `<div>${i + 1}. ${c}</div>`).join('');
+            } else {
+                pl.innerText = "(Empty Queue)";
+            }
+
+            // 4. Dream Mode
+            const btnDream = document.getElementById('btn-dream-toggle');
+            if (data.autoMode) {
+                btnDream.innerText = "ON";
+                btnDream.className = "active-red";
+            } else {
+                btnDream.innerText = "OFF";
+                btnDream.className = "";
+            }
+
+            // 4b. Show Runner
+            const sr = data.showRunner || {};
+            const srStatusEl = document.getElementById('showrunner-status');
+            const srMissionInput = document.getElementById('showrunner-mission');
+            if (srStatusEl) {
+                srStatusEl.textContent = sr.active ? '▶ ACTIVO' : '⏸ INACTIVO';
+                srStatusEl.style.color = sr.active ? 'var(--success)' : 'var(--text-dim)';
+            }
+            if (srMissionInput && typeof sr.mission === 'string') {
+                if (!srMissionInput.value) srMissionInput.value = sr.mission;
+            }
+
+            // 5. Hoja del Libro
+            const bookPageEl = document.getElementById('book-page');
+            if (bookPageEl) {
+                const telemetry = data.clientTelemetry || {};
+                const bookPage = getBookPageFromScene(effectiveScene, telemetry);
+                bookPageEl.textContent = bookPage;
+            }
+
+            // 6. Memoria del País
+            const countryMemoryEl = document.getElementById('country-memory');
+            if (countryMemoryEl && data.clientTelemetry && data.clientTelemetry.country &&
+                data.clientTelemetry.country !== 'GLOBAL' && data.clientTelemetry.country !== 'UNKNOWN') {
+                fetch(`/control-api/api/country-memory/${data.clientTelemetry.country}`)
+                    .then(res => res.json())
+                    .then(memory => {
+                        if (memory.totalVisits > 0) {
+                            countryMemoryEl.textContent = `${memory.totalVisits} visita(s)`;
+                            countryMemoryEl.title = `Última visita: ${new Date(memory.lastVisit).toLocaleString('es-ES')}`;
+                        } else {
+                            countryMemoryEl.textContent = 'Primera visita';
+                            countryMemoryEl.title = '';
+                        }
+                    })
+                    .catch(e => {
+                        countryMemoryEl.textContent = '--';
+                    });
+            } else if (countryMemoryEl) {
+                countryMemoryEl.textContent = '--';
+            }
+
+            // 7. Statistics
+            if (ed.visits) {
+                document.getElementById('stat-total-visits').textContent = ed.visits.length;
+                const uniqueCountries = new Set(ed.visits.map(v => v.country));
+                document.getElementById('stat-countries-visited').textContent = uniqueCountries.size;
+            }
+
+            // 8. Memory Status (cada 5 segundos para no sobrecargar)
+            if (Date.now() % 5000 < 1000) {
+                refreshMemories();
+            }
+
+            // 9. Actualizar total de hojas del libro
+            updateBookPagesCount();
+
+            // 10. Actualizar estado de música
+            if (data.music) {
+                const musicStatusEl = document.getElementById('music-status');
+                const musicTrackEl = document.getElementById('music-track-info');
+                const musicToggleBtn = document.getElementById('btn-music-toggle');
+
+                if (musicStatusEl) {
+                    musicStatusEl.textContent = data.music.isPlaying ? '▶ Playing' : '⏸ Paused';
+                    musicStatusEl.style.color = data.music.isPlaying ? 'var(--success)' : 'var(--text-dim)';
+                }
+
+                if (musicTrackEl) {
+                    musicTrackEl.textContent = `${data.music.currentTrack + 1}/${2}`;
+                }
+
+                if (musicToggleBtn) {
+                    musicToggleBtn.textContent = data.music.isPlaying ? '⏸️ PAUSE' : '▶️ PLAY';
+                }
+            }
+        }
+
+        // Memory Management
+        let lastMemoryRefresh = 0;
+        async function refreshMemories() {
+            try {
+                const data = await api('/api/country-memory');
+                if (data && data.memories) {
+                    document.getElementById('memory-total').textContent = data.total || 0;
+
+                    // Encontrar la última modificación
+                    if (data.memories.length > 0) {
+                        const sorted = data.memories.sort((a, b) =>
+                            new Date(b.lastModified) - new Date(a.lastModified)
+                        );
+                        const last = sorted[0];
+                        const lastDate = new Date(last.lastModified);
+                        const now = new Date();
+                        const diffMs = now - lastDate;
+                        const diffMins = Math.floor(diffMs / 60000);
+                        const diffSecs = Math.floor((diffMs % 60000) / 1000);
+
+                        let timeAgo = '';
+                        if (diffMins < 1) {
+                            timeAgo = `${diffSecs}s ago`;
+                        } else if (diffMins < 60) {
+                            timeAgo = `${diffMins}m ago`;
+                        } else {
+                            const diffHours = Math.floor(diffMins / 60);
+                            timeAgo = `${diffHours}h ago`;
+                        }
+
+                        document.getElementById('memory-last-save').textContent = timeAgo;
+                        document.getElementById('memory-last-save').title = lastDate.toLocaleString('es-ES');
+                    } else {
+                        document.getElementById('memory-last-save').textContent = 'Never';
+                    }
+
+                    // Mostrar lista de memorias
+                    const memoryListEl = document.getElementById('memory-list');
+                    if (data.memories.length === 0) {
+                        memoryListEl.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-dim);">No memories yet</div>';
+                    } else {
+                        memoryListEl.innerHTML = data.memories
+                            .sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified))
+                            .slice(0, 10)
+                            .map(m => {
+                                const sizeKB = (m.fileSize / 1024).toFixed(1);
+                                const date = new Date(m.lastModified);
+                                return `
+                                    <div style="padding: 6px 8px; margin-bottom: 4px; background: rgba(34, 197, 94, 0.05); border-left: 3px solid var(--success); border-radius: 4px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <span style="color: var(--success); font-weight: bold;">${m.countryId}</span>
+                                            <span style="font-size: 0.65rem;">${m.totalVisits} visit(s)</span>
+                                        </div>
+                                        <div style="font-size: 0.6rem; color: var(--text-dim); margin-top: 2px;">
+                                            ${sizeKB} KB • ${date.toLocaleDateString('es-ES', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('');
+                    }
+
+                    lastMemoryRefresh = Date.now();
+
+                    // Actualizar lista de memorias en la sección de Hojas del Libro
+                    updateBookMemoriesList(data.memories);
+                }
+            } catch (e) {
+                console.error('Error refreshing memories:', e);
+                log(`Error refreshing memories: ${e.message}`, 'error');
+            }
+        }
+
+        // Actualizar total de hojas del libro
+        async function updateBookPagesCount() {
+            try {
+                const res = await fetch('/control-api/api/country-memory');
+                if (!res.ok) return;
+
+                const data = await res.json();
+                const memories = data.memories || [];
+
+                // Calcular total de visitas
+                const totalVisits = memories.reduce((sum, m) => sum + (m.totalVisits || 0), 0);
+
+                // Actualizar total de hojas del libro
+                const fixedPages = 4; // Portada, Intro, Mapa, Índice
+                const dynamicPages = 4; // Diario, Estado Actual, Reflexión, País
+                const totalPages = fixedPages + dynamicPages + totalVisits;
+                const totalPagesEl = document.getElementById('book-total-pages');
+                if (totalPagesEl) totalPagesEl.textContent = totalPages;
+            } catch (e) {
+                console.error('Error updating book pages count:', e);
+            }
+        }
+
+        // Actualizar lista de memorias en la sección de Hojas del Libro
+        function updateBookMemoriesList(memories) {
+            const memoriesListEl = document.getElementById('book-memories-list');
+            const memoryCountEl = document.getElementById('book-memory-count');
+
+            if (!memories || memories.length === 0) {
+                if (memoriesListEl) {
+                    memoriesListEl.innerHTML = '<div style="text-align: center; padding: 10px; color: var(--text-dim);">No hay memorias guardadas</div>';
+                }
+                if (memoryCountEl) memoryCountEl.textContent = '0';
+                return;
+            }
+
+            // Calcular total de visitas
+            const totalVisits = memories.reduce((sum, m) => sum + (m.totalVisits || 0), 0);
+            if (memoryCountEl) memoryCountEl.textContent = totalVisits;
+
+            // Actualizar total de hojas del libro
+            const fixedPages = 4; // Portada, Intro, Mapa, Índice
+            const dynamicPages = 9; // Diario, Estado Actual, Reflexión, País, Curiosidades, Continente, Ruta, Estadísticas, Galería
+            const totalPages = fixedPages + dynamicPages + totalVisits;
+            const totalPagesEl = document.getElementById('book-total-pages');
+            if (totalPagesEl) totalPagesEl.textContent = totalPages;
+
+            // Renderizar lista de memorias
+            if (memoriesListEl) {
+                memoriesListEl.innerHTML = memories
+                    .sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified))
+                    .map(m => {
+                        const date = new Date(m.lastModified);
+                        const countryName = getCountryName(m.countryId);
+                        return `<div class="book-memory-item" onclick="navigateToPage('/memoria/pais/${countryName.toLowerCase()}/')" title="Ver memoria de ${countryName}">
+                            <div class="memory-header">
+                                <span class="memory-country">${countryName || m.countryId}</span>
+                                <span class="memory-visits">${m.totalVisits} visita${m.totalVisits !== 1 ? 's' : ''}</span>
+                            </div>
+                            <div class="memory-date">${date.toLocaleDateString('es-ES')} ${date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</div>
+                        </div>`;
+                    }).join('');
+            }
+        }
+
+        // Obtener nombre del país desde el ID (mapping básico)
+        function getCountryName(countryId) {
+            // Mapeo básico de códigos ISO a nombres
+            const countryMap = {
+                '124': 'Chile',
+                '276': 'Alemania',
+                '528': 'Países Bajos',
+                '616': 'Polonia',
+                '858': 'Uruguay',
+                '032': 'Argentina',
+                '076': 'Brasil',
+                '170': 'Colombia',
+                '152': 'Chile',
+                '218': 'Ecuador',
+                '484': 'México',
+                '604': 'Perú',
+                '840': 'Estados Unidos',
+                '724': 'España',
+                '250': 'Francia',
+                '380': 'Italia',
+                '826': 'Reino Unido'
+            };
+            return countryMap[countryId] || `País ${countryId}`;
+        }
+
+        // Navegar a una página del libro
+        // Canal de comunicación con la página del streaming (para páginas que usan main.js)
+        const streamChannel = new BroadcastChannel('stream-navigation');
+
+        function navigateToPage(path) {
+            log(`Navegando a: ${path}`, 'info');
+
+            // Método 1: Enviar mensaje via BroadcastChannel (para páginas que usan main.js)
+            // Esto solo funciona si la página de streaming está abierta
+            try {
+                streamChannel.postMessage({ type: 'navigate', path: path });
+            } catch (e) {
+                console.warn('Error enviando mensaje BroadcastChannel:', e);
+            }
+
+            // Método 2: También enviar evento al servidor (para páginas que usan eventManager)
+            const pathMatch = path.match(/\/vivos\/([^\/]+)/);
+            if (pathMatch) {
+                const pageName = pathMatch[1];
+                // Enviar evento de navegación al servidor
+                api(`/event/navigate/${pageName}`, 'POST', { path: path }).catch(() => { });
+            }
+
+            // Método 3: Abrir directamente en nueva pestaña si el usuario hace clic con Ctrl/Cmd
+            // O mostrar las URLs para referencia
+            console.log(`URL completa: ${window.location.origin}${path}`);
+        }
+
+        // START POLLING
+        setInterval(poll, 1000);
+        poll(); // Initial call
+        refreshMemories(); // Initial memory load
+
+        // ---------------------------
+        // YouTube Integration (global)
+        // ---------------------------
+        function getYouTubeConfig() {
+            try {
+                return {
+                    apiKey: localStorage.getItem('youtube_api_key') || '',
+                    videoId: localStorage.getItem('youtube_video_id') || '',
+                    clientId: localStorage.getItem('youtube_client_id') || ''
+                };
+            } catch (e) {
+                return { apiKey: '', videoId: '', clientId: '' };
+            }
+        }
+
+        function setYouTubeConfig({ apiKey, videoId, clientId }) {
+            try {
+                if (typeof apiKey === 'string') localStorage.setItem('youtube_api_key', apiKey.trim());
+                if (typeof videoId === 'string') localStorage.setItem('youtube_video_id', videoId.trim());
+                if (typeof clientId === 'string') localStorage.setItem('youtube_client_id', clientId.trim());
+            } catch (e) { }
+        }
+
+        function updateOAuthStatus() {
+            const statusEl = document.getElementById('youtube-oauth-status');
+            if (!statusEl) return;
+
+            let token = '';
+            let refresh = '';
+            let expiry = '';
+            try {
+                token = localStorage.getItem('youtube_oauth_token') || '';
+                refresh = localStorage.getItem('youtube_refresh_token') || '';
+                expiry = localStorage.getItem('youtube_token_expiry') || '';
+            } catch (e) { }
+
+            if (token && expiry) {
+                const expiryTime = parseInt(expiry, 10);
+                const now = Date.now();
+                const margin = 5 * 60 * 1000;
+
+                if (Number.isFinite(expiryTime) && now < expiryTime - margin) {
+                    statusEl.textContent = '✓ Autenticado';
+                    statusEl.style.color = 'var(--success)';
+                } else if (refresh) {
+                    statusEl.textContent = '⚠ Token expirado (se refrescará automáticamente)';
+                    statusEl.style.color = 'var(--warning)';
+                } else {
+                    statusEl.textContent = '✗ Token expirado (requiere re-autenticación)';
+                    statusEl.style.color = 'var(--danger)';
+                }
+            } else {
+                statusEl.textContent = 'No autenticado';
+                statusEl.style.color = 'var(--warning)';
+            }
+        }
+
+        async function maybeRefreshYouTubeToken() {
+            try {
+                const expiry = parseInt(localStorage.getItem('youtube_token_expiry') || '0', 10);
+                const refreshToken = localStorage.getItem('youtube_refresh_token') || '';
+                const accessToken = localStorage.getItem('youtube_oauth_token') || '';
+                const margin = 5 * 60 * 1000;
+                if (!accessToken || !expiry || !refreshToken) return;
+                if (Date.now() < (expiry - margin)) return;
+
+                const res = await fetch('/control-api/api/youtube/oauth/refresh', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refreshToken })
+                });
+                const data = await res.json();
+                if (res.ok && data && data.access_token && data.expires_in) {
+                    localStorage.setItem('youtube_oauth_token', data.access_token);
+                    localStorage.setItem('youtube_token_expiry', String(Date.now() + Number(data.expires_in) * 1000));
+                }
+            } catch (e) { }
+        }
+
+        window.saveYouTubeConfig = function saveYouTubeConfig() {
+            const apiKey = document.getElementById('youtube-api-key')?.value?.trim() || '';
+            const videoId = document.getElementById('youtube-video-id')?.value?.trim() || '';
+            const clientId = document.getElementById('youtube-client-id')?.value?.trim() || '';
+            setYouTubeConfig({ apiKey, videoId, clientId });
+            log('YouTube config guardada', 'success');
+            updateOAuthStatus();
+        };
+
+        window.clearYouTubeAuth = function clearYouTubeAuth() {
+            if (!confirm('Borrar tokens OAuth de YouTube (localStorage)?')) return;
+            try {
+                localStorage.removeItem('youtube_oauth_token');
+                localStorage.removeItem('youtube_refresh_token');
+                localStorage.removeItem('youtube_token_expiry');
+            } catch (e) { }
+            updateOAuthStatus();
+            log('YouTube OAuth limpiado', 'warning');
+        };
+
+        window.authenticateYouTube = async function authenticateYouTube() {
+            const { clientId } = getYouTubeConfig();
+            const cid = (document.getElementById('youtube-client-id')?.value?.trim() || clientId || '').trim();
+            if (!cid) {
+                alert('Configura primero el OAuth Client ID (y guardalo).');
+                return;
+            }
+
+            try {
+                const redirectUri = `${window.location.origin}/vivos/youtube/oauth-callback.html`;
+                const el = document.getElementById('yt-redirect-uri');
+                if (el) el.textContent = redirectUri;
+
+                const OAuth = window.YouTubeOAuth;
+                if (!OAuth) throw new Error('YouTubeOAuth no cargado');
+
+                const oauth = new OAuth({ clientId: cid, redirectUri });
+                log('Iniciando OAuth…', 'info');
+                await oauth.authorize();
+                updateOAuthStatus();
+                alert('✓ Autenticación exitosa.');
+            } catch (e) {
+                updateOAuthStatus();
+                alert('✗ Error en autenticación: ' + (e?.message || String(e)));
+            }
+        };
+
+        // Init YouTube fields/status
+        (function initYouTubeIntegration() {
+            try {
+                const redirectUri = `${window.location.origin}/vivos/youtube/oauth-callback.html`;
+                const el = document.getElementById('yt-redirect-uri');
+                if (el) el.textContent = redirectUri;
+
+                const cfg = getYouTubeConfig();
+                const apiKeyEl = document.getElementById('youtube-api-key');
+                const videoIdEl = document.getElementById('youtube-video-id');
+                const clientIdEl = document.getElementById('youtube-client-id');
+                if (apiKeyEl) apiKeyEl.value = cfg.apiKey || '';
+                if (videoIdEl) videoIdEl.value = cfg.videoId || '';
+                if (clientIdEl) clientIdEl.value = cfg.clientId || '';
+
+                updateOAuthStatus();
+                setInterval(() => {
+                    maybeRefreshYouTubeToken().finally(updateOAuthStatus);
+                }, 30 * 1000);
+            } catch (e) { }
+        })();
+    </script>
+</body>
+
+</html>

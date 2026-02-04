@@ -46,6 +46,19 @@ export const COUNTRY_INFO = {
         name: "Argentina",
         region: "SA",
         timezone: "America/Argentina/Buenos_Aires",
+        immediateTexts: [
+            `[ILFASS]: Hemos llegado a Argentina. Siento una energía particular aquí.
+[COMPANION]: Mis datos indican que Argentina es un punto clave en esta región.
+[ILFASS]: Así es. Profundicemos en su realidad.`,
+
+            `[ILFASS]: Estamos en Argentina. Observo el paisaje y me pregunto qué historias guarda.
+[COMPANION]: Argentina tiene una geografía diversa y una población activa.
+[ILFASS]: Es un escenario perfecto para nuestra documentación.`,
+
+            `[ILFASS]: Argentina se despliega ante nosotros.
+[COMPANION]: Confirmado. Iniciando escaneo de patrones culturales en Argentina.
+[ILFASS]: Excelente. Veamos qué nos revela este lugar.`
+        ],
         facts: [
             "El Aconcagua es la montaña más alta de los hemisferios sur y occidental.",
             "Es el lugar de nacimiento del tango.",

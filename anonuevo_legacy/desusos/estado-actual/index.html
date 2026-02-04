@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Viaje de ilfass - Estado Actual</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 4rem;
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .label {
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #64748b;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .value {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .highlight {
+            color: #38bdf8;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="label">Ubicación Actual</div>
+        <div class="value" id="country">Cargando...</div>
+
+        <div class="grid">
+            <div>
+                <div class="label">Día del Ciclo</div>
+                <div class="value highlight" id="day">--</div>
+            </div>
+            <div>
+                <div class="label">Tema del Día</div>
+                <div class="value" id="theme">--</div>
+            </div>
+        </div>
+
+        <div class="label">Fase Global</div>
+        <div class="value" style="font-size: 1.5rem; color: #94a3b8;">Entusiasmo (América)</div>
+    </div>
+
+    <script>
+        // Simulación de conexión con el sistema principal
+        // En producción, esto podría usar window.parent.streamManager si es mismo origen
+        // o hacer fetch a /control-api/status
+
+        async function updateStatus() {
+            try {
+                // Intentar obtener contexto del padre si estamos en iframe
+                if (window.parent && window.parent.streamManager) {
+                    const context = window.parent.streamManager.getCurrentContext();
+                    document.getElementById('country').textContent = context.countryId || 'Desconocido';
+                    document.getElementById('day').textContent = `Día ${context.dayOfVisit}`;
+                    document.getElementById('theme').textContent = context.theme;
+                } else {
+                    // Fallback visual
+                    document.getElementById('country').textContent = 'Argentina';
+                    document.getElementById('day').textContent = 'Día 1';
+                    document.getElementById('theme').textContent = 'HISTORIA';
+                }
+            } catch (e) {
+                console.error("Error updating status:", e);
+            }
+        }
+
+        setInterval(updateStatus, 1000);
+        updateStatus();
+    </script>
+</body>
+
+</html>

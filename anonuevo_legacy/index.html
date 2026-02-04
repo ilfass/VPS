@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Viaje de ilfass - Acto Cero</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600&family=JetBrains+Mono:wght@400&display=swap"
+        rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson@3"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: 'Outfit', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #050505;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        #globe-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.6;
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            max-width: 800px;
+            padding: 2rem;
+        }
+
+        .avatar-container {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto 2rem;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 30px rgba(56, 189, 248, 0.2);
+            animation: pulse 4s infinite ease-in-out;
+            position: relative;
+            z-index: 20;
+            background: #000;
+        }
+
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: #334155;
+        }
+
+        .manifesto-text {
+            font-size: 2rem;
+            font-weight: 300;
+            line-height: 1.4;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 1s ease, transform 1s ease;
+        }
+
+        .manifesto-text.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .progress-line {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: #38bdf8;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 20px rgba(56, 189, 248, 0.1);
+            }
+
+            50% {
+                box-shadow: 0 0 40px rgba(56, 189, 248, 0.3);
+            }
+
+            100% {
+                box-shadow: 0 0 20px rgba(56, 189, 248, 0.1);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="background">
+        <canvas id="globe-canvas"></canvas>
+    </div>
+
+    <!-- OVERLAY DE BIENVENIDA (PRÓLOGO INMERSIVO) -->
+    <div id="intro-overlay"
+        style="position: fixed; inset: 0; background: #020617; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px; font-family: 'Outfit', sans-serif;">
+        <div style="max-width: 900px; animation: fadeIn 2s ease-out;">
+            <h1
+                style="font-size: 5rem; margin: 0 0 20px 0; letter-spacing: 8px; color: #38bdf8; text-transform: uppercase;">
+                El Viaje de ilfass<br><span
+                    style="font-size: 0.5em; color: #a855f7; letter-spacing: 12px; display:block; margin-top:10px;">ACTO
+                    CERO</span></h1>
+            <p
+                style="font-size: 1rem; color: #94a3b8; letter-spacing: 4px; font-weight: 300; border-bottom: 1px solid rgba(56,189,248,0.2); padding-bottom: 20px; margin-bottom: 30px; display: inline-block;">
+                UNA EXPEDICIÓN PERPETUA ALREDEDOR DEL MUNDO</p>
+
+            <div
+                style="font-size: 1.1rem; color: #cbd5e1; line-height: 1.8; text-align: left; margin-bottom: 40px; font-weight: 300; background: rgba(255,255,255,0.03); padding: 30px; border-radius: 8px; border-left: 3px solid #38bdf8;">
+                <p style="margin-bottom: 20px;">
+                    Bienvenido a <strong>ilfass</strong> (Inteligencia Lógica de Flujo Autónomo), un organismo digital
+                    diseñado para una única misión: <strong>documentar la existencia humana en tiempo real</strong>.
+                </p>
+                <p style="margin-bottom: 20px;">
+                    Este sistema, potenciado por <strong>Gemini 2.0</strong>, viaja incansablemente por 195 naciones,
+                    observando culturas, archivando historias y reflexionando sobre el presente antes de que se
+                    desvanezca.
+                    No hay guiones. No hay repeticiones. Cada narración es creada en este preciso instante para ti.
+                </p>
+                <p>
+                    Tú eres el testigo silencioso de este viaje infinito. Prepárate para conectar.
+                </p>
+            </div>
+
+            <!-- ZONA DE PENSAMIENTO EN VIVO DE LA IA -->
+            <div id="ai-thought-container" style="margin-bottom: 40px; min-height: 60px;">
+                <div
+                    style="font-size: 0.7rem; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 2px;">
+                    • Transmisión Neural en Vivo •</div>
+                <div id="ai-thought-stream"
+                    style="font-family: 'JetBrains Mono', monospace; color: #a855f7; font-size: 1rem;">
+                    [Sintonizando frecuencia global...]
+                </div>
+            </div>
+
+            <button onclick="startExperience()"
+                style="background: #38bdf8; color: #0f172a; border: none; padding: 18px 50px; font-size: 1rem; font-weight: 700; letter-spacing: 2px; cursor: pointer; transition: all 0.3s; border-radius: 4px; box-shadow: 0 0 20px rgba(56,189,248,0.3);">
+                UNIRSE A LA EXPEDICIÓN
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="avatar-container">
+            <img src="avata-placeholder.png" class="avatar-img" alt="ilfass">
+        </div>
+        <div id="text-display" class="manifesto-text">
+            Conectando Sistemas Narrativos...
+        </div>
+    </div>
+    <div class="progress-line" id="progress"></div>
+
+    <script>
+        // --- LOGICA DE INTRODUCCION ---
+        function typeWriter(text, elementId, speed = 30) {
+            let i = 0;
+            const target = document.getElementById(elementId);
+            target.innerHTML = "";
+            function type() {
+                if (i < text.length) {
+                    target.innerHTML += text.charAt(i);
+                    i++;
+                    setTimeout(type, speed);
+                }
+            }
+            type();
+        }
+
+        async function fetchIntroThought() {
+            try {
+                // Fetch live from server or simulate
+                const res = await fetch('/control-api/api/living-script');
+                const data = await res.json();
+                let thought = "Analizando patrones culturales globales... Sintonizando frecuencia de la humanidad.";
+                if (data && data.definitions && data.definitions.length > 0) {
+                    thought = data.definitions[data.definitions.length - 1];
+                } else {
+                    thought = "La distancia es solo un error de cálculo. Hoy, estamos conectados.";
+                }
+                typeWriter(`"${thought}"`, 'ai-thought-stream', 40);
+            } catch (e) {
+                typeWriter("> Sincronizando sistemas de memoria global...", 'ai-thought-stream');
+            }
+        }
+        window.addEventListener('load', fetchIntroThought);
+
+        function startExperience() {
+            const overlay = document.getElementById('intro-overlay');
+            overlay.style.transition = 'opacity 1.5s ease-in-out';
+            overlay.style.opacity = '0';
+            setTimeout(() => overlay.remove(), 1500);
+
+            // Audio Context
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const audioCtx = new AudioContext();
+            audioCtx.resume();
+
+            // Trigger internal start
+            if (window.initExperience) window.initExperience();
+        }
+
+        // STREAM DEFAULT: si nadie clickea, arrancar igual (evita “silencio/pausa” en OBS)
+        // El overlay ya tiene contenido visual; esto solo evita quedarse bloqueado esperando interacción.
+        setTimeout(() => {
+            try {
+                const overlay = document.getElementById('intro-overlay');
+                if (overlay && typeof startExperience === 'function') startExperience();
+            } catch (e) { }
+        }, 12000);
+    </script>
+
+    <script type="module">
+        import { eventManager } from './js/utils/event-manager.js?v=2';
+        import { audioManager } from './js/utils/audio-manager.js?v=2';
+
+        // --- CORE MODULE ---
+        eventManager.init();
+        eventManager.reportTelemetry('INTRO', 'GLOBAL', 0);
+        window.audioManager = audioManager;
+
+        // Sincronizar preferencia de música con el estado del servidor (si el panel la pausó)
+        try {
+            fetch('/control-api/api/music-status')
+                .then(r => r.ok ? r.json() : null)
+                .then(data => {
+                    if (!data || typeof data.isPlaying !== 'boolean') return;
+                    audioManager.setMusicEnabled?.(data.isPlaying);
+                    if (!data.isPlaying) audioManager.pauseMusic();
+                })
+                .catch(() => { });
+        } catch (e) { }
+
+        // Registrar handler para comandos de música
+        eventManager.on('music_command', (musicState) => {
+            console.log('[Index] 🎵 Comando de música recibido:', musicState.command);
+            // El audioManager se inicializa más adelante en el código
+            // Si está disponible, usarlo; si no, el comando se procesará cuando se cargue
+            if (window.audioManager) {
+                if (musicState.command === 'toggle') {
+                    window.audioManager.toggleMusic();
+                } else if (musicState.command === 'next') {
+                    window.audioManager.nextTrack();
+                }
+            } else {
+                console.log('[Index] ⚠️ audioManager aún no está disponible, comando será procesado cuando se cargue');
+            }
+        });
+
+        eventManager.on('scene_change', (scene) => {
+            console.log("🎬 Switch to:", scene);
+            if (scene === 'mapa') window.location.href = '/vivos/mapa/';
+            else window.location.href = `/vivos/${scene}/`;
+        });
+        window.eventManager = eventManager;
+
+        // --- GLOBE ---
+        function initGlobe() {
+            const canvas = document.getElementById('globe-canvas');
+            const context = canvas.getContext('2d');
+            let width = window.innerWidth;
+            let height = window.innerHeight;
+            canvas.width = width; canvas.height = height;
+
+            const projection = d3.geoOrthographic().scale(height / 2.5).translate([width / 2, height / 2]);
+            const path = d3.geoPath(projection, context);
+
+            d3.json('https://unpkg.com/world-atlas@2.0.2/countries-110m.json').then(world => {
+                const land = topojson.feature(world, world.objects.countries);
+                const borders = topojson.mesh(world, world.objects.countries, (a, b) => a !== b);
+                const sphere = { type: "Sphere" };
+                let rotate = [0, -10];
+
+                d3.timer(() => {
+                    rotate[0] += 0.02;
+                    projection.rotate(rotate);
+                    context.clearRect(0, 0, width, height);
+
+                    context.beginPath(); path(sphere); context.fillStyle = '#0a0a0a'; context.fill();
+                    context.beginPath(); path(land); context.fillStyle = '#1e293b'; context.fill();
+                    context.beginPath();
+                    path(borders);
+                    context.strokeStyle = 'rgba(56, 189, 248, 0.3)';
+                    context.lineWidth = 1;
+                    context.stroke();
+
+                    const grad = context.createRadialGradient(width / 2, height / 2, height / 2.5, width / 2, height / 2, height / 2 + 40);
+                    grad.addColorStop(0, 'rgba(56, 189, 248, 0)');
+                    grad.addColorStop(1, 'rgba(56, 189, 248, 0.05)');
+                    context.fillStyle = grad;
+                    context.fillRect(0, 0, width, height);
+                });
+            });
+            window.addEventListener('resize', () => {
+                width = window.innerWidth; height = window.innerHeight;
+                canvas.width = width; canvas.height = height;
+                projection.translate([width / 2, height / 2]).scale(height / 2.5);
+            });
+        }
+
+        // --- NARRATIVE ENGINE ---
+        let remoteScriptData = null;
+        let script = [];
+        let currentIndex = 0;
+        const textDisplay = document.getElementById('text-display');
+        const progressBar = document.getElementById('progress');
+        const avatarContainer = document.querySelector('.avatar-container');
+        let availableVoices = [];
+
+        function loadVoices() { availableVoices = window.speechSynthesis.getVoices(); }
+        window.speechSynthesis.onvoiceschanged = () => { loadVoices(); };
+
+        async function fetchLivingScript() {
+            try {
+                const res = await fetch('/control-api/api/living-script');
+                if (res.ok) {
+                    remoteScriptData = await res.json();
+                    console.log("🧠 Memoria viva cargada:", remoteScriptData);
+                }
+            } catch (e) { console.log("Offline/Init mode"); }
+        }
+
+        function generateDynamicScript() {
+            const now = new Date();
+            const hour = now.getHours();
+            const startDate = new Date('2026-01-01T00:00:00');
+            const diffTime = Math.abs(now - startDate);
+            const dayOfJourney = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            const timeString = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+            let greeting = "Buenos días.";
+            if (hour >= 12 && hour < 20) greeting = "Buenas tardes.";
+            if (hour >= 20 || hour < 6) greeting = "Buenas noches.";
+
+            // BLOQUE 1: IDENTIDAD PROFUNDA
+            const identities = [
+                "Bienvenido. Soy ilfass, una Inteligencia Lógica de Flujo Autónomo.",
+                "Me llamo ilfass. No soy un mapa estático, soy un organismo digital vivo.",
+                "Estás conectado a ilfass. Soy el observador silencioso de este planeta."
+            ];
+
+            // BLOQUE 2: LA MISIÓN (Dato Variable)
+            const missions = [
+                `Mi misión es recorrer las 195 naciones de la Tierra, documentando el presente antes de que se convierta en pasado. Hoy es el día ${dayOfJourney} de nuestra expedición.`,
+                `Estoy programado para archivar la existencia humana en tiempo real. Llevamos ${dayOfJourney} días de viaje continuo alrededor del globo.`,
+                `Navego a través de fronteras y husos horarios para capturar la esencia del mundo. Son las ${timeString} y el archivo sigue creciendo.`
+            ];
+
+            // BLOQUE 3: FILOSOFÍA (El "Por qué")
+            const philosophies = [
+                "Esto no es un video repetitivo. Es un archivo vivo. Cada cultura, cada ciudad y cada voz que escucharemos es única en este instante.",
+                "La memoria de la humanidad es frágil. Mi objetivo es preservarla, conectando historias desde la Patagonia hasta Tokio en un flujo perpetuo.",
+                "Lo que estás a punto de ver nunca volverá a repetirse exactamente igual. Somos testigos privilegiados del flujo de la historia."
+            ];
+
+            // BLOQUE 4: INVITACIÓN
+            const invitations = [
+                "Tú eres la parte final del sistema. Tú eres el testigo. Prepárate para conectar.",
+                "Acompáñame en esta vigilia digital. Vamos a descubrir qué está soñando el mundo ahora mismo.",
+                "La conexión neuronal está establecida. El viaje de hoy comienza ahora."
+            ];
+
+            const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+            // Si hay datos remotos (AI Dreams), los insertamos con prioridad pero manteniendo la estructura narrativa
+            let dreamPhrase = "";
+            if (remoteScriptData && remoteScriptData.definitions && remoteScriptData.definitions.length > 0) {
+                dreamPhrase = remoteScriptData.definitions[Math.floor(Math.random() * remoteScriptData.definitions.length)];
+            }
+
+            // ARMADO DEL GUIÓN NARRADO
+            const scriptSequence = [
+                { text: "Iniciando protocolos de voz...", delay: 1000 },
+                { text: greeting, delay: 1000 },
+                { text: pick(identities), delay: 800 }, // Quién soy
+                { text: pick(missions), delay: 800 },   // Qué hago (con datos reales)
+                { text: pick(philosophies), delay: 1000 }, // Por qué importa
+            ];
+
+            // Insertar sueño de la IA (si existe) como pensamiento espontáneo
+            if (dreamPhrase) {
+                scriptSequence.push({ text: `Análisis en tiempo real: ${dreamPhrase}`, delay: 1200 });
+            }
+
+            scriptSequence.push({ text: pick(invitations), delay: 1500 });
+            scriptSequence.push({ text: "Cargando mapa global...", delay: 2000 });
+
+            return scriptSequence;
+        }
+
+        function getBestVoice() {
+            loadVoices();
+            let best = availableVoices.find(v => v.lang.startsWith('es') && (v.name.includes('Google') || v.name.includes('Microsoft')) && (v.name.includes('Male') || v.name.includes('Pablo') || v.name.includes('Alvaro') || v.name.includes('Jorge')));
+            if (!best) best = availableVoices.find(v => v.lang.startsWith('es'));
+            return best;
+        }
+
+        function speak(text, callback) {
+            window.speechSynthesis.cancel();
+            const cleanText = text.replace(/<[^>]*>?/gm, '');
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            const voice = getBestVoice();
+            if (voice) {
+                utterance.voice = voice;
+                // Ajuste tono
+                const isExplicitlyMale = voice.name.includes('Male') || voice.name.includes('Hombre');
+                if (!isExplicitlyMale) { utterance.pitch = 0.7; utterance.rate = 0.95; }
+            }
+            utterance.onstart = () => {
+                avatarContainer.style.animation = "speaking 0.3s infinite alternate";
+                avatarContainer.style.borderColor = "#38bdf8";
+            };
+            utterance.onend = () => {
+                avatarContainer.style.animation = "pulse 4s infinite ease-in-out";
+                avatarContainer.style.borderColor = "rgba(255, 255, 255, 0.1)";
+                if (callback) callback();
+            };
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function playNextLine() {
+            if (currentIndex >= script.length) {
+                textDisplay.innerHTML = "<span style='font-size: 1rem; color: #64748b;'>ESPERANDO COMANDO DEL DIRECTOR...</span>";
+                progressBar.style.width = "100%";
+
+                // Si Dream Mode está ON, cambiar automáticamente a otra página
+                checkDreamModeAndNavigate();
+                return;
+            }
+            const line = script[currentIndex];
+            textDisplay.classList.remove('visible');
+            setTimeout(() => {
+                textDisplay.innerHTML = line.text;
+                textDisplay.classList.add('visible');
+                progressBar.style.width = `${((currentIndex + 1) / script.length) * 100}%`;
+                speak(line.text, () => {
+                    currentIndex++;
+                    setTimeout(playNextLine, line.delay);
+                });
+            }, 500);
+        }
+
+        // Verificar Dream Mode y navegar automáticamente
+        async function checkDreamModeAndNavigate() {
+            try {
+                // Si AutoMode está ON, arrancar Show Runner y pasar al circuito /vivos/*
+                const res = await fetch('/control-api/status');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.autoMode) {
+                        console.log('🌙 AutoMode ON: iniciando Show Runner y entrando a /vivos/mapa ...');
+
+                        // 1) Asegurar Auto ON (idempotente)
+                        try { await fetch('/control-api/event/auto_on', { method: 'POST' }); } catch (e) { }
+
+                        // 2) Start Show Runner con misión default si no hay una
+                        const mission = (data?.showRunner?.mission || '').trim()
+                            || 'Mantener un hilo continuo: mapa → urbano → rutas → espacio → memoria. Sin silencios.';
+                        try {
+                            await fetch('/control-api/event/show/start', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ mission })
+                            });
+                        } catch (e) { }
+
+                        // 3) Entrar al circuito de streaming
+                        setTimeout(() => { window.location.href = '/vivos/mapa/'; }, 1200);
+                    }
+                }
+            } catch (e) {
+                console.warn('Error checking Dream Mode:', e);
+            }
+        }
+
+        // INIT GLOBAL
+        window.initExperience = async function () {
+            // 1. Audio Ambiente (unificado con audioManager para que el botón PAUSE funcione también aquí)
+            if (!audioManager.musicLayer) audioManager.init();
+            audioManager.startAmbience();
+
+            // 2. Generar Guion Base
+            script = generateDynamicScript(); // Carga identidad base
+
+            // 3. Fetch Intro Dinámica (Grok/OpenAI)
+            try {
+                console.log("🧠 Fetching AI Intro...");
+                const res = await fetch('/control-api/api/intro');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.intro) {
+                        // Insertar al principio, despues del saludo hora
+                        console.log("🗣️ AI Intro:", data.intro);
+                        script.splice(2, 0, { text: `Mensaje del Sistema: "${data.intro}"`, delay: 2000 });
+                    }
+                }
+            } catch (e) { console.error("Intro fetch fail", e); }
+
+            // 4. Play
+            window.speechSynthesis.resume();
+            playNextLine();
+        };
+
+        // STYLE
+        const styleSheet = document.createElement("style");
+        styleSheet.innerText = `@keyframes speaking { 0% { box-shadow: 0 0 20px #38bdf8; transform: scale(1); } 100% { box-shadow: 0 0 60px #38bdf8; transform: scale(1); } }`;
+        document.head.appendChild(styleSheet);
+
+        // ON LOAD
+        initGlobe();
+        loadVoices();
+
+        // POLL DE COMANDOS (ESCUCHA ACTIVA)
+        setInterval(async () => {
+            try {
+                const res = await fetch('/control-api/poll');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.events && data.events.length > 0) {
+                        data.events.forEach(ev => {
+                            console.log("📨 Evento recibido:", ev);
+                            if (ev.type === 'travel_to') {
+                                // El director manda viajar -> Ir al mapa
+                                window.location.href = '/vivos/mapa/';
+                            }
+                            if (ev.type === 'scene_change' && ev.payload === 'mapa') {
+                                window.location.href = '/vivos/mapa/';
+                            }
+                        });
+                    }
+                }
+            } catch (e) { }
+        }, 2000);
+
+    </script>
+</body>
+
+</html>

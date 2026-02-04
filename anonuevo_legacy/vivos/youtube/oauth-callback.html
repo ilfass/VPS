@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube OAuth Callback</title>
+  <style>
+    body {
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background: #0a0a0f;
+      color: #e8e8f0;
+    }
+    .container { text-align: center; padding: 40px; max-width: 560px; }
+    .spinner {
+      border: 4px solid rgba(56, 189, 248, 0.2);
+      border-top: 4px solid #38bdf8;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="spinner"></div>
+    <p>Procesando autenticación…</p>
+  </div>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const error = urlParams.get('error');
+    const state = urlParams.get('state');
+
+    function post(type, payload) {
+      try {
+        window.opener?.postMessage({ type, ...payload }, window.location.origin);
+      } catch (e) {}
+    }
+
+    if (error) {
+      post('youtube_oauth_error', { error, state });
+      document.querySelector('.container').innerHTML = `
+        <h2 style="color:#ef4444;">Error de autenticación</h2>
+        <p><code>${String(error).replace(/</g,'&lt;')}</code></p>
+        <p style="font-size:0.9rem;color:#a0a0b0;">Esta ventana se cerrará automáticamente.</p>
+      `;
+      setTimeout(() => window.close(), 3500);
+    } else if (code) {
+      post('youtube_oauth_success', { code, state });
+      document.querySelector('.container').innerHTML = `
+        <h2 style="color:#22c55e;">✓ Autenticación exitosa</h2>
+        <p>Podés volver al panel. Esta ventana se cerrará automáticamente.</p>
+      `;
+      setTimeout(() => window.close(), 1500);
+    } else {
+      post('youtube_oauth_error', { error: 'no_authorization_code_received', state });
+      document.querySelector('.container').innerHTML = `
+        <h2 style="color:#ef4444;">Error</h2>
+        <p>No se recibió código de autorización.</p>
+        <p style="font-size:0.9rem;color:#a0a0b0;">Esta ventana se cerrará automáticamente.</p>
+      `;
+      setTimeout(() => window.close(), 3500);
+    }
+  </script>
+</body>
+</html>
+
