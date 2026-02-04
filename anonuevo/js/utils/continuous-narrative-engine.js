@@ -60,14 +60,24 @@ export class ContinuousNarrativeEngine {
     }
 
     buildNarrativePrompt(country, context, hasBeenVisited, accumulatedNarrative, previousVisits, currentNews = '') {
+        const isContinuation = context.isContinuation;
+
         let prompt = `Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana en tiempo real. Viajas acompañado por COMPANION, una entidad auxiliar más técnica y curiosa.
+        
+        Estás visitando ${country.name}.`;
 
-Estás visitando ${country.name}.`;
-
-        if (hasBeenVisited) {
-            prompt += `\n\nYa has visitado este país ${previousVisits.length} vez(ces) antes. Tu narrativa previa incluye:\n${accumulatedNarrative}\n\nAhora estás de vuelta. Construye sobre lo que ya sabes.`;
+        if (isContinuation) {
+            prompt += `\n\nESTA ES UNA CONTINUACIÓN DEL DIÁLOGO ANTERIOR (RONDA 2).
+             NO SALUDES NI DIGAS "HEMOS LLEGADO". YA ESTAMOS AQUÍ.
+             
+             Objetivo: Profundizar en un aspecto específico (Curiosidad técnica, futuro, o detalle cultural único).
+             `;
         } else {
-            prompt += `\n\nEs tu primera vez aquí.`;
+            if (hasBeenVisited) {
+                prompt += `\n\nYa has visitado este país ${previousVisits.length} vez(ces) antes. Tu narrativa previa incluye:\n${accumulatedNarrative}\n\nAhora estás de vuelta. Construye sobre lo que ya sabes.`;
+            } else {
+                prompt += `\n\nEs tu primera vez aquí.`;
+            }
         }
 
         prompt += `\n\nGenera un GUION DE DIÁLOGO entre [ILFASS] y [COMPANION] sobre ${country.name}.
@@ -77,17 +87,21 @@ FORMATO OBLIGATORIO:
 [COMPANION]: Texto...
 (Alternar al menos 3 o 4 veces)
 
-TEMAS A CUBRIR (Integrados en la charla):
-1. **CULTURA E HISTORIA**: Tradiciones, identidad.
-2. **DATOS CURIOSOS**: Algo técnico o sorprendente (Rol de COMPANION).
-3. **NOTICIAS (Si hay)**: ${currentNews ? `Mencionar esto: ${currentNews}` : 'Contexto actual.'}
-4. **SENSACIONES**: Reflexión filosófica de ILFASS.
+TEMAS A CUBRIR:
+${isContinuation ?
+                `1. UN DATO CURIOSO O TÉCNICO ESPECÍFICO (Foco de COMPANION).
+     2. REFLEXIÓN SOBRE ESE DATO (Foco de ILFASS).`
+                :
+                `1. CULTURA E HISTORIA GENERAL.
+     2. IMPRESIONES INICIALES.`}
+
+${currentNews ? `MENCIONAR BREVEMENTE: ${currentNews}` : ''}
 
 ESTILO:
-- ILFASS: Filosófico, poético, observador de la condición humana.
-- COMPANION: Precisa, aporta datos, curiosa, analítica.
+- ILFASS: Filosófico, poético.
+- COMPANION: Precisa, analítica.
 
-El diálogo debe sentirse como dos entidades descubriendo el lugar juntas en tiempo real. No muy largo, dinámico.`;
+El diálogo debe ser dinámico y fluido.`;
 
         if (context.theme) {
             prompt += `\n\nEnfócate especialmente en: ${context.theme}`;

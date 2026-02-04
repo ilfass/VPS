@@ -1322,26 +1322,36 @@ Genera una introducción en primera persona (como ilfass) que:
         return immediateTexts[Math.floor(Math.random() * immediateTexts.length)];
     }
 
-    async startContinuousNarrative(target, context, timing) {
+    async startContinuousNarrative(target, context, timing, isContinuation = false) {
         const visitStartTime = Date.now();
 
         try {
-            console.log(`[Mapa] Iniciando relato continuo para ${target.name}...`);
+            console.log(`[Mapa] Iniciando relato continuo para ${target.name} (Ronda ${isContinuation ? '2' : '1'})...`);
 
-            // TEXTO INICIAL INMEDIATO
-            const immediateCountryText = this.getImmediateCountryText(target);
+            // --- FASE 1: AUDIO/TEXTO INICIAL ---
+            // Solo si es la primera ronda usamos el texto inmediato
+            let immediateCountryText = "";
 
-            if (!avatarSubtitlesManager.container) {
-                avatarSubtitlesManager.init(this.container);
+            if (!isContinuation) {
+                immediateCountryText = this.getImmediateCountryText(target);
+
+                if (!avatarSubtitlesManager.container) {
+                    avatarSubtitlesManager.init(this.container);
+                }
+                // Mostrar avatar inmediatamente
+                avatarSubtitlesManager.show();
+                avatarSubtitlesManager.setSubtitles(immediateCountryText);
+
+                pacingEngine.startEvent(CONTENT_TYPES.VOICE);
+
+                // Audio preliminar inmediato
+                audioManager.speak(immediateCountryText, 'normal', null, (txt) => avatarSubtitlesManager.setSubtitles(txt));
+            } else {
+                // Si es continuación, mostramos un indicador de "Pensando..." o similar, o simplemente esperamos a la IA
+                console.log("[Mapa] 🧠 Profundizando en el análisis...");
             }
-            // Mostrar avatar inmediatamente
-            avatarSubtitlesManager.show();
-            avatarSubtitlesManager.setSubtitles(immediateCountryText);
 
-            pacingEngine.startEvent(CONTENT_TYPES.VOICE);
-
-            // Audio preliminar inmediato
-            audioManager.speak(immediateCountryText, 'normal', null, (txt) => avatarSubtitlesManager.setSubtitles(txt));
+            // --- FASE 2: CONSULTA IA ---
 
             // Obtener dayId
             let dayId = 'Unknown';
@@ -1353,13 +1363,19 @@ Genera una introducción en primera persona (como ilfass) que:
                 }
             } catch (e) { }
 
-            const enrichedContext = { ...context, dayId };
+            // Enriquecer contexto para la IA
+            const enrichedContext = {
+                ...context,
+                dayId,
+                isContinuation: isContinuation, // Flag clave
+                theme: isContinuation ? "CURIOSIDADES_TECNICAS_Y_FUTURO" : "INTRO_CULTURAL" // Variar tema
+            };
 
             // Generar relato IA
-            console.log('[Mapa] 🧠 Consultando a IA (Modo Diálogo)...');
+            console.log(`[Mapa] 🧠 Consultando a IA (Modo Diálogo - Ronda ${isContinuation ? 2 : 1})...`);
             const continuousNarrative = await continuousNarrativeEngine.generateContinuousNarrative(target, enrichedContext);
 
-            // Procesar Multimedia (Imágenes)
+            // --- FASE 3: MULTIMEDIA ---
             const multimediaItems = [];
 
             if (continuousNarrative.multimedia && continuousNarrative.multimedia.length > 0) {
@@ -1381,11 +1397,6 @@ Genera una introducción en primera persona (como ilfass) que:
                         } catch (e) { console.warn("Error generar imagen", e); }
                     }
 
-                    // Fallback sencillo si no hay imagen
-                    if (!mediaUrl) {
-                        // Aquí podríamos usar placeholder
-                    }
-
                     if (mediaUrl) {
                         multimediaItems.push({
                             type: mediaPlan.type || 'image',
@@ -1403,8 +1414,11 @@ Genera una introducción en primera persona (como ilfass) que:
             });
 
 
+            // --- FASE 4: EJECUTAR NARRATIVA / DIÁLOGO ---
+
             // Determinar qué texto se reprodujo finalmente para guardarlo en memoria
-            let narrativeText = immediateCountryText;
+            // Si es continuación, partimos de vacío (no hay IMMEDIATE text)
+            let narrativeText = isContinuation ? "" : immediateCountryText;
 
             // Si el texto completo es diferente, procesarlo (Diálogo o Narración)
             if (continuousNarrative.narrative && continuousNarrative.narrative !== immediateCountryText) {
@@ -1419,15 +1433,22 @@ Genera una introducción en primera persona (como ilfass) que:
                     narrativeText = newText;
                 } else {
                     console.warn(`[Mapa] ⚠️ Texto generado NO es diálogo. Manteniendo intro actual o ignorando.`);
-                    // Mantenemos narrativeText = immediateCountryText
+                    // Si es continuación y falló la IA, no tenemos nada que decir.
+                    // Podríamos usar un fallback genérico corto.
+                    if (isContinuation) {
+                        const safetyFallback = `[ILFASS]: La complejidad de ${target.name} requiere más tiempo de análisis.\n[COMPANION]: Guardando registros para proceso en segundo plano.`;
+                        await this.playDialogueSequence(safetyFallback);
+                        narrativeText = safetyFallback;
+                    }
                 }
             } else {
-                // Si no hay texto nuevo, seguir con el inmediato (ya está corriendo)
+                // Si IA falló en ronda 1, ya se reprodujo immediateCountryText.
             }
 
-            // --- FINALIZAR VISITA ---
 
-            console.log('[Mapa] 🏁 Relato terminado.');
+            // --- FASE 5: FINALIZAR VISITA O CONTINUAR ---
+
+            console.log('[Mapa] 🏁 Ronda terminada.');
 
             // Guardar memoria
             const visitData = {
@@ -1440,9 +1461,23 @@ Genera una introducción en primera persona (como ilfass) que:
             };
             countryMemoryManager.saveVisit(target.id, visitData).catch(e => console.warn(e));
 
-            // Incrementar contador
-            this.visitedCount++;
+            // Incrementar contador solo si es primera ronda (para tracking global de "países visitados")
+            if (!isContinuation) {
+                this.visitedCount++;
+            }
 
+            // DECISIÓN: ¿Nos quedamos o nos vamos?
+            // Quedarse si: No es continuación (primera ronda) Y modo automático activo
+            if (!isContinuation && eventManager.canProceedAuto()) {
+                console.log(`[Mapa] 🕵️ Decisión: Profundizar en ${target.name} (Ronda 2).`);
+                // Pausa breve antes de seguir
+                setTimeout(() => {
+                    this.startContinuousNarrative(target, context, timing, true);
+                }, 2000);
+                return; // Salir, no hacemos ZoomOut aún
+            }
+
+            // Si llegamos aquí, ya terminamos todas las rondas
             // ZOOM OUT
             multimediaOrchestrator.hideAllOverlays();
             avatarSubtitlesManager.hide();
