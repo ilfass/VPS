@@ -10,6 +10,7 @@
         "@google/generative-ai": "^0.21.0",
         "date-fns": "^4.1.0",
         "dotenv": "^16.3.1",
-        "googleapis": "^170.1.0"
+        "googleapis": "^170.1.0",
+        "@andresaya/edge-tts": "^1.1.0"
     }
 }
