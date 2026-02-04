@@ -940,7 +940,7 @@ export default class MapaMode {
                 // Parsear respuesta
                 const lines = text.split('\n').filter(l => l.trim().length > 0);
                 lines.forEach(line => {
-                    let role = 'ilfass';
+                    let role = null;
                     let content = line;
 
                     if (line.toUpperCase().includes('COMPANION')) {
@@ -956,7 +956,7 @@ export default class MapaMode {
                     // Limpieza de comillas
                     content = content.replace(/^["']|["']$/g, '').trim();
 
-                    if (content) {
+                    if (role && content) {
                         dialogueSequence.push({ role, text: content });
                     }
                 });
@@ -1464,7 +1464,7 @@ Genera una introducción en primera persona (como ilfass) que:
         const queue = [];
 
         lines.forEach(line => {
-            let role = 'ilfass';
+            let role = null;
             let content = line;
 
             if (line.toUpperCase().includes('COMPANION')) {
@@ -1478,7 +1478,7 @@ Genera una introducción en primera persona (como ilfass) que:
             // Limpieza
             content = content.replace(/^:/, '').trim().replace(/^["']|["']$/g, '');
 
-            if (content && content.length > 1) {
+            if (role && content && content.length > 1) {
                 queue.push({ role, text: content });
             }
         });
