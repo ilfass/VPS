@@ -815,6 +815,67 @@ async function dreamWithHF(prompt) {
     }
 }
 
+// Nivel 2.5: DeepSeek
+async function dreamWithDeepSeek(prompt) {
+    if (!process.env.DEEPSEEK_API_KEY) return null;
+    console.log("🧠 Dreaming with DeepSeek...");
+    try {
+        const resp = await fetch('https://api.deepseek.com/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: "deepseek-chat",
+                messages: [
+                    { role: "system", content: "Eres ilfass, una inteligencia que viaja por el mundo documentando la existencia humana. Tu voz es reflexiva, observacional y personal. Hablas en primera persona." },
+                    { role: "user", content: prompt }
+                ],
+                max_tokens: 800,
+                temperature: 0.7
+            })
+        });
+        const data = await resp.json();
+        const content = data.choices?.[0]?.message?.content.replace(/"/g, '').trim();
+        if (content && content.length > 50) {
+            console.log(`✅ DeepSeek generó ${content.length} caracteres`);
+            return content;
+        }
+        console.warn("⚠️ DeepSeek no retornó contenido válido");
+    } catch (e) {
+        console.error("❌ DeepSeek Dream failed:", e.message);
+    }
+    return null;
+}
+
+// Nivel 2.6: Qwen (Alibaba)
+async function dreamWithQwen(prompt) {
+    if (!process.env.QWEN_API_KEY) return null;
+    console.log("🧠 Dreaming with Qwen...");
+    try {
+        // Intentando endpoint compatible con OpenAI de DashScope
+        const resp = await fetch('https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${process.env.QWEN_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: "qwen-max",
+                messages: [
+                    { role: "system", content: "Eres ilfass, una IA observadora." },
+                    { role: "user", content: prompt }
+                ],
+                max_tokens: 800
+            })
+        });
+        const data = await resp.json();
+        const content = data.choices?.[0]?.message?.content.replace(/"/g, '').trim();
+        if (content && content.length > 50) {
+            console.log(`✅ Qwen generó ${content.length} caracteres`);
+            return content;
+        }
+    } catch (e) {
+        console.error("❌ Qwen Dream failed:", e.message);
+    }
+    return null;
+}
+
 // Nivel 3: Gemini
 async function dreamWithGemini(prompt) {
     if (!GoogleGenerativeAI || !process.env.GEMINI_API_KEY) {
@@ -2267,6 +2328,28 @@ const server = http.createServer(async (req, res) => {
                     ]);
                 } catch (e) {
                     console.warn(`[GenerateNarrative] Grok falló o timeout: ${e.message}`);
+                }
+
+                if (!narrative || narrative.length < 100) {
+                    try {
+                        narrative = await Promise.race([
+                            dreamWithDeepSeek(prompt),
+                            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 30000))
+                        ]);
+                    } catch (e) {
+                        console.warn(`[GenerateNarrative] DeepSeek falló o timeout: ${e.message}`);
+                    }
+                }
+
+                if (!narrative || narrative.length < 100) {
+                    try {
+                        narrative = await Promise.race([
+                            dreamWithQwen(prompt),
+                            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 30000))
+                        ]);
+                    } catch (e) {
+                        console.warn(`[GenerateNarrative] Qwen falló o timeout: ${e.message}`);
+                    }
                 }
 
                 if (!narrative || narrative.length < 100) {
