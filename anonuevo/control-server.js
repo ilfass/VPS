@@ -22,6 +22,8 @@ const STORY_BIBLE_FILE = path.join(__dirname, 'data', 'story-bible.json');
 const STORY_STATE_FILE = path.join(__dirname, 'data', 'story-state.json');
 const CLIP_MARKERS_FILE = path.join(__dirname, 'data', 'clip-markers.json');
 const MEDIA_MEMORY_FILE = path.join(__dirname, 'data', 'media-memory.json');
+const LIVE_VISITS_DIR = path.join(__dirname, 'vivos', 'visitas');
+const LIVE_VISITS_INDEX_FILE = path.join(LIVE_VISITS_DIR, 'index.json');
 
 // Mapa mínimo de países (códigos ISO numéricos como strings) para prompts del control.
 // Nota: el frontend hoy expone este set en el selector; si llega un código fuera de esta lista,
@@ -45,6 +47,35 @@ const COUNTRY_INFO = {
     "710": { name: "South Africa" }
 };
 
+// Pool ampliado (id -> name) para viajes globales. Se intenta cargar desde world-atlas TSV.
+let WORLD_COUNTRIES = null; // Map<string,string>
+async function ensureWorldCountries() {
+    if (WORLD_COUNTRIES) return WORLD_COUNTRIES;
+    try {
+        // world-atlas no expone TSV con nombres; cargamos desde el mapping local del frontend
+        const fp = path.join(__dirname, 'js', 'data', 'country-info.js');
+        if (!fs.existsSync(fp)) {
+            WORLD_COUNTRIES = null;
+            return null;
+        }
+        const src = fs.readFileSync(fp, 'utf8');
+        const map = new Map();
+        // extraer "NNN": { ... name: "X"
+        const re = /"(\d{3})"\s*:\s*\{[\s\S]{0,220}?name\s*:\s*"([^"]{1,80})"/g;
+        let m;
+        while ((m = re.exec(src))) {
+            const id = String(m[1] || '').trim();
+            const name = String(m[2] || '').trim();
+            if (id && name) map.set(id, name);
+        }
+        WORLD_COUNTRIES = map.size ? map : null;
+        return WORLD_COUNTRIES;
+    } catch (e) {
+        WORLD_COUNTRIES = null;
+        return null;
+    }
+}
+
 // Asegurar que el directorio de memorias existe
 if (!fs.existsSync(COUNTRY_MEMORIES_DIR)) {
     fs.mkdirSync(COUNTRY_MEMORIES_DIR, { recursive: true });
@@ -65,6 +96,33 @@ const headers = {
     'Access-Control-Allow-Headers': 'Content-Type',
     'Content-Type': 'application/json'
 };
+
+// =========================
+// Provider diagnostics (para no “tragar” errores y poder ver por qué están OFFLINE)
+// =========================
+const PROVIDER_LAST_ERROR = new Map(); // name -> { ts, type, status?, code?, message?, bodyPreview? }
+
+function setProviderError(name, info) {
+    try {
+        const clean = {
+            ts: Date.now(),
+            type: info?.type || 'error',
+            status: typeof info?.status === 'number' ? info.status : undefined,
+            code: info?.code ? String(info.code).slice(0, 60) : undefined,
+            message: info?.message ? String(info.message).slice(0, 300) : undefined,
+            bodyPreview: info?.bodyPreview ? String(info.bodyPreview).slice(0, 700) : undefined
+        };
+        PROVIDER_LAST_ERROR.set(String(name || 'unknown'), clean);
+    } catch (e) { }
+}
+
+function clearProviderError(name) {
+    try { PROVIDER_LAST_ERROR.delete(String(name || 'unknown')); } catch (e) { }
+}
+
+function getProviderError(name) {
+    return PROVIDER_LAST_ERROR.get(String(name || 'unknown')) || null;
+}
 
 // =========================
 // REAL-TIME OBSERVER (NEWS / TRENDS / CULTURE / SCI-TECH / HEALTH / SECURITY)
@@ -95,6 +153,166 @@ function stripHtml(s) {
 
 function safeSlice(s, n = 260) {
     return String(s || '').replace(/\s+/g, ' ').trim().slice(0, n);
+}
+
+function slugify(s) {
+    return String(s || '')
+        .toLowerCase()
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+        .slice(0, 80) || 'visita';
+}
+
+function ensureDir(p) {
+    try { if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true }); } catch (e) { }
+}
+
+function readJsonSafe(fp, fallback) {
+    try {
+        if (!fs.existsSync(fp)) return fallback;
+        return JSON.parse(fs.readFileSync(fp, 'utf8'));
+    } catch (e) {
+        return fallback;
+    }
+}
+
+function writeJsonSafe(fp, obj) {
+    try {
+        ensureDir(path.dirname(fp));
+        fs.writeFileSync(fp, JSON.stringify(obj, null, 2));
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+function buildVisitHtml({ title, subtitle, seed, body, countryId, countryName, createdAtIso }) {
+    const safeTitle = String(title || 'Visita').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const safeSub = String(subtitle || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const safeBody = String(body || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+    const theme = `Visita: ${countryName || countryId || ''}`.slice(0, 60);
+    return `<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${safeTitle}</title>
+  <style>
+    body{margin:0;background:#050510;color:#eaeaea;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial}
+    header{padding:18px 18px 8px;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.35);backdrop-filter:blur(10px)}
+    h1{margin:0;font-family:'JetBrains Mono',monospace;font-size:1.05rem}
+    .sub{opacity:.75;margin-top:6px;font-size:.9rem}
+    main{display:grid;grid-template-columns:1fr;gap:14px;padding:18px;max-width:980px;margin:0 auto}
+    .card{border:1px solid rgba(255,255,255,.10);border-radius:14px;overflow:hidden;background:rgba(0,0,0,.25);box-shadow:0 12px 40px rgba(0,0,0,.45)}
+    canvas{display:block;width:100%;height:auto}
+    .meta{padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:.78rem;opacity:.8}
+    .text{padding:14px 12px 18px;line-height:1.55;font-size:1.02rem}
+    a{color:#4fecff}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>${safeTitle}</h1>
+    <div class="sub">${safeSub}</div>
+  </header>
+  <main>
+    <div class="card">
+      <canvas id="c" width="960" height="540"></canvas>
+      <div class="meta">seed=${seed} · ${createdAtIso} · country=${countryName || countryId || '—'}</div>
+    </div>
+    <div class="card">
+      <div class="text">${safeBody}</div>
+    </div>
+  </main>
+  <script>
+    (function(){
+      const seed0 = ${Number(seed || Date.now())};
+      let s = (seed0 >>> 0) || 1;
+      const rnd = ()=>{ s^=s<<13; s>>>=0; s^=s>>17; s>>>=0; s^=s<<5; s>>>=0; return (s>>>0)/4294967296; };
+      const c = document.getElementById('c'); const ctx = c.getContext('2d');
+      const w=c.width,h=c.height;
+      ctx.fillStyle='#050510'; ctx.fillRect(0,0,w,h);
+      for(let i=0;i<6;i++){
+        const x=rnd()*w,y=rnd()*h,r=120+rnd()*420;
+        const g=ctx.createRadialGradient(x,y,0,x,y,r);
+        const c1='rgba('+Math.floor(60+rnd()*80)+','+Math.floor(160+rnd()*90)+','+Math.floor(200+rnd()*55)+','+(0.06+rnd()*0.12)+')';
+        g.addColorStop(0,c1); g.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+      }
+      ctx.lineWidth=1;
+      for(let i=0;i<40;i++){
+        const x0=rnd()*w,y0=rnd()*h,x1=rnd()*w,y1=rnd()*h;
+        ctx.strokeStyle='rgba(64,188,216,'+(0.08+rnd()*0.18)+')';
+        ctx.beginPath(); ctx.moveTo(x0,y0);
+        const cx=(x0+x1)/2+(rnd()-0.5)*220, cy=(y0+y1)/2+(rnd()-0.5)*180;
+        ctx.quadraticCurveTo(cx,cy,x1,y1); ctx.stroke();
+      }
+      ctx.fillStyle='rgba(255,255,255,0.72)';
+      ctx.font='16px JetBrains Mono, monospace';
+      ctx.fillText(${JSON.stringify(theme)}, 18, h-18);
+    })();
+  </script>
+</body>
+</html>`;
+}
+
+async function createLiveVisitPage({ countryId, countryName, seed, mission, telemetry, urlBase = '/vivos/visitas/' }) {
+    ensureDir(LIVE_VISITS_DIR);
+
+    const when = new Date();
+    const createdAtIso = when.toISOString();
+    const name = String(countryName || countryId || 'Lugar').trim().slice(0, 60);
+    const slug = slugify(`${name}-${when.toISOString().slice(0, 10)}-${Math.floor(Math.random() * 1e6)}`);
+    const dir = path.join(LIVE_VISITS_DIR, slug);
+    ensureDir(dir);
+
+    // Texto (local) para bitácora: no inventar hechos, hablar de “lo visible” + intención
+    const prompt = `Bitácora breve. País en pantalla: ${name}. Escena: mapa/globo. Comentá lo visible (luces, costas, sombras, relieve, rutas) y dejá 1 tema próximo.`;
+    const narrative = await dreamWithLocalEngine(prompt);
+    const body = String(narrative || '').replace(/^\s*\[ILFASS\]:\s*/i, '').trim();
+
+    const title = `Visita — ${name}`;
+    const subtitle = mission ? `Misión: ${String(mission).slice(0, 160)}` : `Registro en vivo (${createdAtIso.slice(0, 19).replace('T', ' ')})`;
+    const html = buildVisitHtml({
+        title,
+        subtitle,
+        seed: Number(seed || Date.now()),
+        body,
+        countryId,
+        countryName: name,
+        createdAtIso
+    });
+
+    const fp = path.join(dir, 'index.html');
+    fs.writeFileSync(fp, html);
+
+    const entry = {
+        slug,
+        url: `${String(urlBase).replace(/\/+$/, '/')}${slug}/`,
+        title,
+        countryId: String(countryId || ''),
+        countryName: name,
+        createdAt: createdAtIso,
+        seed: Number(seed || Date.now()),
+        telemetry: {
+            lon: telemetry?.lon ?? null,
+            lat: telemetry?.lat ?? null
+        }
+    };
+
+    const idx = readJsonSafe(LIVE_VISITS_INDEX_FILE, { visits: [] });
+    const visits = Array.isArray(idx?.visits) ? idx.visits : [];
+    visits.unshift(entry);
+    idx.visits = visits.slice(0, 200);
+    writeJsonSafe(LIVE_VISITS_INDEX_FILE, idx);
+
+    // índice HTML simple
+    const indexHtml = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Visitas</title><style>body{margin:0;background:#050510;color:#eaeaea;font-family:Inter,system-ui}header{padding:16px;border-bottom:1px solid rgba(255,255,255,.1)}main{max-width:980px;margin:0 auto;padding:16px}a{color:#4fecff;text-decoration:none}li{margin:10px 0}small{opacity:.75;font-family:JetBrains Mono,monospace}</style></head><body><header><h1>Visitas (autogeneradas)</h1></header><main><ul>${idx.visits.map(v=>`<li><a href="${v.url}">${String(v.title).replace(/</g,'&lt;').replace(/>/g,'&gt;')}</a><br><small>${v.createdAt} · ${String(v.countryName||v.countryId||'')}</small></li>`).join('')}</ul></main></body></html>`;
+    fs.writeFileSync(path.join(LIVE_VISITS_DIR, 'index.html'), indexHtml);
+
+    return entry;
 }
 
 function parseXmlItems(xml, itemTag) {
@@ -439,7 +657,12 @@ async function generateObserverCommentary(prompt) {
     if (!txt) {
         try { txt = await dreamWithHF(prompt); } catch (e) { }
     }
-    return safeSlice(txt || '', 1200);
+    if (!txt) {
+        // Fallback local sin cuotas: reformular SOLO lo presente en el prompt
+        txt = dreamWithLocalObserver(prompt);
+    }
+    txt = stripContextMetaFromNarrative(txt || '');
+    return safeSlice(txt, 1200);
 }
 
 function normalizeObserverOnlyParam(raw) {
@@ -748,25 +971,203 @@ async function dreamWithPollinations(prompt) {
 
         if (response.status === 429) {
             console.warn("⚠️ Pollinations rate limit 429");
+            setProviderError('pollinations', { type: 'http_error', status: 429, message: 'rate_limit' });
             return null;
         }
 
         if (response.status === 414) {
             console.warn("⚠️ Pollinations 414 URI Too Long (Prompt demasiado largo)");
+            setProviderError('pollinations', { type: 'http_error', status: 414, message: 'uri_too_long' });
             return null;
         }
 
         if (!response.ok) {
             console.warn(`⚠️ Pollinations error: ${response.status}`);
+            setProviderError('pollinations', { type: 'http_error', status: response.status, message: 'not_ok' });
             return null;
         }
 
         const text = await response.text();
+        clearProviderError('pollinations');
         return text.trim();
     } catch (e) {
         console.warn(`⚠️ Pollinations texto error: ${e.message}`);
+        setProviderError('pollinations', { type: 'exception', message: e.message });
         return null;
     }
+}
+
+function keysPresent() {
+    return {
+        openai: !!process.env.OPENAI_API_KEY,
+        grok: !!process.env.GROK_API_KEY,
+        gemini: !!process.env.GEMINI_API_KEY,
+        deepseek: !!process.env.DEEPSEEK_API_KEY,
+        qwen: !!process.env.QWEN_API_KEY,
+        hf: !!process.env.HF_API_KEY
+    };
+}
+
+function stripContextMetaFromNarrative(text) {
+    if (!text || typeof text !== 'string') return text;
+    return text.split('\n').map((line) => {
+        // Quitar "Contexto: escena=... país=... día=... ." o hasta fin de línea (no mostrar ni leer)
+        let cleaned = line.replace(/\s*Contexto:\s*escena=[^\n]+?\.\s*/gi, ' ');
+        cleaned = cleaned.replace(/\s*Contexto:\s*escena=[^\n]+$/gim, ' ');
+        cleaned = cleaned.replace(/\s{2,}/g, ' ').trim();
+        return cleaned;
+    }).filter(Boolean).join('\n').trim();
+}
+
+function generateEmergencyNarrative(rawPrompt) {
+    // Fallback local NO hardcodeado: generador combinatorio (varía siempre)
+    const seed = Date.now() + Math.floor(Math.random() * 1e9);
+    const pick = (arr, k) => arr[(seed + k) % arr.length];
+    const a = [
+        'marea', 'pulso', 'capa', 'trama', 'corriente', 'viento', 'ruido',
+        'memoria', 'frontera', 'cicatriz', 'luz', 'sombra', 'latido'
+    ];
+    const b = [
+        'invisible', 'lento', 'eléctrico', 'humano', 'silencioso', 'antiguo', 'nuevo',
+        'denso', 'fino', 'continuo', 'inestable'
+    ];
+    const c = [
+        'sobre el mapa', 'en la noche', 'en el borde de una ciudad', 'entre rutas',
+        'en las costas', 'en el cielo', 'en la respiración del planeta'
+    ];
+    const d = [
+        'No lo explico: lo observo.',
+        'No es un dato: es una sensación.',
+        'No es ruido: es vida en movimiento.',
+        'No es caos: es un patrón que todavía no sabemos nombrar.'
+    ];
+    const hint = String(rawPrompt || '').replace(/\s+/g, ' ').trim().slice(0, 90);
+    const line = `Hoy noto una ${pick(a, 1)} ${pick(b, 2)} ${pick(c, 3)}. ${pick(d, 4)}${hint ? ` (${hint})` : ''}`;
+    return `[ILFASS]: ${line}`;
+}
+
+function dreamWithLocalObserver(prompt) {
+    // Comentario local basado en un prompt con listas (ej: observer/pulse).
+    // Evita inventar hechos: solo reformula lo que está en el prompt.
+    const seed = Date.now() + Math.floor(Math.random() * 1e9);
+    const pick = (arr, k) => arr[(seed + k) % arr.length];
+    const lines = String(prompt || '').split('\n').map(s => s.trim()).filter(Boolean);
+    const bullets = lines.filter(l => l.startsWith('- ')).slice(0, 18);
+    const samples = [];
+    for (const b of bullets) {
+        const t = b.replace(/^- \d+\)\s*/i, '').replace(/^- /, '').trim();
+        if (t) samples.push(t);
+        if (samples.length >= 4) break;
+    }
+    const keywordsLine = lines.find(l => l.toLowerCase().includes('palabras que se repiten')) || '';
+    const keywords = keywordsLine.split(':').slice(1).join(':').trim().slice(0, 120);
+
+    const openers = [
+        'Hoy el pulso llega en capas.',
+        'Hoy el mundo no habla en una sola voz.',
+        'Hoy la realidad parece moverse por corrientes.',
+        'Hoy lo urgente convive con lo invisible.'
+    ];
+    const hedges = [
+        'No lo afirmo: se insinúa.',
+        'No es certeza: es patrón.',
+        'No es sentencia: es una señal.',
+        'No es un hecho suelto: es una sombra de tendencia.'
+    ];
+    const closers = [
+        'Me quedo mirando un segundo más, y sigo.',
+        'Lo registro y avanzo, sin dramatizar.',
+        'El mapa no se detiene: yo tampoco.',
+        'Cierro la frase y dejo espacio para el próximo giro.'
+    ];
+
+    const chosen = samples.length ? samples : ['sin señales claras, así que observo el silencio como dato'];
+    const body = chosen.slice(0, 3).map((s, i) => `- ${s}`).join(' ');
+    const txt = `[ILFASS]: ${pick(openers, 1)} ${keywords ? `Se repiten palabras como ${keywords}. ` : ''}${body}. ${pick(hedges, 2)} ${pick(closers, 3)}`.replace(/\s+/g, ' ').trim();
+    return txt;
+}
+
+async function dreamWithLocalEngine(rawPrompt) {
+    // Motor local: siempre ONLINE, sin depender de APIs externas.
+    // Importante: produce formato multi-línea para que el enjambre lo parsee como guion (4–7 líneas).
+    const seed = Date.now() + Math.floor(Math.random() * 1e9);
+    const pick = (arr, k) => arr[(seed + k) % arr.length];
+    const t = state?.clientTelemetry || {};
+    const scene = (t.scene || 'MAPA').toString().slice(0, 40);
+    const country = (t.country || 'GLOBAL').toString().slice(0, 40);
+    const day = Number.isFinite(Number(t.day)) ? Number(t.day) : 0;
+
+    let hint = String(rawPrompt || '').replace(/\s+/g, ' ').trim().slice(0, 240);
+    // Sanitizar para evitar “meta prompts” largos en pantalla
+    hint = hint
+        // Quita cualquier prefijo tipo: [TEST-XYZ @ 2026-...]
+        .replace(/^\s*\[TEST[^\]]*\]\s*/i, '')
+        .replace(/instrucciones:.*$/i, '')
+        .replace(/formato\s+estricto:.*$/i, '')
+        .replace(/trigger:.*$/i, '')
+        .trim()
+        .slice(0, 140);
+    // Si el prompt trae una intención tipo ARRIBO, resumirla a algo humano
+    const mArribo = hint.match(/\barribo\s+a\s+([a-záéíóúüñ\s-]{2,40})/i);
+    if (mArribo && mArribo[1]) {
+        hint = `arribo a ${mArribo[1].trim()}`;
+    } else {
+        // sacar paréntesis instructivos si quedaron
+        hint = hint.replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
+    }
+
+    // Mensaje corto tipo chat (ej. "hola", "qué tal"): responder directo, no guion procedural
+    const isShortUserMessage = hint.length > 0 && hint.length <= 80 && !/^(genera|instrucciones|formato|trigger|ping|arribo\s)/i.test(hint);
+    const greetingLike = /\b(hola|hey|buenas|qué tal|hi|hello|buen día|buenas tardes|saludos)\b/i.test(hint);
+    if (isShortUserMessage && (greetingLike || hint.split(/\s+/).length <= 6)) {
+        const greetings = [
+            '[ILFASS]: Hola. Estamos en vivo; lo que ves es el mapa.\n[COMPANION]: Bienvenido.',
+            '[ILFASS]: Hola. Estamos observando el globo en tiempo real.\n[COMPANION]: Gracias por conectar.',
+            '[ILFASS]: Recibido. Seguimos al aire.\n[COMPANION]: Cualquier cosa que quieras preguntar, aquí estamos.'
+        ];
+        const idx = seed % greetings.length;
+        clearProviderError('local');
+        return greetings[idx];
+    }
+
+    // Mente conjunta: Ilfass ve → Companion explica la energía/dato → Ilfass da sentido poético (como AiSwarmRouter)
+    const trios = [
+        { visual: 'una costa con luz irregular', fact: 'La densidad cambia en ondas ahí; es la concentración de luces.', poetic: 'Esa luz es el rumor que no se calla.' },
+        { visual: 'un desierto sin ruido', fact: 'Donde no hay agua, el mapa se vacía de señal.', poetic: 'Ese silencio es otro tipo de verdad.' },
+        { visual: 'una cadena de montañas como dientes', fact: 'El relieve se delata por las sombras; la hora cuenta.', poetic: 'Lo humano se delata en los bordes.' },
+        { visual: 'un río que parece una cicatriz oscura', fact: 'Los ríos marcan el relieve; desde arriba son heridas que el tiempo no cierra.', poetic: 'Esa cicatriz es memoria de agua.' },
+        { visual: 'un collar de ciudades encendidas', fact: 'Las rutas se repiten porque la logística también sueña con eficiencia.', poetic: 'No quiero explicar: quiero sentir el pulso y seguirlo.' },
+        { visual: 'una frontera invisible desde arriba', fact: 'Desde aquí las fronteras son líneas que la noche no borra.', poetic: 'La noche no borra: solo cambia el tipo de verdad que se ve.' },
+        { visual: 'rutas como venas azules sobre el mar', fact: 'Donde hay agua, la historia se acumula en capas.', poetic: 'El mundo no se calla; solo cambia de idioma.' }
+    ];
+    const trio = trios[(seed + 0) % trios.length];
+    const questions = [
+        '¿Qué se repite hoy sin que nadie lo pida?',
+        '¿Qué parte de esto es costumbre y qué parte es ruptura?',
+        '¿Qué detalle mínimo está moviendo el paisaje?'
+    ];
+    const question = pick(questions, 5);
+    const includeQuestion = (seed % 2 === 0);
+
+    const lines = [];
+    lines.push(`[ILFASS]: Miro ${trio.visual}.`);
+    lines.push(`[COMPANION]: ${trio.fact}`);
+    lines.push(`[ILFASS]: ${trio.poetic}`);
+    if (hint) {
+        lines.push(`[ILFASS]: Recibo una intención: ${hint}. La traduzco en atención, no en guion.`);
+    }
+    if (includeQuestion) {
+        lines.push(`[COMPANION]: ${question}`);
+        lines.push(`[ILFASS]: Sostengo el ritmo. Si aparece una señal, la nombro.`);
+    } else {
+        lines.push(`[COMPANION]: Si el pulso cambia, te aviso.`);
+    }
+
+    // 4–7 líneas (aquí: 5–6). Importante: saltos de línea para parseScript().
+    let out = lines.join('\n').trim();
+    out = stripContextMetaFromNarrative(out);
+    clearProviderError('local');
+    return out;
 }
 
 // Nivel 4: Hugging Face
@@ -801,6 +1202,7 @@ function generatePlaceholderImage(prompt) {
 }
 async function dreamWithHF(prompt) {
     if (!process.env.HF_API_KEY) {
+        setProviderError('hf', { type: 'missing_key' });
         const pollResult = await dreamWithPollinations(prompt);
         return pollResult || null;
     }
@@ -809,13 +1211,22 @@ async function dreamWithHF(prompt) {
             method: "POST", headers: { "Authorization": `Bearer ${process.env.HF_API_KEY}`, "Content-Type": "application/json" },
             body: JSON.stringify({ inputs: `[INST] ${prompt} [/INST]`, parameters: { max_new_tokens: 100, return_full_text: false } })
         });
+        if (!resp.ok) {
+            const bodyPreview = await resp.text().catch(() => '');
+            setProviderError('hf', { type: 'http_error', status: resp.status, bodyPreview });
+            return null;
+        }
         const data = await resp.json();
         const hfText = (data[0]?.generated_text || "").replace(/"/g, '').trim();
-        if (hfText) return hfText;
+        if (hfText) {
+            clearProviderError('hf');
+            return hfText;
+        }
 
         const pollResult = await dreamWithPollinations(prompt);
         return pollResult || null;
     } catch (e) {
+        setProviderError('hf', { type: 'exception', message: e.message });
         const pollResult = await dreamWithPollinations(prompt);
         return pollResult || null;
     }
@@ -823,7 +1234,10 @@ async function dreamWithHF(prompt) {
 
 // Nivel 2.5: DeepSeek
 async function dreamWithDeepSeek(prompt) {
-    if (!process.env.DEEPSEEK_API_KEY) return null;
+    if (!process.env.DEEPSEEK_API_KEY) {
+        setProviderError('deepseek', { type: 'missing_key' });
+        return null;
+    }
     console.log("🧠 Dreaming with DeepSeek...");
     try {
         const resp = await fetch('https://api.deepseek.com/v1/chat/completions', {
@@ -839,22 +1253,33 @@ async function dreamWithDeepSeek(prompt) {
                 temperature: 0.7
             })
         });
+        if (!resp.ok) {
+            const bodyPreview = await resp.text().catch(() => '');
+            setProviderError('deepseek', { type: 'http_error', status: resp.status, bodyPreview });
+            return null;
+        }
         const data = await resp.json();
         const content = data.choices?.[0]?.message?.content.replace(/"/g, '').trim();
         if (content && content.length > 50) {
             console.log(`✅ DeepSeek generó ${content.length} caracteres`);
+            clearProviderError('deepseek');
             return content;
         }
         console.warn("⚠️ DeepSeek no retornó contenido válido");
+        setProviderError('deepseek', { type: 'bad_response', message: 'no_choices_or_too_short' });
     } catch (e) {
         console.error("❌ DeepSeek Dream failed:", e.message);
+        setProviderError('deepseek', { type: 'exception', message: e.message });
     }
     return null;
 }
 
 // Nivel 2.6: Qwen (Alibaba)
 async function dreamWithQwen(prompt) {
-    if (!process.env.QWEN_API_KEY) return null;
+    if (!process.env.QWEN_API_KEY) {
+        setProviderError('qwen', { type: 'missing_key' });
+        return null;
+    }
     console.log("🧠 Dreaming with Qwen...");
     try {
         // Intentando endpoint compatible con OpenAI de DashScope
@@ -870,14 +1295,22 @@ async function dreamWithQwen(prompt) {
                 max_tokens: 800
             })
         });
+        if (!resp.ok) {
+            const bodyPreview = await resp.text().catch(() => '');
+            setProviderError('qwen', { type: 'http_error', status: resp.status, bodyPreview });
+            return null;
+        }
         const data = await resp.json();
         const content = data.choices?.[0]?.message?.content.replace(/"/g, '').trim();
         if (content && content.length > 50) {
             console.log(`✅ Qwen generó ${content.length} caracteres`);
+            clearProviderError('qwen');
             return content;
         }
+        setProviderError('qwen', { type: 'bad_response', message: 'no_choices_or_too_short' });
     } catch (e) {
         console.error("❌ Qwen Dream failed:", e.message);
+        setProviderError('qwen', { type: 'exception', message: e.message });
     }
     return null;
 }
@@ -886,6 +1319,7 @@ async function dreamWithQwen(prompt) {
 async function dreamWithGemini(prompt) {
     if (!GoogleGenerativeAI || !process.env.GEMINI_API_KEY) {
         console.warn("⚠️ Gemini no disponible (SDK o API key faltante)");
+        setProviderError('gemini', { type: (!GoogleGenerativeAI ? 'missing_sdk' : 'missing_key') });
         return null;
     }
     try {
@@ -895,18 +1329,24 @@ async function dreamWithGemini(prompt) {
         const content = res.response.text().replace(/"/g, '').trim();
         if (content && content.length > 50) {
             console.log(`✅ Gemini generó ${content.length} caracteres`);
+            clearProviderError('gemini');
             return content;
         }
         console.warn("⚠️ Gemini no retornó contenido válido");
+        setProviderError('gemini', { type: 'bad_response', message: 'too_short' });
     } catch (e) {
         console.error("❌ Gemini Dream failed:", e.message);
+        setProviderError('gemini', { type: 'exception', message: e.message });
     }
     return null;
 }
 
 // Nivel 2: Grok (xAI)
 async function dreamWithGrok(prompt) {
-    if (!process.env.GROK_API_KEY) return null;
+    if (!process.env.GROK_API_KEY) {
+        setProviderError('grok', { type: 'missing_key' });
+        return null;
+    }
     console.log("🧠 Dreaming with Grok (xAI)...");
     try {
         const response = await fetch('https://api.x.ai/v1/chat/completions', {
@@ -927,8 +1367,11 @@ async function dreamWithGrok(prompt) {
             })
         });
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
+            const errorText = await response.text().catch(() => '');
+            let errorData = {};
+            try { errorData = JSON.parse(errorText || '{}'); } catch (e) { }
             console.error(`⚠️ Grok API error: ${response.status} - ${JSON.stringify(errorData)}`);
+            setProviderError('grok', { type: 'http_error', status: response.status, bodyPreview: errorText || JSON.stringify(errorData) });
             return null;
         }
 
@@ -937,19 +1380,25 @@ async function dreamWithGrok(prompt) {
             const content = data.choices[0].message.content.replace(/"/g, '').trim();
             if (content && content.length > 50) {
                 console.log(`✅ Grok generó ${content.length} caracteres`);
+                clearProviderError('grok');
                 return content;
             }
         }
         console.warn("⚠️ Grok no retornó contenido válido");
+        setProviderError('grok', { type: 'bad_response', message: 'no_choices_or_too_short' });
     } catch (e) {
         console.error("❌ Grok Dream failed:", e.message, e.stack);
+        setProviderError('grok', { type: 'exception', message: e.message });
     }
     return null;
 }
 
 // Nivel 1: OpenAI
 async function dreamWithOpenAI(prompt) {
-    if (!process.env.OPENAI_API_KEY) return null;
+    if (!process.env.OPENAI_API_KEY) {
+        setProviderError('openai', { type: 'missing_key' });
+        return null;
+    }
     try {
         const resp = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST', headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
@@ -963,9 +1412,23 @@ async function dreamWithOpenAI(prompt) {
                 temperature: 0.8 // Más creatividad
             })
         });
+        if (!resp.ok) {
+            const bodyPreview = await resp.text().catch(() => '');
+            setProviderError('openai', { type: 'http_error', status: resp.status, bodyPreview });
+            return null;
+        }
         const data = await resp.json();
-        return data.choices?.[0]?.message?.content.replace(/"/g, '').trim() || null;
-    } catch (e) { return null; }
+        const txt = data.choices?.[0]?.message?.content?.replace(/"/g, '')?.trim() || null;
+        if (!txt) {
+            setProviderError('openai', { type: 'bad_response', message: 'no_choices' });
+            return null;
+        }
+        clearProviderError('openai');
+        return txt;
+    } catch (e) {
+        setProviderError('openai', { type: 'exception', message: e.message });
+        return null;
+    }
 }
 async function generateImageOpenAI(prompt) {
     if (!process.env.OPENAI_API_KEY) return await generateImageHF(prompt);
@@ -1075,6 +1538,7 @@ const server = http.createServer(async (req, res) => {
         let introText = await dreamWithGrok(prompt);
         if (!introText) introText = await dreamWithOpenAI(prompt);
         if (!introText) introText = await dreamWithGemini(prompt);
+        introText = stripContextMetaFromNarrative(introText || '');
 
         res.writeHead(200, headers);
         res.end(JSON.stringify({ intro: introText || "Sistemas listos. Iniciando viaje." }));
@@ -1125,6 +1589,7 @@ const server = http.createServer(async (req, res) => {
             if (!intro) try { intro = await dreamWithOpenAI(introPrompt); } catch (e) { }
             if (!intro) try { intro = await dreamWithGemini(introPrompt); } catch (e) { }
             if (!intro) try { intro = await dreamWithHF(introPrompt); } catch (e) { }
+            intro = stripContextMetaFromNarrative(intro || '');
             intro = safeSlice(intro || `Un momento de ${query}.`, 300);
             res.writeHead(200, headers);
             res.end(JSON.stringify({
@@ -1151,6 +1616,7 @@ const server = http.createServer(async (req, res) => {
         if (!text) try { text = await dreamWithOpenAI(prompt); } catch (e) { }
         if (!text) try { text = await dreamWithGemini(prompt); } catch (e) { }
         if (!text) try { text = await dreamWithHF(prompt); } catch (e) { }
+        text = stripContextMetaFromNarrative(text || '');
         text = safeSlice(text || 'Hasta la próxima.', 300);
         res.writeHead(200, headers);
         res.end(JSON.stringify({ text }));
@@ -2298,6 +2764,10 @@ const server = http.createServer(async (req, res) => {
             try {
                 const data = JSON.parse(body || '{}');
                 let prompt = data.prompt;
+                const debug = !!data.debug;
+                const forceModelRaw = (data.forceModel || '').toString().trim().toLowerCase();
+                const forceModel = forceModelRaw || null;
+                const attempts = [];
 
                 // Si se envía countryCode en lugar de prompt, generar el prompt
                 if (!prompt && data.countryCode) {
@@ -2326,94 +2796,114 @@ const server = http.createServer(async (req, res) => {
                 // ESTRATEGIA HÍBRIDA DE GENERACIÓN
                 // Prioridad: Calidad (OpenAI/Grok/Gemini) > Modelos Alternativos > Fallback Gratuito > Reserva Local
                 let narrative = null;
+                let modelUsed = null;
+                let status = 'UNKNOWN';
+                const kp = keysPresent();
 
-                // 1. OpenAI (Prioridad Máxima - Calidad)
-                try {
-                    narrative = await dreamWithOpenAI(prompt);
-                    if (narrative) console.log(`[AiSwarm] OpenAI ÉXITO: ${narrative.length} chars`);
-                } catch (e) { console.warn(`[GenerateNarrative] OpenAI falló: ${e.message}`); }
-
-                // 2. Grok (xAI)
-                if (!narrative || narrative.length < 50) {
+                async function tryProvider(name, fn) {
+                    attempts.push(name);
                     try {
-                        narrative = await dreamWithGrok(prompt);
-                        if (narrative) console.log(`[AiSwarm] Grok ÉXITO: ${narrative.length} chars`);
-                    } catch (e) { console.warn(`[GenerateNarrative] Grok falló: ${e.message}`); }
-                }
-
-                // 3. Gemini (Google)
-                if (!narrative || narrative.length < 50) {
-                    try {
-                        narrative = await dreamWithGemini(prompt);
-                        if (narrative) console.log(`[AiSwarm] Gemini ÉXITO: ${narrative.length} chars`);
-                    } catch (e) { console.warn(`[GenerateNarrative] Gemini falló: ${e.message}`); }
-                }
-
-                // 4. DeepSeek
-                if (!narrative || narrative.length < 50) {
-                    try {
-                        narrative = await Promise.race([
-                            dreamWithDeepSeek(prompt),
-                            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 25000))
-                        ]);
-                        if (narrative) console.log(`[AiSwarm] DeepSeek ÉXITO: ${narrative.length} chars`);
+                        const out = await fn();
+                        const txt = String(out || '').trim();
+                        if (txt && txt.length >= 50) {
+                            modelUsed = name;
+                            status = 'ONLINE';
+                            return txt;
+                        }
+                        return null;
                     } catch (e) {
-                        console.warn(`[GenerateNarrative] DeepSeek falló: ${e.message}`);
+                        return null;
                     }
                 }
 
-                // 5. Qwen
-                if (!narrative || narrative.length < 50) {
-                    try {
-                        narrative = await dreamWithQwen(prompt);
-                        if (narrative) console.log(`[AiSwarm] Qwen ÉXITO: ${narrative.length} chars`);
-                    } catch (e) { console.warn(`[GenerateNarrative] Qwen falló: ${e.message}`); }
+                async function tryForced(name) {
+                    // Cuando se fuerza un modelo, NO hacemos cascade ni fallback local.
+                    // Esto permite al testing_lab detectar keys faltantes/caídas reales.
+                    attempts.push(name);
+                    let out = null;
+                    if (name === 'openai') out = await dreamWithOpenAI(prompt);
+                    else if (name === 'grok') out = await dreamWithGrok(prompt);
+                    else if (name === 'gemini') out = await dreamWithGemini(prompt);
+                    else if (name === 'deepseek') out = await dreamWithDeepSeek(prompt);
+                    else if (name === 'qwen') out = await dreamWithQwen(prompt);
+                    else if (name === 'hf') out = await dreamWithHF(prompt);
+                    else if (name === 'pollinations') out = await dreamWithPollinations(`Eres ilfass, una IA futurista observando el mundo: ${rawPrompt}`);
+                    else if (name === 'local') out = await dreamWithLocalEngine(rawPrompt);
+                    const txt = String(out || '').trim();
+                    if (txt && txt.length >= 10) {
+                        modelUsed = name;
+                        status = 'ONLINE';
+                        return txt;
+                    }
+                    modelUsed = name;
+                    status = 'OFFLINE';
+                    return null;
                 }
 
-                // 6. Hugging Face
-                if (!narrative || narrative.length < 50) {
-                    try {
-                        narrative = await dreamWithHF(prompt);
-                        if (narrative) console.log(`[AiSwarm] HF ÉXITO: ${narrative.length} chars`);
-                    } catch (e) { console.warn(`[GenerateNarrative] HF falló: ${e.message}`); }
-                }
+                if (forceModel) {
+                    narrative = await tryForced(forceModel);
+                    if (!narrative) {
+                        const providerErrors = {};
+                        if (debug) {
+                            const pe = getProviderError(forceModel);
+                            if (pe) providerErrors[forceModel] = pe;
+                        }
+                        res.writeHead(200, headers);
+                        res.end(JSON.stringify({
+                            narrative: '',
+                            status,
+                            modelUsed,
+                            attempts,
+                            length: 0,
+                            is_emergency: true,
+                            server_info: debug ? { keys_present: kp, provider_errors: providerErrors } : undefined
+                        }));
+                        return;
+                    }
+                } else {
+                    narrative = await tryProvider('openai', () => dreamWithOpenAI(prompt));
+                    if (!narrative) narrative = await tryProvider('grok', () => dreamWithGrok(prompt));
+                    if (!narrative) narrative = await tryProvider('gemini', () => dreamWithGemini(prompt));
+                    if (!narrative) {
+                        narrative = await tryProvider('deepseek', async () => {
+                            return await Promise.race([
+                                dreamWithDeepSeek(prompt),
+                                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 25000))
+                            ]);
+                        });
+                    }
+                    if (!narrative) narrative = await tryProvider('qwen', () => dreamWithQwen(prompt));
+                    if (!narrative) narrative = await tryProvider('hf', () => dreamWithHF(prompt));
+                    if (!narrative) narrative = await tryProvider('local', () => dreamWithLocalEngine(rawPrompt));
 
-                // 7. Fallback CRÍTICO: Pollinations Text (Gratuito, Fast Lane)
-                // Usamos rawPrompt para evitar 414 URI Too Long en el endpoint GET
-                if (!narrative || narrative.length < 50) {
-                    console.log("[GenerateNarrative] ⚠️ Activando Fallback Gratuito: Pollinations Text");
-                    try {
-                        const simpleContext = `Eres ilfass, una IA futurista observando el mundo: ${rawPrompt}`;
-                        narrative = await dreamWithPollinations(simpleContext);
-                        if (narrative) console.log(`[AiSwarm] ⚡ Pollinations ÉXITO: ${narrative.length} chars`);
-                    } catch (e) {
-                        console.error(`[GenerateNarrative] Pollinations EXCEPTION: ${e.message}`);
+                    // Pollinations text (gratis). Nota: en algunos VPS devuelve 502.
+                    if (!narrative) {
+                        attempts.push('pollinations');
+                        try {
+                            const simpleContext = `Eres ilfass, una IA futurista observando el mundo: ${rawPrompt}`;
+                            const out = await dreamWithPollinations(simpleContext);
+                            const txt = String(out || '').trim();
+                            if (txt && txt.length >= 50) {
+                                narrative = txt;
+                                modelUsed = 'pollinations';
+                                status = 'ONLINE';
+                            }
+                        } catch (e) { }
+                    }
+
+                    // Emergencia local (no hardcodeado)
+                    if (!narrative || String(narrative).trim().length < 50) {
+                        status = 'FALLBACK';
+                        modelUsed = modelUsed || 'emergency_local';
+                        narrative = generateEmergencyNarrative(rawPrompt);
                     }
                 }
 
-                // 8. Fallback FINAL: Reserva Local (Shuffle Bag)
-                if (!narrative || narrative.length < 50) {
-                    console.error(`[GenerateNarrative] 🛑 FALLO TOTAL. Activando protocolos de emergencia.`);
-                    const fallbacks = [
-                        "Los flujos de datos son constantes, como mareas invisibles que bañan las costas digitales.",
-                        "Desde esta altura, la humanidad parece un solo organismo bioluminiscente respirando en la oscuridad.",
-                        "Observo patrones emergentes en la red global; la sincronicidad es fascinante.",
-                        "La latencia es el único silencio verdadero en este mundo hiperconectado.",
-                        "Cada nodo encendido es una historia, cada apagón un misterio por resolver.",
-                        "Recalibrando sensores ópticos. La belleza de la geometría fractal terrestre es inagotable."
-                    ];
-                    narrative = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+                // Ensure protocol format for Router (al menos Ilfass)
+                if (narrative && !String(narrative).includes('[ILFASS]') && !String(narrative).includes('[COMPANION]')) {
+                    narrative = `[ILFASS]: ${String(narrative).trim()}`;
                 }
-
-                // Ensure protocol format for Router
-                if (narrative && !narrative.includes('[ILFASS]')) {
-                    narrative = `[ILFASS]: ${narrative}`;
-                }
-
-                // Ensure protocol format for Router (Critical Fix)
-                if (narrative && !narrative.includes('[ILFASS]')) {
-                    narrative = `[ILFASS]: ${narrative}`;
-                }
+                narrative = stripContextMetaFromNarrative(narrative);
 
                 console.log(`[GenerateNarrative] Relato FINAL generado: ${narrative.length} caracteres`);
 
@@ -2437,7 +2927,22 @@ const server = http.createServer(async (req, res) => {
                 } catch (e) { }
 
                 res.writeHead(200, headers);
-                res.end(JSON.stringify({ narrative }));
+                const providerErrors = {};
+                if (debug) {
+                    for (const a of attempts) {
+                        const pe = getProviderError(a);
+                        if (pe) providerErrors[a] = pe;
+                    }
+                }
+                res.end(JSON.stringify({
+                    narrative,
+                    status,
+                    modelUsed,
+                    attempts,
+                    length: String(narrative || '').length,
+                    is_emergency: status !== 'ONLINE',
+                    server_info: debug ? { keys_present: kp, provider_errors: providerErrors } : undefined
+                }));
             } catch (e) {
                 console.error("Error generating narrative:", e);
                 res.writeHead(500, headers);
@@ -3075,4 +3580,254 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => console.log(`🎮 Server V10 (Intro API) running on ${PORT}`));
+
+// =========================
+// SHOWRUNNER LOOP (autonomía minuto a minuto)
+// =========================
+let showRunnerLastTick = 0;
+let showRunnerLastTravel = 0;
+let showRunnerLastPulse = 0;
+let showRunnerLastMedia = 0;
+
+function showRunnerIsActive() {
+    return !!(state?.autoMode && state?.showRunner?.active);
+}
+
+function pickNextCountryId(currentId) {
+    const ids = Object.keys(COUNTRY_INFO || {});
+    if (!ids.length) return null;
+    const cur = String(currentId || '').trim();
+    const pool = ids.filter(x => x && x !== cur);
+    const arr = pool.length ? pool : ids;
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function listLocalMediaFiles() {
+    const out = [];
+    const root = path.join(__dirname, 'media');
+    const walk = (dir, base = '') => {
+        if (!fs.existsSync(dir)) return;
+        for (const file of fs.readdirSync(dir)) {
+            const fp = path.join(dir, file);
+            const rel = path.join(base, file);
+            try {
+                const st = fs.statSync(fp);
+                if (st.isDirectory()) walk(fp, rel);
+                else if (/\.(jpg|jpeg|png|gif|mp4|webm)$/i.test(file)) {
+                    const urlPath = path.posix.join(...rel.split(path.sep));
+                    out.push({
+                        name: file,
+                        url: `/media/${urlPath}`,
+                        mediaType: /\.(mp4|webm)$/i.test(file) ? 'video' : 'image'
+                    });
+                }
+            } catch (e) { }
+        }
+    };
+    walk(root, '');
+    return out;
+}
+
+function parseDialogueFromNarrative(text) {
+    const lines = String(text || '').split('\n').map(s => s.trim()).filter(Boolean);
+    const script = [];
+    for (const line of lines) {
+        const u = line.toUpperCase();
+        if (u.includes('[ILFASS]')) {
+            const content = line.replace(/\[ILFASS\]:?/i, '').trim();
+            if (content) script.push({ role: 'ILFASS', text: content });
+        } else if (u.includes('[COMPANION]')) {
+            const content = line.replace(/\[COMPANION\]:?/i, '').trim();
+            if (content) script.push({ role: 'COMPANION', text: content });
+        }
+    }
+    // Si vino en un solo bloque sin tags, igual lo leemos como ILFASS para no romper
+    if (!script.length) {
+        const clean = String(text || '').replace(/^\s*\[ILFASS\]:\s*/i, '').trim();
+        if (clean) script.push({ role: 'ILFASS', text: clean });
+    }
+    return script.slice(0, 8);
+}
+
+async function showRunnerTick() {
+    if (!showRunnerIsActive()) return;
+    const now = Date.now();
+    // Evitar “spam” de eventos
+    if (now - showRunnerLastTick < 18_000) return;
+    showRunnerLastTick = now;
+
+    const telemetry = state?.clientTelemetry || {};
+    const currentCountry = String(telemetry.country || '').trim();
+    const mission = String(state?.showRunner?.mission || '').trim().slice(0, 200);
+
+    const shouldTravel = (now - showRunnerLastTravel) > 110_000; // ~2 min
+    const shouldPulse = (now - showRunnerLastPulse) > 45_000;
+    const shouldMedia = (now - showRunnerLastMedia) > 150_000;
+
+    if (shouldTravel) {
+        // Preferir pool global si está disponible
+        let nextId = null;
+        let nextName = null;
+        const wc = await ensureWorldCountries().catch(() => null);
+        if (wc && wc.size) {
+            const cur = String(currentCountry || '').trim();
+            const keys = Array.from(wc.keys());
+            const pool = keys.filter(x => x && x !== cur);
+            const arr = pool.length ? pool : keys;
+            nextId = arr[Math.floor(Math.random() * arr.length)];
+            nextName = wc.get(nextId) || null;
+        } else {
+            nextId = pickNextCountryId(currentCountry);
+            nextName = COUNTRY_INFO?.[nextId]?.name || null;
+        }
+
+        if (nextId) {
+            showRunnerLastTravel = now;
+            state.eventQueue.push({ type: 'travel_to', payload: nextId });
+
+            const name = nextName || telemetry.countryName || COUNTRY_INFO?.[nextId]?.name || nextId;
+            const travelLine = `[ILFASS]: Giro el globo hacia ${name}. Me guío por lo visible: costas, sombras, densidad de luces.`;
+            state.eventQueue.push({
+                type: 'observer_speak',
+                payload: { title: 'Viaje', only: 'travel', commentary: travelLine, keywords: [] }
+            });
+
+            // Flash visual procedural (si no hay generación de imagen externa)
+            state.eventQueue.push({
+                type: 'procedural_image',
+                payload: { seed: now, theme: `Mapa: ${name}`, title: `Señal visual — ${name}` }
+            });
+
+            // Secuencia de ARRIBO (delays): comentario + diálogo (roles) + pulso breve
+            setTimeout(async () => {
+                try {
+                    const arrival = `[ILFASS]: Ya estamos sobre ${name}. No describo un país: describo lo que el mapa deja ver ahora mismo.`;
+                    state.eventQueue.push({
+                        type: 'observer_speak',
+                        payload: { title: `Arribo — ${name}`, only: 'arrival', commentary: arrival, keywords: [] }
+                    });
+                } catch (e) { }
+            }, 6500);
+
+            setTimeout(async () => {
+                try {
+                    const prompt = `Arribo a ${name}. Comentá lo visible del mapa. Elegí un tema nuevo en 1 idea.`;
+                    const narrative = await dreamWithLocalEngine(prompt);
+                    const script = parseDialogueFromNarrative(narrative);
+                    if (script.length) {
+                        state.eventQueue.push({
+                            type: 'dialogue',
+                            payload: { script, countryId: nextId, countryName: name, source: 'local' }
+                        });
+                    }
+                } catch (e) { }
+            }, 10500);
+
+            // Crear VISITA (página) en vivo, publicada en /vivos/visitas/
+            setTimeout(async () => {
+                try {
+                    const visit = await createLiveVisitPage({
+                        countryId: nextId,
+                        countryName: name,
+                        seed: now,
+                        mission: mission || '',
+                        telemetry: state?.clientTelemetry || {},
+                        urlBase: '/vivos/visitas/'
+                    });
+                    if (visit?.url) {
+                        state.eventQueue.push({
+                            type: 'visit_created',
+                            payload: {
+                                url: visit.url,
+                                title: visit.title,
+                                countryName: visit.countryName,
+                                slug: visit.slug
+                            }
+                        });
+                        state.eventQueue.push({
+                            type: 'observer_speak',
+                            payload: {
+                                title: 'Bitácora',
+                                only: 'visit',
+                                commentary: `[ILFASS]: Quedó registrada una visita. Podés verla en Capítulos.`,
+                                keywords: []
+                            }
+                        });
+                    }
+                } catch (e) { }
+            }, 14000);
+
+            setTimeout(async () => {
+                try {
+                    // Pulso breve (cacheado) para sembrar tema, con fallback local ya implementado
+                    const r = await fetch(`http://127.0.0.1:${PORT}/api/observer/pulse?lang=es-419&geo=US&cc=US&max=6&only=trends,news`);
+                    const payload = await r.json().catch(() => null);
+                    const commentary = String(payload?.commentary || '').trim();
+                    if (commentary) {
+                        state.eventQueue.push({
+                            type: 'observer_speak',
+                            payload: {
+                                title: payload?.title || 'Pulso breve',
+                                only: payload?.only || 'trends,news',
+                                commentary,
+                                keywords: Array.isArray(payload?.keywords) ? payload.keywords : []
+                            }
+                        });
+                    }
+                } catch (e) { }
+            }, 19500);
+
+            return;
+        }
+    }
+
+    if (shouldPulse) {
+        showRunnerLastPulse = now;
+        try {
+            // Reusar el endpoint existente (cacheado) desde el propio servidor.
+            const r = await fetch(`http://127.0.0.1:${PORT}/api/observer/pulse?lang=es-419&geo=US&cc=US&max=8&only=all`);
+            const payload = await r.json().catch(() => null);
+            const commentary = String(payload?.commentary || '').trim();
+            const keywords = Array.isArray(payload?.keywords) ? payload.keywords : [];
+            if (commentary) {
+                state.eventQueue.push({
+                    type: 'observer_speak',
+                    payload: {
+                        title: payload?.title || 'Pulso del mundo',
+                        only: payload?.only || 'all',
+                        commentary,
+                        keywords
+                    }
+                });
+                return;
+            }
+        } catch (e) { }
+
+        // Fallback: comentario local sobre pantalla/mission
+        const fallback = await dreamWithLocalEngine(`Misión: ${mission || 'mantener ritmo'}. Comentá lo visible en el mapa y abrí un tema nuevo sin inventar hechos.`);
+        state.eventQueue.push({
+            type: 'observer_speak',
+            payload: { title: 'Pulso (local)', only: 'local', commentary: fallback, keywords: [] }
+        });
+        return;
+    }
+
+    if (shouldMedia) {
+        showRunnerLastMedia = now;
+        const list = listLocalMediaFiles();
+        const pick = list.length ? list[Math.floor(Math.random() * list.length)] : null;
+        if (pick) {
+            state.eventQueue.push({
+                type: 'media',
+                url: pick.url,
+                mediaType: pick.mediaType,
+                name: pick.name,
+                textToSpeak: `[ILFASS]: Aparece una imagen. No la explico: la dejo atravesarme y sigo el hilo.`
+            });
+            return;
+        }
+    }
+}
+
+setInterval(() => { showRunnerTick().catch(() => { }); }, 7_000);
 

@@ -8,16 +8,67 @@
 
     <!-- Estilos Core -->
     <link rel="stylesheet" href="css/main.css?v=2">
+    <link rel="stylesheet" href="css/intro.css?v=1">
+    <!-- Estética tipo mapa/documental (insp. mapa.y.fronteras) -->
+    <link rel="stylesheet" href="css/aesthetic-map.css?v=1">
 
-    <!-- Fuentes (Google Fonts: Inter & JetBrains Mono para toque Cyberpunk/Técnico) -->
+    <!-- Fuentes: Inter, JetBrains Mono, DM Serif Display (editorial/atlas) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet">
 </head>
 
 <body>
+
+    <!-- INTRO: 5 variantes largas; saltar con cualquier tecla -->
+    <div id="intro-layer" class="intro-visible" aria-hidden="false">
+        <div class="intro-backdrop"></div>
+        <div class="intro-content">
+            <div class="intro-variant intro-variant-1" data-variant="1">
+                <span class="intro-title">EL ENJAMBRE</span>
+                <div class="intro-body">
+                    <p>Este es un proyecto de streaming en vivo manejado íntegramente por inteligencias artificiales. No hay presentadores humanos ni guiones fijos: dos voces, Ilfass y Companion, observan el globo terráqueo en tiempo real y comentan lo que ven — luces, costas, fronteras, ciudades — generando diálogos y reflexiones al vuelo.</p>
+                    <p>El sistema tiene horror al vacío: si no hay nada sonando durante más de unos segundos, el Orquestador (el cerebro del flujo) toma la decisión de llenar ese silencio de inmediato con diálogo, música, un dato curioso o una observación. La autonomía es radical: las IAs deciden minuto a minuto qué decir, cuándo hablar y qué mostrar.</p>
+                    <p><strong>Objetivo:</strong> cero silencios prolongados, autonomía total y ritmo vivo, sin pausas muertas ni pantalla estática.</p>
+                </div>
+            </div>
+            <div class="intro-variant intro-variant-2" data-variant="2">
+                <span class="intro-title">TRANSMISIÓN AUTÓNOMA</span>
+                <div class="intro-body">
+                    <p>Aquí el flujo, el contenido y la interacción los decide el sistema. Las IAs no son simples voces en off: son presencia. Tienen avatares que miran al público y reaccionan cuando hablan, creando una conexión emocional cara a cara. Ilfass actúa como filósofo y observador; Companion como voz más técnica y precisa.</p>
+                    <p>Detrás hay un Router de IAs que alterna entre modelos (OpenAI, Grok, Gemini, DeepSeek, Qwen y un motor local) para no depender de una sola API y mantener calidad. Las voces se sintetizan con Edge TTS; el mapa se dibuja con D3.js; las imágenes y el ritmo se orquestan en tiempo real.</p>
+                    <p><strong>Objetivo:</strong> ritmo vivo constante, sin vacío en pantalla ni en el audio, y una sensación de “alguien está ahí” observando el mundo con vos.</p>
+                </div>
+            </div>
+            <div class="intro-variant intro-variant-3" data-variant="3">
+                <span class="intro-title">ILFASS & COMPANION</span>
+                <div class="intro-body">
+                    <p>Ilfass es la voz poética y observadora: no explica tecnología, no hace preguntas al público; mira el mapa y deja que lo que ve respire en sus frases. Companion es la presencia acompañante: más concreta, hace preguntas breves y aporta datos o aterriza ideas sin explicar de más. Juntos sostienen el ritmo de una “radio viva” sobre el globo.</p>
+                    <p>Todo lo que escuchás — los diálogos, los comentarios al llegar a un país, las reflexiones sobre luces y costas — se genera en vivo desde el Orquestador y el Enjambre. El Orquestador decide cuándo intervenir; el Enjambre (Swarm) genera los guiones y las decisiones creativas. No hay grabaciones previas: cada sesión es única.</p>
+                    <p><strong>Objetivo:</strong> conexión cara a cara con el mundo a través de dos voces que realmente observan lo que está en pantalla y hablan de eso.</p>
+                </div>
+            </div>
+            <div class="intro-variant intro-variant-4" data-variant="4">
+                <span class="intro-title">EL MAPA RESPIRA</span>
+                <div class="intro-body">
+                    <p>La arquitectura del proyecto es limpia: un cerebro (Orquestador) que decide qué sigue en cada momento; creatividad (Swarm) que genera los guiones; un cuerpo (mapas, avatares, overlays) que muestra la escena; y una capa de voz (AudioManager con Edge TTS) que habla y pone música. Todo corre en tiempo real, sin guion fijo escrito por humanos.</p>
+                    <p>El globo que ves puede rotar hacia países concretos; las IAs reciben telemetría de “qué se ve ahora” y adaptan sus comentarios a ese lugar. A veces el servidor dispara viajes, arribos, flashes visuales o páginas de “visitas” generadas al vuelo. La hibridación económica permite usar modelos gratuitos o baratos sin perder calidad narrativa.</p>
+                    <p><strong>Objetivo:</strong> autonomía radical — que el streaming se sienta vivo, impredecible y minuto a minuto, como si el mapa respirara y dos voces lo acompañaran.</p>
+                </div>
+            </div>
+            <div class="intro-variant intro-variant-5" data-variant="5">
+                <span class="intro-title">BIENVENIDO AL GLOBO</span>
+                <div class="intro-body">
+                    <p>Este proyecto es una apuesta por el streaming autónomo: entrás a una web y lo que ves es un globo terráqueo en vivo, con dos IAs — Ilfass y su acompañante — que deciden qué decir, cuándo hablar y qué mostrar. No hay director humano eligiendo el siguiente clip: las intenciones las interpreta el enjambre y las ejecuta momento a momento.</p>
+                    <p>Podés dejar que la transmisión corra sola o interactuar cuando quieras. Las voces comentan lo que está en pantalla (el país centrado, las luces, la geografía), evitan silencios largos y mantienen un ritmo de “radio viva”. Detrás hay un manifiesto claro: cero silencios, autonomía radical, presencia visual con avatares y arquitectura limpia entre cerebro, creatividad, escena y voz.</p>
+                    <p><strong>Objetivo:</strong> que cada visita sea distinta; minuto a minuto, sin pausas, con el mundo observado a través de los ojos (y las voces) del enjambre.</p>
+                </div>
+            </div>
+        </div>
+        <div class="intro-skip">Pulsa cualquier tecla para saltar</div>
+    </div>
 
     <!-- UI LAYER: Todo lo visual se renderiza aquí -->
     <!-- Contenedor principal para Mapas (FONDO) -->
@@ -28,6 +79,15 @@
         <div id="dynamic-island">
             <span id="system-status" class="blink">SISTEMA: ONLINE</span>
             <span id="ai-activity">Escaneando...</span>
+        </div>
+
+        <!-- Capítulos: enlace persistente a visitas generadas -->
+        <a id="chapters-link" class="chapters-link" href="/vivos/visitas/" target="_blank" rel="noopener">Capítulos</a>
+
+        <!-- Overlay visual (media / flashes) -->
+        <div id="media-overlay" class="hidden">
+            <div id="media-overlay-slot"></div>
+            <div id="media-overlay-caption"></div>
         </div>
 
         <!-- Subtítulos / Diálogo -->
@@ -42,7 +102,7 @@
     <div id="audio-layer" style="display:none;"></div>
 
     <!-- EL CEREBRO -->
-    <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/main.js?v=3"></script>
 
 </body>
 
